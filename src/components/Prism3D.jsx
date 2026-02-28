@@ -45,7 +45,7 @@ export const PRISM_DEFAULTS = {
   beamOpacity: 1.0,
   rayOpacity: 0.85,
   // Edge glow
-  edgeGlowOpacity: 0.4,
+  edgeGlowOpacity: 0.55,
   // Vertex highlights
   vertexHighlightScale: 0.35,
   vertexHighlightPulse: 0.15,
@@ -93,42 +93,89 @@ const glassFrag = `
   varying vec3 vViewDir;
   varying vec3 vWorldPos;
 
+  // Simple pseudo-noise for caustic swirls
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float vnoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+
   void main() {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(vViewDir);
     float NdotV = abs(dot(N, V));
-    float fresnel = pow(1.0 - NdotV, 2.5);
+    float fresnel = pow(1.0 - NdotV, 2.2);
 
-    // Iridescent rainbow that shifts with viewing angle + time
-    float iri = acos(clamp(NdotV, 0.0, 1.0)) * 2.0 + uTime * 0.25;
+    float t = uTime * 0.2;
+
+    // Multi-layer iridescence (thin-film interference look)
+    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 3.0 + t;
+    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 5.0 - t * 0.7;
     vec3 iridescence = vec3(
-      0.5 + 0.5 * sin(iri * 4.0),
-      0.5 + 0.5 * sin(iri * 4.0 + 2.094),
-      0.5 + 0.5 * sin(iri * 4.0 + 4.189)
+      0.5 + 0.5 * sin(iri1 * 4.0),
+      0.5 + 0.5 * sin(iri1 * 4.0 + 2.094),
+      0.5 + 0.5 * sin(iri1 * 4.0 + 4.189)
     );
+    vec3 iriLayer2 = vec3(
+      0.5 + 0.5 * sin(iri2 * 3.0 + 1.0),
+      0.5 + 0.5 * sin(iri2 * 3.0 + 3.094),
+      0.5 + 0.5 * sin(iri2 * 3.0 + 5.189)
+    );
+    iridescence = mix(iridescence, iriLayer2, 0.35);
 
-    // Swirling interior nebula for depth
-    float t = uTime * 0.25;
+    // Caustic-like swirling interior (fakes refraction patterns)
+    vec2 causticUV = vWorldPos.xy * 2.5 + vec2(sin(t * 0.4 + vWorldPos.z), cos(t * 0.3));
+    float caustic1 = vnoise(causticUV * 3.0 + t * 0.5);
+    float caustic2 = vnoise(causticUV * 5.0 - t * 0.7 + 3.14);
+    float causticPattern = pow(abs(sin(caustic1 * 6.28 + caustic2 * 3.14)), 2.0);
+
+    // Swirling nebula colors
     vec3 nebula = vec3(
-      0.55 + 0.45 * sin(vWorldPos.y * 2.0 + t),
-      0.35 + 0.35 * sin(vWorldPos.x * 2.0 + t * 0.7 + 2.094),
-      0.65 + 0.35 * sin(vWorldPos.z * 2.0 + t * 0.5 + 4.189)
+      0.6 + 0.4 * sin(vWorldPos.y * 2.5 + t * 1.1),
+      0.35 + 0.4 * sin(vWorldPos.x * 2.5 + t * 0.8 + 2.094),
+      0.7 + 0.3 * sin(vWorldPos.z * 2.5 + t * 0.6 + 4.189)
     );
 
-    // Two specular highlights for sparkle
+    // Caustic rainbow (light patterns inside the glass)
+    vec3 causticColor = vec3(
+      0.5 + 0.5 * sin(causticPattern * 6.0 + t),
+      0.5 + 0.5 * sin(causticPattern * 6.0 + t + 2.094),
+      0.5 + 0.5 * sin(causticPattern * 6.0 + t + 4.189)
+    ) * causticPattern * 0.4;
+
+    // Three specular highlights for sparkle
     vec3 L1 = normalize(vec3(-1.0, 0.7, 0.8));
     vec3 L2 = normalize(vec3(1.0, 0.3, 0.5));
-    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 60.0);
-    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 30.0);
+    vec3 L3 = normalize(vec3(0.0, -0.8, 0.6));
+    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 80.0);
+    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 40.0);
+    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 25.0);
 
-    // Glass color: subtle purple tint at center, iridescent + nebula at edges
-    vec3 baseTint = vec3(0.55, 0.4, 1.0); // purple glass tint
-    vec3 color = mix(nebula * 0.4 + baseTint * 0.15, iridescence, fresnel * 0.6);
-    color += vec3(1.0, 0.98, 0.95) * (spec1 * 0.7 + spec2 * 0.35);
+    // Purple glass base tint
+    vec3 baseTint = vec3(0.5, 0.35, 0.95);
 
-    // Alpha: visible glass center, bright edges + specs
-    float alpha = 0.18 + fresnel * 0.5 + (spec1 + spec2 * 0.5) * 0.25;
-    alpha = min(alpha, 0.85);
+    // Composite: glass body = tinted nebula + caustics, edges = iridescence
+    vec3 interior = nebula * 0.35 + baseTint * 0.2 + causticColor;
+    vec3 color = mix(interior, iridescence, fresnel * 0.65);
+
+    // Bright specular highlights
+    color += vec3(1.0, 0.98, 0.95) * (spec1 * 0.8 + spec2 * 0.4 + spec3 * 0.25);
+
+    // Rim light for that glass-catching-light effect
+    float rimLight = pow(fresnel, 3.5) * 0.6;
+    color += vec3(0.8, 0.7, 1.0) * rimLight;
+
+    // Alpha: visible glass body, bright iridescent edges
+    float alpha = 0.28 + fresnel * 0.55 + (spec1 + spec2 * 0.5 + spec3 * 0.3) * 0.2 + causticPattern * 0.08;
+    alpha = min(alpha, 0.88);
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -639,13 +686,35 @@ function GlassOrbEye() {
   );
 }
 
-/* ═══════════ EYELID (big dramatic blinks) ═══════════ */
+/* ═══════════ EYELID TEXTURE (soft semicircle, not a hard rectangle) ═══════════ */
+function createEyelidTexture() {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+
+  // Soft semicircle eyelid (top half = opaque, bottom = soft fade)
+  const grad = ctx.createRadialGradient(size / 2, size * 0.35, 0, size / 2, size * 0.35, size * 0.55);
+  grad.addColorStop(0, 'rgba(10, 10, 46, 0.95)');
+  grad.addColorStop(0.6, 'rgba(10, 10, 46, 0.85)');
+  grad.addColorStop(0.85, 'rgba(10, 10, 46, 0.3)');
+  grad.addColorStop(1, 'rgba(10, 10, 46, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/* ═══════════ EYELID (big dramatic blinks - soft sprite) ═══════════ */
 function Eyelid() {
-  const meshRef = useRef();
+  const spriteRef = useRef();
   const blinkState = useRef({ nextBlink: 2, phase: 0, doubleBlink: false });
+  const eyelidTex = useMemo(() => createEyelidTexture(), []);
 
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
+    if (!spriteRef.current) return;
     const bs = blinkState.current;
 
     bs.nextBlink -= delta;
@@ -672,23 +741,16 @@ function Eyelid() {
         scaleY = 0;
         bs.phase = 0;
       }
-      meshRef.current.scale.y = scaleY;
+      spriteRef.current.scale.set(0.9, 0.5 * scaleY, 1);
     } else {
-      meshRef.current.scale.y = 0;
+      spriteRef.current.scale.set(0.9, 0, 1);
     }
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0.16, 0.4]}>
-      <planeGeometry args={[0.7, 0.4]} />
-      <meshBasicMaterial
-        color="#0a0a2e"
-        transparent
-        opacity={0.92}
-        depthWrite={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+    <sprite ref={spriteRef} position={[0, 0.18, 0.58]}>
+      <spriteMaterial map={eyelidTex} transparent depthWrite={false} />
+    </sprite>
   );
 }
 
