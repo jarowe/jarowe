@@ -567,6 +567,127 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     bopFolder.close();
 
     // ══════════════════════════════════════════
+    // PRISM BOP CHARACTER (Full Control Panel)
+    // ══════════════════════════════════════════
+    const prismBopFolder = gui.addFolder('Prism Bop Character');
+    const pcfg = window.__prismConfig || {};
+
+    // -- Visibility / Positioning --
+    const peekFolder = prismBopFolder.addFolder('Peek Control');
+    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false };
+    peekFolder.add(peekProxy, 'side', ['right', 'left', 'top']).name('Side');
+    peekFolder.add(peekProxy, 'cell', 0, 3, 1).name('Cell Index');
+    peekFolder.add(peekProxy, 'duration', 1, 30, 1).name('Duration (s)');
+    peekFolder.add(peekProxy, 'pinned').name('Pin On Screen');
+    peekFolder.add({ show() {
+      window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+        detail: { side: peekProxy.side, cell: Math.round(peekProxy.cell), duration: peekProxy.duration * 1000, pinned: peekProxy.pinned }
+      }));
+    } }, 'show').name('Show Prism');
+    peekFolder.add({ hide() {
+      window.dispatchEvent(new CustomEvent('hide-prism-peek'));
+    } }, 'hide').name('Hide Prism');
+
+    // -- Glass Material --
+    const pGlass = prismBopFolder.addFolder('Glass Material');
+    pGlass.add(pcfg, 'ior', 1.0, 5.0, 0.01).name('IOR');
+    pGlass.add(pcfg, 'chromaticAberration', 0, 5.0, 0.01).name('Chromatic Aberr.');
+    pGlass.add(pcfg, 'thickness', 0, 5.0, 0.1).name('Thickness');
+    pGlass.add(pcfg, 'backsideThickness', 0, 5.0, 0.1).name('Backside Thick');
+    pGlass.add(pcfg, 'roughness', 0, 1.0, 0.01).name('Roughness');
+    pGlass.add(pcfg, 'distortion', 0, 1.0, 0.01).name('Distortion');
+    pGlass.add(pcfg, 'temporalDistortion', 0, 2.0, 0.01).name('Temporal Distort');
+    pGlass.add(pcfg, 'anisotropy', 0, 1.0, 0.01).name('Anisotropy');
+    pGlass.add(pcfg, 'samples', 1, 16, 1).name('Samples');
+    pGlass.add(pcfg, 'resolution', 64, 512, 64).name('Resolution');
+    pGlass.close();
+
+    // -- Mouse Reactivity --
+    const pMouse = prismBopFolder.addFolder('Mouse Reactivity');
+    pMouse.add(pcfg, 'driftStrength', 0, 2.0, 0.01).name('Drift Strength');
+    pMouse.add(pcfg, 'driftSpeed', 0.01, 0.2, 0.005).name('Drift Speed');
+    pMouse.add(pcfg, 'driftTiltX', 0, 0.5, 0.01).name('Drift Tilt X');
+    pMouse.add(pcfg, 'driftTiltY', 0, 0.5, 0.01).name('Drift Tilt Y');
+    pMouse.add(pcfg, 'rayBendAmount', 0, 0.5, 0.01).name('Ray Bend');
+    pMouse.add(pcfg, 'rayVerticalBend', 0, 0.3, 0.01).name('Ray Vertical Bend');
+    pMouse.add(pcfg, 'beamTrackAmount', 0, 0.5, 0.01).name('Beam Track');
+    pMouse.add(pcfg, 'eyeTrackSpeed', 0.01, 0.3, 0.005).name('Eye Track Speed');
+    pMouse.add(pcfg, 'eyeTrackRange', 0.1, 1.0, 0.01).name('Eye Track Range');
+    pMouse.add(pcfg, 'rotationMouseInfluence', 0, 2.0, 0.01).name('Rotation Influence');
+    pMouse.close();
+
+    // -- Organic Aura --
+    const pAura = prismBopFolder.addFolder('Organic Aura');
+    pAura.add(pcfg, 'auraInnerScale', 1.0, 5.0, 0.1).name('Inner Scale');
+    pAura.add(pcfg, 'auraOuterScale', 1.0, 6.0, 0.1).name('Outer Scale');
+    pAura.add(pcfg, 'auraNoiseAmp', 0, 0.5, 0.01).name('Noise Amplitude');
+    pAura.add(pcfg, 'auraNoiseSpeed', 0, 2.0, 0.01).name('Noise Speed');
+    pAura.add(pcfg, 'auraBulgeStrength', 0, 1.0, 0.01).name('Mouse Bulge Str');
+    pAura.add(pcfg, 'auraBulgePower', 1.0, 5.0, 0.1).name('Mouse Bulge Pow');
+    pAura.add(pcfg, 'auraRimTightness', 1.0, 8.0, 0.1).name('Rim Tightness');
+    pAura.add(pcfg, 'auraRimBright', 0, 5.0, 0.1).name('Rim Brightness');
+    pAura.add(pcfg, 'auraRimWide', 0, 1.0, 0.01).name('Rim Wide');
+    pAura.close();
+
+    // -- Particles --
+    const pParticles = prismBopFolder.addFolder('Particles');
+    pParticles.add(pcfg, 'sparkleCount', 0, 100, 1).name('Sparkle Count');
+    pParticles.add(pcfg, 'sparkleSize', 0.5, 8.0, 0.1).name('Sparkle Size');
+    pParticles.add(pcfg, 'sparkleSpeed', 0, 2.0, 0.1).name('Sparkle Speed');
+    pParticles.add(pcfg, 'sparkleOpacity', 0, 1.0, 0.01).name('Sparkle Opacity');
+    pParticles.add(pcfg, 'innerSparkBrightness', 0.5, 5.0, 0.1).name('Inner Spark Bright');
+    pParticles.add(pcfg, 'orbitSpeed', 0, 2.0, 0.01).name('Orbit Speed');
+    pParticles.add(pcfg, 'orbitRadius', 1.0, 5.0, 0.1).name('Orbit Radius');
+    pParticles.close();
+
+    // -- Lighting --
+    const prismLightFolder = prismBopFolder.addFolder('Lighting');
+    prismLightFolder.add(pcfg, 'ambientIntensity', 0, 2.0, 0.01).name('Ambient');
+    prismLightFolder.add(pcfg, 'keyLightIntensity', 0, 8.0, 0.1).name('Key Light');
+    prismLightFolder.add(pcfg, 'purpleLightIntensity', 0, 5.0, 0.1).name('Purple Light');
+    prismLightFolder.add(pcfg, 'cyanLightIntensity', 0, 5.0, 0.1).name('Cyan Light');
+    prismLightFolder.add(pcfg, 'pinkLightIntensity', 0, 5.0, 0.1).name('Pink Light');
+    prismLightFolder.add(pcfg, 'internalGlowIntensity', 0, 5.0, 0.1).name('Internal Glow');
+    prismLightFolder.add(pcfg, 'internalGlowDistance', 1, 10, 0.5).name('Glow Distance');
+    prismLightFolder.add(pcfg, 'lightSpillIntensity', 0, 3.0, 0.01).name('Light Spill');
+    prismLightFolder.close();
+
+    // -- Animation --
+    const pAnim = prismBopFolder.addFolder('Animation');
+    pAnim.add(pcfg, 'floatSpeed', 0, 5.0, 0.1).name('Float Speed');
+    pAnim.add(pcfg, 'rotationIntensity', 0, 1.0, 0.01).name('Float Rotation');
+    pAnim.add(pcfg, 'floatIntensity', 0, 2.0, 0.01).name('Float Intensity');
+    pAnim.add(pcfg, 'rotationSpeed', 0, 1.0, 0.01).name('Spin Speed');
+    pAnim.add(pcfg, 'breathingAmp', 0, 0.1, 0.001).name('Breathing Amp');
+    pAnim.add(pcfg, 'breathingSpeed', 0, 3.0, 0.1).name('Breathing Speed');
+    pAnim.close();
+
+    // -- Beams & Effects --
+    const pFx = prismBopFolder.addFolder('Beams & Effects');
+    pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
+    pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
+    pFx.add(pcfg, 'edgeGlowOpacity', 0, 1.0, 0.01).name('Edge Glow');
+    pFx.add(pcfg, 'vertexHighlightScale', 0, 1.0, 0.01).name('Star Scale');
+    pFx.add(pcfg, 'vertexHighlightPulse', 0, 0.5, 0.01).name('Star Pulse');
+    pFx.close();
+
+    // -- Canvas / Display --
+    const pCanvas = prismBopFolder.addFolder('Canvas / Display');
+    pCanvas.add(pcfg, 'canvasSize', 200, 600, 10).name('Canvas Size');
+    pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %');
+    pCanvas.add(pcfg, 'featherOuter', 20, 100, 1).name('Feather Outer %');
+    pCanvas.close();
+
+    // -- Reset --
+    prismBopFolder.add({ async reset() {
+      const { PRISM_DEFAULTS } = await import('./Prism3D');
+      Object.assign(pcfg, PRISM_DEFAULTS);
+      gui.controllersRecursive().forEach(c => c.updateDisplay());
+    } }, 'reset').name('Reset All to Defaults');
+
+    prismBopFolder.close();
+
+    // ══════════════════════════════════════════
     // POST-PROCESSING (Cinematic VFX)
     // ══════════════════════════════════════════
     const ppFolder = gui.addFolder('Post-Processing');

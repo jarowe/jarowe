@@ -3,6 +3,85 @@ import { Float, MeshTransmissionMaterial, Sparkles } from '@react-three/drei';
 import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 
+/* ═══════════ GLOBAL PRISM CONFIG (GlobeEditor writes, Prism3D reads) ═══════════ */
+export const PRISM_DEFAULTS = {
+  // Glass
+  ior: 2.4,
+  chromaticAberration: 2.0,
+  thickness: 2.5,
+  backsideThickness: 2,
+  roughness: 0,
+  distortion: 0.2,
+  temporalDistortion: 0.5,
+  glassColor: '#f0e8ff',
+  anisotropy: 0.3,
+  samples: 10,
+  resolution: 256,
+  // Mouse reactivity
+  driftStrength: 0.8,
+  driftSpeed: 0.04,
+  driftTiltX: 0.15,
+  driftTiltY: 0.1,
+  rayBendAmount: 0.12,
+  rayVerticalBend: 0.06,
+  beamTrackAmount: 0.12,
+  eyeTrackSpeed: 0.06,
+  eyeTrackRange: 0.5,
+  rotationMouseInfluence: 0.5,
+  // Aura
+  auraInnerScale: 2.2,
+  auraOuterScale: 2.8,
+  auraNoiseAmp: 0.15,
+  auraNoiseSpeed: 0.6,
+  auraBulgeStrength: 0.35,
+  auraBulgePower: 2.5,
+  auraRimTightness: 3.5,
+  auraRimBright: 2.0,
+  auraRimWide: 0.4,
+  // Particles
+  sparkleCount: 50,
+  sparkleSize: 2.5,
+  sparkleSpeed: 0.5,
+  sparkleOpacity: 0.8,
+  innerSparkBrightness: 2.0,
+  orbitSpeed: 0.3,
+  orbitRadius: 2.8,
+  // Lighting
+  ambientIntensity: 0.3,
+  keyLightIntensity: 3,
+  purpleLightIntensity: 2,
+  cyanLightIntensity: 1.5,
+  pinkLightIntensity: 1,
+  internalGlowIntensity: 1.5,
+  internalGlowDistance: 4,
+  lightSpillIntensity: 1.0,
+  // Animation
+  floatSpeed: 2,
+  rotationIntensity: 0.3,
+  floatIntensity: 0.5,
+  rotationSpeed: 0.2,
+  breathingAmp: 0.02,
+  breathingSpeed: 0.8,
+  // Canvas / display
+  canvasSize: 340,
+  featherInner: 30,
+  featherOuter: 70,
+  // Beam / rays
+  beamOpacity: 0.9,
+  rayOpacity: 0.7,
+  // Edge glow
+  edgeGlowOpacity: 0.4,
+  // Vertex highlights
+  vertexHighlightScale: 0.35,
+  vertexHighlightPulse: 0.15,
+};
+
+// Live config object - editor mutates this, prism reads each frame
+if (!window.__prismConfig) {
+  window.__prismConfig = { ...PRISM_DEFAULTS };
+}
+const cfg = window.__prismConfig;
+
 /* ═══════════ Mouse tracking (window-level) ═══════════ */
 const mousePos = new THREE.Vector2(0, 0);
 const mouseVel = { current: 0 };
@@ -56,6 +135,9 @@ const rayFrag = `
 const blobbyAuraVert = `
   uniform float uTime;
   uniform float uNoiseOffset;
+  uniform float uNoiseAmp;
+  uniform float uBulgeStrength;
+  uniform float uBulgePower;
   uniform vec2 uMouse;
   varying vec3 vNormal;
   varying vec3 vViewDir;
@@ -114,13 +196,13 @@ const blobbyAuraVert = `
     float t = uTime * 0.6 + uNoiseOffset;
     float n1 = snoise(pos * 2.5 + t);
     float n2 = snoise(pos * 5.0 + t * 1.3) * 0.5;
-    float noiseDisp = (n1 + n2) * 0.15;
+    float noiseDisp = (n1 + n2) * uNoiseAmp;
 
-    // Strong mouse gravity bulge
+    // Mouse gravity bulge
     vec3 worldNorm = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
     vec3 mouseDir = normalize(vec3(uMouse.x * 1.5, uMouse.y * 1.5, 0.4));
     float alignment = max(0.0, dot(worldNorm, mouseDir));
-    float mouseBulge = pow(alignment, 2.5) * 0.35;
+    float mouseBulge = pow(alignment, uBulgePower) * uBulgeStrength;
 
     float totalDisp = noiseDisp + mouseBulge;
     pos += normal * totalDisp;
@@ -136,13 +218,16 @@ const blobbyAuraVert = `
 const blobbyAuraFrag = `
   uniform vec3 uColor;
   uniform float uTime;
+  uniform float uRimTight;
+  uniform float uRimBright;
+  uniform float uRimWide;
   varying vec3 vNormal;
   varying vec3 vViewDir;
   varying float vDisplacement;
   void main() {
     float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
-    float tightRim = pow(fresnel, 3.5) * 2.0;
-    float wideRim = pow(fresnel, 1.5) * 0.4;
+    float tightRim = pow(fresnel, uRimTight) * uRimBright;
+    float wideRim = pow(fresnel, 1.5) * uRimWide;
     float rim = tightRim + wideRim;
     rim *= 0.8 + 0.2 * sin(uTime * 1.5);
     vec3 color = mix(uColor, uColor * vec3(1.4, 0.85, 0.75), clamp(vDisplacement * 5.0, 0.0, 1.0));
@@ -172,12 +257,13 @@ const innerSparklesVert = `
 `;
 
 const innerSparklesFrag = `
+  uniform float uBrightness;
   varying vec3 vColor;
   varying float vAlpha;
   void main() {
     float d = length(gl_PointCoord - 0.5) * 2.0;
     float glow = 0.04 / (d + 0.04);
-    gl_FragColor = vec4(vColor * 2.0, glow * vAlpha);
+    gl_FragColor = vec4(vColor * uBrightness, glow * vAlpha);
   }
 `;
 
@@ -366,36 +452,46 @@ function NebulaBackdrop({ texture }) {
 /* ═══════════ PRISM BODY: liquid glass with breathing ═══════════ */
 function PrismBody({ nebulaTex }) {
   const meshRef = useRef();
+  const mtmRef = useRef();
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
-    meshRef.current.rotation.y += delta * 0.2;
+    meshRef.current.rotation.y += delta * cfg.rotationSpeed;
     meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.12;
-    // Mouse-responsive rotation boost
-    meshRef.current.rotation.y += mousePos.x * delta * 0.5;
-    meshRef.current.rotation.x += mousePos.y * delta * 0.3;
-    // Breathing scale
-    const breath = 1 + Math.sin(state.clock.elapsedTime * 0.8) * 0.02;
+    meshRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+    meshRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    const breath = 1 + Math.sin(state.clock.elapsedTime * cfg.breathingSpeed) * cfg.breathingAmp;
     meshRef.current.scale.setScalar(breath);
+    // Live-update MTM props from config
+    if (mtmRef.current) {
+      mtmRef.current.ior = cfg.ior;
+      mtmRef.current.chromaticAberration = cfg.chromaticAberration;
+      mtmRef.current.thickness = cfg.thickness;
+      mtmRef.current.distortion = cfg.distortion;
+      mtmRef.current.temporalDistortion = cfg.temporalDistortion;
+      mtmRef.current.roughness = cfg.roughness;
+      mtmRef.current.anisotropy = cfg.anisotropy;
+    }
   });
 
   return (
     <mesh ref={meshRef}>
       <cylinderGeometry args={[1, 1, 1.8, 3]} />
       <MeshTransmissionMaterial
+        ref={mtmRef}
         transmission={1}
-        ior={2.4}
-        chromaticAberration={2.0}
+        ior={cfg.ior}
+        chromaticAberration={cfg.chromaticAberration}
         backside
-        backsideThickness={2}
-        thickness={2.5}
-        roughness={0}
-        samples={10}
-        resolution={256}
-        distortion={0.2}
-        temporalDistortion={0.5}
-        color="#f0e8ff"
-        anisotropy={0.3}
+        backsideThickness={cfg.backsideThickness}
+        thickness={cfg.thickness}
+        roughness={cfg.roughness}
+        samples={cfg.samples}
+        resolution={cfg.resolution}
+        distortion={cfg.distortion}
+        temporalDistortion={cfg.temporalDistortion}
+        color={cfg.glassColor}
+        anisotropy={cfg.anisotropy}
         background={nebulaTex}
       />
     </mesh>
@@ -409,18 +505,20 @@ function MouseDriftGroup({ children }) {
 
   useFrame(() => {
     if (!groupRef.current) return;
-    // Strong drift toward mouse
-    driftTarget.current.set(mousePos.x * 0.8, mousePos.y * 0.6, mouseVel.current * 0.3);
-    groupRef.current.position.lerp(driftTarget.current, 0.04);
-    // Tilt toward mouse direction
+    driftTarget.current.set(
+      mousePos.x * cfg.driftStrength,
+      mousePos.y * (cfg.driftStrength * 0.75),
+      mouseVel.current * 0.3
+    );
+    groupRef.current.position.lerp(driftTarget.current, cfg.driftSpeed);
     groupRef.current.rotation.z = THREE.MathUtils.lerp(
       groupRef.current.rotation.z,
-      mousePos.x * -0.15,
+      mousePos.x * -cfg.driftTiltX,
       0.05
     );
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
       groupRef.current.rotation.x,
-      mousePos.y * 0.1,
+      mousePos.y * cfg.driftTiltY,
       0.04
     );
   });
@@ -436,12 +534,12 @@ function GlassOrbEye() {
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    const lerpFactor = 0.06 + Math.min(mouseVel.current * 3, 0.15);
+    const lerpFactor = cfg.eyeTrackSpeed + Math.min(mouseVel.current * 3, 0.15);
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
-      groupRef.current.rotation.x, mousePos.y * 0.5, lerpFactor
+      groupRef.current.rotation.x, mousePos.y * cfg.eyeTrackRange, lerpFactor
     );
     groupRef.current.rotation.y = THREE.MathUtils.lerp(
-      groupRef.current.rotation.y, mousePos.x * 0.5, lerpFactor
+      groupRef.current.rotation.y, mousePos.x * cfg.eyeTrackRange, lerpFactor
     );
     if (orbRef.current) {
       const pulse = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.04;
@@ -485,11 +583,11 @@ function IncomingBeam() {
     if (!matRef.current) return;
     matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
     matRef.current.uniforms.uOpacity.value =
-      0.85 + Math.sin(state.clock.elapsedTime * 2.5) * 0.1;
+      cfg.beamOpacity * (0.9 + Math.sin(state.clock.elapsedTime * 2.5) * 0.1);
     if (meshRef.current) {
       meshRef.current.rotation.z = THREE.MathUtils.lerp(
         meshRef.current.rotation.z,
-        -0.1 + mousePos.y * 0.12,
+        -0.1 + mousePos.y * cfg.beamTrackAmount,
         0.05
       );
     }
@@ -535,16 +633,15 @@ function RainbowFan() {
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    // Strong mouse influence on ray spread
-    const mouseSpread = mousePos.x * 0.12;
-    const mouseVertical = mousePos.y * 0.06;
+    const mouseSpread = mousePos.x * cfg.rayBendAmount;
+    const mouseVertical = mousePos.y * cfg.rayVerticalBend;
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
       const wave = Math.sin(t * 1.0 + i * 0.9) * 0.012;
       mesh.rotation.z = RAINBOW_BANDS[i].angle + wave + mouseSpread;
       mesh.rotation.x = mouseVertical;
       mesh.material.uniforms.uOpacity.value =
-        0.7 + Math.sin(t * 1.8 + i * 1.3) * 0.2;
+        cfg.rayOpacity + Math.sin(t * 1.8 + i * 1.3) * 0.2;
       mesh.material.uniforms.uTime.value = t;
     });
   });
@@ -596,7 +693,7 @@ function VertexHighlights() {
     const t = state.clock.elapsedTime;
     spritesRef.current.forEach((sprite, i) => {
       if (!sprite) return;
-      const pulse = 0.35 + Math.sin(t * 3.5 + i * 1.1) * 0.15;
+      const pulse = cfg.vertexHighlightScale + Math.sin(t * 3.5 + i * 1.1) * cfg.vertexHighlightPulse;
       sprite.scale.set(pulse, pulse, 1);
     });
   });
@@ -631,7 +728,7 @@ function EdgeGlow() {
         wireframe
         color="#c4b5fd"
         transparent
-        opacity={0.4}
+        opacity={cfg.edgeGlowOpacity}
         blending={THREE.AdditiveBlending}
       />
     </mesh>
@@ -647,10 +744,11 @@ function InternalGlow() {
     const hue = (state.clock.elapsedTime * 0.08) % 1;
     lightRef.current.color.setHSL(hue, 0.8, 0.6);
     // Pulse intensity with mouse proximity
-    lightRef.current.intensity = 1.5 + mouseVel.current * 5;
+    lightRef.current.intensity = cfg.internalGlowIntensity + mouseVel.current * 5;
+    lightRef.current.distance = cfg.internalGlowDistance;
   });
 
-  return <pointLight ref={lightRef} position={[0, 0, 0]} intensity={1.5} distance={4} />;
+  return <pointLight ref={lightRef} position={[0, 0, 0]} intensity={cfg.internalGlowIntensity} distance={cfg.internalGlowDistance} />;
 }
 
 /* ═══════════ BLOBBY GLOW LAYER ═══════════ */
@@ -675,6 +773,12 @@ function BlobbyGlowLayer({ scale = 2.5, noiseOffset = 0, baseColor }) {
     matRef.current.uniforms.uColor.value.copy(color);
     matRef.current.uniforms.uTime.value = t;
     matRef.current.uniforms.uMouse.value.set(mousePos.x, mousePos.y);
+    matRef.current.uniforms.uNoiseAmp.value = cfg.auraNoiseAmp;
+    matRef.current.uniforms.uBulgeStrength.value = cfg.auraBulgeStrength;
+    matRef.current.uniforms.uBulgePower.value = cfg.auraBulgePower;
+    matRef.current.uniforms.uRimTight.value = cfg.auraRimTightness;
+    matRef.current.uniforms.uRimBright.value = cfg.auraRimBright;
+    matRef.current.uniforms.uRimWide.value = cfg.auraRimWide;
   });
 
   return (
@@ -688,6 +792,12 @@ function BlobbyGlowLayer({ scale = 2.5, noiseOffset = 0, baseColor }) {
           uColor: { value: new THREE.Color(baseColor || '#1e1b4b') },
           uTime: { value: 0 },
           uNoiseOffset: { value: noiseOffset },
+          uNoiseAmp: { value: cfg.auraNoiseAmp },
+          uBulgeStrength: { value: cfg.auraBulgeStrength },
+          uBulgePower: { value: cfg.auraBulgePower },
+          uRimTight: { value: cfg.auraRimTightness },
+          uRimBright: { value: cfg.auraRimBright },
+          uRimWide: { value: cfg.auraRimWide },
           uMouse: { value: new THREE.Vector2(0, 0) },
         }}
         transparent
@@ -754,7 +864,10 @@ function InnerSparkles() {
   }, []);
 
   useFrame((state) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    if (matRef.current) {
+      matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      matRef.current.uniforms.uBrightness.value = cfg.innerSparkBrightness;
+    }
   });
 
   return (
@@ -763,7 +876,7 @@ function InnerSparkles() {
         ref={matRef}
         vertexShader={innerSparklesVert}
         fragmentShader={innerSparklesFrag}
-        uniforms={{ uTime: { value: 0 } }}
+        uniforms={{ uTime: { value: 0 }, uBrightness: { value: cfg.innerSparkBrightness } }}
         transparent
         blending={THREE.AdditiveBlending}
         depthWrite={false}
@@ -776,7 +889,7 @@ function InnerSparkles() {
 function OrbitingRing() {
   const pointsRef = useRef();
   const COUNT = 24;
-  const RADIUS = 2.8;
+  const radiusRef = useRef(cfg.orbitRadius);
 
   const geo = useMemo(() => {
     const positions = new Float32Array(COUNT * 3);
@@ -788,12 +901,13 @@ function OrbitingRing() {
   useFrame((state) => {
     if (!pointsRef.current) return;
     const t = state.clock.elapsedTime;
+    radiusRef.current = cfg.orbitRadius;
     const posArr = geo.attributes.position.array;
     for (let i = 0; i < COUNT; i++) {
-      const angle = (i / COUNT) * Math.PI * 2 + t * 0.3;
-      posArr[i * 3] = Math.cos(angle) * RADIUS;
+      const angle = (i / COUNT) * Math.PI * 2 + t * cfg.orbitSpeed;
+      posArr[i * 3] = Math.cos(angle) * radiusRef.current;
       posArr[i * 3 + 1] = Math.sin(angle * 2) * 0.15;
-      posArr[i * 3 + 2] = Math.sin(angle) * RADIUS;
+      posArr[i * 3 + 2] = Math.sin(angle) * radiusRef.current;
     }
     geo.attributes.position.needsUpdate = true;
   });
@@ -854,7 +968,7 @@ function LightSpill() {
         Math.cos(t * 0.5) * 2 + mousePos.y * 1.5,
         2
       );
-      light1.current.intensity = 2 + Math.sin(t * 2) * 0.5;
+      light1.current.intensity = (2 + Math.sin(t * 2) * 0.5) * cfg.lightSpillIntensity;
     }
     if (light2.current) {
       light2.current.position.set(
@@ -862,7 +976,7 @@ function LightSpill() {
         Math.sin(t * 0.8) * 1.5 - mousePos.y,
         3
       );
-      light2.current.intensity = 1.5 + Math.sin(t * 1.7) * 0.4;
+      light2.current.intensity = (1.5 + Math.sin(t * 1.7) * 0.4) * cfg.lightSpillIntensity;
     }
     if (light3.current) {
       light3.current.position.set(
@@ -870,7 +984,7 @@ function LightSpill() {
         mousePos.y * 3,
         4
       );
-      light3.current.intensity = 0.8 + mouseVel.current * 8;
+      light3.current.intensity = (0.8 + mouseVel.current * 8) * cfg.lightSpillIntensity;
     }
   });
 
@@ -879,6 +993,33 @@ function LightSpill() {
       <pointLight ref={light1} color="#a855f7" distance={6} />
       <pointLight ref={light2} color="#38bdf8" distance={6} />
       <pointLight ref={light3} color="#f0abfc" distance={8} />
+    </>
+  );
+}
+
+/* ═══════════ SCENE LIGHTS (reads cfg each frame) ═══════════ */
+function SceneLights() {
+  const ambRef = useRef();
+  const keyRef = useRef();
+  const purpleRef = useRef();
+  const cyanRef = useRef();
+  const pinkRef = useRef();
+
+  useFrame(() => {
+    if (ambRef.current) ambRef.current.intensity = cfg.ambientIntensity;
+    if (keyRef.current) keyRef.current.intensity = cfg.keyLightIntensity;
+    if (purpleRef.current) purpleRef.current.intensity = cfg.purpleLightIntensity;
+    if (cyanRef.current) cyanRef.current.intensity = cfg.cyanLightIntensity;
+    if (pinkRef.current) pinkRef.current.intensity = cfg.pinkLightIntensity;
+  });
+
+  return (
+    <>
+      <ambientLight ref={ambRef} intensity={cfg.ambientIntensity} />
+      <pointLight ref={keyRef} position={[-4, 3, 3]} color="#ffffff" intensity={cfg.keyLightIntensity} />
+      <pointLight ref={purpleRef} position={[4, -1, 3]} color="#9333ea" intensity={cfg.purpleLightIntensity} />
+      <pointLight ref={cyanRef} position={[0, 3, 4]} color="#38bdf8" intensity={cfg.cyanLightIntensity} />
+      <pointLight ref={pinkRef} position={[-2, -2, 3]} color="#f472b6" intensity={cfg.pinkLightIntensity} />
     </>
   );
 }
@@ -903,16 +1044,19 @@ export default function Prism3D() {
     return () => window.removeEventListener('mousemove', handler);
   }, []);
 
+  const size = cfg.canvasSize;
+  const fi = cfg.featherInner;
+  const fo = cfg.featherOuter;
+
   return (
     <div
       className="prism-3d-canvas-wrapper"
       style={{
-        width: 340,
-        height: 340,
+        width: size,
+        height: size,
         pointerEvents: 'none',
-        // Soft radial feather so edges dissolve into the page
-        WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 70%)',
-        maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 70%)',
+        WebkitMaskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,
+        maskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,
       }}
     >
       <Canvas
@@ -921,22 +1065,12 @@ export default function Prism3D() {
         camera={{ position: [0, 0, 6], fov: 45 }}
         style={{ background: 'transparent' }}
       >
-        {/* Strong multi-color lighting */}
-        <ambientLight intensity={0.3} />
-        <pointLight position={[-4, 3, 3]} color="#ffffff" intensity={3} />
-        <pointLight position={[4, -1, 3]} color="#9333ea" intensity={2} />
-        <pointLight position={[0, 3, 4]} color="#38bdf8" intensity={1.5} />
-        <pointLight position={[-2, -2, 3]} color="#f472b6" intensity={1} />
-
-        {/* Dynamic mouse-reactive lights */}
+        <SceneLights />
         <LightSpill />
-
-        {/* Soft nebula backdrop for MTM refraction (no hard shapes!) */}
         <NebulaBackdrop texture={nebulaTex} />
 
-        {/* Mouse gravity wrapper */}
         <MouseDriftGroup>
-          <Float speed={2} rotationIntensity={0.3} floatIntensity={0.5}>
+          <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <PrismBody nebulaTex={nebulaTex} />
             <GlassOrbEye />
             <InternalGlow />
@@ -947,11 +1081,11 @@ export default function Prism3D() {
             <RainbowFan />
 
             <Sparkles
-              count={50}
+              count={cfg.sparkleCount}
               scale={[4, 4, 4]}
-              size={2.5}
-              speed={0.5}
-              opacity={0.8}
+              size={cfg.sparkleSize}
+              speed={cfg.sparkleSpeed}
+              opacity={cfg.sparkleOpacity}
               color="#c4b5fd"
               noise={2}
             />
@@ -960,8 +1094,8 @@ export default function Prism3D() {
 
         <OrbitingRing />
 
-        <BlobbyGlowLayer scale={2.2} noiseOffset={0} baseColor="#1e1b4b" />
-        <BlobbyGlowLayer scale={2.8} noiseOffset={Math.PI} baseColor="#312e81" />
+        <BlobbyGlowLayer scale={cfg.auraInnerScale} noiseOffset={0} baseColor="#1e1b4b" />
+        <BlobbyGlowLayer scale={cfg.auraOuterScale} noiseOffset={Math.PI} baseColor="#312e81" />
 
         <CausticPlane />
       </Canvas>

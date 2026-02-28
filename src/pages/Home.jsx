@@ -3401,19 +3401,36 @@ export default function Home() {
     return () => clearTimeout(timerId);
   }, []);
 
-  // Editor "Trigger Prism Peek" button support
+  // Editor prism peek control (supports detail: { side, cell, duration, pinned })
+  const peekPinnedRef = useRef(false);
+  const peekTimerRef = useRef(null);
   useEffect(() => {
-    const handler = () => {
+    const showHandler = (e) => {
+      const d = e.detail || {};
       const sides = ['right', 'left', 'top'];
       setPeekPosition({
-        cell: Math.floor(Math.random() * 4),
-        side: sides[Math.floor(Math.random() * sides.length)]
+        cell: d.cell ?? Math.floor(Math.random() * 4),
+        side: d.side || sides[Math.floor(Math.random() * sides.length)]
       });
       setPeekVisible(true);
-      setTimeout(() => setPeekVisible(false), 8000);
+      peekPinnedRef.current = !!d.pinned;
+      if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+      if (!d.pinned) {
+        peekTimerRef.current = setTimeout(() => setPeekVisible(false), d.duration || 8000);
+      }
     };
-    window.addEventListener('trigger-prism-peek', handler);
-    return () => window.removeEventListener('trigger-prism-peek', handler);
+    const hideHandler = () => {
+      peekPinnedRef.current = false;
+      if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+      setPeekVisible(false);
+    };
+    window.addEventListener('trigger-prism-peek', showHandler);
+    window.addEventListener('hide-prism-peek', hideHandler);
+    return () => {
+      window.removeEventListener('trigger-prism-peek', showHandler);
+      window.removeEventListener('hide-prism-peek', hideHandler);
+      if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+    };
   }, []);
 
   const handleCatchCharacter = useCallback(() => {
