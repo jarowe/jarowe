@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 02-data-pipeline-privacy
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md
 started: 2026-02-28T17:00:00Z
-updated: 2026-02-28T17:22:00Z
+updated: 2026-02-28T17:30:00Z
 ---
 
 ## Current Test
@@ -77,21 +77,57 @@ skipped: 0
   reason: "User reported: counts are correct (60 nodes, 88 edges), but schema differs: no 'blog' type (normalized to 'moment'), nodes use 'title' instead of 'label'."
   severity: minor
   test: 3
-  artifacts: []
-  missing: []
+  root_cause: "Test expectation mismatch, NOT a code bug. Canonical schema intentionally uses 'moment'/'idea' instead of 'blog' (blog posts normalized by text length: <100 chars = idea, >=100 = moment). Field is 'title' not 'label' per canonical.mjs design. Actual types: project(35), moment(19), idea(1), milestone(5)."
+  artifacts:
+    - path: "pipeline/schemas/canonical.mjs"
+      issue: "NODE_TYPES defines moment/idea, not blog. Field is 'title'."
+    - path: "pipeline/parsers/carbonmade.mjs"
+      issue: "Line 510-511: blog posts assigned moment/idea by text length"
+  missing:
+    - "Update test expectations to match actual schema (moment/idea/title)"
 
 - truth: "Minors guard strips last names, removes GPS, redacts blocked patterns for configured minors"
   status: failed
   reason: "User reported: not fully testable — allowlist.json has minors.firstNames = [], so minors guard was not exercised (0 _isMinor nodes flagged). Behavior unverified until minor names/patterns are configured."
   severity: minor
   test: 6
-  artifacts: []
-  missing: []
+  root_cause: "Configuration gap, NOT a code bug. Minors guard code is fully implemented and correct (isMinor, stripLastNames, redactBlockedPatterns, enforceMinorsPolicy). Wired into pipeline Phase 4 and privacy audit PRIV-05. Just needs allowlist.json populated with actual minor names."
+  artifacts:
+    - path: "allowlist.json"
+      issue: "minors.firstNames = [], minors.blockedPatterns = [] — empty config"
+    - path: "pipeline/privacy/minors-guard.mjs"
+      issue: "Code complete and correct, just not exercised"
+    - path: "pipeline/validation/privacy-audit.mjs"
+      issue: "PRIV-05 checks wired but no _isMinor nodes to validate"
+  missing:
+    - "Populate allowlist.json minors.firstNames with actual minor names"
+    - "Add blockedPatterns (school names, home identifiers) to allowlist.json"
+    - "Re-run pipeline and verify _isMinor flagging and redaction"
 
 - truth: "App loads constellation data from public/data/ with mock fallback"
   status: failed
   reason: "User reported: Real-data loader exists (src/constellation/data/loader.js) but is not wired into the live constellation UI. Active components still import mock-constellation.json directly, so the app does not currently load from public/data with runtime fallback."
   severity: major
   test: 11
-  artifacts: []
-  missing: []
+  root_cause: "Loader intentionally created as standalone artifact (code comment: 'Do NOT modify the 7 consuming components yet'). Integration deferred. 7 components still import mock-constellation.json directly."
+  artifacts:
+    - path: "src/constellation/data/loader.js"
+      issue: "Loader exists with correct async API + fallback, but not called by any component"
+    - path: "src/constellation/scene/ConstellationCanvas.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/scene/NodeCloud.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/scene/ConnectionLines.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/scene/HoverLabel.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/fallback/ListView.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/ui/DetailPanel.jsx"
+      issue: "Imports mock-constellation.json directly"
+    - path: "src/constellation/ui/TimelineScrubber.jsx"
+      issue: "Imports mock-constellation.json directly"
+  missing:
+    - "Extend Zustand store (src/constellation/store.js) with constellationData field + loadData() action"
+    - "Call store.loadData() from ConstellationPage.jsx on mount"
+    - "Replace all 7 component-level mock imports with store selectors"
