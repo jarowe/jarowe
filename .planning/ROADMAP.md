@@ -13,7 +13,7 @@ This roadmap delivers the JAROWE Constellation in six phases: first the 3D scene
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Constellation Scene** - 3D rendering foundation with instanced nodes, camera controls, detail panel, and disposal utilities
-- [x] **Phase 2: Data Pipeline & Privacy** - Instagram + Carbonmade parsers, build-time pipeline, privacy enforcement, constellation.json output, and thin admin slice (pipeline status + basic publish/hide)
+- [ ] **Phase 2: Data Pipeline & Privacy** - Instagram + Carbonmade parsers, build-time pipeline, privacy enforcement, constellation.json output, and thin admin slice (pipeline status + basic publish/hide)
 - [ ] **Phase 3: Narrator & Guided Tour** - Event-driven narrator engine with guided cinematic tour and 150+ scripted narration lines
 - [ ] **Phase 4: Admin Dashboard** - Owner-only auth, curation UI, draft inbox, allowlist management, and server-side access control
 - [ ] **Phase 5: Automation** - Nightly cron ingest, Suno auto-ingest, music source adapters, and observability
@@ -51,7 +51,7 @@ Plans:
   4. Connection lines in the constellation show evidence-based edges with signal weights, and each connection's detail panel shows 3-5 "Because..." reasons explaining why the connection exists
   5. The pipeline handles malformed or missing Instagram fields gracefully (logs warnings, never crashes), and if an API source fails, the last good snapshot is preserved
   6. A minimal admin view shows read-only pipeline run status (last run, success/fail, node counts) and basic publish/hide controls for nodes, de-risking the full admin dashboard in Phase 4
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
 - [x] 02-01-PLAN.md -- Instagram HTML parser with defensive parsing, EXIF stripping, GPS redaction, and shared canonical schema
@@ -59,6 +59,7 @@ Plans:
 - [x] 02-03-PLAN.md -- Evidence-based edge generation, helix layout, pipeline orchestrator, and frontend data loader
 - [x] 02-04-PLAN.md -- Privacy validation (fail-closed audit), visibility tiers, minors policy, and allowlist enforcement
 - [x] 02-05-PLAN.md -- Thin admin page (pipeline status + publish/hide), pipeline resilience (last good snapshot)
+- [ ] 02-06-PLAN.md -- GAP CLOSURE: Wire data loader into UI -- replace 7 mock imports with Zustand store selectors
 
 ### Phase 3: Narrator & Guided Tour
 **Goal**: The constellation tells Jared's story -- a scripted narrator responds to exploration and a cinematic guided tour introduces new visitors to key life moments
@@ -133,7 +134,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Constellation Scene | 4/4 | Complete | 2026-02-28 |
-| 2. Data Pipeline & Privacy | 5/5 | Complete | 2026-02-28 |
+| 2. Data Pipeline & Privacy | 5/6 | Gap closure | - |
 | 3. Narrator & Guided Tour | 0/3 | Not started | - |
 | 4. Admin Dashboard | 0/4 | Not started | - |
 | 5. Automation | 0/3 | Not started | - |
@@ -141,4 +142,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 ---
 *Roadmap created: 2026-02-27*
-*Last updated: 2026-02-28 (Phase 2 complete -- 02-05 thin admin, pipeline resilience, Instagram path config)*
+*Last updated: 2026-02-28 (Phase 2 gap closure -- 02-06 wire data loader into constellation UI)*
