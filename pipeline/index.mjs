@@ -20,8 +20,8 @@
  *   1. Parse (Instagram + Carbonmade) -- parsers set default visibility
  *   2. Curation (read-only: hidden list + visibility overrides)
  *   3. Visibility tier refinement (allowlist enforcement, most-restrictive-wins)
+ *   3b. Minors guard (strip last names, remove GPS, redact blocked patterns)
  *   4. Allowlist name processing (replace non-public names with generic labels)
- *   5. Minors guard (strip last names, remove GPS, redact blocked patterns)
  *   6. Filter private nodes (remove from output)
  *   7. EXIF strip + GPS redact
  *   8. Edge generation
@@ -237,13 +237,10 @@ async function main() {
     node.visibility = assignVisibility(node, allowlist, curationVisibilityOverrides);
   }
 
-  // Apply allowlist name processing (replace non-public names with generic labels)
-  applyAllowlist(allNodes, allowlist);
-
   // ========================================================================
-  // Phase 4: MINORS GUARD
+  // Phase 3b: MINORS GUARD (must run BEFORE allowlist name replacement)
   // ========================================================================
-  log.info('--- Phase 4: Minors Guard ---');
+  log.info('--- Phase 3b: Minors Guard ---');
 
   let minorsProtected = 0;
   for (const node of allNodes) {
@@ -253,6 +250,10 @@ async function main() {
   }
 
   log.info(`Minors guard: ${minorsProtected} node(s) had minors policy applied`);
+
+  // Apply allowlist name processing (replace non-public names with generic labels)
+  // Runs AFTER minors guard so minor names are detected before genericization
+  applyAllowlist(allNodes, allowlist);
 
   // ========================================================================
   // Phase 5: FILTER PRIVATE NODES

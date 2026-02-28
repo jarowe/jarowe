@@ -124,10 +124,32 @@ function redactBlockedPatterns(text, blockedPatterns) {
 }
 
 /**
+ * Check if a minor first name appears as a whole word in text.
+ *
+ * @param {string} text - Text to search
+ * @param {string[]} minorFirstNames - Minor first names to match
+ * @returns {boolean} True if any minor name appears as a whole word
+ */
+function textMentionsMinor(text, minorFirstNames) {
+  if (!text || !minorFirstNames?.length) return false;
+  const lower = text.toLowerCase();
+  for (const name of minorFirstNames) {
+    const escaped = name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+    if (regex.test(lower)) return true;
+  }
+  return false;
+}
+
+/**
  * Enforce minors policy on a single node.
  *
- * If any person entity is a known minor:
- * - Strip last names from title and description
+ * Detects minor references from TWO sources:
+ *   1. entities.people names (existing name-based check)
+ *   2. title + description whole-word matches against minors.firstNames
+ *
+ * If any minor reference is found:
+ * - Strip last names from title, description, AND entities.people
  * - Remove GPS data entirely (location = null)
  * - Redact blocked patterns in title and description
  * - Set _isMinor = true for privacy audit verification
@@ -139,17 +161,35 @@ function redactBlockedPatterns(text, blockedPatterns) {
 export function enforceMinorsPolicy(node, allowlist) {
   if (!node || !allowlist?.minors) return node;
 
-  const people = node.entities?.people || [];
-  const hasMinor = people.some(person => isMinor(person, allowlist));
-
-  if (!hasMinor) return node;
-
   const minorFirstNames = allowlist.minors.firstNames || [];
+  if (!minorFirstNames.length) return node;
+
+  const people = node.entities?.people || [];
   const blockedPatterns = allowlist.minors.blockedPatterns || [];
+
+  // Detect minors from entities.people OR title/description text
+  const hasMinorInPeople = people.some(person => isMinor(person, allowlist));
+  const hasMinorInText = textMentionsMinor(
+    `${node.title || ''} ${node.description || ''}`,
+    minorFirstNames
+  );
+
+  if (!hasMinorInPeople && !hasMinorInText) return node;
 
   // Strip last names from title and description
   node.title = stripLastNames(node.title, minorFirstNames);
   node.description = stripLastNames(node.description, minorFirstNames);
+
+  // Strip last names from entities.people for minor entries
+  if (node.entities?.people) {
+    node.entities.people = node.entities.people.map(person => {
+      if (isMinor(person, allowlist)) {
+        // Keep only the first name
+        return person.trim().split(/\s+/)[0];
+      }
+      return person;
+    });
+  }
 
   // Remove GPS data entirely for nodes referencing minors
   node.location = null;

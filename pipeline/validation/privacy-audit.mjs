@@ -130,6 +130,23 @@ export function auditPrivacy(graph, config = {}) {
     }
   }
 
+  // ── PRIV-05b: No minor last-name patterns in output text ─────────
+  const minorFirstNames = allowlist.minors?.firstNames || [];
+
+  for (const node of nodes) {
+    const text = `${node.title || ''} ${node.description || ''}`;
+    for (const firstName of minorFirstNames) {
+      // Check if the minor first name is followed by a capitalized word (last name)
+      const escaped = firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const lastNamePattern = new RegExp(`\\b${escaped}\\s+[A-Z][a-z]`, 'i');
+      if (lastNamePattern.test(text)) {
+        violations.push(
+          `PRIV-05b: Minor "${firstName}" appears with last-name pattern in node ${node.id}`
+        );
+      }
+    }
+  }
+
   // ── PRIV-06: No DMs, contact graphs, close friends ───────────────
   // Scan the entire stringified output for forbidden patterns
   const outputStr = JSON.stringify(graph).toLowerCase();

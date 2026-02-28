@@ -121,6 +121,7 @@ export function applyAllowlist(nodes, allowlist) {
   if (!allowlist) return nodes;
 
   let redactedCount = 0;
+  const minorFirstNames = (allowlist.minors?.firstNames || []).map(n => n.toLowerCase().trim());
 
   for (const node of nodes) {
     const people = node.entities?.people;
@@ -134,6 +135,9 @@ export function applyAllowlist(nodes, allowlist) {
         processedPeople.push(person);
       } else if (isOnList(person, allowlist.friends)) {
         // Friends-tier -- keep name (only visible to friends)
+        processedPeople.push(person);
+      } else if (minorFirstNames.includes(person.toLowerCase().trim())) {
+        // Minor first name (already stripped to first-name-only by minors guard) -- keep visible
         processedPeople.push(person);
       } else {
         // Not on any list -- replace with generic label

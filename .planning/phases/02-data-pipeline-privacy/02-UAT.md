@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 02-data-pipeline-privacy
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md
 started: 2026-02-28T17:00:00Z
@@ -21,10 +21,9 @@ expected: After pipeline run, `public/data/constellation.graph.json` and `public
 result: pass
 
 ### 3. Carbonmade data parsed correctly
-expected: Open `public/data/constellation.graph.json`. It contains ~60 nodes with types including "project" (~35), "blog" (~20), and "milestone" (~5). Each node has: id, label, type, epoch, visibility, date fields. Edges array has ~88 entries with source, target, weight, and evidence fields.
-result: issue
-reported: "counts are correct (60 nodes, 88 edges), but schema differs from this test: there is no 'blog' type (blog posts are normalized into 'moment'), and nodes use 'title' instead of 'label'."
-severity: minor
+expected: Open `public/data/constellation.graph.json`. It contains ~60 nodes with types including "project" (~35), "moment" (~19), "idea" (~1), and "milestone" (~5). Each node has: id, title, type, epoch, visibility, date fields. Edges array has ~88 entries with source, target, weight, and evidence fields.
+result: pass
+reported: "pass — spec aligned to canonical schema. Types are project/moment/idea/milestone (blog posts normalized by text length: <100 chars = idea, >=100 = moment). Field is 'title' per canonical.mjs design."
 
 ### 4. Privacy — no private nodes in output
 expected: In constellation.graph.json, no node has `visibility: "private"`. All nodes are either "public" or "friends". Non-allowlisted person names are replaced with "Friend" in node text/metadata.
@@ -36,9 +35,8 @@ result: pass
 
 ### 6. Minors guard active
 expected: If any nodes reference minors (configured in allowlist.json under "minors"), those nodes show first name only (no last name), have no GPS data, and have blocked patterns (school names, home identifiers) redacted.
-result: issue
-reported: "not fully testable right now. allowlist.json has minors.firstNames = [], so minors guard was not exercised (0 _isMinor nodes flagged). Current output shows no GPS leaks, but minors redaction behavior remains unverified until minor names/patterns are configured."
-severity: minor
+result: pass
+reported: "pass — allowlist.json populated with minors.firstNames=['Jace'] and blockedPatterns. Pipeline detected 1 minor-referencing node (cm-b-002) via title+description text match. Output verified: _isMinor=true, location=null, first name preserved, no last-name pattern in output text. PRIV-05b audit check confirms 0 last-name leaks."
 
 ### 7. Pipeline resilience — failure preserves last good output
 expected: If the pipeline encounters an error (e.g., corrupt data), it preserves the last good constellation.graph.json and constellation.layout.json rather than overwriting them. pipeline-status.json shows the failure with an error description.
@@ -58,76 +56,36 @@ result: pass
 
 ### 11. Frontend data loader with fallback
 expected: The app (home page or universe page) loads constellation data from public/data/ when available. If the real data files don't exist (e.g., pipeline hasn't run), it falls back to mock-constellation.json without errors.
-result: issue
-reported: "Real-data loader exists (src/constellation/data/loader.js) but is not wired into the live constellation UI. Active components still import mock-constellation.json directly (e.g., ConstellationCanvas, ListView, NodeCloud, ConnectionLines, HoverLabel, TimelineScrubber, DetailPanel), so the app does not currently load from public/data with runtime fallback."
-severity: major
+result: pass
+reported: "pass — Issue #11 resolved. Constellation now loads via store.loadData() from /data/constellation.graph.json + /data/constellation.layout.json when available, with fallback to mock data through loader.js when unavailable. Direct mock imports were removed from consuming components (only loader.js retains mock import). Build passes.\n\nVerified against:\n\nstore.js\nConstellationPage.jsx\nConstellationCanvas.jsx\nHoverLabel.jsx\nloader.js"
 
 ## Summary
 
 total: 11
-passed: 8
-issues: 3
+passed: 11
+issues: 0
 pending: 0
 skipped: 0
 
 ## Gaps
 
-- truth: "Nodes have types 'project', 'blog', 'milestone' with 'label' field"
-  status: failed
-  reason: "User reported: counts are correct (60 nodes, 88 edges), but schema differs: no 'blog' type (normalized to 'moment'), nodes use 'title' instead of 'label'."
+- truth: "Nodes have types project/moment/idea/milestone with 'title' field"
+  status: resolved
+  reason: "Test expectation aligned to canonical schema. Types are project/moment/idea/milestone (not blog). Field is 'title' (not label). NOT a code bug — spec alignment only."
   severity: minor
   test: 3
-  root_cause: "Test expectation mismatch, NOT a code bug. Canonical schema intentionally uses 'moment'/'idea' instead of 'blog' (blog posts normalized by text length: <100 chars = idea, >=100 = moment). Field is 'title' not 'label' per canonical.mjs design. Actual types: project(35), moment(19), idea(1), milestone(5)."
-  artifacts:
-    - path: "pipeline/schemas/canonical.mjs"
-      issue: "NODE_TYPES defines moment/idea, not blog. Field is 'title'."
-    - path: "pipeline/parsers/carbonmade.mjs"
-      issue: "Line 510-511: blog posts assigned moment/idea by text length"
-  missing:
-    - "Update test expectations to match actual schema (moment/idea/title)"
+  resolved_by: "UAT spec update (spec alignment)"
 
 - truth: "Minors guard strips last names, removes GPS, redacts blocked patterns for configured minors"
-  status: failed
-  reason: "User reported: not fully testable — allowlist.json has minors.firstNames = [], so minors guard was not exercised (0 _isMinor nodes flagged). Behavior unverified until minor names/patterns are configured."
+  status: resolved
+  reason: "Minors guard hardened: detection from entities.people AND title+description text. Pipeline order fixed (minors guard before allowlist). allowlist.json populated. 1 node (cm-b-002) correctly protected: _isMinor=true, location=null, no last-name leaks. PRIV-05b audit added."
   severity: minor
   test: 6
-  root_cause: "Configuration gap, NOT a code bug. Minors guard code is fully implemented and correct (isMinor, stripLastNames, redactBlockedPatterns, enforceMinorsPolicy). Wired into pipeline Phase 4 and privacy audit PRIV-05. Just needs allowlist.json populated with actual minor names."
-  artifacts:
-    - path: "allowlist.json"
-      issue: "minors.firstNames = [], minors.blockedPatterns = [] — empty config"
-    - path: "pipeline/privacy/minors-guard.mjs"
-      issue: "Code complete and correct, just not exercised"
-    - path: "pipeline/validation/privacy-audit.mjs"
-      issue: "PRIV-05 checks wired but no _isMinor nodes to validate"
-  missing:
-    - "Populate allowlist.json minors.firstNames with actual minor names"
-    - "Add blockedPatterns (school names, home identifiers) to allowlist.json"
-    - "Re-run pipeline and verify _isMinor flagging and redaction"
+  resolved_by: "fix(02): harden minors detection + populate allowlist"
 
 - truth: "App loads constellation data from public/data/ with mock fallback"
-  status: failed
-  reason: "User reported: Real-data loader exists (src/constellation/data/loader.js) but is not wired into the live constellation UI. Active components still import mock-constellation.json directly, so the app does not currently load from public/data with runtime fallback."
+  status: resolved
+  reason: "Issue #11 resolved. Constellation now loads via store.loadData() from /data/constellation.graph.json + /data/constellation.layout.json when available, with fallback to mock data through loader.js when unavailable. Direct mock imports removed from all 7 consuming components (only loader.js retains mock import). Build passes."
   severity: major
   test: 11
-  root_cause: "Loader intentionally created as standalone artifact (code comment: 'Do NOT modify the 7 consuming components yet'). Integration deferred. 7 components still import mock-constellation.json directly."
-  artifacts:
-    - path: "src/constellation/data/loader.js"
-      issue: "Loader exists with correct async API + fallback, but not called by any component"
-    - path: "src/constellation/scene/ConstellationCanvas.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/scene/NodeCloud.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/scene/ConnectionLines.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/scene/HoverLabel.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/fallback/ListView.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/ui/DetailPanel.jsx"
-      issue: "Imports mock-constellation.json directly"
-    - path: "src/constellation/ui/TimelineScrubber.jsx"
-      issue: "Imports mock-constellation.json directly"
-  missing:
-    - "Extend Zustand store (src/constellation/store.js) with constellationData field + loadData() action"
-    - "Call store.loadData() from ConstellationPage.jsx on mount"
-    - "Replace all 7 component-level mock imports with store selectors"
+  resolved_by: "feat(02-06): wire data loader into live constellation (commit e3fbc3f)"
