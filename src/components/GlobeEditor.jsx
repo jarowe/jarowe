@@ -570,7 +570,31 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // PRISM BOP CHARACTER (Full Control Panel)
     // ══════════════════════════════════════════
     const prismBopFolder = gui.addFolder('Prism Bop Character');
-    const pcfg = window.__prismConfig || {};
+    // Ensure config exists even before Prism3D lazy-loads
+    if (!window.__prismConfig) {
+      window.__prismConfig = {
+        ior: 2.4, chromaticAberration: 2.0, thickness: 2.5, backsideThickness: 2,
+        roughness: 0, distortion: 0.2, temporalDistortion: 0.5, glassColor: '#f0e8ff',
+        anisotropy: 0.3, samples: 10, resolution: 256,
+        driftStrength: 0.8, driftSpeed: 0.04, driftTiltX: 0.15, driftTiltY: 0.1,
+        rayBendAmount: 0.12, rayVerticalBend: 0.06, beamTrackAmount: 0.12,
+        eyeTrackSpeed: 0.06, eyeTrackRange: 0.5, rotationMouseInfluence: 0.5,
+        auraInnerScale: 2.2, auraOuterScale: 2.8, auraNoiseAmp: 0.15, auraNoiseSpeed: 0.6,
+        auraBulgeStrength: 0.35, auraBulgePower: 2.5, auraRimTightness: 3.5,
+        auraRimBright: 2.0, auraRimWide: 0.4,
+        sparkleCount: 50, sparkleSize: 2.5, sparkleSpeed: 0.5, sparkleOpacity: 0.8,
+        innerSparkBrightness: 2.0, orbitSpeed: 0.3, orbitRadius: 2.8,
+        ambientIntensity: 0.3, keyLightIntensity: 3, purpleLightIntensity: 2,
+        cyanLightIntensity: 1.5, pinkLightIntensity: 1, internalGlowIntensity: 1.5,
+        internalGlowDistance: 4, lightSpillIntensity: 1.0,
+        floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
+        breathingAmp: 0.02, breathingSpeed: 0.8,
+        canvasSize: 340, featherInner: 30, featherOuter: 70,
+        beamOpacity: 0.9, rayOpacity: 0.7, edgeGlowOpacity: 0.4,
+        vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
+      };
+    }
+    const pcfg = window.__prismConfig;
 
     // -- Visibility / Positioning --
     const peekFolder = prismBopFolder.addFolder('Peek Control');
