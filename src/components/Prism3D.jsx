@@ -567,18 +567,79 @@ function NebulaBackdrop({ texture }) {
   );
 }
 
-/* ═══════════ PRISM BODY: liquid glass with breathing + squash/stretch ═══════════ */
+/* ═══════════ EDGE GLOW SHADERS (glass etching effect) ═══════════ */
+const edgeGlowVert = `
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  varying vec3 vWorldPos;
+
+  void main() {
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPos = worldPos.xyz;
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+    vViewDir = normalize(cameraPosition - worldPos.xyz);
+    gl_Position = projectionMatrix * viewMatrix * worldPos;
+  }
+`;
+
+const edgeGlowFrag = `
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform vec3 uBaseColor;
+
+  varying vec3 vWorldNormal;
+  varying vec3 vViewDir;
+  varying vec3 vWorldPos;
+
+  void main() {
+    // Fresnel: edges glow brighter at grazing angles (like real glass etching)
+    float NdotV = abs(dot(vWorldNormal, vViewDir));
+    float fresnel = pow(1.0 - NdotV, 2.5);
+
+    // Shimmer that travels along the edges
+    float shimmer = 0.6 + 0.4 * sin(uTime * 2.5 + vWorldPos.y * 4.0 + vWorldPos.x * 3.0);
+
+    // Subtle prismatic color shift at bright edges
+    float hue = uTime * 0.15 + fresnel * 2.0;
+    vec3 prismatic = vec3(
+      0.5 + 0.5 * sin(hue),
+      0.5 + 0.5 * sin(hue + 2.094),
+      0.5 + 0.5 * sin(hue + 4.189)
+    );
+
+    // Mix base color with prismatic at edges
+    vec3 color = mix(uBaseColor, prismatic, fresnel * 0.5);
+
+    // Catch-light: simulate a directional light highlight
+    vec3 lightDir = normalize(vec3(sin(uTime * 0.3) * 0.5, 0.7, 0.6));
+    float catchLight = pow(max(0.0, dot(reflect(-vViewDir, vWorldNormal), lightDir)), 8.0);
+
+    color += vec3(1.0, 0.95, 0.9) * catchLight * 0.6;
+
+    // Opacity: mostly transparent when viewed straight-on, bright at edges
+    float alpha = (0.08 + fresnel * 0.55 + catchLight * 0.35) * uOpacity * shimmer;
+
+    gl_FragColor = vec4(color * (1.0 + fresnel * 0.5 + catchLight * 0.8), alpha);
+  }
+`;
+
+/* ═══════════ PRISM BODY + EDGE GLOW GROUP (shared transforms) ═══════════ */
 function PrismBody({ backgroundTex, geometry }) {
-  const meshRef = useRef();
+  const groupRef = useRef();
   const mtmRef = useRef();
-  const squashRef = useRef({ active: false, startTime: 0 });
+  const edgeMatRef = useRef();
+
+  // EdgesGeometry for clean edge lines (not full wireframe triangulation)
+  const edgesGeo = useMemo(() => {
+    return new THREE.EdgesGeometry(geometry, 20); // thresholdAngle filters soft edges
+  }, [geometry]);
 
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.y += delta * cfg.rotationSpeed;
-    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.12;
-    meshRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
-    meshRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+    groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.12;
+    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
 
     // Squash & stretch from bop
     const squashTs = window.__prismSquash;
@@ -586,32 +647,23 @@ function PrismBody({ backgroundTex, geometry }) {
       const progress = (Date.now() - squashTs) / 600;
       let sx, sy, sz;
       if (progress < 0.15) {
-        // Squash
         const t = progress / 0.15;
-        sx = 1 + 0.3 * t;
-        sy = 1 - 0.3 * t;
-        sz = 1 + 0.3 * t;
+        sx = 1 + 0.3 * t; sy = 1 - 0.3 * t; sz = 1 + 0.3 * t;
       } else if (progress < 0.35) {
-        // Stretch
         const t = (progress - 0.15) / 0.2;
-        sx = 1.3 - 0.45 * t;
-        sy = 0.7 + 0.55 * t;
-        sz = 1.3 - 0.45 * t;
+        sx = 1.3 - 0.45 * t; sy = 0.7 + 0.55 * t; sz = 1.3 - 0.45 * t;
       } else {
-        // Spring back
         const t = (progress - 0.35) / 0.65;
         const spring = Math.sin(t * Math.PI * 3) * (1 - t) * 0.12;
-        sx = 0.85 + 0.15 * t + spring;
-        sy = 1.25 - 0.25 * t - spring;
-        sz = 0.85 + 0.15 * t + spring;
+        sx = 0.85 + 0.15 * t + spring; sy = 1.25 - 0.25 * t - spring; sz = 0.85 + 0.15 * t + spring;
       }
-      meshRef.current.scale.set(sx, sy, sz);
+      groupRef.current.scale.set(sx, sy, sz);
     } else {
       const breath = 1 + Math.sin(state.clock.elapsedTime * cfg.breathingSpeed) * cfg.breathingAmp;
-      meshRef.current.scale.setScalar(breath);
+      groupRef.current.scale.setScalar(breath);
     }
 
-    // Live-update MTM props from config
+    // Live-update MTM props
     if (mtmRef.current) {
       mtmRef.current.ior = cfg.ior;
       mtmRef.current.chromaticAberration = cfg.chromaticAberration;
@@ -621,28 +673,66 @@ function PrismBody({ backgroundTex, geometry }) {
       mtmRef.current.roughness = cfg.roughness;
       mtmRef.current.anisotropy = cfg.anisotropy;
     }
+
+    // Live-update edge glow shader
+    if (edgeMatRef.current) {
+      edgeMatRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+      edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity;
+    }
   });
 
   return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <MeshTransmissionMaterial
-        ref={mtmRef}
-        transmission={1}
-        ior={cfg.ior}
-        chromaticAberration={cfg.chromaticAberration}
-        backside
-        backsideThickness={cfg.backsideThickness}
-        thickness={cfg.thickness}
-        roughness={cfg.roughness}
-        samples={cfg.samples}
-        resolution={cfg.resolution}
-        distortion={cfg.distortion}
-        temporalDistortion={cfg.temporalDistortion}
-        color={cfg.glassColor}
-        anisotropy={cfg.anisotropy}
-        background={backgroundTex}
-      />
-    </mesh>
+    <group ref={groupRef}>
+      {/* Glass body */}
+      <mesh geometry={geometry}>
+        <MeshTransmissionMaterial
+          ref={mtmRef}
+          transmission={1}
+          ior={cfg.ior}
+          chromaticAberration={cfg.chromaticAberration}
+          backside
+          backsideThickness={cfg.backsideThickness}
+          thickness={cfg.thickness}
+          roughness={cfg.roughness}
+          samples={cfg.samples}
+          resolution={cfg.resolution}
+          distortion={cfg.distortion}
+          temporalDistortion={cfg.temporalDistortion}
+          color={cfg.glassColor}
+          anisotropy={cfg.anisotropy}
+          background={backgroundTex}
+        />
+      </mesh>
+
+      {/* Glass-etched edge glow - fresnel + catch-light shader on EdgesGeometry */}
+      <lineSegments geometry={edgesGeo} renderOrder={2}>
+        <shaderMaterial
+          ref={edgeMatRef}
+          vertexShader={edgeGlowVert}
+          fragmentShader={edgeGlowFrag}
+          uniforms={{
+            uTime: { value: 0 },
+            uOpacity: { value: cfg.edgeGlowOpacity },
+            uBaseColor: { value: new THREE.Color('#c4b5fd') },
+          }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </lineSegments>
+
+      {/* Wireframe overlay - very subtle, for extra glass texture */}
+      <mesh geometry={geometry}>
+        <meshBasicMaterial
+          wireframe
+          color="#a78bfa"
+          transparent
+          opacity={cfg.edgeGlowOpacity * 0.15}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -957,28 +1047,6 @@ function VertexHighlights() {
         </sprite>
       ))}
     </>
-  );
-}
-
-/* ═══════════ EDGE GLOW WIREFRAME (matches current geometry) ═══════════ */
-function EdgeGlow({ geometry }) {
-  // Create a slightly larger clone of the geometry for wireframe overlay
-  const edgeGeo = useMemo(() => {
-    const g = geometry.clone();
-    g.scale(1.008, 1.008, 1.008);
-    return g;
-  }, [geometry]);
-
-  return (
-    <mesh geometry={edgeGeo}>
-      <meshBasicMaterial
-        wireframe
-        color="#c4b5fd"
-        transparent
-        opacity={cfg.edgeGlowOpacity}
-        blending={THREE.AdditiveBlending}
-      />
-    </mesh>
   );
 }
 
@@ -1329,7 +1397,6 @@ export default function Prism3D() {
             <InternalGlow />
             <InnerSparkles />
             <VertexHighlights />
-            <EdgeGlow geometry={geometry} />
             <IncomingBeam />
             <RainbowFan />
 
