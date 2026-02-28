@@ -93,7 +93,6 @@ const glassFrag = `
   varying vec3 vViewDir;
   varying vec3 vWorldPos;
 
-  // Simple pseudo-noise for caustic swirls
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
   }
@@ -112,13 +111,48 @@ const glassFrag = `
     vec3 N = normalize(vNormal);
     vec3 V = normalize(vViewDir);
     float NdotV = abs(dot(N, V));
-    float fresnel = pow(1.0 - NdotV, 2.2);
+    float t = uTime * 0.15;
 
-    float t = uTime * 0.2;
+    // ── CHROMATIC ABERRATION: each color has different fresnel (prismatic!) ──
+    float fresnelR = pow(1.0 - NdotV, 1.8);
+    float fresnelG = pow(1.0 - NdotV, 2.5);
+    float fresnelB = pow(1.0 - NdotV, 3.2);
+    float fresnel = pow(1.0 - NdotV, 2.3);
 
-    // Multi-layer iridescence (thin-film interference look)
-    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 3.0 + t;
-    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 5.0 - t * 0.7;
+    // ── FAKE REFRACTION: distort sample position by normal ──
+    vec3 refractedPos = vWorldPos + N * 0.4 * (1.0 - NdotV);
+
+    // ── INTERNAL LIGHT STREAKS (vertical caustics like real crystal) ──
+    float streaks = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float fi = float(i);
+      float sx = sin(refractedPos.x * (5.0 + fi * 2.5) + t * (0.9 + fi * 0.4) + fi * 1.7);
+      float sy = cos(refractedPos.y * (3.5 + fi * 2.0) + t * (0.6 + fi * 0.25));
+      streaks += pow(max(0.0, sx * 0.5 + 0.5), 10.0) * (0.25 + 0.2 * sy);
+    }
+
+    // ── DEEP NEBULA at multiple "depths" ──
+    vec2 uv1 = refractedPos.xy * 1.8 + vec2(sin(t * 0.35), cos(t * 0.45));
+    float n1 = vnoise(uv1 * 2.5 + t * 0.3);
+    float n2 = vnoise(uv1 * 5.0 - t * 0.5 + 5.0);
+    float n3 = vnoise(refractedPos.yz * 3.0 + t * 0.2 + 10.0);
+
+    // Deep purple/blue/magenta interior (matches the MTM screenshots)
+    vec3 deepColor;
+    deepColor.r = 0.35 + 0.35 * sin(n1 * 6.28 + t * 0.9 + fresnelR * 2.5);
+    deepColor.g = 0.18 + 0.25 * sin(n2 * 6.28 + t * 0.65 + fresnelG * 2.8 + 1.5);
+    deepColor.b = 0.55 + 0.4 * sin(n1 * 4.0 + n2 * 3.0 + t * 0.45 + fresnelB * 3.2 + 3.0);
+
+    // Second depth layer - more organic swirling
+    vec3 deepLayer2;
+    deepLayer2.r = 0.25 + 0.2 * sin(n3 * 5.0 + t * 1.1);
+    deepLayer2.g = 0.15 + 0.2 * sin(n3 * 4.0 + t * 0.8 + 2.0);
+    deepLayer2.b = 0.45 + 0.3 * sin(n3 * 3.0 + t * 0.6 + 4.0);
+    deepColor = mix(deepColor, deepLayer2, 0.35);
+
+    // ── MULTI-LAYER THIN-FILM IRIDESCENCE ──
+    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 3.5 + t * 1.5;
+    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 5.5 - t * 0.8;
     vec3 iridescence = vec3(
       0.5 + 0.5 * sin(iri1 * 4.0),
       0.5 + 0.5 * sin(iri1 * 4.0 + 2.094),
@@ -129,53 +163,41 @@ const glassFrag = `
       0.5 + 0.5 * sin(iri2 * 3.0 + 3.094),
       0.5 + 0.5 * sin(iri2 * 3.0 + 5.189)
     );
-    iridescence = mix(iridescence, iriLayer2, 0.35);
+    iridescence = mix(iridescence, iriLayer2, 0.4);
 
-    // Caustic-like swirling interior (fakes refraction patterns)
-    vec2 causticUV = vWorldPos.xy * 2.5 + vec2(sin(t * 0.4 + vWorldPos.z), cos(t * 0.3));
-    float caustic1 = vnoise(causticUV * 3.0 + t * 0.5);
-    float caustic2 = vnoise(causticUV * 5.0 - t * 0.7 + 3.14);
-    float causticPattern = pow(abs(sin(caustic1 * 6.28 + caustic2 * 3.14)), 2.0);
+    // ── STREAK COLOR (bright caustic lines) ──
+    vec3 streakColor = vec3(0.75, 0.65, 1.0) * streaks + iridescence * streaks * 0.6;
 
-    // Swirling nebula colors
-    vec3 nebula = vec3(
-      0.6 + 0.4 * sin(vWorldPos.y * 2.5 + t * 1.1),
-      0.35 + 0.4 * sin(vWorldPos.x * 2.5 + t * 0.8 + 2.094),
-      0.7 + 0.3 * sin(vWorldPos.z * 2.5 + t * 0.6 + 4.189)
-    );
-
-    // Caustic rainbow (light patterns inside the glass)
-    vec3 causticColor = vec3(
-      0.5 + 0.5 * sin(causticPattern * 6.0 + t),
-      0.5 + 0.5 * sin(causticPattern * 6.0 + t + 2.094),
-      0.5 + 0.5 * sin(causticPattern * 6.0 + t + 4.189)
-    ) * causticPattern * 0.4;
-
-    // Three specular highlights for sparkle
+    // ── FOUR SPECULAR HIGHLIGHTS ──
     vec3 L1 = normalize(vec3(-1.0, 0.7, 0.8));
     vec3 L2 = normalize(vec3(1.0, 0.3, 0.5));
     vec3 L3 = normalize(vec3(0.0, -0.8, 0.6));
-    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 80.0);
-    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 40.0);
-    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 25.0);
+    vec3 L4 = normalize(vec3(sin(t * 0.5) * 0.7, 0.5, 0.7));
+    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 120.0);
+    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 60.0);
+    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 35.0);
+    float spec4 = pow(max(dot(reflect(-L4, N), V), 0.0), 80.0);
 
-    // Purple glass base tint
-    vec3 baseTint = vec3(0.5, 0.35, 0.95);
+    // ── COMPOSITE ──
+    vec3 interior = deepColor * 0.85 + streakColor;
+    vec3 color = mix(interior, iridescence * 1.3, fresnel * 0.55);
 
-    // Composite: glass body = tinted nebula + caustics, edges = iridescence
-    vec3 interior = nebula * 0.35 + baseTint * 0.2 + causticColor;
-    vec3 color = mix(interior, iridescence, fresnel * 0.65);
+    // Chromatic edge fringing (the prismatic color separation)
+    color.r += fresnelR * 0.35;
+    color.g += fresnelG * 0.05;
+    color.b += fresnelB * 0.3;
 
-    // Bright specular highlights
-    color += vec3(1.0, 0.98, 0.95) * (spec1 * 0.8 + spec2 * 0.4 + spec3 * 0.25);
+    // Specular sparkle
+    float specTotal = spec1 * 0.9 + spec2 * 0.5 + spec3 * 0.35 + spec4 * 0.4;
+    color += vec3(1.0, 0.98, 0.95) * specTotal;
 
-    // Rim light for that glass-catching-light effect
-    float rimLight = pow(fresnel, 3.5) * 0.6;
-    color += vec3(0.8, 0.7, 1.0) * rimLight;
+    // Rim glow (purple-white glass edge catch)
+    float rimLight = pow(fresnel, 3.0) * 0.8;
+    color += vec3(0.8, 0.65, 1.0) * rimLight;
 
-    // Alpha: visible glass body, bright iridescent edges
-    float alpha = 0.28 + fresnel * 0.55 + (spec1 + spec2 * 0.5 + spec3 * 0.3) * 0.2 + causticPattern * 0.08;
-    alpha = min(alpha, 0.88);
+    // ── ALPHA: visible glass with depth ──
+    float alpha = 0.38 + fresnel * 0.5 + streaks * 0.12 + specTotal * 0.15;
+    alpha = min(alpha, 0.92);
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -624,13 +646,15 @@ function MouseDriftGroup({ children }) {
   return <group ref={groupRef}>{children}</group>;
 }
 
-/* ═══════════ BIG GOOFY EYE (clearly visible through glass) ═══════════ */
+/* ═══════════ EXPRESSIVE CARTOON EYE (full personality!) ═══════════ */
 function GlassOrbEye() {
   const groupRef = useRef();
-  const orbRef = useRef();
+  const eyeSpriteRef = useRef();
   const eyeTexture = useMemo(() => createEyeTexture(), []);
   const expressionRef = useRef('normal');
   const expressionTimer = useRef(0);
+  const dartTimer = useRef(0);
+  const dartTarget = useRef({ x: 0, y: 0 });
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -638,50 +662,87 @@ function GlassOrbEye() {
     const lerpFactor = cfg.eyeTrackSpeed + Math.min(mouseVel.current * 3, 0.15);
 
     let extraYOffset = 0;
-    let irisScale = 1;
+    let eyeScaleX = 0.9, eyeScaleY = 0.76;
     const expr = expressionRef.current;
 
-    if (expr === 'curious') irisScale = 1.15;
-    else if (expr === 'surprised') irisScale = 0.8;
-    else if (expr === 'happy') extraYOffset = 0.06;
+    // Expression-specific eye modifications
+    if (expr === 'curious') {
+      eyeScaleX = 0.95; eyeScaleY = 0.82; // slightly wider
+    } else if (expr === 'surprised') {
+      eyeScaleX = 1.05; eyeScaleY = 0.92; // wide-eyed!
+    } else if (expr === 'happy' || expr === 'excited') {
+      eyeScaleY = 0.62; // squished happy squint
+      extraYOffset = 0.05;
+    } else if (expr === 'love') {
+      eyeScaleX = 0.95; eyeScaleY = 0.85;
+    } else if (expr === 'angry') {
+      eyeScaleY = 0.58; // angry squint
+      extraYOffset = -0.04;
+    } else if (expr === 'thinking') {
+      extraYOffset = 0.08; // looking up
+    } else if (expr === 'mischief') {
+      eyeScaleY = 0.65; // sly squint
+      extraYOffset = -0.02;
+    }
 
-    // Cycle expressions
-    if (t - expressionTimer.current > 6) {
+    // Cycle expressions (more states, faster cycling for personality)
+    if (t - expressionTimer.current > 4 + Math.random() * 3) {
       expressionTimer.current = t;
-      const states = ['normal', 'curious', 'normal', 'happy', 'normal', 'surprised'];
-      expressionRef.current = states[Math.floor(Math.random() * states.length)];
-      // Trigger squash on surprise
-      if (expressionRef.current === 'surprised') window.__prismSquash = Date.now();
+      const states = [
+        'normal', 'normal', 'curious', 'happy', 'normal', 'surprised',
+        'excited', 'thinking', 'mischief', 'normal', 'love', 'normal',
+      ];
+      const newExpr = states[Math.floor(Math.random() * states.length)];
+      expressionRef.current = newExpr;
+      window.__prismExpression = newExpr;
+      if (newExpr === 'surprised') window.__prismSquash = Date.now();
     }
 
-    // Occasional curious look-around
-    let lookOffsetX = 0, lookOffsetY = 0;
-    const lookCycle = (t * 0.3) % 5;
-    if (lookCycle > 3.5 && lookCycle < 4.5) {
-      const lp = (lookCycle - 3.5) * 2;
-      lookOffsetX = Math.sin(lp * Math.PI) * 0.2;
-      lookOffsetY = Math.cos(lp * Math.PI * 0.7) * 0.12;
+    // Dramatic darting look-arounds (more frequent, bigger movements)
+    if (t - dartTimer.current > 2 + Math.random() * 3) {
+      dartTimer.current = t;
+      if (Math.random() < 0.5) {
+        // Dart to random position
+        dartTarget.current.x = (Math.random() - 0.5) * 0.6;
+        dartTarget.current.y = (Math.random() - 0.5) * 0.4;
+      } else {
+        // Reset to follow mouse
+        dartTarget.current.x = 0;
+        dartTarget.current.y = 0;
+      }
     }
+
+    // Smooth look-around with dart offset
+    const lookX = mousePos.x * cfg.eyeTrackRange + dartTarget.current.x;
+    const lookY = mousePos.y * cfg.eyeTrackRange + dartTarget.current.y + extraYOffset;
 
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
-      groupRef.current.rotation.x, mousePos.y * cfg.eyeTrackRange + lookOffsetY + extraYOffset, lerpFactor
+      groupRef.current.rotation.x, lookY, lerpFactor
     );
     groupRef.current.rotation.y = THREE.MathUtils.lerp(
-      groupRef.current.rotation.y, mousePos.x * cfg.eyeTrackRange + lookOffsetX, lerpFactor
+      groupRef.current.rotation.y, lookX, lerpFactor
     );
-    if (orbRef.current) {
-      const pulse = (1 + Math.sin(t * 2) * 0.05) * irisScale;
-      orbRef.current.scale.setScalar(pulse);
+
+    // Eye scale animation (smooth transitions between expression sizes)
+    if (eyeSpriteRef.current) {
+      const curScale = eyeSpriteRef.current.scale;
+      curScale.x = THREE.MathUtils.lerp(curScale.x, eyeScaleX, 0.08);
+      curScale.y = THREE.MathUtils.lerp(curScale.y, eyeScaleY, 0.08);
+      // Subtle pulse
+      const pulse = 1 + Math.sin(t * 2.5) * 0.02;
+      curScale.x *= pulse;
+      curScale.y *= pulse;
     }
   });
 
   return (
-    <group ref={groupRef} position={[0, 0.05, 0.3]}>
-      {/* Eye texture sprite - faces camera, googly style */}
-      <sprite ref={orbRef} scale={[0.9, 0.76, 1]} position={[0, 0, 0.56]}>
+    <group ref={groupRef} position={[0, 0.08, 0.3]}>
+      {/* Eye sprite - faces camera, googly style */}
+      <sprite ref={eyeSpriteRef} scale={[0.9, 0.76, 1]} position={[0, 0, 0.56]}>
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
       <Eyelid />
+      <MouthExpression />
     </group>
   );
 }
@@ -750,6 +811,184 @@ function Eyelid() {
   return (
     <sprite ref={spriteRef} position={[0, 0.18, 0.58]}>
       <spriteMaterial map={eyelidTex} transparent depthWrite={false} />
+    </sprite>
+  );
+}
+
+/* ═══════════ CARTOON MOUTH (canvas sprite sheets) ═══════════ */
+function createMouthTexture(type) {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2, cy = size / 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  switch (type) {
+    case 'smile': {
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8, 22, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.strokeStyle = '#1a0a30';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      // Pink mouth interior
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8, 20, 0.2 * Math.PI, 0.8 * Math.PI);
+      ctx.quadraticCurveTo(cx, cy + 16, cx - 19, cy - 8 + 20 * Math.sin(0.2 * Math.PI));
+      ctx.fillStyle = '#ff6b9d';
+      ctx.fill();
+      break;
+    }
+    case 'open': {
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 14, 18, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#1a0a30';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 2, 9, 12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4488';
+      ctx.fill();
+      break;
+    }
+    case 'talk1': {
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 16, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#1a0a30';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 1, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff6b9d';
+      ctx.fill();
+      break;
+    }
+    case 'talk2': {
+      ctx.beginPath();
+      ctx.moveTo(cx - 16, cy);
+      ctx.quadraticCurveTo(cx, cy + 6, cx + 16, cy);
+      ctx.strokeStyle = '#1a0a30';
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      break;
+    }
+    case 'excited': {
+      // Big toothy grin
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8, 24, 0.08 * Math.PI, 0.92 * Math.PI);
+      ctx.lineTo(cx - 23, cy - 4);
+      ctx.fillStyle = '#1a0a30';
+      ctx.fill();
+      // Teeth
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillRect(cx - 18, cy - 10, 36, 7);
+      // Tongue
+      ctx.beginPath();
+      ctx.ellipse(cx + 4, cy + 8, 9, 7, 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff4488';
+      ctx.fill();
+      break;
+    }
+    case 'love': {
+      // Kissy lips
+      ctx.beginPath();
+      ctx.arc(cx - 6, cy, 8, 0.3, Math.PI * 2 - 0.3);
+      ctx.arc(cx + 6, cy, 8, Math.PI + 0.3, Math.PI * 3 - 0.3);
+      ctx.fillStyle = '#ff4488';
+      ctx.fill();
+      ctx.strokeStyle = '#cc2266';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'angry': {
+      // Wavy grumpy line
+      ctx.beginPath();
+      ctx.moveTo(cx - 16, cy + 2);
+      ctx.bezierCurveTo(cx - 8, cy - 6, cx - 3, cy + 6, cx, cy);
+      ctx.bezierCurveTo(cx + 3, cy - 6, cx + 8, cy + 6, cx + 16, cy - 2);
+      ctx.strokeStyle = '#1a0a30';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      break;
+    }
+    case 'thinking': {
+      // Small off-center pucker
+      ctx.beginPath();
+      ctx.arc(cx + 8, cy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#1a0a30';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx + 8, cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#cc6699';
+      ctx.fill();
+      break;
+    }
+    case 'neutral':
+    default: {
+      ctx.beginPath();
+      ctx.moveTo(cx - 10, cy);
+      ctx.quadraticCurveTo(cx, cy + 3, cx + 10, cy);
+      ctx.strokeStyle = '#1a0a30';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      break;
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function MouthExpression() {
+  const spriteRef = useRef();
+  const currentMouth = useRef('neutral');
+
+  const textures = useMemo(() => ({
+    neutral: createMouthTexture('neutral'),
+    smile: createMouthTexture('smile'),
+    open: createMouthTexture('open'),
+    talk1: createMouthTexture('talk1'),
+    talk2: createMouthTexture('talk2'),
+    excited: createMouthTexture('excited'),
+    love: createMouthTexture('love'),
+    angry: createMouthTexture('angry'),
+    thinking: createMouthTexture('thinking'),
+  }), []);
+
+  useFrame((state) => {
+    if (!spriteRef.current) return;
+    const t = state.clock.elapsedTime;
+    const expr = window.__prismExpression || 'normal';
+    const isTalking = window.__prismTalking;
+
+    let mouthType = 'neutral';
+    if (isTalking) {
+      mouthType = Math.floor(t * 8) % 2 === 0 ? 'talk1' : 'talk2';
+    } else if (expr === 'excited' || expr === 'happy') {
+      mouthType = 'excited';
+    } else if (expr === 'surprised') {
+      mouthType = 'open';
+    } else if (expr === 'love') {
+      mouthType = 'love';
+    } else if (expr === 'curious' || expr === 'thinking') {
+      mouthType = 'thinking';
+    } else if (expr === 'angry') {
+      mouthType = 'angry';
+    } else if (expr === 'mischief') {
+      mouthType = 'smile';
+    }
+
+    if (mouthType !== currentMouth.current) {
+      currentMouth.current = mouthType;
+      spriteRef.current.material.map = textures[mouthType];
+      spriteRef.current.material.needsUpdate = true;
+    }
+  });
+
+  return (
+    <sprite ref={spriteRef} position={[0, -0.32, 0.58]} scale={[0.42, 0.32, 1]}>
+      <spriteMaterial map={textures.neutral} transparent depthWrite={false} />
     </sprite>
   );
 }

@@ -3379,23 +3379,39 @@ export default function Home() {
     } catch { return [{ label: 'Right Edge', side: 'right' }, { label: 'Left Edge', side: 'left' }, { label: 'Top', side: 'top' }]; }
   });
 
-  const prismPhrases = [
+  const prismCatchPhrases = [
     "Hey! You found me!",
     "Boop! Again!",
     "One more... I dare you!",
     "WHOA! Secret time!",
     "Can't catch me!",
-    "I see everything...",
     "Did you try the cipher?",
     "Go explore the universe!",
-    "I'm made of pure light!",
     "Refraction is my cardio",
-    "The boys would love me",
-    "I've been to Greece too!",
     "Click the avatar... trust me",
     "Type 'vault' for a surprise!",
     "Your vibes are immaculate",
     "I'm basically a disco ball",
+  ];
+
+  // Spark of Genius ideas - shown when prism appears
+  const sparkIdeas = [
+    "What if websites could dream?",
+    "Every pixel holds a universe...",
+    "The best code is a love letter to the future",
+    "What if creativity is just light splitting?",
+    "Psst... there are hidden easter eggs here",
+    "The Universe page is calling your name",
+    "Light enters one way, magic leaves another",
+    "Build weird things. The world needs more weird.",
+    "Connection > perfection",
+    "Sometimes the bug IS the feature",
+    "I think, therefore I prism",
+    "Connecting constellations of thought...",
+    "What if butterflies are just flowers with wings?",
+    "The stars are just sparkles I haven't caught yet",
+    "Imagination is the only real superpower",
+    "Every great idea starts as a silly thought",
   ];
 
   useEffect(() => {
@@ -3416,7 +3432,15 @@ export default function Home() {
         }
         setPeekStyle(peekStyles[Math.floor(Math.random() * peekStyles.length)]);
         setPeekVisible(true);
-        setTimeout(() => setPeekVisible(false), 4000);
+        // Show a spark of genius idea after a brief delay
+        const ideaDelay = setTimeout(() => {
+          const idea = sparkIdeas[Math.floor(Math.random() * sparkIdeas.length)];
+          window.__prismTalking = true;
+          setPrismBubble(idea);
+          setTimeout(() => { window.__prismTalking = false; }, 1500);
+          setTimeout(() => setPrismBubble(null), 4000);
+        }, 800);
+        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 6000);
         timerId = scheduleNext();
       }, delay);
     };
@@ -3489,7 +3513,10 @@ export default function Home() {
     // Trigger squash & stretch on prism body
     window.__prismSquash = Date.now();
     setPrismBops(newBops);
-    setPrismBubble(prismPhrases[(newBops - 1) % prismPhrases.length]);
+    window.__prismExpression = 'surprised';
+    window.__prismTalking = true;
+    setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
+    setTimeout(() => { window.__prismTalking = false; }, 1200);
     setTimeout(() => setPrismBubble(null), 2500);
 
     confetti({
