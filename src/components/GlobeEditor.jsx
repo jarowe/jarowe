@@ -576,6 +576,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         ior: 2.4, chromaticAberration: 2.0, thickness: 2.5, backsideThickness: 2,
         roughness: 0, distortion: 0.2, temporalDistortion: 0.5, glassColor: '#f0e8ff',
         anisotropy: 0.3, samples: 10, resolution: 256,
+        shape: 'rounded-prism',
         driftStrength: 0.8, driftSpeed: 0.04, driftTiltX: 0.15, driftTiltY: 0.1,
         rayBendAmount: 0.12, rayVerticalBend: 0.06, beamTrackAmount: 0.12,
         eyeTrackSpeed: 0.06, eyeTrackRange: 0.5, rotationMouseInfluence: 0.5,
@@ -598,19 +599,41 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Visibility / Positioning --
     const peekFolder = prismBopFolder.addFolder('Peek Control');
-    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false };
+    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
+    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false, style: 'slide', dragMode: false };
     peekFolder.add(peekProxy, 'side', ['right', 'left', 'top']).name('Side');
     peekFolder.add(peekProxy, 'cell', 0, 3, 1).name('Cell Index');
     peekFolder.add(peekProxy, 'duration', 1, 30, 1).name('Duration (s)');
     peekFolder.add(peekProxy, 'pinned').name('Pin On Screen');
+    peekFolder.add(peekProxy, 'style', peekStyles).name('Peek Style');
     peekFolder.add({ show() {
       window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
-        detail: { side: peekProxy.side, cell: Math.round(peekProxy.cell), duration: peekProxy.duration * 1000, pinned: peekProxy.pinned }
+        detail: { side: peekProxy.side, cell: Math.round(peekProxy.cell), duration: peekProxy.duration * 1000, pinned: peekProxy.pinned, style: peekProxy.style }
       }));
     } }, 'show').name('Show Prism');
     peekFolder.add({ hide() {
       window.dispatchEvent(new CustomEvent('hide-prism-peek'));
     } }, 'hide').name('Hide Prism');
+    peekFolder.add(peekProxy, 'dragMode').name('Drag Mode').onChange((v) => {
+      window.dispatchEvent(new CustomEvent('prism-drag-mode', { detail: { enabled: v } }));
+      // Auto-show prism when entering drag mode
+      if (v) {
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: { side: 'right', pinned: true, style: 'pop' }
+        }));
+      }
+    });
+    peekFolder.add({ saveSpawn() {
+      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'add', label: `Saved ${Date.now()}` } }));
+    } }, 'saveSpawn').name('Save Spawn Point');
+
+    // -- Shape --
+    const pShape = prismBopFolder.addFolder('Shape');
+    if (!pcfg.shape) pcfg.shape = 'rounded-prism';
+    pShape.add(pcfg, 'shape', ['rounded-prism', 'pyramid', 'crystal', 'sphere', 'gem', 'prism']).name('Shape').onChange(() => {
+      window.dispatchEvent(new CustomEvent('prism-shape-change'));
+    });
+    pShape.close();
 
     // -- Glass Material --
     const pGlass = prismBopFolder.addFolder('Glass Material');

@@ -714,6 +714,33 @@
     top: 20px;
 }
 
+/* Drag mode */
+.peek-character.drag-mode {
+    cursor: grab;
+    user-select: none;
+}
+
+.peek-character.drag-mode:active {
+    cursor: grabbing;
+}
+
+.drag-position-indicator {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 20, 0.85);
+    color: #38bdf8;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-family: monospace;
+    white-space: nowrap;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    pointer-events: none;
+    z-index: 20;
+}
+
 /* 3D Glass Prism Container */
 .prism-3d {
     position: relative;
@@ -760,23 +787,25 @@
     100% { opacity: 0; transform: translate(var(--sparkle-x), var(--sparkle-y)) scale(0.2); }
 }
 
-/* Prism bop counter */
+/* Prism bop counter - sits below prism body */
 .prism-bop-counter {
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 22px;
-    height: 22px;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
     background: linear-gradient(135deg, #f472b6, #7c3aed);
-    border-radius: 50%;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 900;
     color: white;
     z-index: 10;
-    box-shadow: 0 0 8px rgba(244, 114, 182, 0.5);
+    box-shadow: 0 0 12px rgba(244, 114, 182, 0.5), 0 0 24px rgba(124, 58, 237, 0.3);
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
 

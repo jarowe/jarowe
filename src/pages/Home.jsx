@@ -3358,10 +3358,26 @@ export default function Home() {
   // Hidden character peek-a-boo
   const [peekVisible, setPeekVisible] = useState(false);
   const [peekPosition, setPeekPosition] = useState({ cell: 0, side: 'right' });
+  const [peekStyle, setPeekStyle] = useState('slide');
   const [prismBops, setPrismBops] = useState(0);
   const [prismBubble, setPrismBubble] = useState(null);
   const [prismSparkles, setPrismSparkles] = useState([]);
   const [showSpeedGame, setShowSpeedGame] = useState(false);
+  const [editorDragMode, setEditorDragMode] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: null, y: null });
+  const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
+
+  // Spawn points from localStorage
+  const [spawnPoints, setSpawnPoints] = useState(() => {
+    try {
+      const saved = localStorage.getItem('prism_spawn_points');
+      return saved ? JSON.parse(saved) : [
+        { label: 'Right Edge', side: 'right' },
+        { label: 'Left Edge', side: 'left' },
+        { label: 'Top', side: 'top' },
+      ];
+    } catch { return [{ label: 'Right Edge', side: 'right' }, { label: 'Left Edge', side: 'left' }, { label: 'Top', side: 'top' }]; }
+  });
 
   const prismPhrases = [
     "Hey! You found me!",
@@ -3383,14 +3399,22 @@ export default function Home() {
   ];
 
   useEffect(() => {
+    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
     const scheduleNext = () => {
       const delay = 12000 + Math.random() * 20000;
       return setTimeout(() => {
-        const sides = ['right', 'left', 'top'];
-        setPeekPosition({
-          cell: Math.floor(Math.random() * 4),
-          side: sides[Math.floor(Math.random() * sides.length)]
-        });
+        // Pick from spawn points
+        const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+        if (sp.x != null && sp.y != null) {
+          setDragPosition({ x: sp.x, y: sp.y });
+          setPeekPosition({ cell: 0, side: 'custom' });
+        } else {
+          setPeekPosition({
+            cell: Math.floor(Math.random() * 4),
+            side: sp.side || 'right'
+          });
+        }
+        setPeekStyle(peekStyles[Math.floor(Math.random() * peekStyles.length)]);
         setPeekVisible(true);
         setTimeout(() => setPeekVisible(false), 4000);
         timerId = scheduleNext();
@@ -3399,12 +3423,13 @@ export default function Home() {
 
     let timerId = scheduleNext();
     return () => clearTimeout(timerId);
-  }, []);
+  }, [spawnPoints]);
 
-  // Editor prism peek control (supports detail: { side, cell, duration, pinned })
+  // Editor prism peek control (supports detail: { side, cell, duration, pinned, style })
   const peekPinnedRef = useRef(false);
   const peekTimerRef = useRef(null);
   useEffect(() => {
+    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
     const showHandler = (e) => {
       const d = e.detail || {};
       const sides = ['right', 'left', 'top'];
@@ -3412,6 +3437,7 @@ export default function Home() {
         cell: d.cell ?? Math.floor(Math.random() * 4),
         side: d.side || sides[Math.floor(Math.random() * sides.length)]
       });
+      setPeekStyle(d.style || peekStyles[Math.floor(Math.random() * peekStyles.length)]);
       setPeekVisible(true);
       peekPinnedRef.current = !!d.pinned;
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
@@ -3424,14 +3450,34 @@ export default function Home() {
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
       setPeekVisible(false);
     };
+    // Drag mode listener
+    const dragModeHandler = (e) => setEditorDragMode(e.detail?.enabled ?? false);
+    // Spawn point management
+    const spawnHandler = (e) => {
+      const d = e.detail || {};
+      if (d.action === 'add' && dragPosition.x != null) {
+        const newPoints = [...spawnPoints, { label: d.label || `Point ${spawnPoints.length + 1}`, x: dragPosition.x, y: dragPosition.y, side: 'custom' }];
+        setSpawnPoints(newPoints);
+        localStorage.setItem('prism_spawn_points', JSON.stringify(newPoints));
+      } else if (d.action === 'remove' && d.index != null) {
+        const newPoints = spawnPoints.filter((_, i) => i !== d.index);
+        setSpawnPoints(newPoints);
+        localStorage.setItem('prism_spawn_points', JSON.stringify(newPoints));
+      }
+    };
+
     window.addEventListener('trigger-prism-peek', showHandler);
     window.addEventListener('hide-prism-peek', hideHandler);
+    window.addEventListener('prism-drag-mode', dragModeHandler);
+    window.addEventListener('prism-spawn-point', spawnHandler);
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
+      window.removeEventListener('prism-drag-mode', dragModeHandler);
+      window.removeEventListener('prism-spawn-point', spawnHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
-  }, []);
+  }, [spawnPoints, dragPosition]);
 
   const handleCatchCharacter = useCallback(() => {
     setPeekVisible(false);
@@ -3440,6 +3486,8 @@ export default function Home() {
     if (globeRef.current && globeRef.current.customUniforms) {
       globeRef.current.customUniforms.prismPulse.value = 1.0; // TRIGGER EXTREME GLOBE REACTION
     }
+    // Trigger squash & stretch on prism body
+    window.__prismSquash = Date.now();
     setPrismBops(newBops);
     setPrismBubble(prismPhrases[(newBops - 1) % prismPhrases.length]);
     setTimeout(() => setPrismBubble(null), 2500);
@@ -3473,6 +3521,28 @@ export default function Home() {
       setTimeout(() => setShowSpeedGame(true), 1500);
     }
   }, [prismBops]);
+
+  // Drag mode: global mouse handlers
+  useEffect(() => {
+    if (!editorDragMode) return;
+    const handleMouseMove = (e) => {
+      if (!dragRef.current.dragging) return;
+      setDragPosition({
+        x: e.clientX - dragRef.current.offsetX,
+        y: e.clientY - dragRef.current.offsetY,
+      });
+      window.dispatchEvent(new CustomEvent('prism-drag-position', { detail: { x: e.clientX - dragRef.current.offsetX, y: e.clientY - dragRef.current.offsetY } }));
+    };
+    const handleMouseUp = () => {
+      dragRef.current.dragging = false;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [editorDragMode]);
 
   return (
     <div className="home-wrapper" ref={container}>
@@ -3841,56 +3911,118 @@ export default function Home() {
 
         {/* HIDDEN CHARACTER */}
         <AnimatePresence>
-          {peekVisible && (
-            <motion.div
-              className={`peek-character peek-${peekPosition.side}`}
-              initial={{ opacity: 0, x: peekPosition.side === 'right' ? 30 : peekPosition.side === 'left' ? -30 : 0, y: peekPosition.side === 'top' ? -30 : 0 }}
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              exit={{ opacity: 0, x: peekPosition.side === 'right' ? 30 : peekPosition.side === 'left' ? -30 : 0, y: peekPosition.side === 'top' ? -30 : 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              onClick={handleCatchCharacter}
-              style={{ cursor: 'pointer' }}
-            >
-              {/* Bop counter badge */}
-              {prismBops > 0 && (
-                <div className="prism-bop-counter">{prismBops}</div>
-              )}
-              {/* Talk bubble */}
-              <AnimatePresence>
-                {prismBubble && (
-                  <motion.div
-                    className="prism-bubble"
-                    initial={{ opacity: 0, scale: 0, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  >
-                    {prismBubble}
-                  </motion.div>
+          {peekVisible && (() => {
+            // Peek animation variants
+            const variants = {
+              slide: {
+                initial: { opacity: 0, x: peekPosition.side === 'right' ? 80 : peekPosition.side === 'left' ? -80 : 0, y: peekPosition.side === 'top' ? -80 : 0 },
+                animate: { opacity: 1, x: 0, y: 0 },
+                exit: { opacity: 0, x: peekPosition.side === 'right' ? 80 : peekPosition.side === 'left' ? -80 : 0, y: peekPosition.side === 'top' ? -80 : 0 },
+                transition: { type: 'spring', stiffness: 300, damping: 20 },
+              },
+              bounce: {
+                initial: { opacity: 0, y: -100 },
+                animate: { opacity: 1, y: 0 },
+                exit: { opacity: 0, y: -100 },
+                transition: { type: 'spring', bounce: 0.7, stiffness: 300 },
+              },
+              swing: {
+                initial: { opacity: 0, rotate: peekPosition.side === 'left' ? 90 : -90 },
+                animate: { opacity: 1, rotate: 0 },
+                exit: { opacity: 0, rotate: peekPosition.side === 'left' ? 90 : -90 },
+                transition: { type: 'spring', stiffness: 200, damping: 15 },
+              },
+              pop: {
+                initial: { opacity: 0, scale: 0 },
+                animate: { opacity: 1, scale: 1 },
+                exit: { opacity: 0, scale: 0 },
+                transition: { type: 'spring', stiffness: 400, damping: 15 },
+              },
+              roll: {
+                initial: { opacity: 0, x: peekPosition.side === 'left' ? -80 : 80, rotate: 360 },
+                animate: { opacity: 1, x: 0, rotate: 0 },
+                exit: { opacity: 0, x: peekPosition.side === 'left' ? -80 : 80, rotate: -360 },
+                transition: { type: 'spring', stiffness: 200, damping: 20 },
+              },
+            };
+            const v = variants[peekStyle] || variants.slide;
+            const isDragCustom = editorDragMode && dragPosition.x != null;
+            const isCustomPos = peekPosition.side === 'custom' && dragPosition.x != null;
+            return (
+              <motion.div
+                className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
+                initial={v.initial}
+                animate={v.animate}
+                exit={v.exit}
+                transition={v.transition}
+                onClick={editorDragMode ? undefined : handleCatchCharacter}
+                onMouseDown={editorDragMode ? (e) => {
+                  dragRef.current.dragging = true;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  dragRef.current.offsetX = e.clientX - rect.left;
+                  dragRef.current.offsetY = e.clientY - rect.top;
+                  e.preventDefault();
+                } : undefined}
+                style={{
+                  cursor: editorDragMode ? (dragRef.current.dragging ? 'grabbing' : 'grab') : 'pointer',
+                  ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
+                }}
+              >
+                {/* Talk bubble */}
+                <AnimatePresence>
+                  {prismBubble && (
+                    <motion.div
+                      className="prism-bubble"
+                      initial={{ opacity: 0, scale: 0, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    >
+                      {prismBubble}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div className="prism-3d">
+                  <Suspense fallback={<div className="prism-loading-glow" />}>
+                    <Prism3D />
+                  </Suspense>
+                  {/* Bop counter badge - below prism body */}
+                  {prismBops > 0 && (
+                    <motion.div
+                      className="prism-bop-counter"
+                      key={prismBops}
+                      initial={{ scale: 1.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                    >
+                      {prismBops}
+                    </motion.div>
+                  )}
+                  {/* Sparkle trail particles */}
+                  {prismSparkles.map(s => (
+                    <div
+                      key={s.id}
+                      className="prism-sparkle"
+                      style={{
+                        '--sparkle-x': `${s.x}px`,
+                        '--sparkle-y': `${s.y}px`,
+                        '--sparkle-color': s.color,
+                        '--sparkle-delay': `${s.delay}s`,
+                        '--sparkle-size': `${s.size}px`,
+                        '--sparkle-duration': `${s.duration}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+                {/* Drag position indicator */}
+                {editorDragMode && dragPosition.x != null && (
+                  <div className="drag-position-indicator">
+                    {Math.round(dragPosition.x)}, {Math.round(dragPosition.y)}
+                  </div>
                 )}
-              </AnimatePresence>
-              <div className="prism-3d">
-                <Suspense fallback={<div className="prism-loading-glow" />}>
-                  <Prism3D />
-                </Suspense>
-                {/* Sparkle trail particles */}
-                {prismSparkles.map(s => (
-                  <div
-                    key={s.id}
-                    className="prism-sparkle"
-                    style={{
-                      '--sparkle-x': `${s.x}px`,
-                      '--sparkle-y': `${s.y}px`,
-                      '--sparkle-color': s.color,
-                      '--sparkle-delay': `${s.delay}s`,
-                      '--sparkle-size': `${s.size}px`,
-                      '--sparkle-duration': `${s.duration}s`,
-                    }}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
 
         {/* SPEED PUZZLE GAME */}

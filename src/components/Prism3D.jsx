@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, MeshTransmissionMaterial, Sparkles } from '@react-three/drei';
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
 /* ═══════════ GLOBAL PRISM CONFIG (GlobeEditor writes, Prism3D reads) ═══════════ */
@@ -17,6 +17,8 @@ export const PRISM_DEFAULTS = {
   anisotropy: 0.3,
   samples: 10,
   resolution: 256,
+  // Shape
+  shape: 'rounded-prism',
   // Mouse reactivity
   driftStrength: 0.8,
   driftSpeed: 0.04,
@@ -381,42 +383,43 @@ function createStarTexture() {
   return tex;
 }
 
-/* ═══════════ NEBULA BACKGROUND (soft organic colors for MTM refraction) ═══════════ */
+/* ═══════════ VIVID NEBULA BACKGROUND (bright colors for MTM refraction) ═══════════ */
 function createNebulaTexture() {
   const size = 512;
   const c = document.createElement('canvas');
   c.width = size; c.height = size;
   const ctx = c.getContext('2d');
 
-  // Transparent base
-  ctx.clearRect(0, 0, size, size);
+  // Dark base fill so it's not transparent
+  ctx.fillStyle = '#0a0a2e';
+  ctx.fillRect(0, 0, size, size);
 
-  // Soft nebula blobs - organic, no hard edges
+  // Vivid nebula blobs - high alpha for actual visible refraction content
   const blobs = [
-    { x: 130, y: 120, r: 140, color: [124, 58, 237, 0.12] },   // purple
-    { x: 380, y: 150, r: 120, color: [56, 189, 248, 0.10] },   // cyan
-    { x: 256, y: 380, r: 150, color: [244, 114, 182, 0.08] },  // pink
-    { x: 100, y: 350, r: 100, color: [34, 197, 94, 0.06] },    // green
-    { x: 400, y: 380, r: 110, color: [250, 204, 21, 0.05] },   // gold
-    { x: 256, y: 200, r: 180, color: [147, 51, 234, 0.08] },   // violet center
-    { x: 180, y: 256, r: 130, color: [59, 130, 246, 0.07] },   // blue
-    { x: 350, y: 280, r: 100, color: [236, 72, 153, 0.06] },   // rose
+    { x: 130, y: 120, r: 160, color: [124, 58, 237, 0.55] },   // purple
+    { x: 380, y: 150, r: 140, color: [56, 189, 248, 0.50] },   // cyan
+    { x: 256, y: 380, r: 160, color: [244, 114, 182, 0.45] },  // pink
+    { x: 100, y: 350, r: 120, color: [34, 197, 94, 0.40] },    // green
+    { x: 400, y: 380, r: 130, color: [250, 204, 21, 0.35] },   // gold
+    { x: 256, y: 200, r: 200, color: [147, 51, 234, 0.50] },   // violet center
+    { x: 180, y: 256, r: 150, color: [59, 130, 246, 0.45] },   // blue
+    { x: 350, y: 280, r: 120, color: [236, 72, 153, 0.40] },   // rose
   ];
 
   blobs.forEach(b => {
     const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
     grad.addColorStop(0, `rgba(${b.color[0]},${b.color[1]},${b.color[2]},${b.color[3]})`);
-    grad.addColorStop(0.4, `rgba(${b.color[0]},${b.color[1]},${b.color[2]},${b.color[3] * 0.6})`);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.5, `rgba(${b.color[0]},${b.color[1]},${b.color[2]},${b.color[3] * 0.6})`);
+    grad.addColorStop(1, `rgba(${b.color[0]},${b.color[1]},${b.color[2]},0)`);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
   });
 
-  // Very faint overall warm center glow
+  // Warm center glow
   const centerGlow = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-  centerGlow.addColorStop(0, 'rgba(200, 180, 255, 0.06)');
-  centerGlow.addColorStop(0.5, 'rgba(100, 80, 200, 0.03)');
-  centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  centerGlow.addColorStop(0, 'rgba(200, 180, 255, 0.4)');
+  centerGlow.addColorStop(0.5, 'rgba(100, 80, 200, 0.2)');
+  centerGlow.addColorStop(1, 'rgba(10, 10, 46, 0)');
   ctx.fillStyle = centerGlow;
   ctx.fillRect(0, 0, size, size);
 
@@ -425,13 +428,128 @@ function createNebulaTexture() {
   return tex;
 }
 
-/* ═══════════ NEBULA BACKDROP: soft colored fog for refraction ═══════════ */
+/* ═══════════ PAGE CAPTURE TEXTURE (html2canvas) ═══════════ */
+function usePageTexture(fallbackTex) {
+  const [pageTex, setPageTex] = useState(null);
+  const captureRef = useRef(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const capture = async () => {
+      try {
+        const html2canvas = (await import('html2canvas')).default;
+        const target = document.querySelector('.bento-container') || document.body;
+        const canvas = await html2canvas(target, {
+          scale: 0.5,
+          width: 512,
+          height: 512,
+          backgroundColor: '#0a0a1a',
+          logging: false,
+          useCORS: true,
+        });
+        if (cancelled) return;
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.needsUpdate = true;
+        setPageTex(tex);
+      } catch {
+        // html2canvas failed, stick with fallback
+      }
+    };
+
+    // Initial capture after a short delay to let page render
+    const initTimer = setTimeout(capture, 2000);
+
+    // Re-capture every 15 seconds
+    const interval = setInterval(() => {
+      captureRef.current++;
+      capture();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initTimer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return pageTex || fallbackTex;
+}
+
+/* ═══════════ GEOMETRY HOOK (shape selection) ═══════════ */
+function usePrismGeometry(shape) {
+  return useMemo(() => {
+    switch (shape) {
+      case 'rounded-prism': {
+        // Rounded triangle extruded with bevel
+        const triShape = new THREE.Shape();
+        const r = 1;
+        const bevelR = 0.15;
+        const angles = [Math.PI / 2, Math.PI / 2 + (2 * Math.PI / 3), Math.PI / 2 + (4 * Math.PI / 3)];
+        const pts = angles.map(a => [Math.cos(a) * r, Math.sin(a) * r]);
+
+        // Draw rounded triangle
+        for (let i = 0; i < 3; i++) {
+          const curr = pts[i];
+          const next = pts[(i + 1) % 3];
+          const prev = pts[(i + 2) % 3];
+
+          // Direction vectors
+          const toNext = [next[0] - curr[0], next[1] - curr[1]];
+          const toPrev = [prev[0] - curr[0], prev[1] - curr[1]];
+          const lenNext = Math.sqrt(toNext[0] ** 2 + toNext[1] ** 2);
+          const lenPrev = Math.sqrt(toPrev[0] ** 2 + toPrev[1] ** 2);
+
+          // Normalized
+          const dnx = toNext[0] / lenNext, dny = toNext[1] / lenNext;
+          const dpx = toPrev[0] / lenPrev, dpy = toPrev[1] / lenPrev;
+
+          // Points pulled in from corner
+          const pA = [curr[0] + dnx * bevelR * 2, curr[1] + dny * bevelR * 2];
+          const pB = [curr[0] + dpx * bevelR * 2, curr[1] + dpy * bevelR * 2];
+
+          if (i === 0) {
+            triShape.moveTo(pB[0], pB[1]);
+          } else {
+            triShape.lineTo(pB[0], pB[1]);
+          }
+          triShape.quadraticCurveTo(curr[0], curr[1], pA[0], pA[1]);
+        }
+        triShape.closePath();
+
+        const extrudeSettings = {
+          depth: 1.8,
+          bevelEnabled: true,
+          bevelThickness: 0.08,
+          bevelSize: 0.08,
+          bevelSegments: 4,
+        };
+        const geo = new THREE.ExtrudeGeometry(triShape, extrudeSettings);
+        geo.center();
+        geo.computeVertexNormals();
+        return geo;
+      }
+      case 'pyramid':
+        return new THREE.ConeGeometry(1, 2, 4);
+      case 'crystal':
+        return new THREE.OctahedronGeometry(1.2, 0);
+      case 'sphere':
+        return new THREE.SphereGeometry(1, 32, 32);
+      case 'gem':
+        return new THREE.DodecahedronGeometry(1, 0);
+      case 'prism':
+      default:
+        return new THREE.CylinderGeometry(1, 1, 1.8, 3);
+    }
+  }, [shape]);
+}
+
+/* ═══════════ NEBULA BACKDROP: vivid colored fog for refraction ═══════════ */
 function NebulaBackdrop({ texture }) {
   const matRef = useRef();
 
   useFrame((state) => {
     if (matRef.current) {
-      matRef.current.opacity = 0.5 + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+      matRef.current.opacity = 0.7 + Math.sin(state.clock.elapsedTime * 0.3) * 0.15;
     }
   });
 
@@ -442,17 +560,18 @@ function NebulaBackdrop({ texture }) {
         ref={matRef}
         map={texture}
         transparent
-        opacity={0.5}
+        opacity={0.7}
         depthWrite={false}
       />
     </mesh>
   );
 }
 
-/* ═══════════ PRISM BODY: liquid glass with breathing ═══════════ */
-function PrismBody({ nebulaTex }) {
+/* ═══════════ PRISM BODY: liquid glass with breathing + squash/stretch ═══════════ */
+function PrismBody({ backgroundTex, geometry }) {
   const meshRef = useRef();
   const mtmRef = useRef();
+  const squashRef = useRef({ active: false, startTime: 0 });
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -460,8 +579,38 @@ function PrismBody({ nebulaTex }) {
     meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.4) * 0.12;
     meshRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
     meshRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
-    const breath = 1 + Math.sin(state.clock.elapsedTime * cfg.breathingSpeed) * cfg.breathingAmp;
-    meshRef.current.scale.setScalar(breath);
+
+    // Squash & stretch from bop
+    const squashTs = window.__prismSquash;
+    if (squashTs && Date.now() - squashTs < 600) {
+      const progress = (Date.now() - squashTs) / 600;
+      let sx, sy, sz;
+      if (progress < 0.15) {
+        // Squash
+        const t = progress / 0.15;
+        sx = 1 + 0.3 * t;
+        sy = 1 - 0.3 * t;
+        sz = 1 + 0.3 * t;
+      } else if (progress < 0.35) {
+        // Stretch
+        const t = (progress - 0.15) / 0.2;
+        sx = 1.3 - 0.45 * t;
+        sy = 0.7 + 0.55 * t;
+        sz = 1.3 - 0.45 * t;
+      } else {
+        // Spring back
+        const t = (progress - 0.35) / 0.65;
+        const spring = Math.sin(t * Math.PI * 3) * (1 - t) * 0.12;
+        sx = 0.85 + 0.15 * t + spring;
+        sy = 1.25 - 0.25 * t - spring;
+        sz = 0.85 + 0.15 * t + spring;
+      }
+      meshRef.current.scale.set(sx, sy, sz);
+    } else {
+      const breath = 1 + Math.sin(state.clock.elapsedTime * cfg.breathingSpeed) * cfg.breathingAmp;
+      meshRef.current.scale.setScalar(breath);
+    }
+
     // Live-update MTM props from config
     if (mtmRef.current) {
       mtmRef.current.ior = cfg.ior;
@@ -475,8 +624,7 @@ function PrismBody({ nebulaTex }) {
   });
 
   return (
-    <mesh ref={meshRef}>
-      <cylinderGeometry args={[1, 1, 1.8, 3]} />
+    <mesh ref={meshRef} geometry={geometry}>
       <MeshTransmissionMaterial
         ref={mtmRef}
         transmission={1}
@@ -492,7 +640,7 @@ function PrismBody({ nebulaTex }) {
         temporalDistortion={cfg.temporalDistortion}
         color={cfg.glassColor}
         anisotropy={cfg.anisotropy}
-        background={nebulaTex}
+        background={backgroundTex}
       />
     </mesh>
   );
@@ -526,23 +674,56 @@ function MouseDriftGroup({ children }) {
   return <group ref={groupRef}>{children}</group>;
 }
 
-/* ═══════════ GLASS ORB EYE ═══════════ */
+/* ═══════════ GLASS ORB EYE (enhanced with expression states) ═══════════ */
 function GlassOrbEye() {
   const groupRef = useRef();
   const orbRef = useRef();
   const eyeTexture = useMemo(() => createEyeTexture(), []);
+  const expressionRef = useRef('normal'); // normal, curious, surprised, happy
+  const expressionTimer = useRef(0);
 
   useFrame((state) => {
     if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
     const lerpFactor = cfg.eyeTrackSpeed + Math.min(mouseVel.current * 3, 0.15);
+
+    // Expression-based eye offsets
+    let extraYOffset = 0;
+    let irisScale = 1;
+    const expr = expressionRef.current;
+
+    if (expr === 'curious') {
+      irisScale = 1.1; // dilated
+    } else if (expr === 'surprised') {
+      irisScale = 0.85; // contracted
+    } else if (expr === 'happy') {
+      extraYOffset = 0.05; // squint-smile
+    }
+
+    // Cycle expressions based on interactions
+    if (t - expressionTimer.current > 8) {
+      expressionTimer.current = t;
+      const states = ['normal', 'curious', 'normal', 'happy', 'normal'];
+      expressionRef.current = states[Math.floor(Math.random() * states.length)];
+    }
+
+    // Occasional curious look-around
+    let lookOffsetX = 0, lookOffsetY = 0;
+    const lookCycle = (t * 0.3) % 6;
+    if (lookCycle > 4.5 && lookCycle < 5.5) {
+      const lp = (lookCycle - 4.5) * 2;
+      lookOffsetX = Math.sin(lp * Math.PI) * 0.15;
+      lookOffsetY = Math.cos(lp * Math.PI * 0.7) * 0.08;
+    }
+
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
-      groupRef.current.rotation.x, mousePos.y * cfg.eyeTrackRange, lerpFactor
+      groupRef.current.rotation.x, mousePos.y * cfg.eyeTrackRange + lookOffsetY + extraYOffset, lerpFactor
     );
     groupRef.current.rotation.y = THREE.MathUtils.lerp(
-      groupRef.current.rotation.y, mousePos.x * cfg.eyeTrackRange, lerpFactor
+      groupRef.current.rotation.y, mousePos.x * cfg.eyeTrackRange + lookOffsetX, lerpFactor
     );
     if (orbRef.current) {
-      const pulse = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.04;
+      const pulse = (1 + Math.sin(t * 2) * 0.04) * irisScale;
       orbRef.current.scale.setScalar(pulse);
     }
   });
@@ -565,7 +746,67 @@ function GlassOrbEye() {
       <sprite scale={[0.55, 0.46, 1]}>
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
+      <Eyelid />
     </group>
+  );
+}
+
+/* ═══════════ EYELID (blink animation) ═══════════ */
+function Eyelid() {
+  const meshRef = useRef();
+  const blinkState = useRef({ nextBlink: 3, phase: 0, doubleBlink: false });
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return;
+    const bs = blinkState.current;
+    const t = state.clock.elapsedTime;
+
+    bs.nextBlink -= delta;
+    if (bs.nextBlink <= 0) {
+      bs.phase = 1; // start blink
+      bs.doubleBlink = Math.random() < 0.2;
+      // Blink more when mouse is near
+      const mouseProximity = Math.sqrt(mousePos.x * mousePos.x + mousePos.y * mousePos.y);
+      bs.nextBlink = 3 + Math.random() * 3 - mouseProximity * 2;
+      if (bs.nextBlink < 1.5) bs.nextBlink = 1.5;
+    }
+
+    if (bs.phase > 0) {
+      bs.phase += delta * 8; // blink speed
+      let scaleY;
+      if (bs.phase < 1.5) {
+        // Close
+        scaleY = Math.min(1, (bs.phase - 1) * 2);
+      } else if (bs.phase < 2.5) {
+        // Open
+        scaleY = Math.max(0, 1 - (bs.phase - 1.5) * 2);
+      } else if (bs.doubleBlink && bs.phase < 3.5) {
+        // Second close
+        scaleY = Math.min(1, (bs.phase - 2.5) * 2);
+      } else if (bs.doubleBlink && bs.phase < 4.5) {
+        // Second open
+        scaleY = Math.max(0, 1 - (bs.phase - 3.5) * 2);
+      } else {
+        scaleY = 0;
+        bs.phase = 0;
+      }
+      meshRef.current.scale.y = scaleY;
+    } else {
+      meshRef.current.scale.y = 0;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0.12, 0.35]}>
+      <planeGeometry args={[0.5, 0.3]} />
+      <meshBasicMaterial
+        color="#0a0a2e"
+        transparent
+        opacity={0.9}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
   );
 }
 
@@ -719,11 +960,17 @@ function VertexHighlights() {
   );
 }
 
-/* ═══════════ EDGE GLOW WIREFRAME ═══════════ */
-function EdgeGlow() {
+/* ═══════════ EDGE GLOW WIREFRAME (matches current geometry) ═══════════ */
+function EdgeGlow({ geometry }) {
+  // Create a slightly larger clone of the geometry for wireframe overlay
+  const edgeGeo = useMemo(() => {
+    const g = geometry.clone();
+    g.scale(1.008, 1.008, 1.008);
+    return g;
+  }, [geometry]);
+
   return (
-    <mesh>
-      <cylinderGeometry args={[1.008, 1.008, 1.82, 3]} />
+    <mesh geometry={edgeGeo}>
       <meshBasicMaterial
         wireframe
         color="#c4b5fd"
@@ -824,29 +1071,16 @@ function InnerSparkles() {
     const phases = new Float32Array(count);
     const colors = new Float32Array(count * 3);
 
-    const isInsideTriPrism = (x, y, z) => {
-      if (Math.abs(z) > 0.85) return false;
-      const r = 0.85;
-      const angles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
-      const vx = angles.map(a => Math.cos(a) * r);
-      const vy = angles.map(a => Math.sin(a) * r);
-      const d1 = (x - vx[1]) * (vy[0] - vy[1]) - (vx[0] - vx[1]) * (y - vy[1]);
-      const d2 = (x - vx[2]) * (vy[1] - vy[2]) - (vx[1] - vx[2]) * (y - vy[2]);
-      const d3 = (x - vx[0]) * (vy[2] - vy[0]) - (vx[2] - vx[0]) * (y - vy[0]);
-      const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-      const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-      return !(hasNeg && hasPos);
-    };
-
+    // Use a sphere-based distribution that works for all shapes
     let placed = 0;
     while (placed < count) {
-      const x = (Math.random() - 0.5) * 1.8;
-      const y = (Math.random() - 0.5) * 1.8;
-      const z = (Math.random() - 0.5) * 1.6;
-      if (isInsideTriPrism(x, y, z)) {
+      const x = (Math.random() - 0.5) * 1.6;
+      const y = (Math.random() - 0.5) * 1.6;
+      const z = (Math.random() - 0.5) * 1.4;
+      if (x * x + y * y + z * z < 0.7) { // inside rough bounding sphere
         positions[placed * 3] = x;
-        positions[placed * 3 + 1] = z;
-        positions[placed * 3 + 2] = y;
+        positions[placed * 3 + 1] = y;
+        positions[placed * 3 + 2] = z;
         phases[placed] = Math.random();
         const c = ROYGBV[placed % ROYGBV.length];
         colors[placed * 3] = c.r;
@@ -1027,7 +1261,26 @@ function SceneLights() {
 /* ═══════════ MAIN COMPONENT ═══════════ */
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
+  const backgroundTex = usePageTexture(nebulaTex);
   const prevMouseRef = useRef(new THREE.Vector2(0, 0));
+
+  // Shape geometry - reads from config
+  const [shape, setShape] = useState(cfg.shape || 'rounded-prism');
+  const geometry = usePrismGeometry(shape);
+
+  // Listen for shape changes from editor
+  useEffect(() => {
+    const handler = () => setShape(cfg.shape || 'rounded-prism');
+    window.addEventListener('prism-shape-change', handler);
+    // Also poll periodically for direct config mutations
+    const interval = setInterval(() => {
+      if (cfg.shape !== shape) setShape(cfg.shape || 'rounded-prism');
+    }, 500);
+    return () => {
+      window.removeEventListener('prism-shape-change', handler);
+      clearInterval(interval);
+    };
+  }, [shape]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -1071,12 +1324,12 @@ export default function Prism3D() {
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
-            <PrismBody nebulaTex={nebulaTex} />
+            <PrismBody backgroundTex={backgroundTex} geometry={geometry} />
             <GlassOrbEye />
             <InternalGlow />
             <InnerSparkles />
             <VertexHighlights />
-            <EdgeGlow />
+            <EdgeGlow geometry={geometry} />
             <IncomingBeam />
             <RainbowFan />
 
