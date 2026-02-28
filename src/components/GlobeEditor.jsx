@@ -573,25 +573,17 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // Ensure config exists even before Prism3D lazy-loads
     if (!window.__prismConfig) {
       window.__prismConfig = {
-        ior: 2.4, chromaticAberration: 2.0, thickness: 2.5, backsideThickness: 2,
-        roughness: 0, distortion: 0.2, temporalDistortion: 0.5, glassColor: '#f0e8ff',
-        anisotropy: 0.3, samples: 10, resolution: 256,
         shape: 'rounded-prism',
         driftStrength: 0.8, driftSpeed: 0.04, driftTiltX: 0.15, driftTiltY: 0.1,
         rayBendAmount: 0.12, rayVerticalBend: 0.06, beamTrackAmount: 0.12,
         eyeTrackSpeed: 0.06, eyeTrackRange: 0.5, rotationMouseInfluence: 0.5,
-        auraInnerScale: 2.2, auraOuterScale: 2.8, auraNoiseAmp: 0.15, auraNoiseSpeed: 0.6,
-        auraBulgeStrength: 0.35, auraBulgePower: 2.5, auraRimTightness: 3.5,
-        auraRimBright: 2.0, auraRimWide: 0.4,
-        sparkleCount: 50, sparkleSize: 2.5, sparkleSpeed: 0.5, sparkleOpacity: 0.8,
-        innerSparkBrightness: 2.0, orbitSpeed: 0.3, orbitRadius: 2.8,
-        ambientIntensity: 0.3, keyLightIntensity: 3, purpleLightIntensity: 2,
-        cyanLightIntensity: 1.5, pinkLightIntensity: 1, internalGlowIntensity: 1.5,
-        internalGlowDistance: 4, lightSpillIntensity: 1.0,
+        sparkleCount: 30, sparkleSize: 2.5, sparkleSpeed: 0.5, sparkleOpacity: 0.8,
+        ambientIntensity: 0.4, keyLightIntensity: 3, fillLightIntensity: 1.5,
+        internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 340, featherInner: 30, featherOuter: 70,
-        beamOpacity: 0.9, rayOpacity: 0.7, edgeGlowOpacity: 0.4,
+        canvasSize: 340, featherInner: 35, featherOuter: 90,
+        beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.6, wireframeOpacity: 0.25,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
       };
     }
@@ -635,20 +627,6 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     });
     pShape.close();
 
-    // -- Glass Material --
-    const pGlass = prismBopFolder.addFolder('Glass Material');
-    pGlass.add(pcfg, 'ior', 1.0, 5.0, 0.01).name('IOR');
-    pGlass.add(pcfg, 'chromaticAberration', 0, 5.0, 0.01).name('Chromatic Aberr.');
-    pGlass.add(pcfg, 'thickness', 0, 5.0, 0.1).name('Thickness');
-    pGlass.add(pcfg, 'backsideThickness', 0, 5.0, 0.1).name('Backside Thick');
-    pGlass.add(pcfg, 'roughness', 0, 1.0, 0.01).name('Roughness');
-    pGlass.add(pcfg, 'distortion', 0, 1.0, 0.01).name('Distortion');
-    pGlass.add(pcfg, 'temporalDistortion', 0, 2.0, 0.01).name('Temporal Distort');
-    pGlass.add(pcfg, 'anisotropy', 0, 1.0, 0.01).name('Anisotropy');
-    pGlass.add(pcfg, 'samples', 1, 16, 1).name('Samples');
-    pGlass.add(pcfg, 'resolution', 64, 512, 64).name('Resolution');
-    pGlass.close();
-
     // -- Mouse Reactivity --
     const pMouse = prismBopFolder.addFolder('Mouse Reactivity');
     pMouse.add(pcfg, 'driftStrength', 0, 2.0, 0.01).name('Drift Strength');
@@ -663,37 +641,19 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pMouse.add(pcfg, 'rotationMouseInfluence', 0, 2.0, 0.01).name('Rotation Influence');
     pMouse.close();
 
-    // -- Organic Aura --
-    const pAura = prismBopFolder.addFolder('Organic Aura');
-    pAura.add(pcfg, 'auraInnerScale', 1.0, 5.0, 0.1).name('Inner Scale');
-    pAura.add(pcfg, 'auraOuterScale', 1.0, 6.0, 0.1).name('Outer Scale');
-    pAura.add(pcfg, 'auraNoiseAmp', 0, 0.5, 0.01).name('Noise Amplitude');
-    pAura.add(pcfg, 'auraNoiseSpeed', 0, 2.0, 0.01).name('Noise Speed');
-    pAura.add(pcfg, 'auraBulgeStrength', 0, 1.0, 0.01).name('Mouse Bulge Str');
-    pAura.add(pcfg, 'auraBulgePower', 1.0, 5.0, 0.1).name('Mouse Bulge Pow');
-    pAura.add(pcfg, 'auraRimTightness', 1.0, 8.0, 0.1).name('Rim Tightness');
-    pAura.add(pcfg, 'auraRimBright', 0, 5.0, 0.1).name('Rim Brightness');
-    pAura.add(pcfg, 'auraRimWide', 0, 1.0, 0.01).name('Rim Wide');
-    pAura.close();
-
     // -- Particles --
     const pParticles = prismBopFolder.addFolder('Particles');
     pParticles.add(pcfg, 'sparkleCount', 0, 100, 1).name('Sparkle Count');
     pParticles.add(pcfg, 'sparkleSize', 0.5, 8.0, 0.1).name('Sparkle Size');
     pParticles.add(pcfg, 'sparkleSpeed', 0, 2.0, 0.1).name('Sparkle Speed');
     pParticles.add(pcfg, 'sparkleOpacity', 0, 1.0, 0.01).name('Sparkle Opacity');
-    pParticles.add(pcfg, 'innerSparkBrightness', 0.5, 5.0, 0.1).name('Inner Spark Bright');
-    pParticles.add(pcfg, 'orbitSpeed', 0, 2.0, 0.01).name('Orbit Speed');
-    pParticles.add(pcfg, 'orbitRadius', 1.0, 5.0, 0.1).name('Orbit Radius');
     pParticles.close();
 
     // -- Lighting --
     const prismLightFolder = prismBopFolder.addFolder('Lighting');
     prismLightFolder.add(pcfg, 'ambientIntensity', 0, 2.0, 0.01).name('Ambient');
     prismLightFolder.add(pcfg, 'keyLightIntensity', 0, 8.0, 0.1).name('Key Light');
-    prismLightFolder.add(pcfg, 'purpleLightIntensity', 0, 5.0, 0.1).name('Purple Light');
-    prismLightFolder.add(pcfg, 'cyanLightIntensity', 0, 5.0, 0.1).name('Cyan Light');
-    prismLightFolder.add(pcfg, 'pinkLightIntensity', 0, 5.0, 0.1).name('Pink Light');
+    prismLightFolder.add(pcfg, 'fillLightIntensity', 0, 5.0, 0.1).name('Fill Light');
     prismLightFolder.add(pcfg, 'internalGlowIntensity', 0, 5.0, 0.1).name('Internal Glow');
     prismLightFolder.add(pcfg, 'internalGlowDistance', 1, 10, 0.5).name('Glow Distance');
     prismLightFolder.add(pcfg, 'lightSpillIntensity', 0, 3.0, 0.01).name('Light Spill');
@@ -714,6 +674,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
     pFx.add(pcfg, 'edgeGlowOpacity', 0, 1.0, 0.01).name('Edge Glow');
+    pFx.add(pcfg, 'wireframeOpacity', 0, 1.0, 0.01).name('Wireframe');
     pFx.add(pcfg, 'vertexHighlightScale', 0, 1.0, 0.01).name('Star Scale');
     pFx.add(pcfg, 'vertexHighlightPulse', 0, 0.5, 0.01).name('Star Pulse');
     pFx.close();

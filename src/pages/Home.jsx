@@ -3909,121 +3909,98 @@ export default function Home() {
 
         </div>
 
-        {/* HIDDEN CHARACTER */}
-        <AnimatePresence>
-          {peekVisible && (() => {
-            // Peek animation variants
-            const variants = {
-              slide: {
-                initial: { opacity: 0, x: peekPosition.side === 'right' ? 80 : peekPosition.side === 'left' ? -80 : 0, y: peekPosition.side === 'top' ? -80 : 0 },
-                animate: { opacity: 1, x: 0, y: 0 },
-                exit: { opacity: 0, x: peekPosition.side === 'right' ? 80 : peekPosition.side === 'left' ? -80 : 0, y: peekPosition.side === 'top' ? -80 : 0 },
-                transition: { type: 'spring', stiffness: 300, damping: 20 },
-              },
-              bounce: {
-                initial: { opacity: 0, y: -100 },
-                animate: { opacity: 1, y: 0 },
-                exit: { opacity: 0, y: -100 },
-                transition: { type: 'spring', bounce: 0.7, stiffness: 300 },
-              },
-              swing: {
-                initial: { opacity: 0, rotate: peekPosition.side === 'left' ? 90 : -90 },
-                animate: { opacity: 1, rotate: 0 },
-                exit: { opacity: 0, rotate: peekPosition.side === 'left' ? 90 : -90 },
-                transition: { type: 'spring', stiffness: 200, damping: 15 },
-              },
-              pop: {
-                initial: { opacity: 0, scale: 0 },
-                animate: { opacity: 1, scale: 1 },
-                exit: { opacity: 0, scale: 0 },
-                transition: { type: 'spring', stiffness: 400, damping: 15 },
-              },
-              roll: {
-                initial: { opacity: 0, x: peekPosition.side === 'left' ? -80 : 80, rotate: 360 },
-                animate: { opacity: 1, x: 0, rotate: 0 },
-                exit: { opacity: 0, x: peekPosition.side === 'left' ? -80 : 80, rotate: -360 },
-                transition: { type: 'spring', stiffness: 200, damping: 20 },
-              },
-            };
-            const v = variants[peekStyle] || variants.slide;
-            const isDragCustom = editorDragMode && dragPosition.x != null;
-            const isCustomPos = peekPosition.side === 'custom' && dragPosition.x != null;
-            return (
-              <motion.div
-                className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
-                initial={v.initial}
-                animate={v.animate}
-                exit={v.exit}
-                transition={v.transition}
-                onClick={editorDragMode ? undefined : handleCatchCharacter}
-                onMouseDown={editorDragMode ? (e) => {
-                  dragRef.current.dragging = true;
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  dragRef.current.offsetX = e.clientX - rect.left;
-                  dragRef.current.offsetY = e.clientY - rect.top;
-                  e.preventDefault();
-                } : undefined}
-                style={{
-                  cursor: editorDragMode ? (dragRef.current.dragging ? 'grabbing' : 'grab') : 'pointer',
-                  ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
-                }}
-              >
-                {/* Talk bubble */}
-                <AnimatePresence>
-                  {prismBubble && (
-                    <motion.div
-                      className="prism-bubble"
-                      initial={{ opacity: 0, scale: 0, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    >
-                      {prismBubble}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <div className="prism-3d">
-                  <Suspense fallback={<div className="prism-loading-glow" />}>
-                    <Prism3D />
-                  </Suspense>
-                  {/* Bop counter badge - below prism body */}
-                  {prismBops > 0 && (
-                    <motion.div
-                      className="prism-bop-counter"
-                      key={prismBops}
-                      initial={{ scale: 1.5 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                    >
-                      {prismBops}
-                    </motion.div>
-                  )}
-                  {/* Sparkle trail particles */}
-                  {prismSparkles.map(s => (
-                    <div
-                      key={s.id}
-                      className="prism-sparkle"
-                      style={{
-                        '--sparkle-x': `${s.x}px`,
-                        '--sparkle-y': `${s.y}px`,
-                        '--sparkle-color': s.color,
-                        '--sparkle-delay': `${s.delay}s`,
-                        '--sparkle-size': `${s.size}px`,
-                        '--sparkle-duration': `${s.duration}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-                {/* Drag position indicator */}
-                {editorDragMode && dragPosition.x != null && (
-                  <div className="drag-position-indicator">
-                    {Math.round(dragPosition.x)}, {Math.round(dragPosition.y)}
-                  </div>
+        {/* HIDDEN CHARACTER - always mounted so Canvas never remounts (no lag) */}
+        {(() => {
+          const isDragCustom = editorDragMode && dragPosition.x != null;
+          const isCustomPos = peekPosition.side === 'custom' && dragPosition.x != null;
+          const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
+          const offY = peekPosition.side === 'top' ? -120 : 0;
+          const hiddenState =
+            peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
+            : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
+            : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
+            : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
+            : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
+          const peekTransition =
+            peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
+            : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
+            : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
+            : { type: 'spring', stiffness: 300, damping: 20 };
+          return (
+            <motion.div
+              className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
+              animate={peekVisible ? { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 } : hiddenState}
+              initial={false}
+              transition={peekTransition}
+              onClick={peekVisible && !editorDragMode ? handleCatchCharacter : undefined}
+              onMouseDown={editorDragMode ? (e) => {
+                dragRef.current.dragging = true;
+                const rect = e.currentTarget.getBoundingClientRect();
+                dragRef.current.offsetX = e.clientX - rect.left;
+                dragRef.current.offsetY = e.clientY - rect.top;
+                e.preventDefault();
+              } : undefined}
+              style={{
+                cursor: peekVisible ? (editorDragMode ? 'grab' : 'pointer') : 'default',
+                pointerEvents: peekVisible ? 'auto' : 'none',
+                ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
+              }}
+            >
+              {/* Talk bubble */}
+              <AnimatePresence>
+                {prismBubble && (
+                  <motion.div
+                    className="prism-bubble"
+                    initial={{ opacity: 0, scale: 0, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  >
+                    {prismBubble}
+                  </motion.div>
                 )}
-              </motion.div>
-            );
-          })()}
-        </AnimatePresence>
+              </AnimatePresence>
+              <div className="prism-3d">
+                <Suspense fallback={<div className="prism-loading-glow" />}>
+                  <Prism3D />
+                </Suspense>
+                {/* Bop counter badge */}
+                {prismBops > 0 && (
+                  <motion.div
+                    className="prism-bop-counter"
+                    key={prismBops}
+                    initial={{ scale: 1.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  >
+                    {prismBops}
+                  </motion.div>
+                )}
+                {/* Sparkle trail particles */}
+                {prismSparkles.map(s => (
+                  <div
+                    key={s.id}
+                    className="prism-sparkle"
+                    style={{
+                      '--sparkle-x': `${s.x}px`,
+                      '--sparkle-y': `${s.y}px`,
+                      '--sparkle-color': s.color,
+                      '--sparkle-delay': `${s.delay}s`,
+                      '--sparkle-size': `${s.size}px`,
+                      '--sparkle-duration': `${s.duration}s`,
+                    }}
+                  />
+                ))}
+              </div>
+              {/* Drag position indicator (editor only) */}
+              {editorDragMode && dragPosition.x != null && (
+                <div className="drag-position-indicator">
+                  {Math.round(dragPosition.x)}, {Math.round(dragPosition.y)}
+                </div>
+              )}
+            </motion.div>
+          );
+        })()}
 
         {/* SPEED PUZZLE GAME */}
         <AnimatePresence>
