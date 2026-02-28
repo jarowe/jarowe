@@ -38,15 +38,14 @@ export const PRISM_DEFAULTS = {
   breathingAmp: 0.02,
   breathingSpeed: 0.8,
   // Canvas / display
-  canvasSize: 340,
-  featherInner: 35,
-  featherOuter: 90,
+  canvasSize: 420,
+  featherInner: 25,
+  featherOuter: 75,
   // Beam / rays
   beamOpacity: 1.0,
   rayOpacity: 0.85,
   // Edge glow
-  edgeGlowOpacity: 0.6,
-  wireframeOpacity: 0.25,
+  edgeGlowOpacity: 0.4,
   // Vertex highlights
   vertexHighlightScale: 0.35,
   vertexHighlightPulse: 0.15,
@@ -122,12 +121,13 @@ const glassFrag = `
     float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 60.0);
     float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 30.0);
 
-    // Glass color: transparent center, iridescent + nebula at edges
-    vec3 color = mix(nebula * 0.3, iridescence, fresnel * 0.6);
+    // Glass color: subtle purple tint at center, iridescent + nebula at edges
+    vec3 baseTint = vec3(0.55, 0.4, 1.0); // purple glass tint
+    vec3 color = mix(nebula * 0.4 + baseTint * 0.15, iridescence, fresnel * 0.6);
     color += vec3(1.0, 0.98, 0.95) * (spec1 * 0.7 + spec2 * 0.35);
 
-    // Alpha: mostly transparent center, bright edges + specs
-    float alpha = 0.06 + fresnel * 0.5 + (spec1 + spec2 * 0.5) * 0.25;
+    // Alpha: visible glass center, bright edges + specs
+    float alpha = 0.18 + fresnel * 0.5 + (spec1 + spec2 * 0.5) * 0.25;
     alpha = min(alpha, 0.85);
 
     gl_FragColor = vec4(color, alpha);
@@ -549,17 +549,6 @@ function PrismBody({ geometry }) {
         />
       </lineSegments>
 
-      {/* Bright white wireframe overlay */}
-      <mesh geometry={geometry}>
-        <meshBasicMaterial
-          wireframe
-          color="#ffffff"
-          transparent
-          opacity={cfg.wireframeOpacity}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
     </group>
   );
 }
@@ -641,22 +630,8 @@ function GlassOrbEye() {
 
   return (
     <group ref={groupRef} position={[0, 0.05, 0.3]}>
-      {/* BIG eyeball sphere - clearly visible through glass */}
-      <mesh ref={orbRef}>
-        <sphereGeometry args={[0.55, 32, 32]} />
-        <meshPhysicalMaterial
-          color="#f0e8ff"
-          metalness={0.02}
-          roughness={0.05}
-          clearcoat={1}
-          clearcoatRoughness={0}
-          envMapIntensity={2}
-          transparent
-          opacity={0.5}
-        />
-      </mesh>
       {/* Eye texture sprite - faces camera, googly style */}
-      <sprite scale={[0.82, 0.7, 1]} position={[0, 0, 0.05]}>
+      <sprite ref={orbRef} scale={[0.9, 0.76, 1]} position={[0, 0, 0.56]}>
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
       <Eyelid />

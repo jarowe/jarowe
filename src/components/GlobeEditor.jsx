@@ -582,8 +582,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 340, featherInner: 35, featherOuter: 90,
-        beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.6, wireframeOpacity: 0.25,
+        canvasSize: 420, featherInner: 25, featherOuter: 75,
+        beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.4,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
       };
     }
@@ -674,7 +674,6 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
     pFx.add(pcfg, 'edgeGlowOpacity', 0, 1.0, 0.01).name('Edge Glow');
-    pFx.add(pcfg, 'wireframeOpacity', 0, 1.0, 0.01).name('Wireframe');
     pFx.add(pcfg, 'vertexHighlightScale', 0, 1.0, 0.01).name('Star Scale');
     pFx.add(pcfg, 'vertexHighlightPulse', 0, 0.5, 0.01).name('Star Pulse');
     pFx.close();
