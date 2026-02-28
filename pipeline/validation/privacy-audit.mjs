@@ -136,13 +136,20 @@ export function auditPrivacy(graph, config = {}) {
   for (const node of nodes) {
     const text = `${node.title || ''} ${node.description || ''}`;
     for (const firstName of minorFirstNames) {
-      // Check if the minor first name is followed by a capitalized word (last name)
+      // Case-insensitive find of the first name, then case-SENSITIVE check
+      // that the next word starts with uppercase (actual last-name signal).
       const escaped = firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const lastNamePattern = new RegExp(`\\b${escaped}\\s+[A-Z][a-z]`, 'i');
-      if (lastNamePattern.test(text)) {
-        violations.push(
-          `PRIV-05b: Minor "${firstName}" appears with last-name pattern in node ${node.id}`
-        );
+      const namePattern = new RegExp(`\\b${escaped}\\b\\s+(\\S)`, 'gi');
+      let match;
+      while ((match = namePattern.exec(text)) !== null) {
+        const nextChar = match[1];
+        // Only flag if next word starts with a real uppercase letter
+        if (nextChar >= 'A' && nextChar <= 'Z') {
+          violations.push(
+            `PRIV-05b: Minor "${firstName}" appears with last-name pattern in node ${node.id}`
+          );
+          break;
+        }
       }
     }
   }
