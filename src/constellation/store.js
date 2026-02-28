@@ -1,6 +1,50 @@
 import { create } from 'zustand';
+import { loadConstellationData } from './data/loader';
 
-const useConstellationStore = create((set) => ({
+/** In-flight promise for deduplication (StrictMode double-invoke). */
+let _loadPromise = null;
+
+const useConstellationStore = create((set, get) => ({
+  // ---- Data (loaded via loader) ----
+  nodes: [],
+  edges: [],
+  epochs: [],
+  dataLoading: false,
+  dataLoaded: false,
+  dataError: null,
+
+  loadData: async ({ force = false } = {}) => {
+    const state = get();
+    if (state.dataLoaded && !force) return;
+    if (_loadPromise && !force) return _loadPromise;
+
+    set({ dataLoading: true, dataError: null });
+
+    _loadPromise = loadConstellationData()
+      .then((data) => {
+        set({
+          nodes: data.nodes,
+          edges: data.edges,
+          epochs: data.epochs,
+          dataLoading: false,
+          dataLoaded: true,
+          dataError: null,
+        });
+      })
+      .catch((err) => {
+        set({
+          dataLoading: false,
+          dataLoaded: false,
+          dataError: err.message || 'Failed to load constellation data',
+        });
+      })
+      .finally(() => {
+        _loadPromise = null;
+      });
+
+    return _loadPromise;
+  },
+
   // View mode: '3d' | '2d'
   viewMode: '3d', // always start in 3D — user can toggle to 2D
   setViewMode: (mode) => {

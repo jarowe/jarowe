@@ -12,7 +12,6 @@ import {
   Star,
 } from 'lucide-react';
 import { useConstellationStore } from '../store';
-import mockData from '../data/mock-constellation.json';
 import EntityChip from './EntityChip';
 import './DetailPanel.css';
 
@@ -65,6 +64,8 @@ export default function DetailPanel() {
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const focusNode = useConstellationStore((s) => s.focusNode);
   const openLightbox = useConstellationStore((s) => s.openLightbox);
+  const storeNodes = useConstellationStore((s) => s.nodes);
+  const storeEdges = useConstellationStore((s) => s.edges);
 
   const [becauseOpen, setBecauseOpen] = useState(false);
   const [showAllConnections, setShowAllConnections] = useState(false);
@@ -74,12 +75,12 @@ export default function DetailPanel() {
     if (!focusedNodeId)
       return { node: null, connectionGroups: [], entities: [] };
 
-    const foundNode = mockData.nodes.find((n) => n.id === focusedNodeId);
+    const foundNode = storeNodes.find((n) => n.id === focusedNodeId);
     if (!foundNode)
       return { node: null, connectionGroups: [], entities: [] };
 
     // Find all edges connected to this node
-    const connectedEdges = mockData.edges.filter(
+    const connectedEdges = storeEdges.filter(
       (e) => e.source === focusedNodeId || e.target === focusedNodeId
     );
 
@@ -88,7 +89,7 @@ export default function DetailPanel() {
     for (const edge of connectedEdges) {
       const otherId =
         edge.source === focusedNodeId ? edge.target : edge.source;
-      const otherNode = mockData.nodes.find((n) => n.id === otherId);
+      const otherNode = storeNodes.find((n) => n.id === otherId);
       if (!otherNode) continue;
 
       if (!groupMap.has(otherId)) {
@@ -128,7 +129,7 @@ export default function DetailPanel() {
     for (const edge of connectedEdges) {
       const otherId =
         edge.source === focusedNodeId ? edge.target : edge.source;
-      const otherNode = mockData.nodes.find((n) => n.id === otherId);
+      const otherNode = storeNodes.find((n) => n.id === otherId);
       if (!otherNode) continue;
 
       const key = `${otherNode.type}:${otherNode.title}`;
@@ -143,11 +144,11 @@ export default function DetailPanel() {
     }
 
     const entityList = Array.from(entityMap.values()).map((entity) => {
-      const entityNode = mockData.nodes.find(
+      const entityNode = storeNodes.find(
         (n) => n.title === entity.label && n.type === entity.type
       );
       if (entityNode) {
-        const totalEdges = mockData.edges.filter(
+        const totalEdges = storeEdges.filter(
           (e) => e.source === entityNode.id || e.target === entityNode.id
         );
         entity.count = totalEdges.length;
@@ -171,7 +172,7 @@ export default function DetailPanel() {
     });
 
     return { node: foundNode, connectionGroups: groups, entities: entityList };
-  }, [focusedNodeId]);
+  }, [focusedNodeId, storeNodes, storeEdges]);
 
   // Reset states when node changes
   useMemo(() => {

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Search, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { useConstellationStore } from '../store';
-import mockData from '../data/mock-constellation.json';
 import './ListView.css';
 
 /** Type badge color mapping (matches 3D node colors) */
@@ -37,9 +36,9 @@ const SORT_OPTIONS = [
 /**
  * Pre-compute connection count for each node.
  */
-function getConnectionCounts() {
+function getConnectionCounts(edges) {
   const counts = new Map();
-  for (const edge of mockData.edges) {
+  for (const edge of edges) {
     counts.set(edge.source, (counts.get(edge.source) || 0) + 1);
     counts.set(edge.target, (counts.get(edge.target) || 0) + 1);
   }
@@ -81,6 +80,8 @@ function useDebounce(value, delay) {
 export default function ListView() {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const focusNode = useConstellationStore((s) => s.focusNode);
+  const storeNodes = useConstellationStore((s) => s.nodes);
+  const storeEdges = useConstellationStore((s) => s.edges);
 
   const [searchInput, setSearchInput] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -92,11 +93,11 @@ export default function ListView() {
   const listRef = useRef(null);
   const rowRefs = useRef([]);
 
-  const connectionCounts = useMemo(() => getConnectionCounts(), []);
+  const connectionCounts = useMemo(() => getConnectionCounts(storeEdges), [storeEdges]);
 
   // Filter and sort nodes
   const filteredNodes = useMemo(() => {
-    let nodes = [...mockData.nodes];
+    let nodes = [...storeNodes];
 
     // Type filter
     if (typeFilter !== 'all') {
@@ -132,7 +133,7 @@ export default function ListView() {
     }
 
     return nodes;
-  }, [typeFilter, debouncedSearch, sortKey]);
+  }, [typeFilter, debouncedSearch, sortKey, storeNodes]);
 
   // Reset active index when filters change
   useEffect(() => {

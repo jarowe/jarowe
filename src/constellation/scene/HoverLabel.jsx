@@ -1,8 +1,5 @@
-import { useMemo } from 'react';
 import { Billboard, Text } from '@react-three/drei';
 import { useConstellationStore } from '../store';
-import mockData from '../data/mock-constellation.json';
-import { computeHelixLayout } from '../layout/helixLayout';
 
 /** Color mapping for node types */
 const TYPE_COLORS = {
@@ -38,20 +35,14 @@ function capitalize(str) {
  * 3D billboard hover label that appears above the hovered node.
  * Shows node title, color-coded type badge, and formatted date.
  */
-export default function HoverLabel() {
+export default function HoverLabel({ nodes }) {
   const hoveredNodeIdx = useConstellationStore((s) => s.hoveredNodeIdx);
 
-  // Reuse the same layout positions as NodeCloud
-  const layoutNodes = useMemo(
-    () => computeHelixLayout(mockData.nodes),
-    []
-  );
-
-  if (hoveredNodeIdx === null || hoveredNodeIdx >= layoutNodes.length) {
+  if (hoveredNodeIdx === null || !nodes || hoveredNodeIdx >= nodes.length) {
     return null;
   }
 
-  const node = layoutNodes[hoveredNodeIdx];
+  const node = nodes[hoveredNodeIdx];
   const yOffset = node.size + 1.5;
   const typeColor = TYPE_COLORS[node.type] || '#AAAAAA';
 

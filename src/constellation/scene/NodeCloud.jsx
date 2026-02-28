@@ -2,7 +2,6 @@ import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
-import mockData from '../data/mock-constellation.json';
 
 const dummy = new THREE.Object3D();
 const tempColor = new THREE.Color();
@@ -20,10 +19,10 @@ const NODE_COLORS = {
 /**
  * Get IDs of nodes connected to a given node (from edges).
  */
-function getConnectedIds(nodeId) {
+function getConnectedIds(nodeId, edges) {
   const connected = new Set();
   connected.add(nodeId);
-  for (const edge of mockData.edges) {
+  for (const edge of edges) {
     if (edge.source === nodeId) connected.add(edge.target);
     if (edge.target === nodeId) connected.add(edge.source);
   }
@@ -33,14 +32,14 @@ function getConnectedIds(nodeId) {
 /**
  * Get IDs of nodes matching a filter entity.
  */
-function getFilteredNodeIds(filterEntity) {
+function getFilteredNodeIds(filterEntity, nodes, edges) {
   if (!filterEntity) return null;
   const matching = new Set();
 
-  for (const node of mockData.nodes) {
+  for (const node of nodes) {
     if (node.title === filterEntity.value) {
       matching.add(node.id);
-      for (const edge of mockData.edges) {
+      for (const edge of edges) {
         if (edge.source === node.id) matching.add(edge.target);
         if (edge.target === node.id) matching.add(edge.source);
       }
@@ -65,6 +64,8 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const filterEntity = useConstellationStore((s) => s.filterEntity);
+  const storeEdges = useConstellationStore((s) => s.edges);
+  const storeNodes = useConstellationStore((s) => s.nodes);
 
   // Pre-compute base scales for breathing animation
   const baseScales = useMemo(
@@ -102,9 +103,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     let activeIds = null;
 
     if (focusedNodeId) {
-      activeIds = getConnectedIds(focusedNodeId);
+      activeIds = getConnectedIds(focusedNodeId, storeEdges);
     } else if (filterEntity) {
-      activeIds = getFilteredNodeIds(filterEntity);
+      activeIds = getFilteredNodeIds(filterEntity, storeNodes, storeEdges);
     }
 
     for (let i = 0; i < count; i++) {
@@ -130,7 +131,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     if (materialRef.current) {
       materialRef.current.emissiveIntensity = focusedNodeId ? 2.0 : 1.5;
     }
-  }, [focusedNodeId, filterEntity, nodes, count]);
+  }, [focusedNodeId, filterEntity, nodes, count, storeEdges, storeNodes]);
 
   // Breathing pulse animation
   useFrame(({ clock }) => {

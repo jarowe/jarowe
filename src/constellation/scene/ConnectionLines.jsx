@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Line } from '@react-three/drei';
 import { useConstellationStore } from '../store';
-import mockData from '../data/mock-constellation.json';
 
 /**
  * Connection lines between related constellation nodes.
@@ -13,6 +12,8 @@ import mockData from '../data/mock-constellation.json';
 export default function ConnectionLines({ positions }) {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const filterEntity = useConstellationStore((s) => s.filterEntity);
+  const storeEdges = useConstellationStore((s) => s.edges);
+  const storeNodes = useConstellationStore((s) => s.nodes);
 
   // Build a map from node ID to position for O(1) lookups
   const positionMap = useMemo(() => {
@@ -28,34 +29,34 @@ export default function ConnectionLines({ positions }) {
     if (!focusedNodeId) return null;
     const set = new Set();
     set.add(focusedNodeId);
-    for (const edge of mockData.edges) {
+    for (const edge of storeEdges) {
       if (edge.source === focusedNodeId) set.add(edge.target);
       if (edge.target === focusedNodeId) set.add(edge.source);
     }
     return set;
-  }, [focusedNodeId]);
+  }, [focusedNodeId, storeEdges]);
 
   // Pre-compute filtered node IDs for entity filter
   const filteredNodeIds = useMemo(() => {
     if (!filterEntity) return null;
     const matching = new Set();
-    for (const node of mockData.nodes) {
+    for (const node of storeNodes) {
       if (node.title === filterEntity.value) {
         matching.add(node.id);
-        for (const edge of mockData.edges) {
+        for (const edge of storeEdges) {
           if (edge.source === node.id) matching.add(edge.target);
           if (edge.target === node.id) matching.add(edge.source);
         }
       }
     }
     return matching.size > 0 ? matching : null;
-  }, [filterEntity]);
+  }, [filterEntity, storeNodes, storeEdges]);
 
   // Build line data with computed opacity and width
   const lines = useMemo(() => {
     const result = [];
 
-    for (const edge of mockData.edges) {
+    for (const edge of storeEdges) {
       const sourcePos = positionMap.get(edge.source);
       const targetPos = positionMap.get(edge.target);
       if (!sourcePos || !targetPos) continue;
@@ -96,7 +97,7 @@ export default function ConnectionLines({ positions }) {
     }
 
     return result;
-  }, [positionMap, focusedNodeId, filteredNodeIds]);
+  }, [positionMap, focusedNodeId, filteredNodeIds, storeEdges]);
 
   return (
     <group>

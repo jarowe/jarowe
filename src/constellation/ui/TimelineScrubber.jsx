@@ -1,6 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { useConstellationStore, selectPanelOpen } from '../store';
-import mockData from '../data/mock-constellation.json';
 import './TimelineScrubber.css';
 
 /**
@@ -18,7 +17,7 @@ export default function TimelineScrubber() {
   const panelOpen = useConstellationStore(selectPanelOpen);
 
   // Compute epoch label positions (proportional based on date ranges)
-  const epochs = mockData.epochs;
+  const epochs = useConstellationStore((s) => s.epochs);
   const epochPositions = useRef([]);
 
   useEffect(() => {

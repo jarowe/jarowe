@@ -87,11 +87,20 @@ function AutoDetectPrompt() {
 
 export default function ConstellationPage() {
   const viewMode = useConstellationStore((s) => s.viewMode);
+  const dataLoading = useConstellationStore((s) => s.dataLoading);
+  const dataLoaded = useConstellationStore((s) => s.dataLoaded);
+  const dataError = useConstellationStore((s) => s.dataError);
+  const loadData = useConstellationStore((s) => s.loadData);
   const [canvasReady, setCanvasReady] = useState(false);
   const navigate = useNavigate();
 
   // Refs for back-button history state management
   const hasConstellationState = useRef(false);
+
+  // Load constellation data on mount
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Delay Canvas mount by one frame to survive React StrictMode's
   // mount-unmount-remount cycle. Without this, StrictMode creates and
@@ -179,6 +188,31 @@ export default function ConstellationPage() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Gate on data loading state
+  if (!dataLoaded && dataLoading) {
+    return (
+      <div className="constellation-page">
+        <div className="constellation-loading">Initializing Constellation...</div>
+      </div>
+    );
+  }
+
+  if (!dataLoaded && dataError) {
+    return (
+      <div className="constellation-page">
+        <div className="constellation-loading">
+          <p>Failed to load constellation data.</p>
+          <button
+            onClick={() => loadData({ force: true })}
+            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="constellation-page">

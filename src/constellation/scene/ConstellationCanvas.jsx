@@ -6,7 +6,6 @@ import { OrbitControls } from '@react-three/drei';
 // TODO: Re-enable after adding production-only bloom or custom glow shader.
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
-import mockData from '../data/mock-constellation.json';
 import NodeCloud from './NodeCloud';
 import ConnectionLines from './ConnectionLines';
 import HoverLabel from './HoverLabel';
@@ -55,17 +54,32 @@ export default function ConstellationCanvas() {
   const controlsRef = useRef();
   const setGpuTier = useConstellationStore((s) => s.setGpuTier);
   const clearFocus = useConstellationStore((s) => s.clearFocus);
+  const storeNodes = useConstellationStore((s) => s.nodes);
   const [gpuConfig] = useState(() => {
     const tier = detectGPUTier();
     setGpuTier(tier);
     return getGPUConfig(tier);
   });
 
-  // Compute helix layout once
-  const layoutNodes = useMemo(
-    () => computeHelixLayout(mockData.nodes),
-    []
-  );
+  // Hybrid layout: use pipeline x/y/z when present, compute fallback for missing
+  const layoutNodes = useMemo(() => {
+    if (!storeNodes.length) return [];
+    const allHaveCoords = storeNodes.every(
+      (n) => typeof n.x === 'number' && typeof n.y === 'number' && typeof n.z === 'number'
+    );
+    if (allHaveCoords) return storeNodes;
+
+    // Compute fallback positions, fill only missing coords
+    const fallback = computeHelixLayout(storeNodes);
+    const fallbackMap = new Map(fallback.map((n) => [n.id, n]));
+    return storeNodes.map((node) => {
+      if (typeof node.x === 'number' && typeof node.y === 'number' && typeof node.z === 'number') {
+        return node;
+      }
+      const fb = fallbackMap.get(node.id);
+      return fb || { ...node, x: 0, y: 0, z: 0 };
+    });
+  }, [storeNodes]);
 
   // Helix center for camera target
   const center = useMemo(() => getHelixCenter(layoutNodes), [layoutNodes]);
@@ -129,7 +143,7 @@ export default function ConstellationCanvas() {
         helixBounds={helixBounds}
       />
 
-      <HoverLabel />
+      <HoverLabel nodes={layoutNodes} />
 
       <ambientLight intensity={0.15} />
 
