@@ -8,6 +8,8 @@
     "build": "vite build",
     "prebuild": "node pipeline/index.mjs",
     "pipeline": "node pipeline/index.mjs",
+    "ingest:music": "node pipeline/ingest-music.mjs",
+    "ingest:all": "node pipeline/ingest-music.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

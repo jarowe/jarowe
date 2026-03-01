@@ -26,7 +26,7 @@ const GRAPH_SCHEMA = {
         required: ['id', 'type', 'title', 'date', 'epoch'],
         properties: {
           id: { type: 'string', minLength: 1 },
-          type: { type: 'string', enum: ['milestone', 'person', 'moment', 'idea', 'project', 'place'] },
+          type: { type: 'string', enum: ['milestone', 'person', 'moment', 'idea', 'project', 'place', 'track'] },
           title: { type: 'string' },
           date: { type: 'string', minLength: 1 },
           epoch: { type: 'string', minLength: 1 },
@@ -38,6 +38,18 @@ const GRAPH_SCHEMA = {
           source: { type: 'string' },
           sourceId: { type: 'string' },
           visibility: { type: 'string', enum: ['public', 'friends', 'private'] },
+          factuality: { type: 'string', enum: ['factual', 'inferred', 'synthetic'] },
+          status: { type: 'string', enum: ['published', 'draft', 'hidden'] },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+          sourceMeta: {
+            type: 'object',
+            properties: {
+              source: { type: 'string' },
+              sourceItemId: { type: 'string' },
+              sourceUrl: { type: 'string' },
+              connectorVersion: { type: 'string' },
+            },
+          },
           entities: {
             type: 'object',
             properties: {

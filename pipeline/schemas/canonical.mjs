@@ -1,13 +1,13 @@
 /**
  * Canonical node schema for the constellation pipeline.
  *
- * Both Instagram and Carbonmade parsers normalize to this shape,
+ * Both Instagram, Carbonmade, and Music parsers normalize to this shape,
  * which matches mock-constellation.json for drop-in replacement.
  */
 
 import { assignEpoch } from '../config/epochs.mjs';
 
-/** Valid node types (matching mock-constellation.json) */
+/** Valid node types */
 export const NODE_TYPES = Object.freeze([
   'milestone',
   'person',
@@ -15,6 +15,7 @@ export const NODE_TYPES = Object.freeze([
   'idea',
   'project',
   'place',
+  'track',
 ]);
 
 /** Visibility tiers -- exactly 3 (public / friends / private).
@@ -24,6 +25,20 @@ export const VISIBILITY_TIERS = Object.freeze([
   'public',
   'friends',
   'private',
+]);
+
+/** Valid factuality values */
+export const FACTUALITY_VALUES = Object.freeze([
+  'factual',
+  'inferred',
+  'synthetic',
+]);
+
+/** Valid status values */
+export const STATUS_VALUES = Object.freeze([
+  'published',
+  'draft',
+  'hidden',
 ]);
 
 /**
@@ -53,7 +68,19 @@ export function createCanonicalNode(fields = {}) {
     ? fields.visibility
     : 'private';
 
-  return {
+  const factuality = fields.factuality && FACTUALITY_VALUES.includes(fields.factuality)
+    ? fields.factuality
+    : 'factual';
+
+  const status = fields.status && STATUS_VALUES.includes(fields.status)
+    ? fields.status
+    : 'published';
+
+  const confidence = typeof fields.confidence === 'number'
+    ? Math.max(0, Math.min(1, fields.confidence))
+    : 1.0;
+
+  const node = {
     id,
     type,
     title: fields.title || '',
@@ -67,6 +94,9 @@ export function createCanonicalNode(fields = {}) {
     source: fields.source || '',
     sourceId: fields.sourceId || '',
     visibility,
+    factuality,
+    status,
+    confidence,
     entities: {
       people: Array.isArray(fields.entities?.people) ? fields.entities.people : [],
       places: Array.isArray(fields.entities?.places) ? fields.entities.places : [],
@@ -76,4 +106,11 @@ export function createCanonicalNode(fields = {}) {
     },
     location: fields.location || null,
   };
+
+  // Optional sourceMeta — only include if provided (keeps output clean)
+  if (fields.sourceMeta && typeof fields.sourceMeta === 'object') {
+    node.sourceMeta = fields.sourceMeta;
+  }
+
+  return node;
 }

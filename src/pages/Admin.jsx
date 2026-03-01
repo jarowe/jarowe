@@ -4,7 +4,7 @@ import './Admin.css';
 
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY;
 
-const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person'];
+const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person', 'track'];
 
 /**
  * Thin admin page: pipeline status + node publish/hide controls.
@@ -334,6 +334,28 @@ export default function Admin() {
           </div>
         )}
       </section>
+
+      {/* ---- Source Health ---- */}
+      {pipelineStatus?.stats?.ingestSources && (
+        <section className="admin-section admin-glass">
+          <h2>Source Health</h2>
+          <div className="admin-status-grid">
+            {Object.entries(pipelineStatus.stats.ingestSources).map(([source, info]) => (
+              <div key={source} className="admin-status-item">
+                <span className="admin-status-label">{source}</span>
+                <span className="admin-status-value">
+                  <span
+                    className={`admin-badge ${info.status === 'active' ? 'admin-badge-success' : 'admin-badge-warning'}`}
+                  >
+                    {info.status}
+                  </span>
+                  {' '}{info.count} node{info.count !== 1 ? 's' : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ---- Node Table ---- */}
       <section className="admin-section admin-glass">

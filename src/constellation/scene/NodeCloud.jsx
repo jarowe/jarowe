@@ -14,6 +14,7 @@ const NODE_COLORS = {
   place: '#2dd4bf',     // teal
   idea: '#22d3ee',      // cyan
   milestone: '#fbbf24', // gold
+  track: '#34d399',     // emerald
 };
 
 /**

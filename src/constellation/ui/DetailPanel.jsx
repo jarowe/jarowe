@@ -23,6 +23,7 @@ const TYPE_COLORS = {
   place: { bg: 'rgba(45, 212, 191, 0.2)', text: '#2dd4bf' },
   idea: { bg: 'rgba(34, 211, 238, 0.2)', text: '#22d3ee' },
   milestone: { bg: 'rgba(251, 191, 36, 0.2)', text: '#fbbf24' },
+  track: { bg: 'rgba(52, 211, 153, 0.2)', text: '#34d399' },
 };
 
 /** Evidence type icon components */
@@ -161,9 +162,10 @@ export default function DetailPanel() {
         person: 0,
         place: 1,
         project: 2,
-        idea: 3,
-        moment: 4,
-        milestone: 5,
+        track: 3,
+        idea: 4,
+        moment: 5,
+        milestone: 6,
       };
       const aOrder = typeOrder[a.type] ?? 99;
       const bOrder = typeOrder[b.type] ?? 99;
@@ -229,6 +231,17 @@ export default function DetailPanel() {
               >
                 {node.type}
               </span>
+              {node.source && (
+                <span
+                  className="detail-panel__type-badge"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                  }}
+                >
+                  {node.source}
+                </span>
+              )}
               <span className="detail-panel__date">
                 {formatDate(node.date)}
               </span>

@@ -20,6 +20,10 @@ export const PIPELINE_CONFIG = Object.freeze({
     carbonmade: {
       dir: process.env.CARBONMADE_ARCHIVE_DIR || 'carbonmade-archive',
     },
+    /** Music snapshots (produced by ingest:music, read-only during build) */
+    music: {
+      dir: process.env.MUSIC_SNAPSHOT_DIR || 'data-private/music',
+    },
   },
 
   /** Output file paths (generated at build time into public/data/) */

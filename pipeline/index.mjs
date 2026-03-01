@@ -42,6 +42,7 @@ import { fileURLToPath } from 'url';
 // Pipeline modules
 import { parseInstagram } from './parsers/instagram.mjs';
 import { parseCarbonmade } from './parsers/carbonmade.mjs';
+import { parseMusic } from './parsers/music.mjs';
 import { generateEdges } from './edges/edge-generator.mjs';
 import { computePipelineLayout } from './layout/helix.mjs';
 import { stripAndVerify } from './privacy/exif-stripper.mjs';
@@ -151,17 +152,23 @@ async function main() {
 
   const instagramDir = resolve(PIPELINE_CONFIG.sources.instagram.dir);
   const carbonmadeDir = resolve(PIPELINE_CONFIG.sources.carbonmade.dir);
+  const musicDir = resolve(PIPELINE_CONFIG.sources.music.dir);
 
-  const [instagramResult, carbonmadeResult] = await Promise.all([
+  const [instagramResult, carbonmadeResult, musicResult] = await Promise.all([
     parseInstagram(instagramDir),
     parseCarbonmade(carbonmadeDir),
+    parseMusic(musicDir),
   ]);
 
-  let allNodes = [...instagramResult.nodes, ...carbonmadeResult.nodes];
+  let allNodes = [
+    ...instagramResult.nodes,
+    ...carbonmadeResult.nodes,
+    ...musicResult.nodes,
+  ];
 
   log.info(
     `Parsed ${allNodes.length} total nodes ` +
-    `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length})`
+    `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length}, Music: ${musicResult.nodes.length})`
   );
 
   if (allNodes.length === 0) {
@@ -448,6 +455,13 @@ async function main() {
     byVisibility[node.visibility] = (byVisibility[node.visibility] || 0) + 1;
   }
 
+  // Compute factuality breakdown
+  const byFactuality = {};
+  for (const node of sortedNodes) {
+    const f = node.factuality || 'factual';
+    byFactuality[f] = (byFactuality[f] || 0) + 1;
+  }
+
   // Write pipeline-status.json (runtime artifact, has timestamps -- NOT curation.json)
   const statusData = {
     lastRun: new Date().toISOString(),
@@ -458,6 +472,12 @@ async function main() {
       bySource,
       byType,
       byVisibility,
+      byFactuality,
+      ingestSources: {
+        instagram: { status: instagramResult.nodes.length > 0 ? 'active' : 'empty', count: instagramResult.nodes.length },
+        carbonmade: { status: carbonmadeResult.nodes.length > 0 ? 'active' : 'empty', count: carbonmadeResult.nodes.length },
+        music: { status: musicResult.nodes.length > 0 ? 'active' : 'empty', count: musicResult.nodes.length },
+      },
       privacyAudit: {
         violations: 0,
         warnings: privacyWarnings.length,

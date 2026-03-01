@@ -11,6 +11,7 @@ const TYPE_COLORS = {
   place: '#2dd4bf',
   idea: '#22d3ee',
   milestone: '#fbbf24',
+  track: '#34d399',
 };
 
 const TYPE_BG = {
@@ -20,10 +21,11 @@ const TYPE_BG = {
   place: 'rgba(45, 212, 191, 0.15)',
   idea: 'rgba(34, 211, 238, 0.15)',
   milestone: 'rgba(251, 191, 36, 0.15)',
+  track: 'rgba(52, 211, 153, 0.15)',
 };
 
 /** All available node types for filter pills */
-const NODE_TYPES = ['all', 'project', 'moment', 'person', 'place', 'idea', 'milestone'];
+const NODE_TYPES = ['all', 'project', 'moment', 'person', 'place', 'idea', 'milestone', 'track'];
 
 /** Sort options */
 const SORT_OPTIONS = [
