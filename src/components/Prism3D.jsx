@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sparkles, MeshTransmissionMaterial } from '@react-three/drei';
+import { Float, Sparkles, MeshTransmissionMaterial, Environment } from '@react-three/drei';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
@@ -75,6 +75,9 @@ export const PRISM_DEFAULTS = {
   mtmTransmission: 1.0,
   mtmBackside: true,
   hybridMtmScale: 1.06,
+  hybridBlend: 0.5,         // 0 = pure shader, 1 = pure MTM
+  hybridEnvIntensity: 0.4,  // environment map brightness for MTM refraction content
+  hybridShaderAdd: 0.6,     // how much shader effect overlays additively onto MTM
   // Bubble controls
   bubbleOffsetX: 0,
   bubbleOffsetY: 0,
@@ -766,21 +769,23 @@ function PrismBodyMTM({ geometry }) {
   );
 }
 
-/* ═══════════ PRISM BODY HYBRID (shader body + MTM glass shell) ═══════════ */
+/* ═══════════ PRISM BODY HYBRID (true blend: MTM base + shader overlay + environment) ═══════════ */
 function PrismBodyHybrid({ geometry }) {
   const groupRef = useRef();
-  const outerMatRef = useRef();
-  const innerMatRef = useRef();
+  const mtmMatRef = useRef();
+  const overlayInnerRef = useRef();
+  const overlayOuterRef = useRef();
   const edgeMatRef = useRef();
 
-  const innerUniforms = useMemo(() => ({
+  // Shader overlay uniforms - these render ADDITIVELY over the MTM base
+  const overlayInnerUni = useMemo(() => ({
     uTime: { value: 0 }, uIsSide: { value: 1.0 },
     uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
     uIridescenceIntensity: { value: cfg.iridescenceIntensity },
     uChromaticSpread: { value: cfg.chromaticSpread },
     uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
   }), []);
-  const outerUniforms = useMemo(() => ({
+  const overlayOuterUni = useMemo(() => ({
     uTime: { value: 0 }, uIsSide: { value: 0.0 },
     uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
     uIridescenceIntensity: { value: cfg.iridescenceIntensity },
@@ -807,11 +812,29 @@ function PrismBodyHybrid({ geometry }) {
     } else {
       groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp);
     }
-    [innerUniforms, outerUniforms].forEach(u => {
-      u.uTime.value = t; u.uIOR.value = cfg.glassIOR; u.uCausticIntensity.value = cfg.causticIntensity;
-      u.uIridescenceIntensity.value = cfg.iridescenceIntensity; u.uChromaticSpread.value = cfg.chromaticSpread;
-      u.uGlassAlpha.value = cfg.glassAlpha; u.uStreakIntensity.value = cfg.streakIntensity;
+
+    // Scale shader overlay intensity by hybridShaderAdd (blend control)
+    const addAmount = cfg.hybridShaderAdd ?? 0.6;
+    const blend = cfg.hybridBlend ?? 0.5;
+    [overlayInnerUni, overlayOuterUni].forEach(u => {
+      u.uTime.value = t; u.uIOR.value = cfg.glassIOR;
+      u.uCausticIntensity.value = cfg.causticIntensity * addAmount;
+      u.uIridescenceIntensity.value = cfg.iridescenceIntensity * addAmount;
+      u.uChromaticSpread.value = cfg.chromaticSpread;
+      // Alpha for additive overlay: low blend = stronger shader, high blend = less shader
+      u.uGlassAlpha.value = cfg.glassAlpha * (1.0 - blend * 0.7);
+      u.uStreakIntensity.value = cfg.streakIntensity * addAmount;
     });
+
+    // Update MTM properties live
+    if (mtmMatRef.current) {
+      mtmMatRef.current.thickness = cfg.mtmThickness;
+      mtmMatRef.current.roughness = cfg.mtmRoughness;
+      mtmMatRef.current.ior = cfg.mtmIOR;
+      mtmMatRef.current.chromaticAberration = cfg.mtmChromatic;
+      mtmMatRef.current.transmission = cfg.mtmTransmission * blend;
+    }
+
     if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
   });
 
@@ -819,21 +842,35 @@ function PrismBodyHybrid({ geometry }) {
 
   return (
     <group ref={groupRef}>
-      {/* INNER: custom shader body (caustics, iridescence, streaks) */}
-      <mesh geometry={geometry} scale={0.82} renderOrder={0}>
-        <shaderMaterial ref={innerMatRef} vertexShader={glassVert} fragmentShader={glassFrag}
-          uniforms={innerUniforms} transparent side={THREE.BackSide} depthWrite={false} />
-      </mesh>
-      <mesh geometry={geometry} renderOrder={1}>
-        <shaderMaterial ref={outerMatRef} vertexShader={glassVert} fragmentShader={glassFrag}
-          uniforms={outerUniforms} transparent side={THREE.FrontSide} depthWrite={false} />
+      {/* LAYER 1: MTM real-glass base - provides actual refraction of scene content */}
+      <mesh geometry={geometry} renderOrder={0}>
+        <MeshTransmissionMaterial ref={mtmMatRef} backside={cfg.mtmBackside}
+          thickness={cfg.mtmThickness} roughness={cfg.mtmRoughness}
+          transmission={cfg.mtmTransmission * (cfg.hybridBlend ?? 0.5)}
+          ior={cfg.mtmIOR} chromaticAberration={cfg.mtmChromatic}
+          anisotropy={0.1} color="#c4b5fd" distortionScale={0.2} temporalDistortion={0.1} />
       </mesh>
 
-      {/* OUTER: MTM glass shell (real refraction of the shader body) */}
-      <mesh geometry={geometry} scale={mtmScale} renderOrder={3}>
-        <MeshTransmissionMaterial backside={cfg.mtmBackside} thickness={cfg.mtmThickness} roughness={cfg.mtmRoughness}
-          transmission={cfg.mtmTransmission} ior={cfg.mtmIOR} chromaticAberration={cfg.mtmChromatic} anisotropy={0.1} color="#a78bfa" />
+      {/* LAYER 2: Custom shader ADDITIVE overlay - caustics, iridescence, streaks, chromatic */}
+      <mesh geometry={geometry} scale={0.99} renderOrder={1}>
+        <shaderMaterial ref={overlayInnerRef} vertexShader={glassVert} fragmentShader={glassFrag}
+          uniforms={overlayInnerUni} transparent side={THREE.BackSide}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
+      <mesh geometry={geometry} scale={1.005} renderOrder={2}>
+        <shaderMaterial ref={overlayOuterRef} vertexShader={glassVert} fragmentShader={glassFrag}
+          uniforms={overlayOuterUni} transparent side={THREE.FrontSide}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+
+      {/* LAYER 3: Subtle outer MTM shell for extra depth (slightly larger) */}
+      {mtmScale > 1.01 && (
+        <mesh geometry={geometry} scale={mtmScale} renderOrder={3}>
+          <MeshTransmissionMaterial backside thickness={cfg.mtmThickness * 0.3} roughness={0.15}
+            transmission={0.85} ior={cfg.mtmIOR * 0.9} chromaticAberration={cfg.mtmChromatic * 0.5}
+            anisotropy={0.05} color="#e9d5ff" depthWrite={false} />
+        </mesh>
+      )}
 
       {/* Edge glow + wireframe */}
       <lineSegments geometry={edgesGeo} renderOrder={4}>
@@ -841,22 +878,41 @@ function PrismBodyHybrid({ geometry }) {
           uniforms={{ uTime: { value: 0 }, uOpacity: { value: cfg.edgeGlowOpacity } }}
           transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
-      <mesh geometry={geometry}>
-        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.25} blending={THREE.AdditiveBlending} depthWrite={false} />
+      <mesh geometry={geometry} renderOrder={5}>
+        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
 }
 
-/* ═══════════ COLORED LIGHTS FOR MTM/HYBRID (replaces rectangle planes) ═══════════ */
-function MTMColorLights() {
+/* ═══════════ RICH SCENE CONTENT FOR MTM/HYBRID (gives MTM things to refract) ═══════════ */
+function MTMSceneContent() {
+  const glowRef = useRef();
+
+  useFrame((state) => {
+    if (!glowRef.current) return;
+    const t = state.clock.elapsedTime;
+    // Slowly shift the inner glow color for living glass effect
+    glowRef.current.material.color.setHSL((t * 0.03) % 1, 0.6, 0.4);
+  });
+
   return (
     <>
-      <pointLight position={[-3, 2, -2]} color="#7c3aed" intensity={3} distance={8} />
-      <pointLight position={[3, -1, -2]} color="#38bdf8" intensity={2.5} distance={8} />
-      <pointLight position={[0, 3, -1.5]} color="#f472b6" intensity={2} distance={7} />
-      <pointLight position={[-2, -2, -1]} color="#22c55e" intensity={1.5} distance={6} />
-      <pointLight position={[2, 1, -3]} color="#fbbf24" intensity={1.5} distance={6} />
+      {/* Colorful lights for real illumination */}
+      <pointLight position={[-3, 2, -2]} color="#7c3aed" intensity={4} distance={10} />
+      <pointLight position={[3, -1, -2]} color="#38bdf8" intensity={3} distance={10} />
+      <pointLight position={[0, 3, -1.5]} color="#f472b6" intensity={2.5} distance={8} />
+      <pointLight position={[-2, -2, -1]} color="#22c55e" intensity={2} distance={7} />
+      <pointLight position={[2, 1, -3]} color="#fbbf24" intensity={2} distance={7} />
+
+      {/* Inner glow sphere - gives MTM a colorful interior instead of black void */}
+      <mesh ref={glowRef} scale={0.6}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial color="#8b5cf6" transparent opacity={0.35} side={THREE.BackSide} />
+      </mesh>
+
+      {/* Environment map for MTM to reflect/refract - low intensity, adds subtle realism */}
+      <Environment preset="night" environmentIntensity={cfg.hybridEnvIntensity ?? 0.4} />
     </>
   );
 }
@@ -1514,7 +1570,7 @@ export default function Prism3D() {
         <SceneLights />
         <LightSpill />
         <NebulaBackdrop texture={nebulaTex} />
-        {(glassMode === 'mtm' || glassMode === 'hybrid') && <MTMColorLights />}
+        {(glassMode === 'mtm' || glassMode === 'hybrid') && <MTMSceneContent />}
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>

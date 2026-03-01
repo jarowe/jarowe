@@ -585,7 +585,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         canvasSize: 1600, featherInner: 5, featherOuter: 98, sceneCenterX: 50, sceneCenterY: 50,
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
-        hybridMtmScale: 1.06,
+        hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
         characterScale: 1.0,
@@ -607,7 +607,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         sceneCenterX: 50, sceneCenterY: 50,
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
-        hybridMtmScale: 1.06,
+        hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
       };
       for (const [k, v] of Object.entries(defaults)) {
         if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
@@ -720,6 +720,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // -- Glass / Refraction --
     const pGlassRef = prismBopFolder.addFolder('Glass / Refraction');
     if (!pcfg.hybridMtmScale) pcfg.hybridMtmScale = 1.06;
+    if (pcfg.hybridBlend === undefined) pcfg.hybridBlend = 0.5;
+    if (pcfg.hybridEnvIntensity === undefined) pcfg.hybridEnvIntensity = 0.4;
+    if (pcfg.hybridShaderAdd === undefined) pcfg.hybridShaderAdd = 0.6;
     const glassModeCtrl = pGlassRef.add(pcfg, 'glassMode', { 'Custom Shader': 'shader', 'Real Glass (MTM)': 'mtm', 'Hybrid (Shader + MTM)': 'hybrid' }).name('Glass Mode');
     // Shader-mode controls
     const shaderCtrls = [];
@@ -739,6 +742,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     mtmCtrls.push(pGlassRef.add(pcfg, 'mtmBackside').name('MTM Backside'));
     // Hybrid-only controls
     const hybridCtrls = [];
+    hybridCtrls.push(pGlassRef.add(pcfg, 'hybridBlend', 0, 1, 0.01).name('Blend (Shader↔MTM)'));
+    hybridCtrls.push(pGlassRef.add(pcfg, 'hybridShaderAdd', 0, 1.5, 0.01).name('Shader Overlay'));
+    hybridCtrls.push(pGlassRef.add(pcfg, 'hybridEnvIntensity', 0, 2.0, 0.05).name('Env Intensity'));
     hybridCtrls.push(pGlassRef.add(pcfg, 'hybridMtmScale', 1.0, 1.3, 0.01).name('MTM Shell Scale'));
     // Toggle visibility based on current mode
     const updateGlassControls = () => {
