@@ -38,7 +38,7 @@ export const PRISM_DEFAULTS = {
   breathingAmp: 0.02,
   breathingSpeed: 0.8,
   // Canvas / display
-  canvasSize: 560,
+  canvasSize: 1000,
   featherInner: 18,
   featherOuter: 88,
   // Beam / rays
@@ -49,6 +49,24 @@ export const PRISM_DEFAULTS = {
   // Vertex highlights
   vertexHighlightScale: 0.35,
   vertexHighlightPulse: 0.15,
+  // Mouth position / scale
+  mouthX: 0,
+  mouthY: -0.32,
+  mouthZ: 0.58,
+  mouthScaleX: 0.55,
+  mouthScaleY: 0.42,
+  // Glass refraction controls
+  glassIOR: 0.67,
+  causticIntensity: 1.0,
+  iridescenceIntensity: 1.0,
+  chromaticSpread: 1.0,
+  glassAlpha: 0.22,
+  streakIntensity: 1.0,
+  // Bubble offset
+  bubbleOffsetX: 0,
+  bubbleOffsetY: 0,
+  // Peek animation lock ('' = random)
+  lockedPeekStyle: '',
 };
 
 // Live config object - editor mutates this, prism reads each frame
@@ -90,7 +108,13 @@ const glassVert = `
 
 const glassFrag = `
   uniform float uTime;
-  uniform float uIsSide; // 0.0 = front side (outer), 1.0 = back side (inner)
+  uniform float uIsSide;
+  uniform float uIOR;
+  uniform float uCausticIntensity;
+  uniform float uIridescenceIntensity;
+  uniform float uChromaticSpread;
+  uniform float uGlassAlpha;
+  uniform float uStreakIntensity;
 
   varying vec3 vNormal;
   varying vec3 vViewDir;
@@ -118,28 +142,29 @@ const glassFrag = `
     float t = uTime * 0.15;
 
     // ── CHROMATIC ABERRATION: each color channel refracts differently ──
-    float fresnelR = pow(1.0 - NdotV, 2.0);
+    float cspr = uChromaticSpread;
+    float fresnelR = pow(1.0 - NdotV, 2.8 - 0.8 * cspr);
     float fresnelG = pow(1.0 - NdotV, 2.8);
-    float fresnelB = pow(1.0 - NdotV, 3.6);
+    float fresnelB = pow(1.0 - NdotV, 2.8 + 0.8 * cspr);
     float fresnel = pow(1.0 - NdotV, 2.8);
 
     // ── REFRACTED SAMPLING POSITION ──
-    vec3 refracted = refract(-V, N, 0.67); // glass IOR ~1.5
+    vec3 refracted = refract(-V, N, uIOR);
     vec3 samplePos = vWorldPos + refracted * 1.5;
 
     // ── INTERNAL CAUSTIC PATTERNS (bright rainbow light swimming inside) ──
     float c1 = vnoise(samplePos.xy * 3.0 + t * 0.6);
     float c2 = vnoise(samplePos.yz * 4.0 - t * 0.8 + 5.0);
     float c3 = vnoise(samplePos.xz * 2.5 + t * 0.4 + 10.0);
-    float causticBright = pow(abs(sin(c1 * 8.0 + c2 * 5.0)), 3.0) * 0.6;
-    float causticBright2 = pow(abs(sin(c2 * 6.0 + c3 * 4.0 + 2.0)), 3.0) * 0.4;
+    float causticBright = pow(abs(sin(c1 * 8.0 + c2 * 5.0)), 3.0) * 0.6 * uCausticIntensity;
+    float causticBright2 = pow(abs(sin(c2 * 6.0 + c3 * 4.0 + 2.0)), 3.0) * 0.4 * uCausticIntensity;
 
     // ── LIGHT STREAKS (vertical caustics through crystal) ──
     float streaks = 0.0;
     for (int i = 0; i < 4; i++) {
       float fi = float(i);
       float sx = sin(samplePos.x * (6.0 + fi * 3.0) + t * (1.0 + fi * 0.4) + fi * 1.7);
-      streaks += pow(max(0.0, sx * 0.5 + 0.5), 14.0) * 0.2;
+      streaks += pow(max(0.0, sx * 0.5 + 0.5), 14.0) * 0.2 * uStreakIntensity;
     }
 
     // ── DOUBLE THIN-FILM IRIDESCENCE ──
@@ -189,11 +214,11 @@ const glassFrag = `
     interior += vec3(0.6, 0.5, 1.0) * streaks;
 
     // Mix: interior visible face-on, iridescent reflection at edges
-    vec3 color = mix(interior, iridescence * 1.5, fresnel * 0.6);
+    vec3 color = mix(interior, iridescence * 1.5, fresnel * 0.6 * uIridescenceIntensity);
 
     // Chromatic fringing at edges (the prismatic effect!)
-    color.r += fresnelR * 0.35;
-    color.b += fresnelB * 0.3;
+    color.r += fresnelR * 0.35 * cspr;
+    color.b += fresnelB * 0.3 * cspr;
 
     // Sharp specular sparkle
     color += vec3(1.0, 0.98, 0.95) * specTotal * 1.3;
@@ -203,7 +228,7 @@ const glassFrag = `
 
     // ── ALPHA ──
     // BackSide (inner) layer: more opaque for depth illusion
-    float baseAlpha = uIsSide > 0.5 ? 0.35 : 0.22;
+    float baseAlpha = uIsSide > 0.5 ? uGlassAlpha * 1.59 : uGlassAlpha;
     float alpha = baseAlpha + fresnel * 0.6 + specTotal * 0.2 + (causticBright + causticBright2) * 0.15;
     alpha = min(alpha, 0.92);
 
@@ -587,9 +612,18 @@ function PrismBody({ geometry }) {
       groupRef.current.scale.setScalar(breath);
     }
 
-    // Update glass shader time on both layers
-    if (outerMatRef.current) outerMatRef.current.uniforms.uTime.value = t;
-    if (innerMatRef.current) innerMatRef.current.uniforms.uTime.value = t;
+    // Update glass shader uniforms on both layers
+    [outerMatRef, innerMatRef].forEach(ref => {
+      if (!ref.current) return;
+      const u = ref.current.uniforms;
+      u.uTime.value = t;
+      u.uIOR.value = cfg.glassIOR;
+      u.uCausticIntensity.value = cfg.causticIntensity;
+      u.uIridescenceIntensity.value = cfg.iridescenceIntensity;
+      u.uChromaticSpread.value = cfg.chromaticSpread;
+      u.uGlassAlpha.value = cfg.glassAlpha;
+      u.uStreakIntensity.value = cfg.streakIntensity;
+    });
     // Update edge glow shader
     if (edgeMatRef.current) {
       edgeMatRef.current.uniforms.uTime.value = t;
@@ -605,7 +639,13 @@ function PrismBody({ geometry }) {
           ref={innerMatRef}
           vertexShader={glassVert}
           fragmentShader={glassFrag}
-          uniforms={{ uTime: { value: 0 }, uIsSide: { value: 1.0 } }}
+          uniforms={{
+            uTime: { value: 0 }, uIsSide: { value: 1.0 },
+            uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+            uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+            uChromaticSpread: { value: cfg.chromaticSpread },
+            uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+          }}
           transparent
           side={THREE.BackSide}
           depthWrite={false}
@@ -618,7 +658,13 @@ function PrismBody({ geometry }) {
           ref={outerMatRef}
           vertexShader={glassVert}
           fragmentShader={glassFrag}
-          uniforms={{ uTime: { value: 0 }, uIsSide: { value: 0.0 } }}
+          uniforms={{
+            uTime: { value: 0 }, uIsSide: { value: 0.0 },
+            uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+            uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+            uChromaticSpread: { value: cfg.chromaticSpread },
+            uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+          }}
           transparent
           side={THREE.FrontSide}
           depthWrite={false}
@@ -995,6 +1041,10 @@ function MouthExpression() {
     const expr = window.__prismExpression || 'normal';
     const isTalking = window.__prismTalking;
 
+    // Live position/scale from editor config
+    spriteRef.current.position.set(cfg.mouthX, cfg.mouthY, cfg.mouthZ);
+    spriteRef.current.scale.set(cfg.mouthScaleX, cfg.mouthScaleY, 1);
+
     let mouthType = 'neutral';
     if (isTalking) {
       mouthType = Math.floor(t * 8) % 2 === 0 ? 'talk1' : 'talk2';
@@ -1268,6 +1318,7 @@ export default function Prism3D() {
   const size = cfg.canvasSize;
   const fi = cfg.featherInner;
   const fo = cfg.featherOuter;
+  const canvasMargin = -(size - 420) / 2;
 
   return (
     <div
@@ -1275,6 +1326,7 @@ export default function Prism3D() {
       style={{
         width: size,
         height: size,
+        margin: canvasMargin,
         pointerEvents: 'none',
         WebkitMaskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,
         maskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,

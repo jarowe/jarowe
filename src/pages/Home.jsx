@@ -3437,7 +3437,8 @@ export default function Home() {
             side: sp.side || 'right'
           });
         }
-        const style = peekStyles[Math.floor(Math.random() * peekStyles.length)];
+        const lockedStyle = window.__prismConfig?.lockedPeekStyle;
+        const style = lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
         setPeekStyle(style);
         setPeekVisible(true);
 
@@ -3484,7 +3485,8 @@ export default function Home() {
         cell: d.cell ?? Math.floor(Math.random() * 4),
         side: d.side || sides[Math.floor(Math.random() * sides.length)]
       });
-      setPeekStyle(d.style || peekStyles[Math.floor(Math.random() * peekStyles.length)]);
+      const lockedStyle = window.__prismConfig?.lockedPeekStyle;
+      setPeekStyle(d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)]);
       setPeekVisible(true);
       peekPinnedRef.current = !!d.pinned;
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
@@ -4008,6 +4010,10 @@ export default function Home() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.5 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    style={{
+                      transform: `translateX(calc(-50% + ${window.__prismConfig?.bubbleOffsetX || 0}px))`,
+                      bottom: `calc(100% - 30px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
+                    }}
                   >
                     {prismBubble}
                   </motion.div>
