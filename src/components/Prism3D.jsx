@@ -1,5 +1,5 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sparkles } from '@react-three/drei';
+import { Float, Sparkles, MeshTransmissionMaterial } from '@react-three/drei';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
 
@@ -41,6 +41,8 @@ export const PRISM_DEFAULTS = {
   canvasSize: 1000,
   featherInner: 18,
   featherOuter: 88,
+  sceneCenterX: 50,  // % - CSS mask anchor X
+  sceneCenterY: 50,  // % - CSS mask anchor Y
   // Beam / rays
   beamOpacity: 1.0,
   rayOpacity: 0.85,
@@ -64,6 +66,14 @@ export const PRISM_DEFAULTS = {
   chromaticSpread: 1.0,
   glassAlpha: 0.22,
   streakIntensity: 1.0,
+  // Glass mode
+  glassMode: 'shader',    // 'shader' | 'mtm'
+  mtmThickness: 1.0,
+  mtmRoughness: 0.05,
+  mtmIOR: 1.5,
+  mtmChromatic: 1.0,
+  mtmTransmission: 1.0,
+  mtmBackside: true,
   // Bubble controls
   bubbleOffsetX: 0,
   bubbleOffsetY: 0,
@@ -710,6 +720,125 @@ function PrismBody({ geometry }) {
   );
 }
 
+/* ═══════════ PRISM BODY MTM (MeshTransmissionMaterial - real glass refraction) ═══════════ */
+function PrismBodyMTM({ geometry }) {
+  const groupRef = useRef();
+  const edgeMatRef = useRef();
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+    groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
+    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+
+    // Squash & stretch from bop
+    const squashTs = window.__prismSquash;
+    if (squashTs && Date.now() - squashTs < 600) {
+      const progress = (Date.now() - squashTs) / 600;
+      let sx, sy, sz;
+      if (progress < 0.15) {
+        const p = progress / 0.15;
+        sx = 1 + 0.3 * p; sy = 1 - 0.3 * p; sz = 1 + 0.3 * p;
+      } else if (progress < 0.35) {
+        const p = (progress - 0.15) / 0.2;
+        sx = 1.3 - 0.45 * p; sy = 0.7 + 0.55 * p; sz = 1.3 - 0.45 * p;
+      } else {
+        const p = (progress - 0.35) / 0.65;
+        const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12;
+        sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring;
+      }
+      groupRef.current.scale.set(sx, sy, sz);
+    } else {
+      const breath = 1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp;
+      groupRef.current.scale.setScalar(breath);
+    }
+
+    if (edgeMatRef.current) {
+      edgeMatRef.current.uniforms.uTime.value = t;
+      edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <mesh geometry={geometry}>
+        <MeshTransmissionMaterial
+          backside={cfg.mtmBackside}
+          thickness={cfg.mtmThickness}
+          roughness={cfg.mtmRoughness}
+          transmission={cfg.mtmTransmission}
+          ior={cfg.mtmIOR}
+          chromaticAberration={cfg.mtmChromatic}
+          anisotropy={0.1}
+          color="#a78bfa"
+        />
+      </mesh>
+
+      {/* Edge glow */}
+      <lineSegments geometry={edgesGeo} renderOrder={2}>
+        <shaderMaterial
+          ref={edgeMatRef}
+          vertexShader={edgeGlowVert}
+          fragmentShader={edgeGlowFrag}
+          uniforms={{
+            uTime: { value: 0 },
+            uOpacity: { value: cfg.edgeGlowOpacity },
+          }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </lineSegments>
+
+      {/* Wireframe overlay */}
+      <mesh geometry={geometry}>
+        <meshBasicMaterial
+          wireframe
+          color="#ffffff"
+          transparent
+          opacity={0.25}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/* ═══════════ ENHANCED NEBULA BACKDROP FOR MTM ═══════════ */
+function MTMNebulaBackdrop({ texture }) {
+  return (
+    <group>
+      {/* Main nebula - brighter for MTM refraction */}
+      <mesh position={[0, 0, -5]}>
+        <planeGeometry args={[16, 16]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.95} depthWrite={false} />
+      </mesh>
+      {/* Colored refraction planes at various depths/angles */}
+      <mesh position={[-3, 2, -3]} rotation={[0.2, 0.3, 0.1]}>
+        <planeGeometry args={[4, 4]} />
+        <meshBasicMaterial color="#7c3aed" transparent opacity={0.4} depthWrite={false} />
+      </mesh>
+      <mesh position={[3, -1, -4]} rotation={[-0.1, -0.2, 0.15]}>
+        <planeGeometry args={[5, 3]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 3, -3.5]} rotation={[0.3, 0, -0.1]}>
+        <planeGeometry args={[4, 3]} />
+        <meshBasicMaterial color="#f472b6" transparent opacity={0.3} depthWrite={false} />
+      </mesh>
+      <mesh position={[-2, -2, -2.5]} rotation={[-0.15, 0.25, 0.2]}>
+        <planeGeometry args={[3, 3]} />
+        <meshBasicMaterial color="#22c55e" transparent opacity={0.25} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 /* ═══════════ MOUSE DRIFT GROUP ═══════════ */
 function MouseDriftGroup({ children }) {
   const groupRef = useRef();
@@ -1301,6 +1430,7 @@ function CharacterScaleGroup({ children }) {
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
   const prevMouseRef = useRef(new THREE.Vector2(0, 0));
+  const [glassMode, setGlassMode] = useState(cfg.glassMode || 'shader');
 
   const [shape, setShape] = useState(cfg.shape || 'rounded-prism');
   const geometry = usePrismGeometry(shape);
@@ -1308,14 +1438,18 @@ export default function Prism3D() {
   useEffect(() => {
     const handler = () => setShape(cfg.shape || 'rounded-prism');
     window.addEventListener('prism-shape-change', handler);
+    const glassModeHandler = () => setGlassMode(cfg.glassMode || 'shader');
+    window.addEventListener('prism-glass-mode-change', glassModeHandler);
     const interval = setInterval(() => {
       if (cfg.shape !== shape) setShape(cfg.shape || 'rounded-prism');
+      if (cfg.glassMode !== glassMode) setGlassMode(cfg.glassMode || 'shader');
     }, 500);
     return () => {
       window.removeEventListener('prism-shape-change', handler);
+      window.removeEventListener('prism-glass-mode-change', glassModeHandler);
       clearInterval(interval);
     };
-  }, [shape]);
+  }, [shape, glassMode]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -1345,8 +1479,8 @@ export default function Prism3D() {
         height: size,
         margin: canvasMargin,
         pointerEvents: 'none',
-        WebkitMaskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,
-        maskImage: `radial-gradient(ellipse at center, black ${fi}%, transparent ${fo}%)`,
+        WebkitMaskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
+        maskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
       }}
     >
       <Canvas
@@ -1357,12 +1491,12 @@ export default function Prism3D() {
       >
         <SceneLights />
         <LightSpill />
-        <NebulaBackdrop texture={nebulaTex} />
+        {glassMode === 'mtm' ? <MTMNebulaBackdrop texture={nebulaTex} /> : <NebulaBackdrop texture={nebulaTex} />}
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
-              <PrismBody geometry={geometry} />
+              {glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />

@@ -692,6 +692,34 @@
     letter-spacing: 0.5px;
 }
 
+/* Screen shake on bop */
+.screen-shake {
+    animation: shake 0.3s ease-out;
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(1px); }
+}
+
+/* Bop impact flash */
+.bop-impact .prism-3d::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.7), transparent 70%);
+    animation: impactFlash 0.2s ease-out forwards;
+    pointer-events: none;
+    z-index: 15;
+    border-radius: 50%;
+}
+@keyframes impactFlash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
 /* Hidden Prism Character */
 .peek-character {
     position: fixed;
@@ -889,6 +917,84 @@
 @keyframes portalGlow {
     0% { filter: drop-shadow(0 0 60px rgba(124, 58, 237, 1)) drop-shadow(0 0 120px rgba(56, 189, 248, 0.8)); }
     100% { filter: drop-shadow(0 0 15px rgba(124, 58, 237, 0.3)) drop-shadow(0 0 30px rgba(56, 189, 248, 0.1)); }
+}
+
+/* ═══════ CINEMATIC PORTAL RING ═══════ */
+.portal-ring {
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+        transparent 0%,
+        rgba(124, 58, 237, 0.8) 15%,
+        rgba(56, 189, 248, 0.6) 30%,
+        transparent 45%,
+        rgba(244, 114, 182, 0.7) 60%,
+        rgba(124, 58, 237, 0.8) 75%,
+        transparent 90%);
+    mask: radial-gradient(circle, transparent 38%, black 42%, black 48%, transparent 52%);
+    -webkit-mask: radial-gradient(circle, transparent 38%, black 42%, black 48%, transparent 52%);
+    animation: portalSpin 1.2s linear infinite, portalScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    z-index: 499;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0);
+    filter: blur(1px);
+}
+
+@keyframes portalSpin {
+    0% { rotate: 0deg; }
+    100% { rotate: 360deg; }
+}
+
+@keyframes portalScale {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    70% { transform: translate(-50%, -50%) scale(1.2); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Portal screen flash */
+.portal-flash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at var(--flash-x) var(--flash-y),
+        rgba(124, 58, 237, 0.3), transparent 70%);
+    z-index: 498;
+    animation: flashFade 0.5s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes flashFade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Portal embers */
+.portal-ember {
+    position: fixed;
+    width: var(--ember-size);
+    height: var(--ember-size);
+    border-radius: 50%;
+    background: var(--ember-color);
+    box-shadow: 0 0 8px var(--ember-color), 0 0 16px var(--ember-color);
+    animation: emberDrift var(--ember-duration) ease-out forwards;
+    pointer-events: none;
+    z-index: 500;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes emberDrift {
+    0% {
+        opacity: 1;
+        translate: 0 0;
+    }
+    30% {
+        opacity: 0.9;
+    }
+    100% {
+        opacity: 0;
+        translate: var(--ember-dx) var(--ember-dy);
+    }
 }
 
 /* Globe Fog / Particle Overlay */

@@ -582,7 +582,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 1000, featherInner: 18, featherOuter: 88,
+        canvasSize: 1000, featherInner: 18, featherOuter: 88, sceneCenterX: 50, sceneCenterY: 50,
+        glassMode: 'shader',
+        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
         characterScale: 1.0,
@@ -591,6 +593,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
         bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
         lockedPeekStyle: '',
+        sceneCenterX: 50, sceneCenterY: 50,
+        glassMode: 'shader',
+        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
       };
     } else {
       // Merge new fields into existing config (in case Prism3D loaded first with older defaults)
@@ -601,6 +606,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
         bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
         lockedPeekStyle: '',
+        sceneCenterX: 50, sceneCenterY: 50,
+        glassMode: 'shader',
+        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
       };
       for (const [k, v] of Object.entries(defaults)) {
         if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
@@ -712,12 +720,31 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Glass / Refraction --
     const pGlassRef = prismBopFolder.addFolder('Glass / Refraction');
-    pGlassRef.add(pcfg, 'glassIOR', 0.2, 1.0, 0.01).name('IOR (Refraction)');
-    pGlassRef.add(pcfg, 'causticIntensity', 0, 3.0, 0.01).name('Caustic Intensity');
-    pGlassRef.add(pcfg, 'iridescenceIntensity', 0, 3.0, 0.01).name('Iridescence');
-    pGlassRef.add(pcfg, 'chromaticSpread', 0, 3.0, 0.01).name('Chromatic Spread');
-    pGlassRef.add(pcfg, 'glassAlpha', 0.05, 0.8, 0.01).name('Glass Opacity');
-    pGlassRef.add(pcfg, 'streakIntensity', 0, 3.0, 0.01).name('Light Streaks');
+    const glassModeCtrl = pGlassRef.add(pcfg, 'glassMode', { 'Custom Shader': 'shader', 'Real Glass (MTM)': 'mtm' }).name('Glass Mode');
+    // Shader-mode controls
+    const shaderCtrls = [];
+    shaderCtrls.push(pGlassRef.add(pcfg, 'glassIOR', 0.2, 1.0, 0.01).name('IOR (Refraction)'));
+    shaderCtrls.push(pGlassRef.add(pcfg, 'causticIntensity', 0, 3.0, 0.01).name('Caustic Intensity'));
+    shaderCtrls.push(pGlassRef.add(pcfg, 'iridescenceIntensity', 0, 3.0, 0.01).name('Iridescence'));
+    shaderCtrls.push(pGlassRef.add(pcfg, 'chromaticSpread', 0, 3.0, 0.01).name('Chromatic Spread'));
+    shaderCtrls.push(pGlassRef.add(pcfg, 'glassAlpha', 0.05, 0.8, 0.01).name('Glass Opacity'));
+    shaderCtrls.push(pGlassRef.add(pcfg, 'streakIntensity', 0, 3.0, 0.01).name('Light Streaks'));
+    // MTM-mode controls
+    const mtmCtrls = [];
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmThickness', 0, 5, 0.1).name('MTM Thickness'));
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmRoughness', 0, 1, 0.01).name('MTM Roughness'));
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmIOR', 1.0, 2.5, 0.05).name('MTM IOR'));
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmChromatic', 0, 3, 0.1).name('MTM Chromatic'));
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmTransmission', 0, 1, 0.05).name('MTM Transmission'));
+    mtmCtrls.push(pGlassRef.add(pcfg, 'mtmBackside').name('MTM Backside'));
+    // Toggle visibility based on current mode
+    const updateGlassControls = () => {
+      const isMTM = pcfg.glassMode === 'mtm';
+      shaderCtrls.forEach(c => c.domElement.parentElement.style.display = isMTM ? 'none' : '');
+      mtmCtrls.forEach(c => c.domElement.parentElement.style.display = isMTM ? '' : 'none');
+    };
+    updateGlassControls();
+    glassModeCtrl.onChange(() => { updateGlassControls(); window.dispatchEvent(new CustomEvent('prism-glass-mode-change')); });
     pGlassRef.close();
 
     // -- Canvas / Display --
@@ -726,6 +753,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pCanvas.add(pcfg, 'canvasSize', 200, 1800, 10).name('Canvas Size');
     pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %');
     pCanvas.add(pcfg, 'featherOuter', 20, 100, 1).name('Feather Outer %');
+    pCanvas.add(pcfg, 'sceneCenterX', 0, 100, 1).name('Mask Center X %');
+    pCanvas.add(pcfg, 'sceneCenterY', 0, 100, 1).name('Mask Center Y %');
     pCanvas.close();
 
     // -- Speech Bubble --

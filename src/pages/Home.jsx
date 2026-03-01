@@ -7,7 +7,7 @@ import { photos } from '../data/photos';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playPortalSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import './Home.css';
@@ -3366,6 +3366,13 @@ export default function Home() {
   const [editorDragMode, setEditorDragMode] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
   const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
+  // Bop phases: null | 'impact' | 'reaction' | 'exit'
+  const [bopPhase, setBopPhase] = useState(null);
+  const [exitStyle, setExitStyle] = useState(null);
+  // Portal phases: null | 'opening' | 'emerging' | 'residual'
+  const [portalPhase, setPortalPhase] = useState(null);
+  const [portalEmbers, setPortalEmbers] = useState([]);
+  const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
 
   // Spawn points from localStorage
   const [spawnPoints, setSpawnPoints] = useState(() => {
@@ -3440,19 +3447,53 @@ export default function Home() {
         const lockedStyle = window.__prismConfig?.lockedPeekStyle;
         const style = lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
         setPeekStyle(style);
-        setPeekVisible(true);
 
-        // Portal burst: confetti particle explosion
         if (style === 'portal') {
+          // Cinematic portal sequence
           const side = sp.side || 'right';
-          const ox = side === 'right' ? 0.85 : side === 'left' ? 0.15 : 0.5;
-          const oy = side === 'top' ? 0.2 : 0.5;
-          confetti({ particleCount: 40, spread: 360, startVelocity: 18, gravity: 0.4, origin: { x: ox, y: oy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.5, ticks: 70, shapes: ['circle'] });
-          // Add portal glow class
-          if (peekCharRef.current) {
-            peekCharRef.current.classList.add('portal-entering');
-            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
-          }
+          const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
+          const oy = side === 'top' ? '20%' : '50%';
+          setPortalOrigin({ x: ox, y: oy });
+
+          // Phase 1: Portal ring opens (0–600ms)
+          setPortalPhase('opening');
+          playPortalSound();
+          confetti({ particleCount: 25, spread: 30, startVelocity: 22, gravity: 0.3, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+
+          // Phase 2: Character emerges (400ms later)
+          setTimeout(() => {
+            setPortalPhase('emerging');
+            setPeekVisible(true);
+            if (peekCharRef.current) {
+              peekCharRef.current.classList.add('portal-entering');
+              setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+            }
+            confetti({ particleCount: 50, spread: 180, startVelocity: 15, gravity: 0.25, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.6, ticks: 120, shapes: ['circle'] });
+            // Spawn embers
+            const embers = Array.from({ length: 14 }, (_, i) => ({
+              id: Date.now() + i,
+              angle: (i / 14) * 360,
+              speed: 40 + Math.random() * 60,
+              color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24'][i % 5],
+              size: 3 + Math.random() * 4,
+              duration: 1.5 + Math.random() * 1,
+            }));
+            setPortalEmbers(embers);
+          }, 400);
+
+          // Phase 3: Residual (1200ms)
+          setTimeout(() => {
+            setPortalPhase('residual');
+            confetti({ particleCount: 15, spread: 360, startVelocity: 8, gravity: 0.15, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 200, shapes: ['circle'] });
+          }, 1200);
+
+          // Cleanup portal (2500ms)
+          setTimeout(() => {
+            setPortalPhase(null);
+            setPortalEmbers([]);
+          }, 2500);
+        } else {
+          setPeekVisible(true);
         }
 
         // Show a spark of genius idea after character settles
@@ -3463,7 +3504,7 @@ export default function Home() {
           setPrismBubble(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
           setTimeout(() => { setPrismBubble(null); window.__prismExpression = 'normal'; }, 5000);
-        }, 1200);
+        }, style === 'portal' ? 1600 : 1200);
         setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 7000);
         timerId = scheduleNext();
       }, delay);
@@ -3489,18 +3530,45 @@ export default function Home() {
       const lockedStyle = window.__prismConfig?.lockedPeekStyle;
       const style = d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
       setPeekStyle(style);
-      setPeekVisible(true);
       peekPinnedRef.current = !!d.pinned;
 
-      // Portal burst: confetti + glow (works from both auto-timer AND editor)
       if (style === 'portal') {
-        const ox = side === 'right' ? 0.85 : side === 'left' ? 0.15 : 0.5;
-        const oy = side === 'top' ? 0.2 : 0.5;
-        confetti({ particleCount: 40, spread: 360, startVelocity: 18, gravity: 0.4, origin: { x: ox, y: oy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.5, ticks: 70, shapes: ['circle'] });
-        if (peekCharRef.current) {
-          peekCharRef.current.classList.add('portal-entering');
-          setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
-        }
+        // Cinematic portal sequence (same as auto-timer)
+        const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
+        const oy = side === 'top' ? '20%' : '50%';
+        setPortalOrigin({ x: ox, y: oy });
+
+        setPortalPhase('opening');
+        playPortalSound();
+        confetti({ particleCount: 25, spread: 30, startVelocity: 22, gravity: 0.3, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+
+        setTimeout(() => {
+          setPortalPhase('emerging');
+          setPeekVisible(true);
+          if (peekCharRef.current) {
+            peekCharRef.current.classList.add('portal-entering');
+            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+          }
+          confetti({ particleCount: 50, spread: 180, startVelocity: 15, gravity: 0.25, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.6, ticks: 120, shapes: ['circle'] });
+          const embers = Array.from({ length: 14 }, (_, i) => ({
+            id: Date.now() + i,
+            angle: (i / 14) * 360,
+            speed: 40 + Math.random() * 60,
+            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24'][i % 5],
+            size: 3 + Math.random() * 4,
+            duration: 1.5 + Math.random() * 1,
+          }));
+          setPortalEmbers(embers);
+        }, 400);
+
+        setTimeout(() => {
+          setPortalPhase('residual');
+          confetti({ particleCount: 15, spread: 360, startVelocity: 8, gravity: 0.15, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 200, shapes: ['circle'] });
+        }, 1200);
+
+        setTimeout(() => { setPortalPhase(null); setPortalEmbers([]); }, 2500);
+      } else {
+        setPeekVisible(true);
       }
 
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
@@ -3543,48 +3611,70 @@ export default function Home() {
   }, [spawnPoints, dragPosition]);
 
   const handleCatchCharacter = useCallback(() => {
-    setPeekVisible(false);
-    playClickSound();
+    // DON'T hide immediately - phased bop reaction
+    playBopSound();
     const newBops = prismBops + 1;
     if (globeRef.current && globeRef.current.customUniforms) {
-      globeRef.current.customUniforms.prismPulse.value = 1.0; // TRIGGER EXTREME GLOBE REACTION
+      globeRef.current.customUniforms.prismPulse.value = 1.0;
     }
-    // Trigger squash & stretch on prism body
+
+    // Phase 1: Impact (0–300ms)
+    setBopPhase('impact');
     window.__prismSquash = Date.now();
     setPrismBops(newBops);
     window.__prismExpression = 'surprised';
-    window.__prismTalking = true;
-    setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
-    setTimeout(() => { window.__prismTalking = false; }, 1200);
-    setTimeout(() => setPrismBubble(null), 2500);
+    confetti({ particleCount: 20, spread: 60, origin: { y: 0.5 }, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.4, scalar: 0.6, ticks: 80 });
 
-    confetti({
-      particleCount: 20 + newBops * 5,
-      spread: 120,
-      origin: { y: 0.5 },
-      colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'],
-      gravity: 0.4,
-      scalar: 0.7,
-      drift: 0.5,
-      ticks: 150,
-    });
+    // Screen shake
+    const bento = document.querySelector('.bento-container');
+    if (bento) {
+      bento.classList.add('screen-shake');
+      setTimeout(() => bento.classList.remove('screen-shake'), 300);
+    }
 
-    // Spawn sparkle trail particles
-    const sparkles = Array.from({ length: 16 }, (_, i) => ({
-      id: Date.now() + i,
-      x: (Math.random() - 0.5) * 100,
-      y: (Math.random() - 0.5) * 100 - 20,
-      color: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24', '#ef4444', '#a78bfa', '#34d399'][i % 8],
-      delay: Math.random() * 0.6,
-      size: 2 + Math.random() * 5,
-      duration: 1.5 + Math.random() * 1.5,
-    }));
-    setPrismSparkles(sparkles);
-    setTimeout(() => setPrismSparkles([]), 3500);
+    // Phase 2: Reaction (300ms)
+    setTimeout(() => {
+      setBopPhase('reaction');
+      window.__prismExpression = 'excited';
+      window.__prismTalking = true;
+      setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
+      confetti({ particleCount: 30, spread: 120, origin: { y: 0.5 }, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, drift: 0.5, ticks: 150 });
+
+      // Spawn sparkle trail particles
+      const sparkles = Array.from({ length: 16 }, (_, i) => ({
+        id: Date.now() + i,
+        x: (Math.random() - 0.5) * 100,
+        y: (Math.random() - 0.5) * 100 - 20,
+        color: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24', '#ef4444', '#a78bfa', '#34d399'][i % 8],
+        delay: Math.random() * 0.6,
+        size: 2 + Math.random() * 5,
+        duration: 1.5 + Math.random() * 1.5,
+      }));
+      setPrismSparkles(sparkles);
+      setTimeout(() => setPrismSparkles([]), 3500);
+    }, 300);
+
+    // Phase 3: Theatrical exit (1500ms)
+    setTimeout(() => {
+      const exits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt'];
+      const style = exits[Math.floor(Math.random() * exits.length)];
+      setExitStyle(style);
+      setBopPhase('exit');
+      window.__prismTalking = false;
+      setPrismBubble(null);
+    }, 1500);
+
+    // Final cleanup (2500ms)
+    setTimeout(() => {
+      setPeekVisible(false);
+      setBopPhase(null);
+      setExitStyle(null);
+      window.__prismExpression = 'normal';
+    }, 2500);
 
     // Every 3 bops, trigger the speed puzzle game
     if (newBops % 3 === 0) {
-      setTimeout(() => setShowSpeedGame(true), 1500);
+      setTimeout(() => setShowSpeedGame(true), 3000);
     }
   }, [prismBops]);
 
@@ -3975,6 +4065,36 @@ export default function Home() {
 
         </div>
 
+        {/* PORTAL RING + FLASH + EMBERS */}
+        {portalPhase && (
+          <>
+            {(portalPhase === 'opening' || portalPhase === 'emerging') && (
+              <div className="portal-ring" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            )}
+            {portalPhase === 'opening' && (
+              <div className="portal-flash" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y }} />
+            )}
+            {portalEmbers.map(e => {
+              const rad = e.angle * Math.PI / 180;
+              return (
+                <div
+                  key={e.id}
+                  className="portal-ember"
+                  style={{
+                    left: portalOrigin.x,
+                    top: portalOrigin.y,
+                    '--ember-color': e.color,
+                    '--ember-dx': `${Math.cos(rad) * e.speed}px`,
+                    '--ember-dy': `${Math.sin(rad) * e.speed}px`,
+                    '--ember-size': `${e.size}px`,
+                    '--ember-duration': `${e.duration}s`,
+                  }}
+                />
+              );
+            })}
+          </>
+        )}
+
         {/* HIDDEN CHARACTER - always mounted so Canvas never remounts (no lag) */}
         {(() => {
           const isDragCustom = editorDragMode && dragPosition.x != null;
@@ -3989,19 +4109,33 @@ export default function Home() {
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 12, mass: 0.8 }
+            peekStyle === 'portal' ? { type: 'spring', stiffness: 120, damping: 8, mass: 1.2 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
             : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
             : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
             : { type: 'spring', stiffness: 300, damping: 20 };
+          // Exit animation states
+          const exitAnimState =
+            bopPhase === 'exit' && exitStyle === 'spin-shrink' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 720 }
+            : bopPhase === 'exit' && exitStyle === 'tumble-fall' ? { opacity: 0, x: 0, y: 800, scale: 1, rotate: 45 }
+            : bopPhase === 'exit' && exitStyle === 'pop-burst' ? { opacity: 0, x: 0, y: 0, scale: 1.3, rotate: 0 }
+            : bopPhase === 'exit' && exitStyle === 'melt' ? { opacity: 0, x: 0, y: 0, scaleX: 2, scaleY: 0, rotate: 0 }
+            : null;
+          const animateState = exitAnimState
+            ? exitAnimState
+            : peekVisible ? { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }
+            : hiddenState;
+          const exitTransition = bopPhase === 'exit'
+            ? { type: 'tween', duration: 0.8, ease: 'easeIn' }
+            : peekTransition;
           return (
             <motion.div
               ref={peekCharRef}
-              className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
-              animate={peekVisible ? { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 } : hiddenState}
+              className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`} ${bopPhase === 'impact' ? 'bop-impact' : ''}`}
+              animate={animateState}
               initial={false}
-              transition={peekTransition}
-              onClick={peekVisible && !editorDragMode ? handleCatchCharacter : undefined}
+              transition={exitTransition}
+              onClick={peekVisible && !editorDragMode && bopPhase == null ? handleCatchCharacter : undefined}
               onMouseDown={editorDragMode ? (e) => {
                 dragRef.current.dragging = true;
                 const rect = e.currentTarget.getBoundingClientRect();
