@@ -3428,6 +3428,120 @@ export default function Home() {
   // Portal entrance ref for CSS glow class
   const peekCharRef = useRef(null);
 
+  // ── Portal sequence helper (reads config from window.__prismConfig) ──
+  const runPortalSequence = (ox, oy, showCharCallback) => {
+    const cfg = window.__prismConfig || {};
+    const cOx = parseFloat(ox) / 100;
+    const cOy = parseFloat(oy) / 100;
+    setPortalOrigin({ x: ox, y: oy });
+
+    // Convert portal colors from [r,g,b] (0-1) to hex strings
+    const toHex = (arr) => '#' + arr.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+    const c1 = cfg.portalColor1 ? toHex(cfg.portalColor1) : '#7c3aed';
+    const c2 = cfg.portalColor2 ? toHex(cfg.portalColor2) : '#38bdf8';
+    const c3 = cfg.portalColor3 ? toHex(cfg.portalColor3) : '#f472b6';
+    const portalColors = [c1, c2, c3, '#a78bfa', '#c4b5fd', '#22d3ee', '#e879f9'];
+    const emberCount = cfg.portalEmberCount ?? 20;
+    const burstEmberCount = cfg.portalBurstEmberCount ?? 24;
+    const confettiEnabled = cfg.portalConfettiEnabled !== false;
+    const confettiCount = cfg.portalConfettiCount ?? 60;
+    const gatherMs = cfg.portalGatherMs ?? 500;
+    const ruptureMs = cfg.portalRuptureMs ?? 500;
+    const emergeMs = cfg.portalEmergeMs ?? 900;
+    const residualMs = cfg.portalResidualMs ?? 1800;
+    const cleanupMs = cfg.portalCleanupMs ?? 3200;
+    const seepEnabled = cfg.portalSeepEnabled !== false;
+    const seepDuration = cfg.portalSeepDuration ?? 800;
+
+    // Time offset: seep adds time before gathering
+    const t0 = seepEnabled ? seepDuration : 0;
+
+    // Seep phase (Rick & Morty pre-noise)
+    if (seepEnabled) {
+      setPortalPhase('seep');
+    }
+
+    // Phase 1: Energy gathers inward
+    setTimeout(() => {
+      setPortalPhase('gathering');
+      const convergence = Array.from({ length: emberCount }, (_, i) => ({
+        id: Date.now() + i + 1000,
+        angle: (i / emberCount) * 360 + Math.random() * 18,
+        speed: 80 + Math.random() * 120,
+        color: portalColors[i % portalColors.length],
+        size: 2 + Math.random() * 3,
+        duration: 0.4 + Math.random() * 0.2,
+      }));
+      setPortalEmbers(convergence);
+    }, t0);
+
+    // Phase 2: Portal ruptures open
+    setTimeout(() => {
+      setPortalPhase('rupture');
+      setPortalEmbers([]);
+      if (confettiEnabled) {
+        confetti({ particleCount: Math.round(confettiCount * 0.5), spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3, '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+      }
+    }, t0 + ruptureMs);
+
+    // Phase 3: Character emerges through rift
+    setTimeout(() => {
+      setPortalPhase('emerging');
+      showCharCallback();
+      if (peekCharRef.current) {
+        peekCharRef.current.classList.add('portal-entering');
+        setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
+      }
+      if (confettiEnabled) {
+        confetti({ particleCount: confettiCount, spread: 160, startVelocity: 18, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3, '#a78bfa', '#22c55e', '#fbbf24', '#c4b5fd'], scalar: 0.6, ticks: 140, shapes: ['circle'] });
+        setTimeout(() => {
+          confetti({ particleCount: Math.round(confettiCount * 0.58), spread: 360, startVelocity: 12, gravity: 0.15, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3], scalar: 0.4, ticks: 180, shapes: ['circle'] });
+        }, 200);
+      }
+      const embers = Array.from({ length: burstEmberCount }, (_, i) => ({
+        id: Date.now() + i + 2000,
+        angle: (i / burstEmberCount) * 360 + Math.random() * 15,
+        speed: 50 + Math.random() * 80,
+        color: [c1, c2, c3, '#a78bfa', '#fbbf24', '#c4b5fd', '#22d3ee'][i % 7],
+        size: 2 + Math.random() * 5,
+        duration: 1.2 + Math.random() * 1.2,
+      }));
+      setPortalEmbers(embers);
+    }, t0 + emergeMs);
+
+    // Phase 4: Residual glow
+    setTimeout(() => {
+      setPortalPhase('residual');
+      if (confettiEnabled) {
+        confetti({ particleCount: Math.round(confettiCount * 0.33), spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3, '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
+      }
+    }, t0 + residualMs);
+
+    // Cleanup
+    setTimeout(() => {
+      setPortalPhase(null);
+      setPortalEmbers([]);
+    }, t0 + cleanupMs);
+
+    // Return total duration for callers that need to schedule follow-ups
+    return t0 + cleanupMs;
+  };
+
+  // ── Compute portal origin from spawn point ──
+  const getPortalOrigin = (sp) => {
+    if (sp.x != null && sp.y != null) {
+      return {
+        x: `${(sp.x / window.innerWidth) * 100}%`,
+        y: `${(sp.y / window.innerHeight) * 100}%`,
+      };
+    }
+    const side = sp.side || 'right';
+    return {
+      x: side === 'right' ? '95%' : side === 'left' ? '5%' : '50%',
+      y: side === 'right' ? '50%' : side === 'left' ? '40%' : '3%',
+    };
+  };
+
   useEffect(() => {
     const peekStyles = ['portal', 'portal', 'portal', 'bounce', 'pop', 'roll'];
     const scheduleNext = () => {
@@ -3450,71 +3564,8 @@ export default function Home() {
 
         if (style === 'portal') {
           // ─── CINEMATIC DIMENSIONAL RIFT ───
-          const side = sp.side || 'right';
-          const ox = side === 'right' ? '95%' : side === 'left' ? '5%' : '50%';
-          const oy = side === 'right' ? '50%' : side === 'left' ? '40%' : '3%';
-          const cOx = parseFloat(ox) / 100;
-          const cOy = parseFloat(oy) / 100;
-          setPortalOrigin({ x: ox, y: oy });
-
-          // Phase 1: Energy gathers inward (0–500ms)
-          setPortalPhase('gathering');
-          const convergence = Array.from({ length: 20 }, (_, i) => ({
-            id: Date.now() + i + 1000,
-            angle: (i / 20) * 360 + Math.random() * 18,
-            speed: 80 + Math.random() * 120,
-            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd', '#22d3ee', '#e879f9'][i % 7],
-            size: 2 + Math.random() * 3,
-            duration: 0.4 + Math.random() * 0.2,
-          }));
-          setPortalEmbers(convergence);
-
-          // Phase 2: Portal ruptures open (500ms)
-          setTimeout(() => {
-            setPortalPhase('rupture');
-            setPortalEmbers([]);
-            // Tight inward burst
-            confetti({ particleCount: 30, spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
-          }, 500);
-
-          // Phase 3: Character emerges through rift (900ms)
-          setTimeout(() => {
-            setPortalPhase('emerging');
-            setPeekVisible(true);
-            if (peekCharRef.current) {
-              peekCharRef.current.classList.add('portal-entering');
-              setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
-            }
-            // Wide cascade confetti
-            confetti({ particleCount: 60, spread: 160, startVelocity: 18, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24', '#c4b5fd'], scalar: 0.6, ticks: 140, shapes: ['circle'] });
-            // Staggered second burst
-            setTimeout(() => {
-              confetti({ particleCount: 35, spread: 360, startVelocity: 12, gravity: 0.15, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 180, shapes: ['circle'] });
-            }, 200);
-            // Outward embers
-            const embers = Array.from({ length: 24 }, (_, i) => ({
-              id: Date.now() + i + 2000,
-              angle: (i / 24) * 360 + Math.random() * 15,
-              speed: 50 + Math.random() * 80,
-              color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24', '#c4b5fd', '#22d3ee'][i % 7],
-              size: 2 + Math.random() * 5,
-              duration: 1.2 + Math.random() * 1.2,
-            }));
-            setPortalEmbers(embers);
-          }, 900);
-
-          // Phase 4: Residual glow (1800ms)
-          setTimeout(() => {
-            setPortalPhase('residual');
-            // Gentle sparkle micro-burst
-            confetti({ particleCount: 20, spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
-          }, 1800);
-
-          // Cleanup (3200ms)
-          setTimeout(() => {
-            setPortalPhase(null);
-            setPortalEmbers([]);
-          }, 3200);
+          const origin = getPortalOrigin(sp);
+          runPortalSequence(origin.x, origin.y, () => setPeekVisible(true));
         } else {
           setPeekVisible(true);
         }
@@ -3556,58 +3607,17 @@ export default function Home() {
       peekPinnedRef.current = !!d.pinned;
 
       if (style === 'portal') {
-        // ─── CINEMATIC DIMENSIONAL RIFT (same as auto-timer) ───
-        const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
-        const oy = side === 'top' ? '20%' : '50%';
-        const cOx = parseFloat(ox) / 100;
-        const cOy = parseFloat(oy) / 100;
-        setPortalOrigin({ x: ox, y: oy });
-
-        setPortalPhase('gathering');
-        const convergence = Array.from({ length: 20 }, (_, i) => ({
-          id: Date.now() + i + 1000,
-          angle: (i / 20) * 360 + Math.random() * 18,
-          speed: 80 + Math.random() * 120,
-          color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd', '#22d3ee', '#e879f9'][i % 7],
-          size: 2 + Math.random() * 3,
-          duration: 0.4 + Math.random() * 0.2,
-        }));
-        setPortalEmbers(convergence);
-
-        setTimeout(() => {
-          setPortalPhase('rupture');
-          setPortalEmbers([]);
-          confetti({ particleCount: 30, spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
-        }, 500);
-
-        setTimeout(() => {
-          setPortalPhase('emerging');
-          setPeekVisible(true);
-          if (peekCharRef.current) {
-            peekCharRef.current.classList.add('portal-entering');
-            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
-          }
-          confetti({ particleCount: 60, spread: 160, startVelocity: 18, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24', '#c4b5fd'], scalar: 0.6, ticks: 140, shapes: ['circle'] });
-          setTimeout(() => {
-            confetti({ particleCount: 35, spread: 360, startVelocity: 12, gravity: 0.15, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 180, shapes: ['circle'] });
-          }, 200);
-          const embers = Array.from({ length: 24 }, (_, i) => ({
-            id: Date.now() + i + 2000,
-            angle: (i / 24) * 360 + Math.random() * 15,
-            speed: 50 + Math.random() * 80,
-            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24', '#c4b5fd', '#22d3ee'][i % 7],
-            size: 2 + Math.random() * 5,
-            duration: 1.2 + Math.random() * 1.2,
-          }));
-          setPortalEmbers(embers);
-        }, 900);
-
-        setTimeout(() => {
-          setPortalPhase('residual');
-          confetti({ particleCount: 20, spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
-        }, 1800);
-
-        setTimeout(() => { setPortalPhase(null); setPortalEmbers([]); }, 3200);
+        // ─── CINEMATIC DIMENSIONAL RIFT ───
+        // Use drag position if available, otherwise side-based
+        let ox, oy;
+        if (dragPosition.x != null && dragPosition.y != null) {
+          ox = `${(dragPosition.x / window.innerWidth) * 100}%`;
+          oy = `${(dragPosition.y / window.innerHeight) * 100}%`;
+        } else {
+          ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
+          oy = side === 'top' ? '20%' : '50%';
+        }
+        runPortalSequence(ox, oy, () => setPeekVisible(true));
       } else {
         setPeekVisible(true);
       }
@@ -3635,6 +3645,13 @@ export default function Home() {
         const newPoints = spawnPoints.filter((_, i) => i !== d.index);
         setSpawnPoints(newPoints);
         localStorage.setItem('prism_spawn_points', JSON.stringify(newPoints));
+      } else if (d.action === 'clear') {
+        const defaults = [{ side: 'right' }, { side: 'left' }, { side: 'top' }];
+        setSpawnPoints(defaults);
+        localStorage.setItem('prism_spawn_points', JSON.stringify(defaults));
+      } else if (d.action === 'reset' && d.points) {
+        setSpawnPoints(d.points);
+        localStorage.setItem('prism_spawn_points', JSON.stringify(d.points));
       }
     };
 
@@ -4107,8 +4124,29 @@ export default function Home() {
         </div>
 
         {/* CINEMATIC PORTAL EFFECTS */}
-        {portalPhase && (
+        {portalPhase && (() => {
+          const cfg = window.__prismConfig || {};
+          const orbScale = cfg.portalOrbScale ?? 1.0;
+          const shockScale = cfg.portalShockwaveScale ?? 1.0;
+          const ringScale = cfg.portalRingScale ?? 1.0;
+          const flashInt = cfg.portalFlashIntensity ?? 1.0;
+          const seepInt = cfg.portalSeepIntensity ?? 0.8;
+          const seepNoise = cfg.portalSeepNoiseScale ?? 3.0;
+          const seepColor = cfg.portalSeepColor
+            ? `rgb(${Math.round(cfg.portalSeepColor[0]*255)},${Math.round(cfg.portalSeepColor[1]*255)},${Math.round(cfg.portalSeepColor[2]*255)})`
+            : '#22c55e';
+          return (
           <>
+            {/* Rick & Morty seep pre-noise */}
+            {portalPhase === 'seep' && (
+              <div className="portal-seep" style={{
+                left: portalOrigin.x, top: portalOrigin.y,
+                '--seep-color': seepColor,
+                '--seep-intensity': seepInt,
+                '--seep-noise-scale': seepNoise,
+              }} />
+            )}
+
             {/* Vignette overlay during gathering */}
             {portalPhase === 'gathering' && (
               <div className="portal-vignette" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y }} />
@@ -4116,25 +4154,25 @@ export default function Home() {
 
             {/* Screen flash on rupture */}
             {portalPhase === 'rupture' && (
-              <div className="portal-flash" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y }} />
+              <div className="portal-flash" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y, opacity: flashInt }} />
             )}
 
             {/* Shockwave ring on rupture */}
             {(portalPhase === 'rupture' || portalPhase === 'emerging') && (
-              <div className="portal-shockwave" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+              <div className="portal-shockwave" style={{ left: portalOrigin.x, top: portalOrigin.y, transform: `translate(-50%,-50%) scale(${shockScale})` }} />
             )}
 
             {/* Double spinning rings during rupture + emerging */}
             {(portalPhase === 'rupture' || portalPhase === 'emerging') && (
               <>
-                <div className="portal-ring portal-ring-outer" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
-                <div className="portal-ring portal-ring-inner" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+                <div className="portal-ring portal-ring-outer" style={{ left: portalOrigin.x, top: portalOrigin.y, '--ring-scale': ringScale }} />
+                <div className="portal-ring portal-ring-inner" style={{ left: portalOrigin.x, top: portalOrigin.y, '--ring-scale': ringScale }} />
               </>
             )}
 
             {/* Glowing center orb */}
-            {(portalPhase === 'gathering' || portalPhase === 'rupture') && (
-              <div className={`portal-orb ${portalPhase}`} style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            {(portalPhase === 'gathering' || portalPhase === 'rupture' || portalPhase === 'seep') && (
+              <div className={`portal-orb ${portalPhase}`} style={{ left: portalOrigin.x, top: portalOrigin.y, transform: `translate(-50%,-50%) scale(${orbScale})` }} />
             )}
 
             {/* Residual glow aura */}
@@ -4142,7 +4180,7 @@ export default function Home() {
               <div className="portal-residual-glow" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
             )}
 
-            {/* Convergence particles (fly inward during gathering) / Embers (fly outward during emerging) */}
+            {/* Convergence particles / Embers */}
             {portalEmbers.map(e => {
               const rad = e.angle * Math.PI / 180;
               const isConverging = portalPhase === 'gathering';
@@ -4163,7 +4201,8 @@ export default function Home() {
               );
             })}
           </>
-        )}
+          );
+        })()}
 
         {/* HIDDEN CHARACTER - always mounted so Canvas never remounts (no lag) */}
         {(() => {
@@ -4191,9 +4230,10 @@ export default function Home() {
             : bopPhase === 'exit' && exitStyle === 'pop-burst' ? { opacity: 0, x: 0, y: 0, scale: 1.3, rotate: 0 }
             : bopPhase === 'exit' && exitStyle === 'melt' ? { opacity: 0, x: 0, y: 0, scaleX: 2, scaleY: 0, rotate: 0 }
             : null;
+          const spawnScale = window.__prismConfig?.spawnScale ?? 1.0;
           const animateState = exitAnimState
             ? exitAnimState
-            : peekVisible ? { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }
+            : peekVisible ? { opacity: 1, x: 0, y: 0, scale: spawnScale, rotate: 0 }
             : hiddenState;
           const exitTransition = bopPhase === 'exit'
             ? { type: 'tween', duration: 0.8, ease: 'easeIn' }

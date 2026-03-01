@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import GUI from 'lil-gui';
 import * as THREE from 'three';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
+import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import { GLASS_PRESETS } from './Prism3D';
 
 const STORAGE_KEY = 'jarowe_globe_editor_preset';
@@ -572,51 +573,15 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // PRISM BOP CHARACTER (Full Control Panel)
     // ══════════════════════════════════════════
     const prismBopFolder = gui.addFolder('Prism Bop Character');
-    // Ensure config exists even before Prism3D lazy-loads
+    // Ensure config exists with all defaults (including new portal/spawn keys)
     if (!window.__prismConfig) {
-      window.__prismConfig = {
-        shape: 'rounded-prism',
-        driftStrength: 0.8, driftSpeed: 0.04, driftTiltX: 0.15, driftTiltY: 0.1,
-        rayBendAmount: 0.12, rayVerticalBend: 0.06, beamTrackAmount: 0.12,
-        eyeTrackSpeed: 0.06, eyeTrackRange: 0.5, rotationMouseInfluence: 0.5,
-        sparkleCount: 30, sparkleSize: 2.5, sparkleSpeed: 0.5, sparkleOpacity: 0.8,
-        ambientIntensity: 0.4, keyLightIntensity: 3, fillLightIntensity: 1.5,
-        internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
-        floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
-        breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 1600, featherInner: 5, featherOuter: 98, sceneCenterX: 50, sceneCenterY: 50,
-        glassMode: 'shader',
-        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
-        hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
-        nebulaOpacity: 0.85, canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
-        musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
-        beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
-        vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
-        characterScale: 1.0,
-        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.7, mouthScaleY: 0.55,
-        glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
-        chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
-        bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
-        lockedPeekStyle: '',
-      };
+      window.__prismConfig = { ...PRISM_DEFAULTS };
     } else {
-      // Merge new fields into existing config (in case Prism3D loaded first with older defaults)
-      const defaults = {
-        characterScale: 1.0,
-        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.7, mouthScaleY: 0.55,
-        glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
-        chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
-        bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
-        lockedPeekStyle: '',
-        sceneCenterX: 50, sceneCenterY: 50,
-        glassMode: 'shader',
-        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
-        hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
-        nebulaOpacity: 0.85, canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
-        musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
-      };
-      for (const [k, v] of Object.entries(defaults)) {
-        if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
+      // Merge any new keys from PRISM_DEFAULTS into existing config
+      for (const [k, v] of Object.entries(PRISM_DEFAULTS)) {
+        if (window.__prismConfig[k] === undefined) {
+          window.__prismConfig[k] = Array.isArray(v) ? [...v] : v;
+        }
       }
     }
     const pcfg = window.__prismConfig;
@@ -898,12 +863,197 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pBubble.add(pcfg, 'bubblePadding', 4, 30, 1).name('Padding (px)');
     pBubble.close();
 
+    // -- Portal Effects --
+    const portalFolder = prismBopFolder.addFolder('Portal Effects');
+
+    // Portal colors (stored as [r,g,b] 0-1, lil-gui uses hex strings)
+    const portalColorProxy = {
+      color1: rgbToHex(pcfg.portalColor1 || PRISM_DEFAULTS.portalColor1),
+      color2: rgbToHex(pcfg.portalColor2 || PRISM_DEFAULTS.portalColor2),
+      color3: rgbToHex(pcfg.portalColor3 || PRISM_DEFAULTS.portalColor3),
+      seepColor: rgbToHex(pcfg.portalSeepColor || PRISM_DEFAULTS.portalSeepColor),
+    };
+    const hexToRgb01 = (hex) => {
+      const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+      if (!m) return [0, 0, 0];
+      return [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255];
+    };
+
+    const pColorsFolder = portalFolder.addFolder('Colors');
+    pColorsFolder.addColor(portalColorProxy, 'color1').name('Color 1 (purple)').onChange(v => { pcfg.portalColor1 = hexToRgb01(v); });
+    pColorsFolder.addColor(portalColorProxy, 'color2').name('Color 2 (blue)').onChange(v => { pcfg.portalColor2 = hexToRgb01(v); });
+    pColorsFolder.addColor(portalColorProxy, 'color3').name('Color 3 (pink)').onChange(v => { pcfg.portalColor3 = hexToRgb01(v); });
+    pColorsFolder.addColor(portalColorProxy, 'seepColor').name('Seep Color (green)').onChange(v => { pcfg.portalSeepColor = hexToRgb01(v); });
+    pColorsFolder.close();
+
+    const pTimingFolder = portalFolder.addFolder('Timing');
+    pTimingFolder.add(pcfg, 'portalSeepDuration', 0, 2000, 50).name('Seep Duration (ms)');
+    pTimingFolder.add(pcfg, 'portalGatherMs', 100, 2000, 50).name('Gather Duration (ms)');
+    pTimingFolder.add(pcfg, 'portalRuptureMs', 100, 2000, 50).name('Rupture Timing (ms)');
+    pTimingFolder.add(pcfg, 'portalEmergeMs', 200, 3000, 50).name('Emerge Timing (ms)');
+    pTimingFolder.add(pcfg, 'portalResidualMs', 500, 5000, 50).name('Residual Timing (ms)');
+    pTimingFolder.add(pcfg, 'portalCleanupMs', 1000, 8000, 100).name('Cleanup Timing (ms)');
+    pTimingFolder.close();
+
+    const pEffectsFolder = portalFolder.addFolder('Effects');
+    pEffectsFolder.add(pcfg, 'portalSeepEnabled').name('Seep Enabled');
+    pEffectsFolder.add(pcfg, 'portalConfettiEnabled').name('Confetti Enabled');
+    pEffectsFolder.add(pcfg, 'portalEmberCount', 5, 50, 1).name('Ember Count');
+    pEffectsFolder.add(pcfg, 'portalBurstEmberCount', 5, 50, 1).name('Burst Ember Count');
+    pEffectsFolder.add(pcfg, 'portalConfettiCount', 10, 200, 5).name('Confetti Count');
+    pEffectsFolder.add(pcfg, 'portalOrbScale', 0.2, 3.0, 0.05).name('Orb Scale');
+    pEffectsFolder.add(pcfg, 'portalShockwaveScale', 0.2, 3.0, 0.05).name('Shockwave Scale');
+    pEffectsFolder.add(pcfg, 'portalRingScale', 0.2, 3.0, 0.05).name('Ring Scale');
+    pEffectsFolder.add(pcfg, 'portalFlashIntensity', 0, 2.0, 0.05).name('Flash Intensity');
+    pEffectsFolder.add(pcfg, 'portalSeepIntensity', 0, 2.0, 0.05).name('Seep Intensity');
+    pEffectsFolder.add(pcfg, 'portalSeepNoiseScale', 0.5, 10.0, 0.1).name('Seep Noise Scale');
+    pEffectsFolder.close();
+
+    const pSpawnFolder = portalFolder.addFolder('Spawn');
+    pSpawnFolder.add(pcfg, 'spawnScale', 0.3, 3.0, 0.05).name('Spawn Scale');
+    pSpawnFolder.close();
+
+    portalFolder.add({ trigger() {
+      window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+        detail: { style: 'portal', pinned: true }
+      }));
+    } }, 'trigger').name('Trigger Portal');
+    portalFolder.close();
+
+    // -- Spawn Point Management --
+    const spawnMgmtFolder = prismBopFolder.addFolder('Spawn Points');
+    const spawnCountProxy = { count: 'Loading...' };
+    const spawnCountCtrl = spawnMgmtFolder.add(spawnCountProxy, 'count').name('Saved').disable();
+    const updateSpawnCount = () => {
+      try {
+        const pts = JSON.parse(localStorage.getItem('prism_spawn_points') || '[]');
+        spawnCountProxy.count = `${pts.length} point${pts.length !== 1 ? 's' : ''}`;
+      } catch { spawnCountProxy.count = '? points'; }
+      spawnCountCtrl.updateDisplay();
+    };
+    updateSpawnCount();
+    spawnMgmtFolder.add({ save() {
+      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'add', label: `Point ${Date.now()}` } }));
+      setTimeout(updateSpawnCount, 100);
+    } }, 'save').name('Save Current Position');
+    spawnMgmtFolder.add({ clearAll() {
+      if (!confirm('Clear all saved spawn points?')) return;
+      localStorage.removeItem('prism_spawn_points');
+      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'clear' } }));
+      updateSpawnCount();
+    } }, 'clearAll').name('Clear All Points');
+    spawnMgmtFolder.add({ resetDefaults() {
+      const defaults = [{ side: 'right' }, { side: 'left' }, { side: 'top' }];
+      localStorage.setItem('prism_spawn_points', JSON.stringify(defaults));
+      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: defaults } }));
+      updateSpawnCount();
+    } }, 'resetDefaults').name('Reset to Defaults');
+    spawnMgmtFolder.close();
+
     // -- Reset --
-    prismBopFolder.add({ async reset() {
-      const { PRISM_DEFAULTS } = await import('./Prism3D');
-      Object.assign(pcfg, PRISM_DEFAULTS);
+    prismBopFolder.add({ reset() {
+      Object.assign(pcfg, JSON.parse(JSON.stringify(PRISM_DEFAULTS)));
+      gui.controllersRecursive().forEach(c => c.updateDisplay());
+      // Update color proxies
+      portalColorProxy.color1 = rgbToHex(PRISM_DEFAULTS.portalColor1);
+      portalColorProxy.color2 = rgbToHex(PRISM_DEFAULTS.portalColor2);
+      portalColorProxy.color3 = rgbToHex(PRISM_DEFAULTS.portalColor3);
+      portalColorProxy.seepColor = rgbToHex(PRISM_DEFAULTS.portalSeepColor);
       gui.controllersRecursive().forEach(c => c.updateDisplay());
     } }, 'reset').name('Reset All to Defaults');
+
+    // -- Prism localStorage Save/Load --
+    prismBopFolder.add({ save() {
+      const snapshot = {};
+      for (const [k, v] of Object.entries(pcfg)) {
+        snapshot[k] = Array.isArray(v) ? [...v] : v;
+      }
+      localStorage.setItem('jarowe_prism_editor_preset', JSON.stringify(snapshot));
+      alert('Prism settings saved to localStorage');
+    } }, 'save').name('Save Prism to localStorage');
+
+    prismBopFolder.add({ load() {
+      const saved = localStorage.getItem('jarowe_prism_editor_preset');
+      if (!saved) { alert('No saved prism settings found'); return; }
+      try {
+        const parsed = JSON.parse(saved);
+        Object.assign(pcfg, parsed);
+        // Update color proxies
+        if (pcfg.portalColor1) portalColorProxy.color1 = rgbToHex(pcfg.portalColor1);
+        if (pcfg.portalColor2) portalColorProxy.color2 = rgbToHex(pcfg.portalColor2);
+        if (pcfg.portalColor3) portalColorProxy.color3 = rgbToHex(pcfg.portalColor3);
+        if (pcfg.portalSeepColor) portalColorProxy.seepColor = rgbToHex(pcfg.portalSeepColor);
+        gui.controllersRecursive().forEach(c => c.updateDisplay());
+        alert('Prism settings loaded');
+      } catch { alert('Failed to parse saved settings'); }
+    } }, 'load').name('Load Prism from localStorage');
+
+    // -- Push Prism to Live --
+    prismBopFolder.add({ pushPrismToLive() {
+      // Snapshot all prism config
+      const current = {};
+      for (const [k, v] of Object.entries(pcfg)) {
+        current[k] = Array.isArray(v) ? [...v] : v;
+      }
+
+      // Count changes vs defaults
+      let changedCount = 0;
+      for (const [key, val] of Object.entries(current)) {
+        const def = PRISM_DEFAULTS[key];
+        if (def === undefined) continue;
+        if (Array.isArray(val) && Array.isArray(def)) {
+          if (val[0] !== def[0] || val[1] !== def[1] || val[2] !== def[2]) changedCount++;
+        } else if (val !== def) changedCount++;
+      }
+
+      // Passphrase
+      const PASSPHRASE_KEY = 'jarowe_editor_passphrase';
+      let passphrase = sessionStorage.getItem(PASSPHRASE_KEY);
+      if (!passphrase) {
+        passphrase = prompt('Enter editor passphrase:');
+        if (!passphrase) return;
+        sessionStorage.setItem(PASSPHRASE_KEY, passphrase);
+      }
+
+      if (!confirm(`Push ${changedCount} prism setting${changedCount !== 1 ? 's' : ''} to live?\n\nThis will commit prismDefaults.js to GitHub and trigger a Vercel deploy.`)) return;
+
+      const overlay = document.createElement('div');
+      Object.assign(overlay.style, {
+        position: 'fixed', inset: '0', zIndex: '99999',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+        color: '#fff', fontFamily: 'system-ui', fontSize: '1.1rem',
+      });
+      overlay.innerHTML = '<div style="font-size:1.5rem;margin-bottom:0.5rem">Pushing prism to live...</div><div style="opacity:0.6">Committing prismDefaults.js to GitHub</div>';
+      document.body.appendChild(overlay);
+
+      fetch('/api/save-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: passphrase, settings: current, file: 'prism' }),
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, status: r.status, data })))
+        .then(({ ok, status, data }) => {
+          if (ok && data.success) {
+            const sha = data.commitSha ? data.commitSha.slice(0, 7) : '?';
+            overlay.innerHTML = `<div style="font-size:1.5rem;color:#4f8;">Prism pushed to live!</div>`
+              + `<div style="opacity:0.7;margin-top:0.3rem">${data.changedCount} setting${data.changedCount !== 1 ? 's' : ''} updated</div>`
+              + `<div style="opacity:0.5;margin-top:0.3rem;font-family:monospace">commit ${sha}</div>`
+              + `<div style="opacity:0.4;margin-top:0.8rem;font-size:0.85rem">Vercel will auto-deploy in ~30s</div>`
+              + `<div style="opacity:0.4;margin-top:0.5rem;font-size:0.85rem;cursor:pointer" onclick="this.parentElement.remove()">Click to dismiss</div>`;
+          } else {
+            if (status === 401) sessionStorage.removeItem(PASSPHRASE_KEY);
+            overlay.innerHTML = `<div style="font-size:1.5rem;color:#f44">Push failed</div>`
+              + `<div style="opacity:0.7;margin-top:0.3rem">${data.error || 'Unknown error'}</div>`
+              + `<div style="opacity:0.4;margin-top:0.8rem;font-size:0.85rem;cursor:pointer" onclick="this.parentElement.remove()">Click to dismiss</div>`;
+          }
+        })
+        .catch(err => {
+          overlay.innerHTML = `<div style="font-size:1.5rem;color:#f44">Network error</div>`
+            + `<div style="opacity:0.7;margin-top:0.3rem">${err.message}</div>`
+            + `<div style="opacity:0.4;margin-top:0.8rem;font-size:0.85rem;cursor:pointer" onclick="this.parentElement.remove()">Click to dismiss</div>`;
+        });
+    } }, 'pushPrismToLive').name('⬆ Push Prism to Live');
 
     prismBopFolder.close();
 

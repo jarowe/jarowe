@@ -2,103 +2,10 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles, MeshTransmissionMaterial, Environment } from '@react-three/drei';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 
-/* ═══════════ GLOBAL PRISM CONFIG (GlobeEditor writes, Prism3D reads) ═══════════ */
-export const PRISM_DEFAULTS = {
-  // Shape
-  shape: 'rounded-prism',
-  // Mouse reactivity
-  driftStrength: 0.8,
-  driftSpeed: 0.04,
-  driftTiltX: 0.15,
-  driftTiltY: 0.1,
-  rayBendAmount: 0.12,
-  rayVerticalBend: 0.06,
-  beamTrackAmount: 0.12,
-  eyeTrackSpeed: 0.06,
-  eyeTrackRange: 0.5,
-  rotationMouseInfluence: 0.5,
-  // Particles
-  sparkleCount: 30,
-  sparkleSize: 2.5,
-  sparkleSpeed: 0.5,
-  sparkleOpacity: 0.8,
-  // Lighting
-  ambientIntensity: 0.4,
-  keyLightIntensity: 3,
-  fillLightIntensity: 1.5,
-  internalGlowIntensity: 1.5,
-  internalGlowDistance: 4,
-  lightSpillIntensity: 1.0,
-  // Animation
-  floatSpeed: 2,
-  rotationIntensity: 0.3,
-  floatIntensity: 0.5,
-  rotationSpeed: 0.2,
-  breathingAmp: 0.02,
-  breathingSpeed: 0.8,
-  // Canvas / display
-  canvasSize: 1600,
-  featherInner: 5,
-  featherOuter: 98,
-  sceneCenterX: 50,  // % - CSS mask anchor X
-  sceneCenterY: 50,  // % - CSS mask anchor Y
-  // Beam / rays
-  beamOpacity: 1.0,
-  rayOpacity: 0.85,
-  // Edge glow
-  edgeGlowOpacity: 0.7,
-  // Vertex highlights
-  vertexHighlightScale: 0.35,
-  vertexHighlightPulse: 0.15,
-  // Character scale
-  characterScale: 1.0,
-  // Mouth position / scale
-  mouthX: 0,
-  mouthY: -0.32,
-  mouthZ: 0.58,
-  mouthScaleX: 0.7,
-  mouthScaleY: 0.55,
-  // Glass refraction controls
-  glassIOR: 0.67,
-  causticIntensity: 1.0,
-  iridescenceIntensity: 1.0,
-  chromaticSpread: 1.0,
-  glassAlpha: 0.22,
-  streakIntensity: 1.0,
-  // Glass mode
-  glassMode: 'shader',    // 'shader' | 'mtm' | 'hybrid'
-  mtmThickness: 1.0,
-  mtmRoughness: 0.05,
-  mtmIOR: 1.5,
-  mtmChromatic: 1.0,
-  mtmTransmission: 1.0,
-  mtmBackside: true,
-  hybridMtmScale: 1.06,
-  hybridBlend: 0.5,         // 0 = pure shader, 1 = pure MTM
-  hybridEnvIntensity: 0.4,  // environment map brightness for MTM refraction content
-  hybridShaderAdd: 0.6,     // how much shader effect overlays additively onto MTM
-  // Bubble controls
-  bubbleOffsetX: 0,
-  bubbleOffsetY: 0,
-  bubbleFontSize: 0.8,
-  bubbleMaxWidth: 260,
-  bubblePadding: 14,
-  // Peek animation lock ('' = random)
-  lockedPeekStyle: '',
-  // Nebula backdrop opacity
-  nebulaOpacity: 0.85,
-  // Canvas masking (off = no clipping)
-  canvasMask: false,
-  // Wireframe / edge controls
-  wireframeOpacity: 0.2,
-  edgeThresholdAngle: 20,
-  // Music reactivity
-  musicReactivity: 0.5,
-  musicScalePulse: 0.15,
-  musicRotationBoost: 0.3,
-  musicGlowPulse: 0.5,
-};
+// Re-export so existing imports from Prism3D still work
+export { PRISM_DEFAULTS };
 
 /* ═══════════ GLASS PRESETS (built-in per mode) ═══════════ */
 export const GLASS_PRESETS = [

@@ -947,6 +947,35 @@
    ═══════════════════════════════════════════════════════ */
 
 /* ── Vignette during energy gathering ── */
+/* ── Rick & Morty portal seep (pre-noise before gathering) ── */
+.portal-seep {
+    position: fixed;
+    width: 160px;
+    height: 160px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    z-index: 498;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, var(--seep-color, #22c55e) 0%, transparent 70%),
+        conic-gradient(from 0deg, var(--seep-color, #22c55e), transparent 30%, var(--seep-color, #22c55e) 50%, transparent 80%, var(--seep-color, #22c55e));
+    filter: blur(8px);
+    animation:
+        seepSwirl 0.6s linear infinite,
+        seepPulse 0.8s ease-in-out forwards;
+    opacity: 0;
+}
+@keyframes seepSwirl {
+    0%   { rotate: 0deg; }
+    100% { rotate: 360deg; }
+}
+@keyframes seepPulse {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    40%  { opacity: calc(var(--seep-intensity, 0.8) * 0.6); transform: translate(-50%, -50%) scale(0.7); }
+    70%  { opacity: var(--seep-intensity, 0.8); transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: var(--seep-intensity, 0.8); transform: translate(-50%, -50%) scale(1.1); }
+}
+
 .portal-vignette {
     position: fixed;
     inset: 0;
@@ -1094,8 +1123,8 @@
 }
 @keyframes portalScaleIn {
     0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-    60% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    60% { transform: translate(-50%, -50%) scale(calc(var(--ring-scale, 1) * 1.15)); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(var(--ring-scale, 1)); opacity: 1; }
 }
 
 /* ── Residual glow (soft lingering aura after portal closes) ── */

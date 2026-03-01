@@ -1,12 +1,14 @@
-// Vercel serverless function: commits updated globe settings to GitHub
-// POST /api/save-settings  { secret, settings }
+// Vercel serverless function: commits updated settings to GitHub
+// POST /api/save-settings  { secret, settings, file? }
+// file: 'globe' (default) | 'prism'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { secret, settings } = req.body || {};
+  const { secret, settings, file } = req.body || {};
+  const targetFile = file === 'prism' ? 'prism' : 'globe';
 
   // ── Auth ──
   const editorSecret = process.env.EDITOR_SECRET;
@@ -21,6 +23,8 @@ export default async function handler(req, res) {
 
   for (const [key, val] of Object.entries(settings)) {
     if (typeof val === 'number' || typeof val === 'boolean') continue;
+    // Prism mode allows string values (shape, glassMode, lockedPeekStyle)
+    if (targetFile === 'prism' && typeof val === 'string') continue;
     if (
       Array.isArray(val) &&
       val.length === 3 &&
@@ -35,7 +39,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server misconfigured (no GITHUB_TOKEN)' });
   }
 
-  const filePath = 'src/utils/globeDefaults.js';
+  const filePath = targetFile === 'prism'
+    ? 'src/utils/prismDefaults.js'
+    : 'src/utils/globeDefaults.js';
+  const exportName = targetFile === 'prism' ? 'PRISM_DEFAULTS' : 'GLOBE_DEFAULTS';
+  const commitPrefix = targetFile === 'prism' ? 'prism' : 'globe';
+
   const apiBase = `https://api.github.com/repos/${repo}/contents/${filePath}`;
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -60,7 +69,6 @@ export default async function handler(req, res) {
 
     for (const [key, val] of Object.entries(settings)) {
       // Match lines like:  keyName: value,  or  keyName: value,  // comment
-      // Captures: indent, key, old value, trailing comma + optional comment
       const regex = new RegExp(
         `^(\\s*)(${escapeRegex(key)})(:\\s*)(.+?)(,\\s*(?:\\/\\/.*)?)?$`,
         'm'
@@ -82,8 +90,8 @@ export default async function handler(req, res) {
     }
 
     // ── Sanity check ──
-    if (!updatedContent.includes('export const GLOBE_DEFAULTS')) {
-      return res.status(500).json({ error: 'Sanity check failed: output missing GLOBE_DEFAULTS export' });
+    if (!updatedContent.includes(`export const ${exportName}`)) {
+      return res.status(500).json({ error: `Sanity check failed: output missing ${exportName} export` });
     }
 
     // ── PUT updated file ──
@@ -91,7 +99,7 @@ export default async function handler(req, res) {
       method: 'PUT',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: `globe: update ${changedCount} setting${changedCount > 1 ? 's' : ''} via editor`,
+        message: `${commitPrefix}: update ${changedCount} setting${changedCount > 1 ? 's' : ''} via editor`,
         content: Buffer.from(updatedContent).toString('base64'),
         sha,
       }),
@@ -121,8 +129,10 @@ function escapeRegex(str) {
 function formatValue(val, oldValStr) {
   if (typeof val === 'boolean') return String(val);
 
+  // String values — wrap in single quotes
+  if (typeof val === 'string') return `'${val.replace(/'/g, "\\'")}'`;
+
   if (Array.isArray(val)) {
-    // Format each number in the array, matching original style where possible
     const formatted = val.map((n) => formatNumber(n));
     return `[${formatted.join(', ')}]`;
   }
@@ -142,6 +152,5 @@ function formatNumber(num, reference) {
 
   // Float — keep reasonable precision (trim trailing zeros but keep at least one decimal)
   const s = num.toPrecision(6);
-  // Remove trailing zeros after decimal, but keep at least one
   return parseFloat(s).toString();
 }
