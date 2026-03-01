@@ -45,7 +45,7 @@ export const PRISM_DEFAULTS = {
   beamOpacity: 1.0,
   rayOpacity: 0.85,
   // Edge glow
-  edgeGlowOpacity: 0.55,
+  edgeGlowOpacity: 0.7,
   // Vertex highlights
   vertexHighlightScale: 0.35,
   vertexHighlightPulse: 0.15,
@@ -113,46 +113,17 @@ const glassFrag = `
     float NdotV = abs(dot(N, V));
     float t = uTime * 0.15;
 
-    // ── CHROMATIC ABERRATION: each color has different fresnel (prismatic!) ──
-    float fresnelR = pow(1.0 - NdotV, 1.8);
-    float fresnelG = pow(1.0 - NdotV, 2.5);
-    float fresnelB = pow(1.0 - NdotV, 3.2);
-    float fresnel = pow(1.0 - NdotV, 2.3);
+    // ── STRONG FRESNEL: glass is transparent face-on, reflective at edges ──
+    float fresnel = pow(1.0 - NdotV, 3.0);
 
-    // ── FAKE REFRACTION: distort sample position by normal ──
-    vec3 refractedPos = vWorldPos + N * 0.4 * (1.0 - NdotV);
+    // ── CHROMATIC ABERRATION at edges (prismatic color separation) ──
+    float fresnelR = pow(1.0 - NdotV, 2.0);
+    float fresnelG = pow(1.0 - NdotV, 3.0);
+    float fresnelB = pow(1.0 - NdotV, 4.0);
 
-    // ── INTERNAL LIGHT STREAKS (vertical caustics like real crystal) ──
-    float streaks = 0.0;
-    for (int i = 0; i < 4; i++) {
-      float fi = float(i);
-      float sx = sin(refractedPos.x * (5.0 + fi * 2.5) + t * (0.9 + fi * 0.4) + fi * 1.7);
-      float sy = cos(refractedPos.y * (3.5 + fi * 2.0) + t * (0.6 + fi * 0.25));
-      streaks += pow(max(0.0, sx * 0.5 + 0.5), 10.0) * (0.25 + 0.2 * sy);
-    }
-
-    // ── DEEP NEBULA at multiple "depths" ──
-    vec2 uv1 = refractedPos.xy * 1.8 + vec2(sin(t * 0.35), cos(t * 0.45));
-    float n1 = vnoise(uv1 * 2.5 + t * 0.3);
-    float n2 = vnoise(uv1 * 5.0 - t * 0.5 + 5.0);
-    float n3 = vnoise(refractedPos.yz * 3.0 + t * 0.2 + 10.0);
-
-    // Deep purple/blue/magenta interior (matches the MTM screenshots)
-    vec3 deepColor;
-    deepColor.r = 0.35 + 0.35 * sin(n1 * 6.28 + t * 0.9 + fresnelR * 2.5);
-    deepColor.g = 0.18 + 0.25 * sin(n2 * 6.28 + t * 0.65 + fresnelG * 2.8 + 1.5);
-    deepColor.b = 0.55 + 0.4 * sin(n1 * 4.0 + n2 * 3.0 + t * 0.45 + fresnelB * 3.2 + 3.0);
-
-    // Second depth layer - more organic swirling
-    vec3 deepLayer2;
-    deepLayer2.r = 0.25 + 0.2 * sin(n3 * 5.0 + t * 1.1);
-    deepLayer2.g = 0.15 + 0.2 * sin(n3 * 4.0 + t * 0.8 + 2.0);
-    deepLayer2.b = 0.45 + 0.3 * sin(n3 * 3.0 + t * 0.6 + 4.0);
-    deepColor = mix(deepColor, deepLayer2, 0.35);
-
-    // ── MULTI-LAYER THIN-FILM IRIDESCENCE ──
-    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 3.5 + t * 1.5;
-    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 5.5 - t * 0.8;
+    // ── THIN-FILM IRIDESCENCE (double layer, edges only) ──
+    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 4.0 + t * 1.8;
+    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 6.0 - t * 1.0;
     vec3 iridescence = vec3(
       0.5 + 0.5 * sin(iri1 * 4.0),
       0.5 + 0.5 * sin(iri1 * 4.0 + 2.094),
@@ -165,38 +136,54 @@ const glassFrag = `
     );
     iridescence = mix(iridescence, iriLayer2, 0.4);
 
-    // ── STREAK COLOR (bright caustic lines) ──
-    vec3 streakColor = vec3(0.75, 0.65, 1.0) * streaks + iridescence * streaks * 0.6;
+    // ── SUBTLE INTERNAL LIGHT STREAKS (like looking through real crystal) ──
+    vec3 refractedPos = vWorldPos + N * 0.3;
+    float streaks = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float fi = float(i);
+      float sx = sin(refractedPos.x * (5.0 + fi * 2.5) + t * (0.8 + fi * 0.35) + fi * 1.7);
+      float sy = cos(refractedPos.y * (3.5 + fi * 2.0) + t * (0.5 + fi * 0.2));
+      streaks += pow(max(0.0, sx * 0.5 + 0.5), 12.0) * (0.2 + 0.15 * sy);
+    }
 
-    // ── FOUR SPECULAR HIGHLIGHTS ──
+    // ── SUBTLE INTERIOR COLOR (dark glass with hints of purple/blue) ──
+    float n1 = vnoise(refractedPos.xy * 2.0 + t * 0.3);
+    vec3 interiorHint = vec3(
+      0.12 + 0.08 * sin(n1 * 5.0 + t),
+      0.08 + 0.06 * sin(n1 * 4.0 + t * 0.7 + 2.0),
+      0.2 + 0.12 * sin(n1 * 3.0 + t * 0.5 + 4.0)
+    );
+
+    // ── FOUR SHARP SPECULAR HIGHLIGHTS (glass reflects sharply) ──
     vec3 L1 = normalize(vec3(-1.0, 0.7, 0.8));
     vec3 L2 = normalize(vec3(1.0, 0.3, 0.5));
     vec3 L3 = normalize(vec3(0.0, -0.8, 0.6));
     vec3 L4 = normalize(vec3(sin(t * 0.5) * 0.7, 0.5, 0.7));
-    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 120.0);
-    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 60.0);
-    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 35.0);
-    float spec4 = pow(max(dot(reflect(-L4, N), V), 0.0), 80.0);
+    float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 200.0);
+    float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 120.0);
+    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 60.0);
+    float spec4 = pow(max(dot(reflect(-L4, N), V), 0.0), 150.0);
+    float specTotal = spec1 + spec2 * 0.7 + spec3 * 0.4 + spec4 * 0.5;
 
-    // ── COMPOSITE ──
-    vec3 interior = deepColor * 0.85 + streakColor;
-    vec3 color = mix(interior, iridescence * 1.3, fresnel * 0.55);
+    // ── COMPOSITE: dark glass body, bright iridescent edges ──
+    // Center: subtle dark interior with hint of color
+    // Edges: bright iridescent reflections (the glass-catching-light look)
+    vec3 color = interiorHint + vec3(0.05, 0.03, 0.1) * streaks;
+    color = mix(color, iridescence * 1.4, fresnel * 0.65);
 
-    // Chromatic edge fringing (the prismatic color separation)
-    color.r += fresnelR * 0.35;
-    color.g += fresnelG * 0.05;
-    color.b += fresnelB * 0.3;
+    // Chromatic edge fringing
+    color.r += fresnelR * 0.4;
+    color.b += fresnelB * 0.35;
 
-    // Specular sparkle
-    float specTotal = spec1 * 0.9 + spec2 * 0.5 + spec3 * 0.35 + spec4 * 0.4;
-    color += vec3(1.0, 0.98, 0.95) * specTotal;
+    // Very bright specular sparkle (sharp glass reflections)
+    color += vec3(1.0, 0.98, 0.95) * specTotal * 1.2;
 
-    // Rim glow (purple-white glass edge catch)
-    float rimLight = pow(fresnel, 3.0) * 0.8;
-    color += vec3(0.8, 0.65, 1.0) * rimLight;
+    // Strong bright rim (the defining look of the MTM screenshots)
+    float rimLight = pow(fresnel, 2.5) * 1.0;
+    color += vec3(0.85, 0.75, 1.0) * rimLight;
 
-    // ── ALPHA: visible glass with depth ──
-    float alpha = 0.38 + fresnel * 0.5 + streaks * 0.12 + specTotal * 0.15;
+    // ── ALPHA: transparent center (see through), solid bright edges ──
+    float alpha = 0.12 + fresnel * 0.75 + specTotal * 0.25 + streaks * 0.06;
     alpha = min(alpha, 0.92);
 
     gl_FragColor = vec4(color, alpha);
@@ -618,6 +605,17 @@ function PrismBody({ geometry }) {
         />
       </lineSegments>
 
+      {/* Bright white wireframe overlay (thick glass-etched lines) */}
+      <mesh geometry={geometry}>
+        <meshBasicMaterial
+          wireframe
+          color="#ffffff"
+          transparent
+          opacity={0.3}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   );
 }
@@ -742,7 +740,6 @@ function GlassOrbEye() {
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
       <Eyelid />
-      <MouthExpression />
     </group>
   );
 }
