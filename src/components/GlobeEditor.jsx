@@ -582,7 +582,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 1000, featherInner: 18, featherOuter: 88, sceneCenterX: 50, sceneCenterY: 50,
+        canvasSize: 1400, featherInner: 8, featherOuter: 92, sceneCenterX: 50, sceneCenterY: 50,
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
@@ -740,8 +740,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // Toggle visibility based on current mode
     const updateGlassControls = () => {
       const isMTM = pcfg.glassMode === 'mtm';
-      shaderCtrls.forEach(c => c.domElement.parentElement.style.display = isMTM ? 'none' : '');
-      mtmCtrls.forEach(c => c.domElement.parentElement.style.display = isMTM ? '' : 'none');
+      shaderCtrls.forEach(c => c.domElement.style.display = isMTM ? 'none' : '');
+      mtmCtrls.forEach(c => c.domElement.style.display = isMTM ? '' : 'none');
     };
     updateGlassControls();
     glassModeCtrl.onChange(() => { updateGlassControls(); window.dispatchEvent(new CustomEvent('prism-glass-mode-change')); });

@@ -7,7 +7,7 @@ import { photos } from '../data/photos';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound, playPortalSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import './Home.css';
@@ -3369,7 +3369,7 @@ export default function Home() {
   // Bop phases: null | 'impact' | 'reaction' | 'exit'
   const [bopPhase, setBopPhase] = useState(null);
   const [exitStyle, setExitStyle] = useState(null);
-  // Portal phases: null | 'opening' | 'emerging' | 'residual'
+  // Portal phases: null | 'gathering' | 'rupture' | 'emerging' | 'residual'
   const [portalPhase, setPortalPhase] = useState(null);
   const [portalEmbers, setPortalEmbers] = useState([]);
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
@@ -3449,49 +3449,72 @@ export default function Home() {
         setPeekStyle(style);
 
         if (style === 'portal') {
-          // Cinematic portal sequence
+          // ─── CINEMATIC DIMENSIONAL RIFT ───
           const side = sp.side || 'right';
           const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
           const oy = side === 'top' ? '20%' : '50%';
+          const cOx = parseFloat(ox) / 100;
+          const cOy = parseFloat(oy) / 100;
           setPortalOrigin({ x: ox, y: oy });
 
-          // Phase 1: Portal ring opens (0–600ms)
-          setPortalPhase('opening');
-          playPortalSound();
-          confetti({ particleCount: 25, spread: 30, startVelocity: 22, gravity: 0.3, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+          // Phase 1: Energy gathers inward (0–500ms)
+          setPortalPhase('gathering');
+          const convergence = Array.from({ length: 20 }, (_, i) => ({
+            id: Date.now() + i + 1000,
+            angle: (i / 20) * 360 + Math.random() * 18,
+            speed: 80 + Math.random() * 120,
+            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd', '#22d3ee', '#e879f9'][i % 7],
+            size: 2 + Math.random() * 3,
+            duration: 0.4 + Math.random() * 0.2,
+          }));
+          setPortalEmbers(convergence);
 
-          // Phase 2: Character emerges (400ms later)
+          // Phase 2: Portal ruptures open (500ms)
+          setTimeout(() => {
+            setPortalPhase('rupture');
+            setPortalEmbers([]);
+            // Tight inward burst
+            confetti({ particleCount: 30, spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+          }, 500);
+
+          // Phase 3: Character emerges through rift (900ms)
           setTimeout(() => {
             setPortalPhase('emerging');
             setPeekVisible(true);
             if (peekCharRef.current) {
               peekCharRef.current.classList.add('portal-entering');
-              setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+              setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
             }
-            confetti({ particleCount: 50, spread: 180, startVelocity: 15, gravity: 0.25, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.6, ticks: 120, shapes: ['circle'] });
-            // Spawn embers
-            const embers = Array.from({ length: 14 }, (_, i) => ({
-              id: Date.now() + i,
-              angle: (i / 14) * 360,
-              speed: 40 + Math.random() * 60,
-              color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24'][i % 5],
-              size: 3 + Math.random() * 4,
-              duration: 1.5 + Math.random() * 1,
+            // Wide cascade confetti
+            confetti({ particleCount: 60, spread: 160, startVelocity: 18, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24', '#c4b5fd'], scalar: 0.6, ticks: 140, shapes: ['circle'] });
+            // Staggered second burst
+            setTimeout(() => {
+              confetti({ particleCount: 35, spread: 360, startVelocity: 12, gravity: 0.15, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 180, shapes: ['circle'] });
+            }, 200);
+            // Outward embers
+            const embers = Array.from({ length: 24 }, (_, i) => ({
+              id: Date.now() + i + 2000,
+              angle: (i / 24) * 360 + Math.random() * 15,
+              speed: 50 + Math.random() * 80,
+              color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24', '#c4b5fd', '#22d3ee'][i % 7],
+              size: 2 + Math.random() * 5,
+              duration: 1.2 + Math.random() * 1.2,
             }));
             setPortalEmbers(embers);
-          }, 400);
+          }, 900);
 
-          // Phase 3: Residual (1200ms)
+          // Phase 4: Residual glow (1800ms)
           setTimeout(() => {
             setPortalPhase('residual');
-            confetti({ particleCount: 15, spread: 360, startVelocity: 8, gravity: 0.15, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 200, shapes: ['circle'] });
-          }, 1200);
+            // Gentle sparkle micro-burst
+            confetti({ particleCount: 20, spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
+          }, 1800);
 
-          // Cleanup portal (2500ms)
+          // Cleanup (3200ms)
           setTimeout(() => {
             setPortalPhase(null);
             setPortalEmbers([]);
-          }, 2500);
+          }, 3200);
         } else {
           setPeekVisible(true);
         }
@@ -3504,8 +3527,8 @@ export default function Home() {
           setPrismBubble(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
           setTimeout(() => { setPrismBubble(null); window.__prismExpression = 'normal'; }, 5000);
-        }, style === 'portal' ? 1600 : 1200);
-        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 7000);
+        }, style === 'portal' ? 2000 : 1200);
+        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 8000);
         timerId = scheduleNext();
       }, delay);
     };
@@ -3533,40 +3556,58 @@ export default function Home() {
       peekPinnedRef.current = !!d.pinned;
 
       if (style === 'portal') {
-        // Cinematic portal sequence (same as auto-timer)
+        // ─── CINEMATIC DIMENSIONAL RIFT (same as auto-timer) ───
         const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
         const oy = side === 'top' ? '20%' : '50%';
+        const cOx = parseFloat(ox) / 100;
+        const cOy = parseFloat(oy) / 100;
         setPortalOrigin({ x: ox, y: oy });
 
-        setPortalPhase('opening');
-        playPortalSound();
-        confetti({ particleCount: 25, spread: 30, startVelocity: 22, gravity: 0.3, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+        setPortalPhase('gathering');
+        const convergence = Array.from({ length: 20 }, (_, i) => ({
+          id: Date.now() + i + 1000,
+          angle: (i / 20) * 360 + Math.random() * 18,
+          speed: 80 + Math.random() * 120,
+          color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd', '#22d3ee', '#e879f9'][i % 7],
+          size: 2 + Math.random() * 3,
+          duration: 0.4 + Math.random() * 0.2,
+        }));
+        setPortalEmbers(convergence);
+
+        setTimeout(() => {
+          setPortalPhase('rupture');
+          setPortalEmbers([]);
+          confetti({ particleCount: 30, spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
+        }, 500);
 
         setTimeout(() => {
           setPortalPhase('emerging');
           setPeekVisible(true);
           if (peekCharRef.current) {
             peekCharRef.current.classList.add('portal-entering');
-            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
           }
-          confetti({ particleCount: 50, spread: 180, startVelocity: 15, gravity: 0.25, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.6, ticks: 120, shapes: ['circle'] });
-          const embers = Array.from({ length: 14 }, (_, i) => ({
-            id: Date.now() + i,
-            angle: (i / 14) * 360,
-            speed: 40 + Math.random() * 60,
-            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24'][i % 5],
-            size: 3 + Math.random() * 4,
-            duration: 1.5 + Math.random() * 1,
+          confetti({ particleCount: 60, spread: 160, startVelocity: 18, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24', '#c4b5fd'], scalar: 0.6, ticks: 140, shapes: ['circle'] });
+          setTimeout(() => {
+            confetti({ particleCount: 35, spread: 360, startVelocity: 12, gravity: 0.15, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 180, shapes: ['circle'] });
+          }, 200);
+          const embers = Array.from({ length: 24 }, (_, i) => ({
+            id: Date.now() + i + 2000,
+            angle: (i / 24) * 360 + Math.random() * 15,
+            speed: 50 + Math.random() * 80,
+            color: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#fbbf24', '#c4b5fd', '#22d3ee'][i % 7],
+            size: 2 + Math.random() * 5,
+            duration: 1.2 + Math.random() * 1.2,
           }));
           setPortalEmbers(embers);
-        }, 400);
+        }, 900);
 
         setTimeout(() => {
           setPortalPhase('residual');
-          confetti({ particleCount: 15, spread: 360, startVelocity: 8, gravity: 0.15, origin: { x: parseFloat(ox)/100, y: parseFloat(oy)/100 }, colors: ['#7c3aed', '#38bdf8', '#f472b6'], scalar: 0.4, ticks: 200, shapes: ['circle'] });
-        }, 1200);
+          confetti({ particleCount: 20, spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
+        }, 1800);
 
-        setTimeout(() => { setPortalPhase(null); setPortalEmbers([]); }, 2500);
+        setTimeout(() => { setPortalPhase(null); setPortalEmbers([]); }, 3200);
       } else {
         setPeekVisible(true);
       }
@@ -4065,27 +4106,56 @@ export default function Home() {
 
         </div>
 
-        {/* PORTAL RING + FLASH + EMBERS */}
+        {/* CINEMATIC PORTAL EFFECTS */}
         {portalPhase && (
           <>
-            {(portalPhase === 'opening' || portalPhase === 'emerging') && (
-              <div className="portal-ring" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            {/* Vignette overlay during gathering */}
+            {portalPhase === 'gathering' && (
+              <div className="portal-vignette" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y }} />
             )}
-            {portalPhase === 'opening' && (
+
+            {/* Screen flash on rupture */}
+            {portalPhase === 'rupture' && (
               <div className="portal-flash" style={{ '--flash-x': portalOrigin.x, '--flash-y': portalOrigin.y }} />
             )}
+
+            {/* Shockwave ring on rupture */}
+            {(portalPhase === 'rupture' || portalPhase === 'emerging') && (
+              <div className="portal-shockwave" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            )}
+
+            {/* Double spinning rings during rupture + emerging */}
+            {(portalPhase === 'rupture' || portalPhase === 'emerging') && (
+              <>
+                <div className="portal-ring portal-ring-outer" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+                <div className="portal-ring portal-ring-inner" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+              </>
+            )}
+
+            {/* Glowing center orb */}
+            {(portalPhase === 'gathering' || portalPhase === 'rupture') && (
+              <div className={`portal-orb ${portalPhase}`} style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            )}
+
+            {/* Residual glow aura */}
+            {portalPhase === 'residual' && (
+              <div className="portal-residual-glow" style={{ left: portalOrigin.x, top: portalOrigin.y }} />
+            )}
+
+            {/* Convergence particles (fly inward during gathering) / Embers (fly outward during emerging) */}
             {portalEmbers.map(e => {
               const rad = e.angle * Math.PI / 180;
+              const isConverging = portalPhase === 'gathering';
               return (
                 <div
                   key={e.id}
-                  className="portal-ember"
+                  className={`portal-ember ${isConverging ? 'converging' : ''}`}
                   style={{
-                    left: portalOrigin.x,
-                    top: portalOrigin.y,
+                    left: isConverging ? `calc(${portalOrigin.x} + ${Math.cos(rad) * e.speed}px)` : portalOrigin.x,
+                    top: isConverging ? `calc(${portalOrigin.y} + ${Math.sin(rad) * e.speed}px)` : portalOrigin.y,
                     '--ember-color': e.color,
-                    '--ember-dx': `${Math.cos(rad) * e.speed}px`,
-                    '--ember-dy': `${Math.sin(rad) * e.speed}px`,
+                    '--ember-dx': isConverging ? `${-Math.cos(rad) * e.speed}px` : `${Math.cos(rad) * e.speed}px`,
+                    '--ember-dy': isConverging ? `${-Math.sin(rad) * e.speed}px` : `${Math.sin(rad) * e.speed}px`,
                     '--ember-size': `${e.size}px`,
                     '--ember-duration': `${e.duration}s`,
                   }}

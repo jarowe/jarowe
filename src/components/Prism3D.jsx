@@ -38,9 +38,9 @@ export const PRISM_DEFAULTS = {
   breathingAmp: 0.02,
   breathingSpeed: 0.8,
   // Canvas / display
-  canvasSize: 1000,
-  featherInner: 18,
-  featherOuter: 88,
+  canvasSize: 1400,
+  featherInner: 8,
+  featherOuter: 92,
   sceneCenterX: 50,  // % - CSS mask anchor X
   sceneCenterY: 50,  // % - CSS mask anchor Y
   // Beam / rays
