@@ -38,9 +38,9 @@ export const PRISM_DEFAULTS = {
   breathingAmp: 0.02,
   breathingSpeed: 0.8,
   // Canvas / display
-  canvasSize: 1400,
-  featherInner: 8,
-  featherOuter: 92,
+  canvasSize: 1600,
+  featherInner: 5,
+  featherOuter: 98,
   sceneCenterX: 50,  // % - CSS mask anchor X
   sceneCenterY: 50,  // % - CSS mask anchor Y
   // Beam / rays
@@ -67,13 +67,14 @@ export const PRISM_DEFAULTS = {
   glassAlpha: 0.22,
   streakIntensity: 1.0,
   // Glass mode
-  glassMode: 'shader',    // 'shader' | 'mtm'
+  glassMode: 'shader',    // 'shader' | 'mtm' | 'hybrid'
   mtmThickness: 1.0,
   mtmRoughness: 0.05,
   mtmIOR: 1.5,
   mtmChromatic: 1.0,
   mtmTransmission: 1.0,
   mtmBackside: true,
+  hybridMtmScale: 1.06,
   // Bubble controls
   bubbleOffsetX: 0,
   bubbleOffsetY: 0,
@@ -729,113 +730,134 @@ function PrismBodyMTM({ geometry }) {
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-
     groupRef.current.rotation.y += delta * cfg.rotationSpeed;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
     groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
     groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
-
-    // Squash & stretch from bop
     const squashTs = window.__prismSquash;
     if (squashTs && Date.now() - squashTs < 600) {
       const progress = (Date.now() - squashTs) / 600;
       let sx, sy, sz;
-      if (progress < 0.15) {
-        const p = progress / 0.15;
-        sx = 1 + 0.3 * p; sy = 1 - 0.3 * p; sz = 1 + 0.3 * p;
-      } else if (progress < 0.35) {
-        const p = (progress - 0.15) / 0.2;
-        sx = 1.3 - 0.45 * p; sy = 0.7 + 0.55 * p; sz = 1.3 - 0.45 * p;
-      } else {
-        const p = (progress - 0.35) / 0.65;
-        const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12;
-        sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring;
-      }
+      if (progress < 0.15) { const p = progress / 0.15; sx = 1 + 0.3 * p; sy = 1 - 0.3 * p; sz = 1 + 0.3 * p; }
+      else if (progress < 0.35) { const p = (progress - 0.15) / 0.2; sx = 1.3 - 0.45 * p; sy = 0.7 + 0.55 * p; sz = 1.3 - 0.45 * p; }
+      else { const p = (progress - 0.35) / 0.65; const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12; sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring; }
       groupRef.current.scale.set(sx, sy, sz);
     } else {
-      const breath = 1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp;
-      groupRef.current.scale.setScalar(breath);
+      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp);
     }
-
-    if (edgeMatRef.current) {
-      edgeMatRef.current.uniforms.uTime.value = t;
-      edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity;
-    }
+    if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
   });
 
   return (
     <group ref={groupRef}>
       <mesh geometry={geometry}>
-        <MeshTransmissionMaterial
-          backside={cfg.mtmBackside}
-          thickness={cfg.mtmThickness}
-          roughness={cfg.mtmRoughness}
-          transmission={cfg.mtmTransmission}
-          ior={cfg.mtmIOR}
-          chromaticAberration={cfg.mtmChromatic}
-          anisotropy={0.1}
-          color="#a78bfa"
-        />
+        <MeshTransmissionMaterial backside={cfg.mtmBackside} thickness={cfg.mtmThickness} roughness={cfg.mtmRoughness}
+          transmission={cfg.mtmTransmission} ior={cfg.mtmIOR} chromaticAberration={cfg.mtmChromatic} anisotropy={0.1} color="#a78bfa" />
       </mesh>
-
-      {/* Edge glow */}
       <lineSegments geometry={edgesGeo} renderOrder={2}>
-        <shaderMaterial
-          ref={edgeMatRef}
-          vertexShader={edgeGlowVert}
-          fragmentShader={edgeGlowFrag}
-          uniforms={{
-            uTime: { value: 0 },
-            uOpacity: { value: cfg.edgeGlowOpacity },
-          }}
-          transparent
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+        <shaderMaterial ref={edgeMatRef} vertexShader={edgeGlowVert} fragmentShader={edgeGlowFrag}
+          uniforms={{ uTime: { value: 0 }, uOpacity: { value: cfg.edgeGlowOpacity } }}
+          transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
-
-      {/* Wireframe overlay */}
       <mesh geometry={geometry}>
-        <meshBasicMaterial
-          wireframe
-          color="#ffffff"
-          transparent
-          opacity={0.25}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.25} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
 }
 
-/* ═══════════ ENHANCED NEBULA BACKDROP FOR MTM ═══════════ */
-function MTMNebulaBackdrop({ texture }) {
+/* ═══════════ PRISM BODY HYBRID (shader body + MTM glass shell) ═══════════ */
+function PrismBodyHybrid({ geometry }) {
+  const groupRef = useRef();
+  const outerMatRef = useRef();
+  const innerMatRef = useRef();
+  const edgeMatRef = useRef();
+
+  const innerUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uIsSide: { value: 1.0 },
+    uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+    uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+    uChromaticSpread: { value: cfg.chromaticSpread },
+    uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+  }), []);
+  const outerUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uIsSide: { value: 0.0 },
+    uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+    uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+    uChromaticSpread: { value: cfg.chromaticSpread },
+    uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+  }), []);
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+    groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
+    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    const squashTs = window.__prismSquash;
+    if (squashTs && Date.now() - squashTs < 600) {
+      const progress = (Date.now() - squashTs) / 600;
+      let sx, sy, sz;
+      if (progress < 0.15) { const p = progress / 0.15; sx = 1 + 0.3 * p; sy = 1 - 0.3 * p; sz = 1 + 0.3 * p; }
+      else if (progress < 0.35) { const p = (progress - 0.15) / 0.2; sx = 1.3 - 0.45 * p; sy = 0.7 + 0.55 * p; sz = 1.3 - 0.45 * p; }
+      else { const p = (progress - 0.35) / 0.65; const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12; sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring; }
+      groupRef.current.scale.set(sx, sy, sz);
+    } else {
+      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp);
+    }
+    [innerUniforms, outerUniforms].forEach(u => {
+      u.uTime.value = t; u.uIOR.value = cfg.glassIOR; u.uCausticIntensity.value = cfg.causticIntensity;
+      u.uIridescenceIntensity.value = cfg.iridescenceIntensity; u.uChromaticSpread.value = cfg.chromaticSpread;
+      u.uGlassAlpha.value = cfg.glassAlpha; u.uStreakIntensity.value = cfg.streakIntensity;
+    });
+    if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
+  });
+
+  const mtmScale = cfg.hybridMtmScale ?? 1.06;
+
   return (
-    <group>
-      {/* Main nebula - brighter for MTM refraction */}
-      <mesh position={[0, 0, -5]}>
-        <planeGeometry args={[16, 16]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.95} depthWrite={false} />
+    <group ref={groupRef}>
+      {/* INNER: custom shader body (caustics, iridescence, streaks) */}
+      <mesh geometry={geometry} scale={0.82} renderOrder={0}>
+        <shaderMaterial ref={innerMatRef} vertexShader={glassVert} fragmentShader={glassFrag}
+          uniforms={innerUniforms} transparent side={THREE.BackSide} depthWrite={false} />
       </mesh>
-      {/* Colored refraction planes at various depths/angles */}
-      <mesh position={[-3, 2, -3]} rotation={[0.2, 0.3, 0.1]}>
-        <planeGeometry args={[4, 4]} />
-        <meshBasicMaterial color="#7c3aed" transparent opacity={0.4} depthWrite={false} />
+      <mesh geometry={geometry} renderOrder={1}>
+        <shaderMaterial ref={outerMatRef} vertexShader={glassVert} fragmentShader={glassFrag}
+          uniforms={outerUniforms} transparent side={THREE.FrontSide} depthWrite={false} />
       </mesh>
-      <mesh position={[3, -1, -4]} rotation={[-0.1, -0.2, 0.15]}>
-        <planeGeometry args={[5, 3]} />
-        <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} depthWrite={false} />
+
+      {/* OUTER: MTM glass shell (real refraction of the shader body) */}
+      <mesh geometry={geometry} scale={mtmScale} renderOrder={3}>
+        <MeshTransmissionMaterial backside={cfg.mtmBackside} thickness={cfg.mtmThickness} roughness={cfg.mtmRoughness}
+          transmission={cfg.mtmTransmission} ior={cfg.mtmIOR} chromaticAberration={cfg.mtmChromatic} anisotropy={0.1} color="#a78bfa" />
       </mesh>
-      <mesh position={[0, 3, -3.5]} rotation={[0.3, 0, -0.1]}>
-        <planeGeometry args={[4, 3]} />
-        <meshBasicMaterial color="#f472b6" transparent opacity={0.3} depthWrite={false} />
-      </mesh>
-      <mesh position={[-2, -2, -2.5]} rotation={[-0.15, 0.25, 0.2]}>
-        <planeGeometry args={[3, 3]} />
-        <meshBasicMaterial color="#22c55e" transparent opacity={0.25} depthWrite={false} />
+
+      {/* Edge glow + wireframe */}
+      <lineSegments geometry={edgesGeo} renderOrder={4}>
+        <shaderMaterial ref={edgeMatRef} vertexShader={edgeGlowVert} fragmentShader={edgeGlowFrag}
+          uniforms={{ uTime: { value: 0 }, uOpacity: { value: cfg.edgeGlowOpacity } }}
+          transparent blending={THREE.AdditiveBlending} depthWrite={false} />
+      </lineSegments>
+      <mesh geometry={geometry}>
+        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.25} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
+  );
+}
+
+/* ═══════════ COLORED LIGHTS FOR MTM/HYBRID (replaces rectangle planes) ═══════════ */
+function MTMColorLights() {
+  return (
+    <>
+      <pointLight position={[-3, 2, -2]} color="#7c3aed" intensity={3} distance={8} />
+      <pointLight position={[3, -1, -2]} color="#38bdf8" intensity={2.5} distance={8} />
+      <pointLight position={[0, 3, -1.5]} color="#f472b6" intensity={2} distance={7} />
+      <pointLight position={[-2, -2, -1]} color="#22c55e" intensity={1.5} distance={6} />
+      <pointLight position={[2, 1, -3]} color="#fbbf24" intensity={1.5} distance={6} />
+    </>
   );
 }
 
@@ -1491,12 +1513,13 @@ export default function Prism3D() {
       >
         <SceneLights />
         <LightSpill />
-        {glassMode === 'mtm' ? <MTMNebulaBackdrop texture={nebulaTex} /> : <NebulaBackdrop texture={nebulaTex} />}
+        <NebulaBackdrop texture={nebulaTex} />
+        {(glassMode === 'mtm' || glassMode === 'hybrid') && <MTMColorLights />}
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
-              {glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />

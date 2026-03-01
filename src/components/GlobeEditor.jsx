@@ -582,9 +582,10 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 1400, featherInner: 8, featherOuter: 92, sceneCenterX: 50, sceneCenterY: 50,
+        canvasSize: 1600, featherInner: 5, featherOuter: 98, sceneCenterX: 50, sceneCenterY: 50,
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
+        hybridMtmScale: 1.06,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
         characterScale: 1.0,
@@ -593,9 +594,6 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
         bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
         lockedPeekStyle: '',
-        sceneCenterX: 50, sceneCenterY: 50,
-        glassMode: 'shader',
-        mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
       };
     } else {
       // Merge new fields into existing config (in case Prism3D loaded first with older defaults)
@@ -609,6 +607,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         sceneCenterX: 50, sceneCenterY: 50,
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
+        hybridMtmScale: 1.06,
       };
       for (const [k, v] of Object.entries(defaults)) {
         if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
@@ -720,7 +719,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Glass / Refraction --
     const pGlassRef = prismBopFolder.addFolder('Glass / Refraction');
-    const glassModeCtrl = pGlassRef.add(pcfg, 'glassMode', { 'Custom Shader': 'shader', 'Real Glass (MTM)': 'mtm' }).name('Glass Mode');
+    if (!pcfg.hybridMtmScale) pcfg.hybridMtmScale = 1.06;
+    const glassModeCtrl = pGlassRef.add(pcfg, 'glassMode', { 'Custom Shader': 'shader', 'Real Glass (MTM)': 'mtm', 'Hybrid (Shader + MTM)': 'hybrid' }).name('Glass Mode');
     // Shader-mode controls
     const shaderCtrls = [];
     shaderCtrls.push(pGlassRef.add(pcfg, 'glassIOR', 0.2, 1.0, 0.01).name('IOR (Refraction)'));
@@ -737,11 +737,18 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     mtmCtrls.push(pGlassRef.add(pcfg, 'mtmChromatic', 0, 3, 0.1).name('MTM Chromatic'));
     mtmCtrls.push(pGlassRef.add(pcfg, 'mtmTransmission', 0, 1, 0.05).name('MTM Transmission'));
     mtmCtrls.push(pGlassRef.add(pcfg, 'mtmBackside').name('MTM Backside'));
+    // Hybrid-only controls
+    const hybridCtrls = [];
+    hybridCtrls.push(pGlassRef.add(pcfg, 'hybridMtmScale', 1.0, 1.3, 0.01).name('MTM Shell Scale'));
     // Toggle visibility based on current mode
     const updateGlassControls = () => {
-      const isMTM = pcfg.glassMode === 'mtm';
-      shaderCtrls.forEach(c => c.domElement.style.display = isMTM ? 'none' : '');
-      mtmCtrls.forEach(c => c.domElement.style.display = isMTM ? '' : 'none');
+      const mode = pcfg.glassMode;
+      const isShader = mode === 'shader';
+      const isMTM = mode === 'mtm';
+      const isHybrid = mode === 'hybrid';
+      shaderCtrls.forEach(c => c.domElement.style.display = (isShader || isHybrid) ? '' : 'none');
+      mtmCtrls.forEach(c => c.domElement.style.display = (isMTM || isHybrid) ? '' : 'none');
+      hybridCtrls.forEach(c => c.domElement.style.display = isHybrid ? '' : 'none');
     };
     updateGlassControls();
     glassModeCtrl.onChange(() => { updateGlassControls(); window.dispatchEvent(new CustomEvent('prism-glass-mode-change')); });

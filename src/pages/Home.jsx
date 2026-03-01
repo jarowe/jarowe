@@ -3451,8 +3451,8 @@ export default function Home() {
         if (style === 'portal') {
           // ─── CINEMATIC DIMENSIONAL RIFT ───
           const side = sp.side || 'right';
-          const ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
-          const oy = side === 'top' ? '20%' : '50%';
+          const ox = side === 'right' ? '95%' : side === 'left' ? '5%' : '50%';
+          const oy = side === 'right' ? '50%' : side === 'left' ? '40%' : '3%';
           const cOx = parseFloat(ox) / 100;
           const cOy = parseFloat(oy) / 100;
           setPortalOrigin({ x: ox, y: oy });
