@@ -86,11 +86,28 @@ export const PRISM_DEFAULTS = {
   bubblePadding: 14,
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
+  // Canvas masking (off = no clipping)
+  canvasMask: false,
+  // Wireframe / edge controls
+  wireframeOpacity: 0.2,
+  edgeThresholdAngle: 20,
+  // Music reactivity
+  musicReactivity: 0.5,
+  musicScalePulse: 0.15,
+  musicRotationBoost: 0.3,
+  musicGlowPulse: 0.5,
 };
 
 /* ═══════════ GLASS PRESETS (built-in per mode) ═══════════ */
 export const GLASS_PRESETS = [
   // ── Custom Shader presets ──
+  {
+    name: 'Default',
+    description: 'Factory default — the proven look',
+    glassMode: 'shader',
+    glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
+    chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
+  },
   {
     name: 'Prismatic Crystal',
     description: 'Default balanced look',
@@ -202,6 +219,19 @@ const cfg = window.__prismConfig;
 /* ═══════════ Mouse tracking (window-level) ═══════════ */
 const mousePos = new THREE.Vector2(0, 0);
 const mouseVel = { current: 0 };
+
+/* ═══════════ Audio reactivity (reads global analyser from Home.jsx) ═══════════ */
+const audioDataArray = new Uint8Array(64);
+let audioBass = 0, audioMid = 0;
+function sampleAudio() {
+  if (!window.globalAnalyser) { audioBass = 0; audioMid = 0; return; }
+  window.globalAnalyser.getByteFrequencyData(audioDataArray);
+  let bassSum = 0, midSum = 0;
+  for (let i = 0; i < 16; i++) bassSum += audioDataArray[i];
+  for (let i = 16; i < 40; i++) midSum += audioDataArray[i];
+  audioBass = (bassSum / 16) / 255;
+  audioMid = (midSum / 24) / 255;
+}
 
 /* ═══════════ SHADERS ═══════════ */
 
@@ -720,13 +750,31 @@ function PrismBody({ geometry }) {
     uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
   }), []);
 
-  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
+  // Reactive edge geometry - rebuilds when threshold changes
+  const edgesGeoRef = useRef(null);
+  const lastThreshold = useRef(cfg.edgeThresholdAngle ?? 20);
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, cfg.edgeThresholdAngle ?? 20), [geometry]);
+  edgesGeoRef.current = edgesGeo;
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
 
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+    // Rebuild edges if threshold changed
+    const thresh = cfg.edgeThresholdAngle ?? 20;
+    if (thresh !== lastThreshold.current) {
+      edgesGeoRef.current = new THREE.EdgesGeometry(geometry, thresh);
+      lastThreshold.current = thresh;
+    }
+
+    // Music reactivity
+    sampleAudio();
+    const react = cfg.musicReactivity ?? 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
+    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react : 0;
+
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
     groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
     groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
@@ -749,7 +797,7 @@ function PrismBody({ geometry }) {
       }
       groupRef.current.scale.set(sx, sy, sz);
     } else {
-      const breath = 1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp;
+      const breath = 1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp + musicScale;
       groupRef.current.scale.setScalar(breath);
     }
 
@@ -757,11 +805,11 @@ function PrismBody({ geometry }) {
     [innerUniforms, outerUniforms].forEach(u => {
       u.uTime.value = t;
       u.uIOR.value = cfg.glassIOR;
-      u.uCausticIntensity.value = cfg.causticIntensity;
+      u.uCausticIntensity.value = cfg.causticIntensity * (1 + musicGlow);
       u.uIridescenceIntensity.value = cfg.iridescenceIntensity;
       u.uChromaticSpread.value = cfg.chromaticSpread;
       u.uGlassAlpha.value = cfg.glassAlpha;
-      u.uStreakIntensity.value = cfg.streakIntensity;
+      u.uStreakIntensity.value = cfg.streakIntensity * (1 + musicGlow * 0.5);
     });
     // Update edge glow shader
     if (edgeMatRef.current) {
@@ -798,8 +846,8 @@ function PrismBody({ geometry }) {
         />
       </mesh>
 
-      {/* Bright white edge glow on EdgesGeometry */}
-      <lineSegments geometry={edgesGeo} renderOrder={2}>
+      {/* Edge glow on EdgesGeometry */}
+      <lineSegments geometry={edgesGeoRef.current} renderOrder={2}>
         <shaderMaterial
           ref={edgeMatRef}
           vertexShader={edgeGlowVert}
@@ -814,13 +862,13 @@ function PrismBody({ geometry }) {
         />
       </lineSegments>
 
-      {/* Bright white wireframe overlay */}
+      {/* Wireframe overlay */}
       <mesh geometry={geometry}>
         <meshBasicMaterial
           wireframe
           color="#ffffff"
           transparent
-          opacity={0.25}
+          opacity={cfg.wireframeOpacity ?? 0.2}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -833,12 +881,27 @@ function PrismBody({ geometry }) {
 function PrismBodyMTM({ geometry }) {
   const groupRef = useRef();
   const edgeMatRef = useRef();
-  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
+  const edgesGeoRef = useRef(null);
+  const lastThreshold = useRef(cfg.edgeThresholdAngle ?? 20);
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, cfg.edgeThresholdAngle ?? 20), [geometry]);
+  edgesGeoRef.current = edgesGeo;
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+
+    const thresh = cfg.edgeThresholdAngle ?? 20;
+    if (thresh !== lastThreshold.current) {
+      edgesGeoRef.current = new THREE.EdgesGeometry(geometry, thresh);
+      lastThreshold.current = thresh;
+    }
+
+    sampleAudio();
+    const react = cfg.musicReactivity ?? 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
+
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
     groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
     groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
@@ -851,7 +914,7 @@ function PrismBodyMTM({ geometry }) {
       else { const p = (progress - 0.35) / 0.65; const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12; sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring; }
       groupRef.current.scale.set(sx, sy, sz);
     } else {
-      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp);
+      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp + musicScale);
     }
     if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
   });
@@ -862,13 +925,13 @@ function PrismBodyMTM({ geometry }) {
         <MeshTransmissionMaterial backside={cfg.mtmBackside} thickness={cfg.mtmThickness} roughness={cfg.mtmRoughness}
           transmission={cfg.mtmTransmission} ior={cfg.mtmIOR} chromaticAberration={cfg.mtmChromatic} anisotropy={0.1} color="#a78bfa" />
       </mesh>
-      <lineSegments geometry={edgesGeo} renderOrder={2}>
+      <lineSegments geometry={edgesGeoRef.current} renderOrder={2}>
         <shaderMaterial ref={edgeMatRef} vertexShader={edgeGlowVert} fragmentShader={edgeGlowFrag}
           uniforms={{ uTime: { value: 0 }, uOpacity: { value: cfg.edgeGlowOpacity } }}
           transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
       <mesh geometry={geometry}>
-        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.25} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -897,12 +960,28 @@ function PrismBodyHybrid({ geometry }) {
     uChromaticSpread: { value: cfg.chromaticSpread },
     uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
   }), []);
-  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
+  const edgesGeoRef = useRef(null);
+  const lastThreshold = useRef(cfg.edgeThresholdAngle ?? 20);
+  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, cfg.edgeThresholdAngle ?? 20), [geometry]);
+  edgesGeoRef.current = edgesGeo;
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed;
+
+    const thresh = cfg.edgeThresholdAngle ?? 20;
+    if (thresh !== lastThreshold.current) {
+      edgesGeoRef.current = new THREE.EdgesGeometry(geometry, thresh);
+      lastThreshold.current = thresh;
+    }
+
+    sampleAudio();
+    const react = cfg.musicReactivity ?? 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
+    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react : 0;
+
+    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
     groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
     groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
@@ -915,7 +994,7 @@ function PrismBodyHybrid({ geometry }) {
       else { const p = (progress - 0.35) / 0.65; const spring = Math.sin(p * Math.PI * 3) * (1 - p) * 0.12; sx = 0.85 + 0.15 * p + spring; sy = 1.25 - 0.25 * p - spring; sz = 0.85 + 0.15 * p + spring; }
       groupRef.current.scale.set(sx, sy, sz);
     } else {
-      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp);
+      groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp + musicScale);
     }
 
     // Scale shader overlay intensity by hybridShaderAdd (blend control)
@@ -923,12 +1002,11 @@ function PrismBodyHybrid({ geometry }) {
     const blend = cfg.hybridBlend ?? 0.5;
     [overlayInnerUni, overlayOuterUni].forEach(u => {
       u.uTime.value = t; u.uIOR.value = cfg.glassIOR;
-      u.uCausticIntensity.value = cfg.causticIntensity * addAmount;
+      u.uCausticIntensity.value = cfg.causticIntensity * addAmount * (1 + musicGlow);
       u.uIridescenceIntensity.value = cfg.iridescenceIntensity * addAmount;
       u.uChromaticSpread.value = cfg.chromaticSpread;
-      // Alpha for additive overlay: low blend = stronger shader, high blend = less shader
       u.uGlassAlpha.value = cfg.glassAlpha * (1.0 - blend * 0.7);
-      u.uStreakIntensity.value = cfg.streakIntensity * addAmount;
+      u.uStreakIntensity.value = cfg.streakIntensity * addAmount * (1 + musicGlow * 0.5);
     });
 
     // Update MTM properties live
@@ -978,13 +1056,13 @@ function PrismBodyHybrid({ geometry }) {
       )}
 
       {/* Edge glow + wireframe */}
-      <lineSegments geometry={edgesGeo} renderOrder={4}>
+      <lineSegments geometry={edgesGeoRef.current} renderOrder={4}>
         <shaderMaterial ref={edgeMatRef} vertexShader={edgeGlowVert} fragmentShader={edgeGlowFrag}
           uniforms={{ uTime: { value: 0 }, uOpacity: { value: cfg.edgeGlowOpacity } }}
           transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
       <mesh geometry={geometry} renderOrder={5}>
-        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -1647,8 +1725,10 @@ export default function Prism3D() {
         height: size,
         margin: canvasMargin,
         pointerEvents: 'none',
-        WebkitMaskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
-        maskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
+        ...(cfg.canvasMask ? {
+          WebkitMaskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
+          maskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
+        } : {}),
       }}
     >
       <Canvas

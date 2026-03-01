@@ -588,6 +588,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
+        canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
+        musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
         characterScale: 1.0,
@@ -610,6 +612,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
+        canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
+        musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
       };
       for (const [k, v] of Object.entries(defaults)) {
         if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
@@ -715,9 +719,19 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
     pFx.add(pcfg, 'edgeGlowOpacity', 0, 1.0, 0.01).name('Edge Glow');
+    pFx.add(pcfg, 'wireframeOpacity', 0, 1.0, 0.01).name('Wireframe Opacity');
+    pFx.add(pcfg, 'edgeThresholdAngle', 1, 90, 1).name('Edge Angle Threshold');
     pFx.add(pcfg, 'vertexHighlightScale', 0, 1.0, 0.01).name('Star Scale');
     pFx.add(pcfg, 'vertexHighlightPulse', 0, 0.5, 0.01).name('Star Pulse');
     pFx.close();
+
+    // -- Music Reactivity --
+    const pMusic = prismBopFolder.addFolder('Music Reactivity');
+    pMusic.add(pcfg, 'musicReactivity', 0, 2.0, 0.01).name('Overall Reactivity');
+    pMusic.add(pcfg, 'musicScalePulse', 0, 0.5, 0.01).name('Bass → Scale');
+    pMusic.add(pcfg, 'musicRotationBoost', 0, 1.0, 0.01).name('Mids → Rotation');
+    pMusic.add(pcfg, 'musicGlowPulse', 0, 2.0, 0.01).name('Bass → Glow/Caustics');
+    pMusic.close();
 
     // -- Glass / Refraction --
     const pGlassRef = prismBopFolder.addFolder('Glass / Refraction');
@@ -859,11 +873,19 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // -- Canvas / Display --
     const pCanvas = prismBopFolder.addFolder('Canvas / Display');
     pCanvas.add(pcfg, 'characterScale', 0.3, 3.0, 0.01).name('Character Scale');
-    pCanvas.add(pcfg, 'canvasSize', 200, 1800, 10).name('Canvas Size');
-    pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %');
-    pCanvas.add(pcfg, 'featherOuter', 20, 100, 1).name('Feather Outer %');
-    pCanvas.add(pcfg, 'sceneCenterX', 0, 100, 1).name('Mask Center X %');
-    pCanvas.add(pcfg, 'sceneCenterY', 0, 100, 1).name('Mask Center Y %');
+    pCanvas.add(pcfg, 'canvasSize', 200, 2400, 10).name('Canvas Size');
+    // Mask toggle + conditional feather controls
+    const maskCtrls = [];
+    maskCtrls.push(pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %'));
+    maskCtrls.push(pCanvas.add(pcfg, 'featherOuter', 20, 100, 1).name('Feather Outer %'));
+    maskCtrls.push(pCanvas.add(pcfg, 'sceneCenterX', 0, 100, 1).name('Mask Center X %'));
+    maskCtrls.push(pCanvas.add(pcfg, 'sceneCenterY', 0, 100, 1).name('Mask Center Y %'));
+    const updateMaskCtrls = () => {
+      const show = pcfg.canvasMask;
+      maskCtrls.forEach(c => c.domElement.style.display = show ? '' : 'none');
+    };
+    pCanvas.add(pcfg, 'canvasMask').name('Enable Canvas Mask').onChange(updateMaskCtrls);
+    updateMaskCtrls();
     pCanvas.close();
 
     // -- Speech Bubble --
