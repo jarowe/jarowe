@@ -153,21 +153,21 @@ export const GLASS_PRESETS = [
     name: 'Perfect Blend',
     description: 'THE hand-tuned ideal — real glass clarity + colorful shader overlay',
     glassMode: 'hybrid',
-    hybridBlend: 0.55, hybridShaderAdd: 0.75, hybridEnvIntensity: 0.5, hybridMtmScale: 1.04,
-    // Shader side
-    glassIOR: 0.55, causticIntensity: 1.4, iridescenceIntensity: 1.3,
-    chromaticSpread: 1.3, glassAlpha: 0.15, streakIntensity: 0.9,
-    // MTM side
-    mtmThickness: 1.2, mtmRoughness: 0.03, mtmIOR: 1.6,
-    mtmChromatic: 1.8, mtmTransmission: 0.95, mtmBackside: true,
+    hybridBlend: 0.6, hybridShaderAdd: 0.8, hybridEnvIntensity: 0.7, hybridMtmScale: 1.0,
+    // Shader side: moderate effects, low alpha so additive overlay enhances without overpowering
+    glassIOR: 0.55, causticIntensity: 1.5, iridescenceIntensity: 1.4,
+    chromaticSpread: 1.4, glassAlpha: 0.12, streakIntensity: 1.0,
+    // MTM side: clear glass with strong chromatic for rainbow splitting
+    mtmThickness: 1.0, mtmRoughness: 0.02, mtmIOR: 1.7,
+    mtmChromatic: 2.0, mtmTransmission: 0.95, mtmBackside: true,
   },
   {
     name: 'Glass + Fire',
     description: 'MTM base with intense caustic overlay',
     glassMode: 'hybrid',
-    hybridBlend: 0.7, hybridShaderAdd: 1.0, hybridEnvIntensity: 0.6, hybridMtmScale: 1.02,
+    hybridBlend: 0.7, hybridShaderAdd: 1.0, hybridEnvIntensity: 0.8, hybridMtmScale: 1.0,
     glassIOR: 0.45, causticIntensity: 2.5, iridescenceIntensity: 0.6,
-    chromaticSpread: 1.8, glassAlpha: 0.18, streakIntensity: 2.2,
+    chromaticSpread: 1.8, glassAlpha: 0.14, streakIntensity: 2.2,
     mtmThickness: 0.8, mtmRoughness: 0.02, mtmIOR: 1.5,
     mtmChromatic: 0.8, mtmTransmission: 1.0, mtmBackside: true,
   },
@@ -175,9 +175,9 @@ export const GLASS_PRESETS = [
     name: 'Ethereal',
     description: 'Soft dreamy refraction + iridescence',
     glassMode: 'hybrid',
-    hybridBlend: 0.4, hybridShaderAdd: 0.5, hybridEnvIntensity: 0.8, hybridMtmScale: 1.08,
+    hybridBlend: 0.4, hybridShaderAdd: 0.5, hybridEnvIntensity: 1.0, hybridMtmScale: 1.0,
     glassIOR: 0.8, causticIntensity: 0.4, iridescenceIntensity: 2.2,
-    chromaticSpread: 1.6, glassAlpha: 0.25, streakIntensity: 0.3,
+    chromaticSpread: 1.6, glassAlpha: 0.2, streakIntensity: 0.3,
     mtmThickness: 1.8, mtmRoughness: 0.2, mtmIOR: 1.4,
     mtmChromatic: 0.5, mtmTransmission: 0.9, mtmBackside: true,
   },
@@ -185,9 +185,9 @@ export const GLASS_PRESETS = [
     name: 'Holographic',
     description: 'Max chromatic on both layers',
     glassMode: 'hybrid',
-    hybridBlend: 0.5, hybridShaderAdd: 0.9, hybridEnvIntensity: 0.3, hybridMtmScale: 1.03,
+    hybridBlend: 0.5, hybridShaderAdd: 0.9, hybridEnvIntensity: 0.5, hybridMtmScale: 1.0,
     glassIOR: 0.5, causticIntensity: 1.0, iridescenceIntensity: 1.8,
-    chromaticSpread: 3.0, glassAlpha: 0.2, streakIntensity: 1.2,
+    chromaticSpread: 3.0, glassAlpha: 0.16, streakIntensity: 1.2,
     mtmThickness: 1.2, mtmRoughness: 0.03, mtmIOR: 1.8,
     mtmChromatic: 3.0, mtmTransmission: 1.0, mtmBackside: true,
   },
@@ -968,12 +968,12 @@ function PrismBodyHybrid({ geometry }) {
           blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {/* LAYER 3: Subtle outer MTM shell for extra depth (slightly larger) */}
-      {mtmScale > 1.01 && (
+      {/* LAYER 3: Subtle outer shell for depth haze (only when scale > 1.005) */}
+      {mtmScale > 1.005 && (
         <mesh geometry={geometry} scale={mtmScale} renderOrder={3}>
-          <MeshTransmissionMaterial backside thickness={cfg.mtmThickness * 0.3} roughness={0.15}
-            transmission={0.85} ior={cfg.mtmIOR * 0.9} chromaticAberration={cfg.mtmChromatic * 0.5}
-            anisotropy={0.05} color="#e9d5ff" depthWrite={false} />
+          <meshPhysicalMaterial transparent opacity={0.08} roughness={0.4}
+            color="#c4b5fd" transmission={0.6} thickness={0.3} ior={1.2}
+            depthWrite={false} side={THREE.FrontSide} />
         </mesh>
       )}
 
@@ -992,31 +992,16 @@ function PrismBodyHybrid({ geometry }) {
 
 /* ═══════════ RICH SCENE CONTENT FOR MTM/HYBRID (gives MTM things to refract) ═══════════ */
 function MTMSceneContent() {
-  const glowRef = useRef();
-
-  useFrame((state) => {
-    if (!glowRef.current) return;
-    const t = state.clock.elapsedTime;
-    // Slowly shift the inner glow color for living glass effect
-    glowRef.current.material.color.setHSL((t * 0.03) % 1, 0.6, 0.4);
-  });
-
   return (
     <>
-      {/* Colorful lights for real illumination */}
-      <pointLight position={[-3, 2, -2]} color="#7c3aed" intensity={4} distance={10} />
-      <pointLight position={[3, -1, -2]} color="#38bdf8" intensity={3} distance={10} />
-      <pointLight position={[0, 3, -1.5]} color="#f472b6" intensity={2.5} distance={8} />
-      <pointLight position={[-2, -2, -1]} color="#22c55e" intensity={2} distance={7} />
-      <pointLight position={[2, 1, -3]} color="#fbbf24" intensity={2} distance={7} />
+      {/* Colorful lights positioned close for MTM to refract */}
+      <pointLight position={[-1.5, 1, -1]} color="#7c3aed" intensity={4} distance={6} />
+      <pointLight position={[1.5, -0.5, -1]} color="#38bdf8" intensity={3} distance={6} />
+      <pointLight position={[0, 1.5, -0.8]} color="#f472b6" intensity={2.5} distance={5} />
+      <pointLight position={[-1, -1, -0.5]} color="#22c55e" intensity={2} distance={5} />
+      <pointLight position={[1, 0.5, -1.5]} color="#fbbf24" intensity={2} distance={5} />
 
-      {/* Inner glow sphere - gives MTM a colorful interior instead of black void */}
-      <mesh ref={glowRef} scale={0.6}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color="#8b5cf6" transparent opacity={0.35} side={THREE.BackSide} />
-      </mesh>
-
-      {/* Environment map for MTM to reflect/refract - low intensity, adds subtle realism */}
+      {/* Environment map for MTM to reflect/refract */}
       <Environment preset="night" environmentIntensity={cfg.hybridEnvIntensity ?? 0.4} />
     </>
   );
