@@ -849,13 +849,13 @@
         rgba(15, 8, 40, 0.96) 100%);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    color: #ede8ff;
+    color: #f0e8ff;
     padding: 12px 16px;
     border-radius: 14px 14px 14px 4px;
     font-size: 0.72rem;
-    font-weight: 500;
+    font-weight: 600;
     font-style: italic;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     line-height: 1.55;
     white-space: normal;
     max-width: 240px;
@@ -864,34 +864,56 @@
         0 4px 25px rgba(124, 58, 237, 0.5),
         0 0 80px rgba(124, 58, 237, 0.15),
         0 0 3px rgba(167, 139, 250, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
         inset 0 0 20px rgba(124, 58, 237, 0.06);
-    border: 1px solid rgba(167, 139, 250, 0.25);
+    border: 1px solid rgba(167, 139, 250, 0.3);
     z-index: 20;
     pointer-events: none;
-    text-shadow: 0 0 15px rgba(167, 139, 250, 0.4);
+    animation: sparkBubbleGlow 2.5s ease-in-out infinite;
     overflow: hidden;
 }
 
+/* Cycling prismatic text glow - like light refracting through the prism */
+@keyframes sparkBubbleGlow {
+    0%, 100% {
+        text-shadow: 0 0 8px rgba(167, 139, 250, 0.5), 0 0 20px rgba(124, 58, 237, 0.2);
+    }
+    25% {
+        text-shadow: 0 0 12px rgba(244, 114, 182, 0.7), 0 0 30px rgba(236, 72, 153, 0.3), 0 0 4px rgba(255, 255, 255, 0.8);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(56, 189, 248, 0.7), 0 0 35px rgba(59, 130, 246, 0.3), 0 0 6px rgba(255, 255, 255, 0.9);
+    }
+    75% {
+        text-shadow: 0 0 12px rgba(192, 132, 252, 0.7), 0 0 30px rgba(167, 139, 250, 0.3), 0 0 4px rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* Sweeping light beam across the bubble - like a spark of brilliance */
 .prism-bubble::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
+    left: -60%;
+    width: 40%;
+    height: 100%;
     background: linear-gradient(90deg,
         transparent 0%,
-        rgba(167, 139, 250, 0.7) 20%,
-        rgba(56, 189, 248, 0.5) 50%,
-        rgba(236, 72, 153, 0.5) 80%,
+        rgba(255, 255, 255, 0.04) 30%,
+        rgba(167, 139, 250, 0.12) 45%,
+        rgba(255, 255, 255, 0.08) 55%,
+        rgba(56, 189, 248, 0.06) 70%,
         transparent 100%);
-    animation: prismBubbleShimmer 3s ease-in-out infinite;
+    animation: sparkSweep 3.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
 }
 
-@keyframes prismBubbleShimmer {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
+@keyframes sparkSweep {
+    0% { left: -60%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { left: 160%; opacity: 0; }
 }
 
 .prism-bubble::after {

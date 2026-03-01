@@ -588,7 +588,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
-        canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
+        nebulaOpacity: 0.85, canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
         musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
@@ -612,7 +612,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         glassMode: 'shader',
         mtmThickness: 1.0, mtmRoughness: 0.05, mtmIOR: 1.5, mtmChromatic: 1.0, mtmTransmission: 1.0, mtmBackside: true,
         hybridMtmScale: 1.06, hybridBlend: 0.5, hybridEnvIntensity: 0.4, hybridShaderAdd: 0.6,
-        canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
+        nebulaOpacity: 0.85, canvasMask: false, wireframeOpacity: 0.2, edgeThresholdAngle: 20,
         musicReactivity: 0.5, musicScalePulse: 0.15, musicRotationBoost: 0.3, musicGlowPulse: 0.5,
       };
       for (const [k, v] of Object.entries(defaults)) {
@@ -874,6 +874,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     const pCanvas = prismBopFolder.addFolder('Canvas / Display');
     pCanvas.add(pcfg, 'characterScale', 0.3, 3.0, 0.01).name('Character Scale');
     pCanvas.add(pcfg, 'canvasSize', 200, 2400, 10).name('Canvas Size');
+    pCanvas.add(pcfg, 'nebulaOpacity', 0, 1.0, 0.01).name('Nebula BG Opacity');
     // Mask toggle + conditional feather controls
     const maskCtrls = [];
     maskCtrls.push(pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %'));

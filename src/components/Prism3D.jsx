@@ -86,6 +86,8 @@ export const PRISM_DEFAULTS = {
   bubblePadding: 14,
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
+  // Nebula backdrop opacity
+  nebulaOpacity: 0.85,
   // Canvas masking (off = no clipping)
   canvasMask: false,
   // Wireframe / edge controls
@@ -405,7 +407,9 @@ const beamFrag = `
     float glow = exp(-d * d * 2.5) * taper;
     float convergeBright = 0.4 + vUv.x * 0.6;
 
-    float intensity = (core * 1.5 + glow * 0.35) * convergeBright;
+    // Smooth fade at far end so beam never hits canvas edge
+    float edgeFade = smoothstep(0.0, 0.25, vUv.x);
+    float intensity = (core * 1.5 + glow * 0.35) * convergeBright * edgeFade;
     float shimmer = 0.93 + 0.07 * sin(vUv.x * 30.0 - uTime * 6.0);
 
     // Near prism, start showing spectral hints
@@ -435,10 +439,12 @@ const rayFrag = `
     float d = abs(vUv.y - 0.5) * 2.0 / max(spread, 0.05);
 
     float fade = pow(1.0 - vUv.x, 0.6);
+    // Smooth fade at far end so rays never hit canvas edge
+    float edgeFade = smoothstep(1.0, 0.75, vUv.x);
     float core = exp(-d * d * 25.0);
     float glow = exp(-d * d * 3.5);
 
-    float intensity = (core * 1.4 + glow * 0.45) * fade;
+    float intensity = (core * 1.4 + glow * 0.45) * fade * edgeFade;
     float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
 
     vec3 color = uColor * (1.6 + core * 0.8);
@@ -718,10 +724,14 @@ function usePrismGeometry(shape) {
 
 /* ═══════════ NEBULA BACKDROP ═══════════ */
 function NebulaBackdrop({ texture }) {
+  const matRef = useRef();
+  useFrame(() => {
+    if (matRef.current) matRef.current.opacity = cfg.nebulaOpacity ?? 0.85;
+  });
   return (
     <mesh position={[0, 0, -5]}>
       <planeGeometry args={[16, 16]} />
-      <meshBasicMaterial map={texture} transparent opacity={0.85} depthWrite={false} />
+      <meshBasicMaterial ref={matRef} map={texture} transparent opacity={cfg.nebulaOpacity ?? 0.85} depthWrite={false} />
     </mesh>
   );
 }
