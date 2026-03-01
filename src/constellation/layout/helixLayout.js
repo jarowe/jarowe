@@ -32,26 +32,30 @@ function groupByEpoch(nodes) {
 }
 
 /**
- * Compute a double-helix layout for constellation nodes.
+ * Compute a double-helix layout for constellation nodes (V2).
  *
- * Nodes are sorted by date, grouped by epoch, then positioned
- * along a parametric double helix with seeded jitter for organic feel.
+ * Continuous angle progression across all nodes, compact epoch bands,
+ * low directional jitter. Mirrors pipeline/layout/helix.mjs.
  *
  * @param {Array} nodes - Array of node objects with { date, epoch, isHub, size, ... }
  * @param {Object} config - Layout configuration
- * @param {number} config.radius - Helix radius (default 30)
- * @param {number} config.pitch - Vertical distance per full rotation (default 5)
- * @param {number} config.epochGap - Extra vertical gap between epochs (default 15)
- * @param {number} config.jitterRadius - Random offset for organic feel (default 2)
+ * @param {number} config.radius - Helix radius (default 34)
+ * @param {number} config.turns - Total helix turns (default 6)
+ * @param {number} config.verticalStep - Y distance per node (default 1.35)
+ * @param {number} config.epochBandGap - Extra Y gap between epochs (default 1.8)
+ * @param {number} config.jitterRadial - Radial jitter magnitude (default 0.6)
+ * @param {number} config.jitterAxial - Axial (Y) jitter magnitude (default 0.25)
  * @param {number} config.seed - Seed for deterministic PRNG (default 42)
- * @returns {Array} Nodes with added x, y, z position fields
+ * @returns {Array} Nodes with added x, y, z, strand, phase fields
  */
 export function computeHelixLayout(nodes, config = {}) {
   const {
-    radius = 30,
-    pitch = 5,
-    epochGap = 15,
-    jitterRadius = 2,
+    radius = 34,
+    turns = 6,
+    verticalStep = 1.35,
+    epochBandGap = 1.8,
+    jitterRadial = 0.6,
+    jitterAxial = 0.25,
     seed = 42,
   } = config;
 
@@ -65,38 +69,43 @@ export function computeHelixLayout(nodes, config = {}) {
   // Group by epoch (preserves date-sorted order within each epoch)
   const epochs = groupByEpoch(sorted);
 
-  let currentY = 0;
+  // Flatten to get total count for continuous angle distribution
+  const totalNodes = sorted.length;
+  const totalAngle = turns * Math.PI * 2;
+
   const positions = [];
+  let globalIndex = 0;
+  let currentY = 0;
 
   epochs.forEach((epochNodes, epochIndex) => {
     if (epochIndex > 0) {
-      currentY += epochGap;
+      currentY += epochBandGap;
     }
 
-    const epochStartY = currentY;
+    epochNodes.forEach((node) => {
+      // Continuous angle across all nodes
+      const baseAngle = totalNodes > 1
+        ? (globalIndex / (totalNodes - 1)) * totalAngle
+        : 0;
 
-    epochNodes.forEach((node, i) => {
-      // Full rotation per epoch
-      const t = (i / Math.max(epochNodes.length, 1)) * Math.PI * 2;
+      // Balanced strand assignment (hubs stay large via size, not strand-pinned)
+      const strand = globalIndex % 2;
+      const angle = baseAngle + strand * Math.PI;
 
-      // Double helix: strand 0 and strand 1 offset by PI
-      // Hub nodes always on strand 0 for visual prominence
-      const strand = node.isHub ? 0 : i % 2;
-      const angle = t + strand * Math.PI;
+      // Seeded directional jitter (radial + axial)
+      const radialOffset = (rng() - 0.5) * 2 * jitterRadial;
+      const axialOffset = (rng() - 0.5) * 2 * jitterAxial;
 
-      // Seeded jitter for organic feel
-      const jitterX = (rng() - 0.5) * 2 * jitterRadius;
-      const jitterZ = (rng() - 0.5) * 2 * jitterRadius;
+      const r = radius + radialOffset;
+      const x = r * Math.cos(angle);
+      const y = currentY + axialOffset;
+      const z = r * Math.sin(angle);
 
-      const x = radius * Math.cos(angle) + jitterX;
-      const y = epochStartY + (i / Math.max(epochNodes.length, 1)) * pitch;
-      const z = radius * Math.sin(angle) + jitterZ;
+      positions.push({ ...node, x, y, z, strand, phase: baseAngle });
 
-      positions.push({ ...node, x, y, z });
+      currentY += verticalStep;
+      globalIndex++;
     });
-
-    // Advance currentY past this epoch's extent
-    currentY = epochStartY + pitch;
   });
 
   return positions;

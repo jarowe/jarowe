@@ -11,6 +11,7 @@ import ConnectionLines from './ConnectionLines';
 import HoverLabel from './HoverLabel';
 import CameraController from './CameraController';
 import Starfield from './Starfield';
+import HelixBackbone from './HelixBackbone';
 
 /**
  * GPU tier-based configuration.
@@ -30,7 +31,7 @@ function getGPUConfig(tier) {
   return {
     bloom: true,
     pulseAnimation: true,
-    starParticles: 4000,
+    starParticles: 2200,
     dpr: Math.min(1.5, window.devicePixelRatio),
     sphereSegments: 12,
   };
@@ -106,7 +107,7 @@ export default function ConstellationCanvas() {
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{
-        position: [0, center.y, 80],
+        position: [0, center.y + 10, 110],
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
@@ -126,14 +127,14 @@ export default function ConstellationCanvas() {
       <OrbitControls
         ref={controlsRef}
         autoRotate
-        autoRotateSpeed={0.5}
+        autoRotateSpeed={0.35}
         enableDamping
         dampingFactor={0.05}
         enablePan={false}
         minPolarAngle={Math.PI * (15 / 180)}
         maxPolarAngle={Math.PI * (165 / 180)}
-        minDistance={40}
-        maxDistance={120}
+        minDistance={55}
+        maxDistance={170}
         target={[center.x, center.y, center.z]}
       />
 
@@ -146,6 +147,11 @@ export default function ConstellationCanvas() {
       <HoverLabel nodes={layoutNodes} />
 
       <ambientLight intensity={0.15} />
+
+      <HelixBackbone
+        positions={layoutNodes}
+        disabled={gpuConfig.starParticles === 0}
+      />
 
       <ConnectionLines positions={layoutNodes} />
 

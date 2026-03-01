@@ -61,7 +61,7 @@ export default function ConnectionLines({ positions }) {
       const targetPos = positionMap.get(edge.target);
       if (!sourcePos || !targetPos) continue;
 
-      let opacity = 0.12;
+      let opacity = 0.08;
       let lineWidth = 1;
 
       if (focusedNodeId) {

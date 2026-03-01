@@ -48,12 +48,14 @@ export const PIPELINE_CONFIG = Object.freeze({
     defaultVisibility: 'private',
   },
 
-  /** Helix layout parameters (matching existing helixLayout defaults) */
+  /** Helix layout parameters (V2 — continuous angle, compact bands) */
   layout: {
-    radius: 30,
-    pitch: 5,
-    epochGap: 15,
-    jitterRadius: 2,
+    radius: 34,
+    turns: 6,
+    verticalStep: 1.35,
+    epochBandGap: 1.8,
+    jitterRadial: 0.6,
+    jitterAxial: 0.25,
     seed: 42,
   },
 

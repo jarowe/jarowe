@@ -64,10 +64,10 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0;
         rampInterval.current = setInterval(() => {
-          if (controls.autoRotateSpeed < 0.5) {
-            controls.autoRotateSpeed += 0.02;
+          if (controls.autoRotateSpeed < 0.35) {
+            controls.autoRotateSpeed += 0.015;
           } else {
-            controls.autoRotateSpeed = 0.5;
+            controls.autoRotateSpeed = 0.35;
             clearInterval(rampInterval.current);
           }
         }, 50);
@@ -157,10 +157,10 @@ export default function CameraController({ controlsRef, positions, helixBounds }
           controls.autoRotate = true;
           controls.autoRotateSpeed = 0;
           rampInterval.current = setInterval(() => {
-            if (controls.autoRotateSpeed < 0.5) {
-              controls.autoRotateSpeed += 0.02;
+            if (controls.autoRotateSpeed < 0.35) {
+              controls.autoRotateSpeed += 0.015;
             } else {
-              controls.autoRotateSpeed = 0.5;
+              controls.autoRotateSpeed = 0.35;
               clearInterval(rampInterval.current);
             }
           }, 50);
@@ -218,7 +218,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     gsap.to(camera.position, {
       x: 0,
       y: mappedY,
-      z: 80,
+      z: 110,
       duration: 0.3,
       ease: 'power2.out',
       onUpdate: () => controls.update(),
@@ -238,10 +238,10 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0;
         rampInterval.current = setInterval(() => {
-          if (controls.autoRotateSpeed < 0.5) {
-            controls.autoRotateSpeed += 0.02;
+          if (controls.autoRotateSpeed < 0.35) {
+            controls.autoRotateSpeed += 0.015;
           } else {
-            controls.autoRotateSpeed = 0.5;
+            controls.autoRotateSpeed = 0.35;
             clearInterval(rampInterval.current);
           }
         }, 50);

@@ -45,11 +45,14 @@ export async function loadConstellationData() {
     const graph = await graphRes.json();
     const layout = await layoutRes.json();
 
-    // Merge layout positions into node data
+    // Merge layout positions (+ optional strand/phase metadata) into node data
     const nodesWithPositions = graph.nodes.map(node => {
       const pos = layout.positions[node.id];
       if (pos) {
-        return { ...node, x: pos.x, y: pos.y, z: pos.z };
+        const merged = { ...node, x: pos.x, y: pos.y, z: pos.z };
+        if (pos.strand !== undefined) merged.strand = pos.strand;
+        if (pos.phase !== undefined) merged.phase = pos.phase;
+        return merged;
       }
       return node;
     });

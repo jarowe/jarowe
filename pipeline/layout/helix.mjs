@@ -1,9 +1,11 @@
 /**
- * Double-helix layout computation for pipeline data.
+ * Double-helix layout computation for pipeline data (V2).
  *
- * Adapted from src/constellation/layout/helixLayout.js for use in the
- * build-time pipeline. Produces a positions map keyed by node ID
- * (separate from node data) for constellation.layout.json.
+ * V2 changes:
+ * - Continuous angle progression across all nodes (no per-epoch reset).
+ * - Compact epoch band separation instead of large hard jumps.
+ * - Lower, directional jitter to preserve helix silhouette.
+ * - Outputs strand/phase metadata per node.
  *
  * Uses mulberry32 PRNG from pipeline utils for deterministic jitter.
  */
@@ -29,29 +31,33 @@ function groupByEpoch(nodes) {
 }
 
 /**
- * Compute a double-helix layout for constellation nodes.
+ * Compute a double-helix layout for constellation nodes (V2).
  *
  * Nodes are sorted by date, grouped by epoch, then positioned along a
- * parametric double helix with seeded jitter for organic feel.
+ * parametric double helix with continuous angle progression and seeded jitter.
  *
- * Output is a positions map { [nodeId]: { x, y, z } } separate from
- * node data, for constellation.layout.json.
+ * Output is a positions map { [nodeId]: { x, y, z, strand, phase } }
+ * separate from node data, for constellation.layout.json.
  *
  * @param {Object[]} nodes - Array of canonical nodes with { id, date, epoch, isHub, size }
  * @param {Object} config - Layout configuration
- * @param {number} config.radius - Helix radius (default 30)
- * @param {number} config.pitch - Vertical distance per full rotation (default 5)
- * @param {number} config.epochGap - Extra vertical gap between epochs (default 15)
- * @param {number} config.jitterRadius - Random offset for organic feel (default 2)
+ * @param {number} config.radius - Helix radius (default 34)
+ * @param {number} config.turns - Total helix turns across all nodes (default 6)
+ * @param {number} config.verticalStep - Y distance per node (default 1.35)
+ * @param {number} config.epochBandGap - Extra Y gap between epochs (default 1.8)
+ * @param {number} config.jitterRadial - Radial jitter magnitude (default 0.6)
+ * @param {number} config.jitterAxial - Axial (Y) jitter magnitude (default 0.25)
  * @param {number} config.seed - Seed for deterministic PRNG (default 42)
  * @returns {{ positions: Object, helixParams: Object, bounds: { minY: number, maxY: number } }}
  */
 export function computePipelineLayout(nodes, config = {}) {
   const {
-    radius = 30,
-    pitch = 5,
-    epochGap = 15,
-    jitterRadius = 2,
+    radius = 34,
+    turns = 6,
+    verticalStep = 1.35,
+    epochBandGap = 1.8,
+    jitterRadial = 0.6,
+    jitterAxial = 0.25,
     seed = 42,
   } = config;
 
@@ -65,43 +71,54 @@ export function computePipelineLayout(nodes, config = {}) {
   // Group by epoch (preserves date-sorted order within each epoch)
   const epochs = groupByEpoch(sorted);
 
+  // Flatten to get total count for continuous angle distribution
+  const totalNodes = sorted.length;
+  const totalAngle = turns * Math.PI * 2;
+
   const positions = {};
+  let globalIndex = 0;
   let currentY = 0;
   let minY = Infinity;
   let maxY = -Infinity;
 
   epochs.forEach((epochNodes, epochIndex) => {
     if (epochIndex > 0) {
-      currentY += epochGap;
+      currentY += epochBandGap;
     }
 
-    const epochStartY = currentY;
+    epochNodes.forEach((node) => {
+      // Continuous angle across all nodes
+      const baseAngle = totalNodes > 1
+        ? (globalIndex / (totalNodes - 1)) * totalAngle
+        : 0;
 
-    epochNodes.forEach((node, i) => {
-      // Full rotation per epoch
-      const t = (i / Math.max(epochNodes.length, 1)) * Math.PI * 2;
+      // Balanced strand assignment (hubs stay large via size, not strand-pinned)
+      const strand = globalIndex % 2;
+      const angle = baseAngle + strand * Math.PI;
 
-      // Double helix: strand 0 and strand 1 offset by PI
-      // Hub nodes always on strand 0 for visual prominence
-      const strand = node.isHub ? 0 : i % 2;
-      const angle = t + strand * Math.PI;
+      // Seeded directional jitter (radial + axial)
+      const radialOffset = (rng() - 0.5) * 2 * jitterRadial;
+      const axialOffset = (rng() - 0.5) * 2 * jitterAxial;
 
-      // Seeded jitter for organic feel
-      const jitterX = (rng() - 0.5) * 2 * jitterRadius;
-      const jitterZ = (rng() - 0.5) * 2 * jitterRadius;
+      const r = radius + radialOffset;
+      const x = Number((r * Math.cos(angle)).toFixed(4));
+      const y = Number((currentY + axialOffset).toFixed(4));
+      const z = Number((r * Math.sin(angle)).toFixed(4));
 
-      const x = Number((radius * Math.cos(angle) + jitterX).toFixed(4));
-      const y = Number((epochStartY + (i / Math.max(epochNodes.length, 1)) * pitch).toFixed(4));
-      const z = Number((radius * Math.sin(angle) + jitterZ).toFixed(4));
-
-      positions[node.id] = { x, y, z };
+      positions[node.id] = {
+        x,
+        y,
+        z,
+        strand,
+        phase: Number(baseAngle.toFixed(4)),
+      };
 
       if (y < minY) minY = y;
       if (y > maxY) maxY = y;
-    });
 
-    // Advance currentY past this epoch's extent
-    currentY = epochStartY + pitch;
+      currentY += verticalStep;
+      globalIndex++;
+    });
   });
 
   // Handle empty input
@@ -112,7 +129,7 @@ export function computePipelineLayout(nodes, config = {}) {
 
   return {
     positions,
-    helixParams: { radius, pitch, epochGap, jitterRadius, seed },
+    helixParams: { radius, turns, verticalStep, epochBandGap, jitterRadial, jitterAxial, seed },
     bounds: { minY, maxY },
   };
 }
