@@ -3477,18 +3477,32 @@ export default function Home() {
   const peekPinnedRef = useRef(false);
   const peekTimerRef = useRef(null);
   useEffect(() => {
-    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
+    const peekStyles = ['portal', 'slide', 'bounce', 'swing', 'pop', 'roll'];
     const showHandler = (e) => {
       const d = e.detail || {};
       const sides = ['right', 'left', 'top'];
+      const side = d.side || sides[Math.floor(Math.random() * sides.length)];
       setPeekPosition({
         cell: d.cell ?? Math.floor(Math.random() * 4),
-        side: d.side || sides[Math.floor(Math.random() * sides.length)]
+        side,
       });
       const lockedStyle = window.__prismConfig?.lockedPeekStyle;
-      setPeekStyle(d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)]);
+      const style = d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
+      setPeekStyle(style);
       setPeekVisible(true);
       peekPinnedRef.current = !!d.pinned;
+
+      // Portal burst: confetti + glow (works from both auto-timer AND editor)
+      if (style === 'portal') {
+        const ox = side === 'right' ? 0.85 : side === 'left' ? 0.15 : 0.5;
+        const oy = side === 'top' ? 0.2 : 0.5;
+        confetti({ particleCount: 40, spread: 360, startVelocity: 18, gravity: 0.4, origin: { x: ox, y: oy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.5, ticks: 70, shapes: ['circle'] });
+        if (peekCharRef.current) {
+          peekCharRef.current.classList.add('portal-entering');
+          setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+        }
+      }
+
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
       if (!d.pinned) {
         peekTimerRef.current = setTimeout(() => setPeekVisible(false), d.duration || 8000);
@@ -4013,6 +4027,9 @@ export default function Home() {
                     style={{
                       transform: `translateX(calc(-50% + ${window.__prismConfig?.bubbleOffsetX || 0}px))`,
                       bottom: `calc(100% - 30px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
+                      fontSize: `${window.__prismConfig?.bubbleFontSize || 0.8}rem`,
+                      maxWidth: `${window.__prismConfig?.bubbleMaxWidth || 260}px`,
+                      padding: `${window.__prismConfig?.bubblePadding || 14}px ${(window.__prismConfig?.bubblePadding || 14) + 2}px`,
                     }}
                   >
                     {prismBubble}

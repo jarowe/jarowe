@@ -585,18 +585,22 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         canvasSize: 1000, featherInner: 18, featherOuter: 88,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.7,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
-        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.55, mouthScaleY: 0.42,
+        characterScale: 1.0,
+        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.7, mouthScaleY: 0.55,
         glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
         chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
-        bubbleOffsetX: 0, bubbleOffsetY: 0, lockedPeekStyle: '',
+        bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
+        lockedPeekStyle: '',
       };
     } else {
       // Merge new fields into existing config (in case Prism3D loaded first with older defaults)
       const defaults = {
-        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.55, mouthScaleY: 0.42,
+        characterScale: 1.0,
+        mouthX: 0, mouthY: -0.32, mouthZ: 0.58, mouthScaleX: 0.7, mouthScaleY: 0.55,
         glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
         chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
-        bubbleOffsetX: 0, bubbleOffsetY: 0, lockedPeekStyle: '',
+        bubbleOffsetX: 0, bubbleOffsetY: 0, bubbleFontSize: 0.8, bubbleMaxWidth: 260, bubblePadding: 14,
+        lockedPeekStyle: '',
       };
       for (const [k, v] of Object.entries(defaults)) {
         if (window.__prismConfig[k] === undefined) window.__prismConfig[k] = v;
@@ -606,8 +610,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Visibility / Positioning --
     const peekFolder = prismBopFolder.addFolder('Peek Control');
-    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
-    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false, style: 'slide', dragMode: false };
+    const peekStyles = ['portal', 'slide', 'bounce', 'swing', 'pop', 'roll'];
+    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false, style: 'portal', dragMode: false };
     peekFolder.add(peekProxy, 'side', ['right', 'left', 'top']).name('Side');
     peekFolder.add(peekProxy, 'cell', 0, 3, 1).name('Cell Index');
     peekFolder.add(peekProxy, 'duration', 1, 30, 1).name('Duration (s)');
@@ -630,7 +634,10 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         }));
       }
     });
-    peekFolder.add(pcfg, 'lockedPeekStyle', ['', 'portal', 'slide', 'bounce', 'swing', 'pop', 'roll']).name('Lock Anim Style');
+    peekFolder.add(pcfg, 'lockedPeekStyle', {
+      'Random': '', 'Portal': 'portal', 'Slide': 'slide', 'Bounce': 'bounce',
+      'Swing': 'swing', 'Pop': 'pop', 'Roll': 'roll',
+    }).name('Lock Anim Style');
     peekFolder.add({ saveSpawn() {
       window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'add', label: `Saved ${Date.now()}` } }));
     } }, 'saveSpawn').name('Save Spawn Point');
@@ -648,8 +655,8 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pMouth.add(pcfg, 'mouthX', -1.0, 1.0, 0.01).name('X Offset');
     pMouth.add(pcfg, 'mouthY', -1.0, 0.5, 0.01).name('Y Offset');
     pMouth.add(pcfg, 'mouthZ', 0, 1.5, 0.01).name('Z Depth');
-    pMouth.add(pcfg, 'mouthScaleX', 0.1, 1.5, 0.01).name('Width');
-    pMouth.add(pcfg, 'mouthScaleY', 0.1, 1.2, 0.01).name('Height');
+    pMouth.add(pcfg, 'mouthScaleX', 0.1, 3.0, 0.01).name('Width');
+    pMouth.add(pcfg, 'mouthScaleY', 0.1, 2.5, 0.01).name('Height');
     pMouth.close();
 
     // -- Mouse Reactivity --
@@ -715,6 +722,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Canvas / Display --
     const pCanvas = prismBopFolder.addFolder('Canvas / Display');
+    pCanvas.add(pcfg, 'characterScale', 0.3, 3.0, 0.01).name('Character Scale');
     pCanvas.add(pcfg, 'canvasSize', 200, 1800, 10).name('Canvas Size');
     pCanvas.add(pcfg, 'featherInner', 0, 80, 1).name('Feather Inner %');
     pCanvas.add(pcfg, 'featherOuter', 20, 100, 1).name('Feather Outer %');
@@ -724,6 +732,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
     pBubble.add(pcfg, 'bubbleOffsetX', -200, 200, 1).name('X Offset');
     pBubble.add(pcfg, 'bubbleOffsetY', -200, 200, 1).name('Y Offset');
+    pBubble.add(pcfg, 'bubbleFontSize', 0.5, 1.6, 0.01).name('Font Size (rem)');
+    pBubble.add(pcfg, 'bubbleMaxWidth', 120, 500, 5).name('Max Width (px)');
+    pBubble.add(pcfg, 'bubblePadding', 4, 30, 1).name('Padding (px)');
     pBubble.close();
 
     // -- Reset --

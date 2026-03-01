@@ -49,12 +49,14 @@ export const PRISM_DEFAULTS = {
   // Vertex highlights
   vertexHighlightScale: 0.35,
   vertexHighlightPulse: 0.15,
+  // Character scale
+  characterScale: 1.0,
   // Mouth position / scale
   mouthX: 0,
   mouthY: -0.32,
   mouthZ: 0.58,
-  mouthScaleX: 0.55,
-  mouthScaleY: 0.42,
+  mouthScaleX: 0.7,
+  mouthScaleY: 0.55,
   // Glass refraction controls
   glassIOR: 0.67,
   causticIntensity: 1.0,
@@ -62,9 +64,12 @@ export const PRISM_DEFAULTS = {
   chromaticSpread: 1.0,
   glassAlpha: 0.22,
   streakIntensity: 1.0,
-  // Bubble offset
+  // Bubble controls
   bubbleOffsetX: 0,
   bubbleOffsetY: 0,
+  bubbleFontSize: 0.8,
+  bubbleMaxWidth: 260,
+  bubblePadding: 14,
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
 };
@@ -579,6 +584,23 @@ function PrismBody({ geometry }) {
   const innerMatRef = useRef();
   const edgeMatRef = useRef();
 
+  // Stable uniform objects - avoids R3F reconciler replacing them on re-render
+  const innerUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uIsSide: { value: 1.0 },
+    uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+    uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+    uChromaticSpread: { value: cfg.chromaticSpread },
+    uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+  }), []);
+
+  const outerUniforms = useMemo(() => ({
+    uTime: { value: 0 }, uIsSide: { value: 0.0 },
+    uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
+    uIridescenceIntensity: { value: cfg.iridescenceIntensity },
+    uChromaticSpread: { value: cfg.chromaticSpread },
+    uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
+  }), []);
+
   const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
 
   useFrame((state, delta) => {
@@ -612,10 +634,8 @@ function PrismBody({ geometry }) {
       groupRef.current.scale.setScalar(breath);
     }
 
-    // Update glass shader uniforms on both layers
-    [outerMatRef, innerMatRef].forEach(ref => {
-      if (!ref.current) return;
-      const u = ref.current.uniforms;
+    // Update glass shader uniforms on both layers (stable refs, no reconciler issues)
+    [innerUniforms, outerUniforms].forEach(u => {
       u.uTime.value = t;
       u.uIOR.value = cfg.glassIOR;
       u.uCausticIntensity.value = cfg.causticIntensity;
@@ -639,13 +659,7 @@ function PrismBody({ geometry }) {
           ref={innerMatRef}
           vertexShader={glassVert}
           fragmentShader={glassFrag}
-          uniforms={{
-            uTime: { value: 0 }, uIsSide: { value: 1.0 },
-            uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
-            uIridescenceIntensity: { value: cfg.iridescenceIntensity },
-            uChromaticSpread: { value: cfg.chromaticSpread },
-            uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
-          }}
+          uniforms={innerUniforms}
           transparent
           side={THREE.BackSide}
           depthWrite={false}
@@ -658,13 +672,7 @@ function PrismBody({ geometry }) {
           ref={outerMatRef}
           vertexShader={glassVert}
           fragmentShader={glassFrag}
-          uniforms={{
-            uTime: { value: 0 }, uIsSide: { value: 0.0 },
-            uIOR: { value: cfg.glassIOR }, uCausticIntensity: { value: cfg.causticIntensity },
-            uIridescenceIntensity: { value: cfg.iridescenceIntensity },
-            uChromaticSpread: { value: cfg.chromaticSpread },
-            uGlassAlpha: { value: cfg.glassAlpha }, uStreakIntensity: { value: cfg.streakIntensity },
-          }}
+          uniforms={outerUniforms}
           transparent
           side={THREE.FrontSide}
           depthWrite={false}
@@ -1280,6 +1288,15 @@ function LightSpill() {
   return <pointLight ref={lightRef} color="#a855f7" distance={6} />;
 }
 
+/* ═══════════ CHARACTER SCALE (overall size from editor) ═══════════ */
+function CharacterScaleGroup({ children }) {
+  const ref = useRef();
+  useFrame(() => {
+    if (ref.current) ref.current.scale.setScalar(cfg.characterScale ?? 1);
+  });
+  return <group ref={ref}>{children}</group>;
+}
+
 /* ═══════════ MAIN COMPONENT ═══════════ */
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
@@ -1344,22 +1361,24 @@ export default function Prism3D() {
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
-            <PrismBody geometry={geometry} />
-            <GlassOrbEye />
-            <InternalGlow />
-            <VertexHighlights />
-            <IncomingBeam />
-            <RainbowFan />
+            <CharacterScaleGroup>
+              <PrismBody geometry={geometry} />
+              <GlassOrbEye />
+              <InternalGlow />
+              <VertexHighlights />
+              <IncomingBeam />
+              <RainbowFan />
 
-            <Sparkles
-              count={cfg.sparkleCount}
-              scale={[4, 4, 4]}
-              size={cfg.sparkleSize}
-              speed={cfg.sparkleSpeed}
-              opacity={cfg.sparkleOpacity}
-              color="#c4b5fd"
-              noise={2}
-            />
+              <Sparkles
+                count={cfg.sparkleCount}
+                scale={[4, 4, 4]}
+                size={cfg.sparkleSize}
+                speed={cfg.sparkleSpeed}
+                opacity={cfg.sparkleOpacity}
+                color="#c4b5fd"
+                noise={2}
+              />
+            </CharacterScaleGroup>
           </Float>
         </MouseDriftGroup>
       </Canvas>
