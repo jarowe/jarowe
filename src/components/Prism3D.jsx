@@ -88,6 +88,111 @@ export const PRISM_DEFAULTS = {
   lockedPeekStyle: '',
 };
 
+/* ═══════════ GLASS PRESETS (built-in per mode) ═══════════ */
+export const GLASS_PRESETS = [
+  // ── Custom Shader presets ──
+  {
+    name: 'Prismatic Crystal',
+    description: 'Default balanced look',
+    glassMode: 'shader',
+    glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
+    chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
+  },
+  {
+    name: 'Diamond Fire',
+    description: 'Intense caustics + high streaks',
+    glassMode: 'shader',
+    glassIOR: 0.45, causticIntensity: 2.5, iridescenceIntensity: 0.6,
+    chromaticSpread: 1.8, glassAlpha: 0.18, streakIntensity: 2.2,
+  },
+  {
+    name: 'Opal Glow',
+    description: 'Max iridescence, soft',
+    glassMode: 'shader',
+    glassIOR: 0.8, causticIntensity: 0.5, iridescenceIntensity: 2.5,
+    chromaticSpread: 2.0, glassAlpha: 0.30, streakIntensity: 0.4,
+  },
+  {
+    name: 'Dark Amethyst',
+    description: 'Deep interior, sharp edges',
+    glassMode: 'shader',
+    glassIOR: 0.35, causticIntensity: 1.8, iridescenceIntensity: 1.2,
+    chromaticSpread: 0.5, glassAlpha: 0.45, streakIntensity: 1.5,
+  },
+  // ── Real Glass (MTM) presets ──
+  {
+    name: 'Clear Crystal',
+    description: 'Clean glass refraction',
+    glassMode: 'mtm',
+    mtmThickness: 0.8, mtmRoughness: 0.02, mtmIOR: 1.5,
+    mtmChromatic: 0.8, mtmTransmission: 1.0, mtmBackside: true,
+  },
+  {
+    name: 'Frosted Glass',
+    description: 'Blurred refraction',
+    glassMode: 'mtm',
+    mtmThickness: 2.0, mtmRoughness: 0.35, mtmIOR: 1.4,
+    mtmChromatic: 0.3, mtmTransmission: 0.9, mtmBackside: true,
+  },
+  {
+    name: 'Prism Rainbow',
+    description: 'Maximum chromatic dispersion',
+    glassMode: 'mtm',
+    mtmThickness: 1.5, mtmRoughness: 0.03, mtmIOR: 2.0,
+    mtmChromatic: 3.0, mtmTransmission: 1.0, mtmBackside: true,
+  },
+  {
+    name: 'Heavy Crystal',
+    description: 'Thick dense glass',
+    glassMode: 'mtm',
+    mtmThickness: 4.0, mtmRoughness: 0.08, mtmIOR: 1.8,
+    mtmChromatic: 1.5, mtmTransmission: 0.85, mtmBackside: true,
+  },
+  // ── Hybrid presets ──
+  {
+    name: 'Perfect Blend',
+    description: 'THE hand-tuned ideal — real glass clarity + colorful shader overlay',
+    glassMode: 'hybrid',
+    hybridBlend: 0.55, hybridShaderAdd: 0.75, hybridEnvIntensity: 0.5, hybridMtmScale: 1.04,
+    // Shader side
+    glassIOR: 0.55, causticIntensity: 1.4, iridescenceIntensity: 1.3,
+    chromaticSpread: 1.3, glassAlpha: 0.15, streakIntensity: 0.9,
+    // MTM side
+    mtmThickness: 1.2, mtmRoughness: 0.03, mtmIOR: 1.6,
+    mtmChromatic: 1.8, mtmTransmission: 0.95, mtmBackside: true,
+  },
+  {
+    name: 'Glass + Fire',
+    description: 'MTM base with intense caustic overlay',
+    glassMode: 'hybrid',
+    hybridBlend: 0.7, hybridShaderAdd: 1.0, hybridEnvIntensity: 0.6, hybridMtmScale: 1.02,
+    glassIOR: 0.45, causticIntensity: 2.5, iridescenceIntensity: 0.6,
+    chromaticSpread: 1.8, glassAlpha: 0.18, streakIntensity: 2.2,
+    mtmThickness: 0.8, mtmRoughness: 0.02, mtmIOR: 1.5,
+    mtmChromatic: 0.8, mtmTransmission: 1.0, mtmBackside: true,
+  },
+  {
+    name: 'Ethereal',
+    description: 'Soft dreamy refraction + iridescence',
+    glassMode: 'hybrid',
+    hybridBlend: 0.4, hybridShaderAdd: 0.5, hybridEnvIntensity: 0.8, hybridMtmScale: 1.08,
+    glassIOR: 0.8, causticIntensity: 0.4, iridescenceIntensity: 2.2,
+    chromaticSpread: 1.6, glassAlpha: 0.25, streakIntensity: 0.3,
+    mtmThickness: 1.8, mtmRoughness: 0.2, mtmIOR: 1.4,
+    mtmChromatic: 0.5, mtmTransmission: 0.9, mtmBackside: true,
+  },
+  {
+    name: 'Holographic',
+    description: 'Max chromatic on both layers',
+    glassMode: 'hybrid',
+    hybridBlend: 0.5, hybridShaderAdd: 0.9, hybridEnvIntensity: 0.3, hybridMtmScale: 1.03,
+    glassIOR: 0.5, causticIntensity: 1.0, iridescenceIntensity: 1.8,
+    chromaticSpread: 3.0, glassAlpha: 0.2, streakIntensity: 1.2,
+    mtmThickness: 1.2, mtmRoughness: 0.03, mtmIOR: 1.8,
+    mtmChromatic: 3.0, mtmTransmission: 1.0, mtmBackside: true,
+  },
+];
+
 // Live config object - editor mutates this, prism reads each frame
 if (!window.__prismConfig) {
   window.__prismConfig = { ...PRISM_DEFAULTS };

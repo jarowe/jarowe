@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import GUI from 'lil-gui';
 import * as THREE from 'three';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
+import { GLASS_PRESETS } from './Prism3D';
 
 const STORAGE_KEY = 'jarowe_globe_editor_preset';
+const GLASS_PRESET_STORAGE_KEY = 'jarowe_glass_presets';
 
 function rgbToHex(arr) {
   const r = Math.round(Math.min(1, Math.max(0, arr[0])) * 255);
@@ -724,6 +726,100 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     if (pcfg.hybridEnvIntensity === undefined) pcfg.hybridEnvIntensity = 0.4;
     if (pcfg.hybridShaderAdd === undefined) pcfg.hybridShaderAdd = 0.6;
     const glassModeCtrl = pGlassRef.add(pcfg, 'glassMode', { 'Custom Shader': 'shader', 'Real Glass (MTM)': 'mtm', 'Hybrid (Shader + MTM)': 'hybrid' }).name('Glass Mode');
+
+    // ── Glass Presets ──
+    const presetProxy = { selectedPreset: '' };
+    const loadCustomPresets = () => {
+      try { return JSON.parse(localStorage.getItem(GLASS_PRESET_STORAGE_KEY) || '[]'); }
+      catch { return []; }
+    };
+
+    const getPresetsForMode = (mode) => {
+      const builtIn = GLASS_PRESETS.filter(p => p.glassMode === mode);
+      const custom = loadCustomPresets().filter(p => p.glassMode === mode);
+      return [...builtIn, ...custom];
+    };
+
+    const buildPresetOptions = () => {
+      const matching = getPresetsForMode(pcfg.glassMode);
+      const opts = { '— Select Preset —': '' };
+      matching.forEach(p => { opts[p.name] = p.name; });
+      return opts;
+    };
+
+    const presetCtrl = pGlassRef.add(presetProxy, 'selectedPreset', buildPresetOptions()).name('Preset');
+
+    const rebuildPresetDropdown = () => {
+      const opts = buildPresetOptions();
+      // lil-gui: replace options on existing controller
+      presetCtrl.options(opts);
+      presetProxy.selectedPreset = '';
+      presetCtrl.updateDisplay();
+    };
+
+    // Keys to snapshot/apply per mode
+    const SHADER_KEYS = ['glassIOR', 'causticIntensity', 'iridescenceIntensity', 'chromaticSpread', 'glassAlpha', 'streakIntensity'];
+    const MTM_KEYS = ['mtmThickness', 'mtmRoughness', 'mtmIOR', 'mtmChromatic', 'mtmTransmission', 'mtmBackside'];
+    const HYBRID_KEYS = ['hybridBlend', 'hybridShaderAdd', 'hybridEnvIntensity', 'hybridMtmScale'];
+
+    const getKeysForMode = (mode) => {
+      if (mode === 'shader') return SHADER_KEYS;
+      if (mode === 'mtm') return MTM_KEYS;
+      return [...SHADER_KEYS, ...MTM_KEYS, ...HYBRID_KEYS]; // hybrid
+    };
+
+    // Apply Preset
+    pGlassRef.add({ apply() {
+      const name = presetProxy.selectedPreset;
+      if (!name) return;
+      const allPresets = [...GLASS_PRESETS, ...loadCustomPresets()];
+      const preset = allPresets.find(p => p.name === name);
+      if (!preset) return;
+
+      // If preset is a different mode, switch mode first
+      if (preset.glassMode !== pcfg.glassMode) {
+        pcfg.glassMode = preset.glassMode;
+        glassModeCtrl.updateDisplay();
+      }
+
+      // Apply all preset values to pcfg
+      const keys = getKeysForMode(preset.glassMode);
+      keys.forEach(k => { if (preset[k] !== undefined) pcfg[k] = preset[k]; });
+
+      // Refresh all lil-gui sliders
+      gui.controllersRecursive().forEach(c => c.updateDisplay());
+      // Fire glass mode change to update prism
+      window.dispatchEvent(new CustomEvent('prism-glass-mode-change'));
+    } }, 'apply').name('Apply Preset');
+
+    // Save Custom
+    pGlassRef.add({ save() {
+      const name = prompt('Enter a name for your custom preset:');
+      if (!name || !name.trim()) return;
+      const fullName = `[Custom] ${name.trim()}`;
+      const custom = loadCustomPresets();
+      // Remove existing with same name
+      const filtered = custom.filter(p => p.name !== fullName);
+      const newPreset = { name: fullName, glassMode: pcfg.glassMode, description: 'Custom preset' };
+      const keys = getKeysForMode(pcfg.glassMode);
+      keys.forEach(k => { newPreset[k] = pcfg[k]; });
+      filtered.push(newPreset);
+      localStorage.setItem(GLASS_PRESET_STORAGE_KEY, JSON.stringify(filtered));
+      rebuildPresetDropdown();
+    } }, 'save').name('Save as Custom');
+
+    // Delete Custom
+    pGlassRef.add({ del() {
+      const name = presetProxy.selectedPreset;
+      if (!name) return;
+      if (!name.startsWith('[Custom]')) { alert('Cannot delete built-in presets.'); return; }
+      if (!confirm(`Delete preset "${name}"?`)) return;
+      const custom = loadCustomPresets().filter(p => p.name !== name);
+      localStorage.setItem(GLASS_PRESET_STORAGE_KEY, JSON.stringify(custom));
+      presetProxy.selectedPreset = '';
+      rebuildPresetDropdown();
+    } }, 'del').name('Delete Custom');
+
     // Shader-mode controls
     const shaderCtrls = [];
     shaderCtrls.push(pGlassRef.add(pcfg, 'glassIOR', 0.2, 1.0, 0.01).name('IOR (Refraction)'));
@@ -757,7 +853,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       hybridCtrls.forEach(c => c.domElement.style.display = isHybrid ? '' : 'none');
     };
     updateGlassControls();
-    glassModeCtrl.onChange(() => { updateGlassControls(); window.dispatchEvent(new CustomEvent('prism-glass-mode-change')); });
+    glassModeCtrl.onChange(() => { updateGlassControls(); rebuildPresetDropdown(); window.dispatchEvent(new CustomEvent('prism-glass-mode-change')); });
     pGlassRef.close();
 
     // -- Canvas / Display --
