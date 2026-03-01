@@ -3394,32 +3394,35 @@ export default function Home() {
     "I'm basically a disco ball",
   ];
 
-  // Spark of Genius - brilliant ideas that emerge from the prism
+  // Spark of Genius - the creative thread traveling through the vessel
   const sparkIdeas = [
-    "What if every line of code you write creates a tiny universe?",
-    "The distance between idea and reality is just momentum",
-    "Creativity isn't born — it's refracted from everything you've absorbed",
+    "What if we raised our kids on curiosity instead of curriculum?",
+    "The best classroom is a foreign country you've never heard of",
+    "Technology should feel like magic. If it doesn't, we're not done yet.",
     "What if the internet remembered how to feel wonder?",
-    "The best inventions happen when curiosity outruns doubt",
-    "Every masterpiece was once someone's ridiculous idea",
-    "Connection is the currency of creativity",
-    "The future belongs to those who build what doesn't exist yet",
-    "What if we stopped optimizing and started wondering?",
-    "Somewhere between chaos and order, magic lives",
-    "The universe doesn't know what's impossible. Neither should you.",
-    "Innovation is just pattern recognition across different worlds",
-    "What if play is the most productive thing you can do?",
-    "The answer you're looking for is hiding in a question you haven't asked",
-    "Every pixel on this screen is a choice someone made with intention",
-    "Your weirdest idea is probably your best one",
-    "What separates a dreamer from a builder? One keystroke.",
-    "Constraints aren't limits — they're invitations to be ingenious",
-    "The next paradigm shift is being prototyped in someone's side project right now",
-    "Empathy is the ultimate debugging tool",
+    "Every great product started as someone's obsession that nobody understood",
+    "The future is being built by parents who refuse to sit still",
+    "Code is just thought made tangible",
+    "Somewhere between Athens and Bali, the world taught us more than any school",
+    "What separates a dreamer from a builder? Hitting 'deploy'.",
+    "The best UI is the one that makes someone forget they're using technology",
+    "Creativity is just connecting dots nobody else can see",
+    "Your kids don't need a roadmap. They need permission to explore.",
+    "The most dangerous phrase in innovation: 'That's how it's always been done'",
+    "What if play is the highest form of research?",
+    "Every masterpiece started as a ridiculous side project",
+    "The gap between impossible and shipped is one stubborn weekend",
+    "Constraints don't limit creativity — they ARE creativity",
+    "The universe runs on patterns. So does great design.",
+    "What if we built companies the way we build adventures — fearlessly?",
+    "Light doesn't ask permission to refract. Neither should your ideas.",
   ];
 
+  // Portal entrance ref for CSS glow class
+  const peekCharRef = useRef(null);
+
   useEffect(() => {
-    const peekStyles = ['slide', 'bounce', 'swing', 'pop', 'roll'];
+    const peekStyles = ['portal', 'portal', 'portal', 'bounce', 'pop', 'roll'];
     const scheduleNext = () => {
       const delay = 12000 + Math.random() * 20000;
       return setTimeout(() => {
@@ -3434,17 +3437,33 @@ export default function Home() {
             side: sp.side || 'right'
           });
         }
-        setPeekStyle(peekStyles[Math.floor(Math.random() * peekStyles.length)]);
+        const style = peekStyles[Math.floor(Math.random() * peekStyles.length)];
+        setPeekStyle(style);
         setPeekVisible(true);
-        // Show a spark of genius idea after a brief delay
+
+        // Portal burst: confetti particle explosion
+        if (style === 'portal') {
+          const side = sp.side || 'right';
+          const ox = side === 'right' ? 0.85 : side === 'left' ? 0.15 : 0.5;
+          const oy = side === 'top' ? 0.2 : 0.5;
+          confetti({ particleCount: 40, spread: 360, startVelocity: 18, gravity: 0.4, origin: { x: ox, y: oy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#a78bfa', '#22c55e', '#fbbf24'], scalar: 0.5, ticks: 70, shapes: ['circle'] });
+          // Add portal glow class
+          if (peekCharRef.current) {
+            peekCharRef.current.classList.add('portal-entering');
+            setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 800);
+          }
+        }
+
+        // Show a spark of genius idea after character settles
         const ideaDelay = setTimeout(() => {
           const idea = sparkIdeas[Math.floor(Math.random() * sparkIdeas.length)];
           window.__prismTalking = true;
+          window.__prismExpression = 'excited';
           setPrismBubble(idea);
-          setTimeout(() => { window.__prismTalking = false; }, 1500);
-          setTimeout(() => setPrismBubble(null), 4000);
-        }, 800);
-        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 6000);
+          setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
+          setTimeout(() => { setPrismBubble(null); window.__prismExpression = 'normal'; }, 5000);
+        }, 1200);
+        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 7000);
         timerId = scheduleNext();
       }, delay);
     };
@@ -3947,18 +3966,21 @@ export default function Home() {
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
           const hiddenState =
-            peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
+            peekStyle === 'portal' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
+            : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
+            peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 12, mass: 0.8 }
+            : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
             : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
             : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
             : { type: 'spring', stiffness: 300, damping: 20 };
           return (
             <motion.div
+              ref={peekCharRef}
               className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
               animate={peekVisible ? { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 } : hiddenState}
               initial={false}

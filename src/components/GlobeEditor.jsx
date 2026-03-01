@@ -582,7 +582,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         internalGlowIntensity: 1.5, internalGlowDistance: 4, lightSpillIntensity: 1.0,
         floatSpeed: 2, rotationIntensity: 0.3, floatIntensity: 0.5, rotationSpeed: 0.2,
         breathingAmp: 0.02, breathingSpeed: 0.8,
-        canvasSize: 420, featherInner: 25, featherOuter: 75,
+        canvasSize: 560, featherInner: 18, featherOuter: 88,
         beamOpacity: 1.0, rayOpacity: 0.85, edgeGlowOpacity: 0.4,
         vertexHighlightScale: 0.35, vertexHighlightPulse: 0.15,
       };

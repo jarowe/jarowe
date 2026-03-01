@@ -38,9 +38,9 @@ export const PRISM_DEFAULTS = {
   breathingAmp: 0.02,
   breathingSpeed: 0.8,
   // Canvas / display
-  canvasSize: 420,
-  featherInner: 25,
-  featherOuter: 75,
+  canvasSize: 560,
+  featherInner: 18,
+  featherOuter: 88,
   // Beam / rays
   beamOpacity: 1.0,
   rayOpacity: 0.85,
@@ -775,6 +775,7 @@ function GlassOrbEye() {
       <sprite ref={eyeSpriteRef} scale={[0.9, 0.76, 1]} position={[0, 0, 0.56]}>
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
+      <MouthExpression />
     </group>
   );
 }
