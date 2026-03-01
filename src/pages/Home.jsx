@@ -3394,24 +3394,28 @@ export default function Home() {
     "I'm basically a disco ball",
   ];
 
-  // Spark of Genius ideas - shown when prism appears
+  // Spark of Genius - brilliant ideas that emerge from the prism
   const sparkIdeas = [
-    "What if websites could dream?",
-    "Every pixel holds a universe...",
-    "The best code is a love letter to the future",
-    "What if creativity is just light splitting?",
-    "Psst... there are hidden easter eggs here",
-    "The Universe page is calling your name",
-    "Light enters one way, magic leaves another",
-    "Build weird things. The world needs more weird.",
-    "Connection > perfection",
-    "Sometimes the bug IS the feature",
-    "I think, therefore I prism",
-    "Connecting constellations of thought...",
-    "What if butterflies are just flowers with wings?",
-    "The stars are just sparkles I haven't caught yet",
-    "Imagination is the only real superpower",
-    "Every great idea starts as a silly thought",
+    "What if every line of code you write creates a tiny universe?",
+    "The distance between idea and reality is just momentum",
+    "Creativity isn't born — it's refracted from everything you've absorbed",
+    "What if the internet remembered how to feel wonder?",
+    "The best inventions happen when curiosity outruns doubt",
+    "Every masterpiece was once someone's ridiculous idea",
+    "Connection is the currency of creativity",
+    "The future belongs to those who build what doesn't exist yet",
+    "What if we stopped optimizing and started wondering?",
+    "Somewhere between chaos and order, magic lives",
+    "The universe doesn't know what's impossible. Neither should you.",
+    "Innovation is just pattern recognition across different worlds",
+    "What if play is the most productive thing you can do?",
+    "The answer you're looking for is hiding in a question you haven't asked",
+    "Every pixel on this screen is a choice someone made with intention",
+    "Your weirdest idea is probably your best one",
+    "What separates a dreamer from a builder? One keystroke.",
+    "Constraints aren't limits — they're invitations to be ingenious",
+    "The next paradigm shift is being prototyped in someone's side project right now",
+    "Empathy is the ultimate debugging tool",
   ];
 
   useEffect(() => {

@@ -76,8 +76,10 @@ const glassVert = `
   varying vec3 vNormal;
   varying vec3 vViewDir;
   varying vec3 vWorldPos;
+  varying vec2 vUv;
 
   void main() {
+    vUv = uv;
     vec4 worldPos = modelMatrix * vec4(position, 1.0);
     vWorldPos = worldPos.xyz;
     vNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
@@ -88,10 +90,12 @@ const glassVert = `
 
 const glassFrag = `
   uniform float uTime;
+  uniform float uIsSide; // 0.0 = front side (outer), 1.0 = back side (inner)
 
   varying vec3 vNormal;
   varying vec3 vViewDir;
   varying vec3 vWorldPos;
+  varying vec2 vUv;
 
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -100,11 +104,11 @@ const glassFrag = `
     vec2 i = floor(p);
     vec2 f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    return mix(
+      mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+      f.y
+    );
   }
 
   void main() {
@@ -113,77 +117,94 @@ const glassFrag = `
     float NdotV = abs(dot(N, V));
     float t = uTime * 0.15;
 
-    // ── STRONG FRESNEL: glass is transparent face-on, reflective at edges ──
-    float fresnel = pow(1.0 - NdotV, 3.0);
-
-    // ── CHROMATIC ABERRATION at edges (prismatic color separation) ──
+    // ── CHROMATIC ABERRATION: each color channel refracts differently ──
     float fresnelR = pow(1.0 - NdotV, 2.0);
-    float fresnelG = pow(1.0 - NdotV, 3.0);
-    float fresnelB = pow(1.0 - NdotV, 4.0);
+    float fresnelG = pow(1.0 - NdotV, 2.8);
+    float fresnelB = pow(1.0 - NdotV, 3.6);
+    float fresnel = pow(1.0 - NdotV, 2.8);
 
-    // ── THIN-FILM IRIDESCENCE (double layer, edges only) ──
-    float iri1 = acos(clamp(NdotV, 0.0, 1.0)) * 4.0 + t * 1.8;
-    float iri2 = acos(clamp(NdotV, 0.0, 1.0)) * 6.0 - t * 1.0;
+    // ── REFRACTED SAMPLING POSITION ──
+    vec3 refracted = refract(-V, N, 0.67); // glass IOR ~1.5
+    vec3 samplePos = vWorldPos + refracted * 1.5;
+
+    // ── INTERNAL CAUSTIC PATTERNS (bright rainbow light swimming inside) ──
+    float c1 = vnoise(samplePos.xy * 3.0 + t * 0.6);
+    float c2 = vnoise(samplePos.yz * 4.0 - t * 0.8 + 5.0);
+    float c3 = vnoise(samplePos.xz * 2.5 + t * 0.4 + 10.0);
+    float causticBright = pow(abs(sin(c1 * 8.0 + c2 * 5.0)), 3.0) * 0.6;
+    float causticBright2 = pow(abs(sin(c2 * 6.0 + c3 * 4.0 + 2.0)), 3.0) * 0.4;
+
+    // ── LIGHT STREAKS (vertical caustics through crystal) ──
+    float streaks = 0.0;
+    for (int i = 0; i < 4; i++) {
+      float fi = float(i);
+      float sx = sin(samplePos.x * (6.0 + fi * 3.0) + t * (1.0 + fi * 0.4) + fi * 1.7);
+      streaks += pow(max(0.0, sx * 0.5 + 0.5), 14.0) * 0.2;
+    }
+
+    // ── DOUBLE THIN-FILM IRIDESCENCE ──
+    float angle = acos(clamp(NdotV, 0.0, 1.0));
+    float iri1 = angle * 4.0 + t * 2.0;
+    float iri2 = angle * 6.5 - t * 1.2;
     vec3 iridescence = vec3(
       0.5 + 0.5 * sin(iri1 * 4.0),
       0.5 + 0.5 * sin(iri1 * 4.0 + 2.094),
       0.5 + 0.5 * sin(iri1 * 4.0 + 4.189)
     );
-    vec3 iriLayer2 = vec3(
+    vec3 iri2Color = vec3(
       0.5 + 0.5 * sin(iri2 * 3.0 + 1.0),
       0.5 + 0.5 * sin(iri2 * 3.0 + 3.094),
       0.5 + 0.5 * sin(iri2 * 3.0 + 5.189)
     );
-    iridescence = mix(iridescence, iriLayer2, 0.4);
+    iridescence = mix(iridescence, iri2Color, 0.4);
 
-    // ── SUBTLE INTERNAL LIGHT STREAKS (like looking through real crystal) ──
-    vec3 refractedPos = vWorldPos + N * 0.3;
-    float streaks = 0.0;
-    for (int i = 0; i < 4; i++) {
-      float fi = float(i);
-      float sx = sin(refractedPos.x * (5.0 + fi * 2.5) + t * (0.8 + fi * 0.35) + fi * 1.7);
-      float sy = cos(refractedPos.y * (3.5 + fi * 2.0) + t * (0.5 + fi * 0.2));
-      streaks += pow(max(0.0, sx * 0.5 + 0.5), 12.0) * (0.2 + 0.15 * sy);
-    }
+    // ── CAUSTIC RAINBOW COLORS (light patterns refracted inside) ──
+    vec3 causticColor = vec3(
+      0.3 + 0.7 * sin(c1 * 8.0 + t * 0.5),
+      0.3 + 0.7 * sin(c1 * 8.0 + t * 0.5 + 2.094),
+      0.3 + 0.7 * sin(c1 * 8.0 + t * 0.5 + 4.189)
+    ) * causticBright;
 
-    // ── SUBTLE INTERIOR COLOR (dark glass with hints of purple/blue) ──
-    float n1 = vnoise(refractedPos.xy * 2.0 + t * 0.3);
-    vec3 interiorHint = vec3(
-      0.12 + 0.08 * sin(n1 * 5.0 + t),
-      0.08 + 0.06 * sin(n1 * 4.0 + t * 0.7 + 2.0),
-      0.2 + 0.12 * sin(n1 * 3.0 + t * 0.5 + 4.0)
-    );
+    vec3 causticColor2 = vec3(
+      0.3 + 0.7 * sin(c2 * 6.0 + t * 0.3 + 1.0),
+      0.3 + 0.7 * sin(c2 * 6.0 + t * 0.3 + 3.094),
+      0.3 + 0.7 * sin(c2 * 6.0 + t * 0.3 + 5.189)
+    ) * causticBright2;
 
-    // ── FOUR SHARP SPECULAR HIGHLIGHTS (glass reflects sharply) ──
+    // ── SPECULAR HIGHLIGHTS (very sharp, glass-like) ──
     vec3 L1 = normalize(vec3(-1.0, 0.7, 0.8));
     vec3 L2 = normalize(vec3(1.0, 0.3, 0.5));
     vec3 L3 = normalize(vec3(0.0, -0.8, 0.6));
     vec3 L4 = normalize(vec3(sin(t * 0.5) * 0.7, 0.5, 0.7));
     float spec1 = pow(max(dot(reflect(-L1, N), V), 0.0), 200.0);
     float spec2 = pow(max(dot(reflect(-L2, N), V), 0.0), 120.0);
-    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 60.0);
+    float spec3 = pow(max(dot(reflect(-L3, N), V), 0.0), 80.0);
     float spec4 = pow(max(dot(reflect(-L4, N), V), 0.0), 150.0);
-    float specTotal = spec1 + spec2 * 0.7 + spec3 * 0.4 + spec4 * 0.5;
+    float specTotal = spec1 + spec2 * 0.7 + spec3 * 0.5 + spec4 * 0.5;
 
-    // ── COMPOSITE: dark glass body, bright iridescent edges ──
-    // Center: subtle dark interior with hint of color
-    // Edges: bright iridescent reflections (the glass-catching-light look)
-    vec3 color = interiorHint + vec3(0.05, 0.03, 0.1) * streaks;
-    color = mix(color, iridescence * 1.4, fresnel * 0.65);
+    // ── COMPOSITE ──
+    // Interior: deep dark purple-blue with caustic rainbow patterns swimming through
+    vec3 interior = vec3(0.08, 0.05, 0.18);
+    interior += causticColor + causticColor2;
+    interior += vec3(0.6, 0.5, 1.0) * streaks;
 
-    // Chromatic edge fringing
-    color.r += fresnelR * 0.4;
-    color.b += fresnelB * 0.35;
+    // Mix: interior visible face-on, iridescent reflection at edges
+    vec3 color = mix(interior, iridescence * 1.5, fresnel * 0.6);
 
-    // Very bright specular sparkle (sharp glass reflections)
-    color += vec3(1.0, 0.98, 0.95) * specTotal * 1.2;
+    // Chromatic fringing at edges (the prismatic effect!)
+    color.r += fresnelR * 0.35;
+    color.b += fresnelB * 0.3;
 
-    // Strong bright rim (the defining look of the MTM screenshots)
-    float rimLight = pow(fresnel, 2.5) * 1.0;
-    color += vec3(0.85, 0.75, 1.0) * rimLight;
+    // Sharp specular sparkle
+    color += vec3(1.0, 0.98, 0.95) * specTotal * 1.3;
 
-    // ── ALPHA: transparent center (see through), solid bright edges ──
-    float alpha = 0.12 + fresnel * 0.75 + specTotal * 0.25 + streaks * 0.06;
+    // Strong bright rim
+    color += vec3(0.8, 0.7, 1.0) * pow(fresnel, 2.5) * 0.9;
+
+    // ── ALPHA ──
+    // BackSide (inner) layer: more opaque for depth illusion
+    float baseAlpha = uIsSide > 0.5 ? 0.35 : 0.22;
+    float alpha = baseAlpha + fresnel * 0.6 + specTotal * 0.2 + (causticBright + causticBright2) * 0.15;
     alpha = min(alpha, 0.92);
 
     gl_FragColor = vec4(color, alpha);
@@ -526,10 +547,11 @@ function NebulaBackdrop({ texture }) {
   );
 }
 
-/* ═══════════ PRISM BODY (custom glass shader + edges) ═══════════ */
+/* ═══════════ PRISM BODY (dual-layer glass + edges) ═══════════ */
 function PrismBody({ geometry }) {
   const groupRef = useRef();
-  const glassMatRef = useRef();
+  const outerMatRef = useRef();
+  const innerMatRef = useRef();
   const edgeMatRef = useRef();
 
   const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, 20), [geometry]);
@@ -565,8 +587,9 @@ function PrismBody({ geometry }) {
       groupRef.current.scale.setScalar(breath);
     }
 
-    // Update glass shader time
-    if (glassMatRef.current) glassMatRef.current.uniforms.uTime.value = t;
+    // Update glass shader time on both layers
+    if (outerMatRef.current) outerMatRef.current.uniforms.uTime.value = t;
+    if (innerMatRef.current) innerMatRef.current.uniforms.uTime.value = t;
     // Update edge glow shader
     if (edgeMatRef.current) {
       edgeMatRef.current.uniforms.uTime.value = t;
@@ -576,15 +599,28 @@ function PrismBody({ geometry }) {
 
   return (
     <group ref={groupRef}>
-      {/* Glass body - custom shader: iridescent, transparent, NO black */}
-      <mesh geometry={geometry}>
+      {/* INNER glass layer (BackSide) - creates depth illusion, slightly smaller */}
+      <mesh geometry={geometry} scale={0.82} renderOrder={0}>
         <shaderMaterial
-          ref={glassMatRef}
+          ref={innerMatRef}
           vertexShader={glassVert}
           fragmentShader={glassFrag}
-          uniforms={{ uTime: { value: 0 } }}
+          uniforms={{ uTime: { value: 0 }, uIsSide: { value: 1.0 } }}
           transparent
-          side={THREE.DoubleSide}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* OUTER glass layer (FrontSide) - the main surface you see */}
+      <mesh geometry={geometry} renderOrder={1}>
+        <shaderMaterial
+          ref={outerMatRef}
+          vertexShader={glassVert}
+          fragmentShader={glassFrag}
+          uniforms={{ uTime: { value: 0 }, uIsSide: { value: 0.0 } }}
+          transparent
+          side={THREE.FrontSide}
           depthWrite={false}
         />
       </mesh>
@@ -605,13 +641,13 @@ function PrismBody({ geometry }) {
         />
       </lineSegments>
 
-      {/* Bright white wireframe overlay (thick glass-etched lines) */}
+      {/* Bright white wireframe overlay */}
       <mesh geometry={geometry}>
         <meshBasicMaterial
           wireframe
           color="#ffffff"
           transparent
-          opacity={0.3}
+          opacity={0.25}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -739,7 +775,6 @@ function GlassOrbEye() {
       <sprite ref={eyeSpriteRef} scale={[0.9, 0.76, 1]} position={[0, 0, 0.56]}>
         <spriteMaterial map={eyeTexture} transparent depthWrite={false} />
       </sprite>
-      <Eyelid />
     </group>
   );
 }
