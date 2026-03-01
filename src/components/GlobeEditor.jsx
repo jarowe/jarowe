@@ -888,25 +888,23 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     const pTimingFolder = portalFolder.addFolder('Timing');
     pTimingFolder.add(pcfg, 'portalSeepDuration', 0, 2000, 50).name('Seep Duration (ms)');
-    pTimingFolder.add(pcfg, 'portalGatherMs', 100, 2000, 50).name('Gather Duration (ms)');
-    pTimingFolder.add(pcfg, 'portalRuptureMs', 100, 2000, 50).name('Rupture Timing (ms)');
-    pTimingFolder.add(pcfg, 'portalEmergeMs', 200, 3000, 50).name('Emerge Timing (ms)');
-    pTimingFolder.add(pcfg, 'portalResidualMs', 500, 5000, 50).name('Residual Timing (ms)');
-    pTimingFolder.add(pcfg, 'portalCleanupMs', 1000, 8000, 100).name('Cleanup Timing (ms)');
+    pTimingFolder.add(pcfg, 'portalGatherMs', 100, 2000, 50).name('Gather (ms)');
+    pTimingFolder.add(pcfg, 'portalRuptureMs', 100, 2000, 50).name('Rupture (ms)');
+    pTimingFolder.add(pcfg, 'portalEmergeMs', 200, 3000, 50).name('Emerge (ms)');
+    pTimingFolder.add(pcfg, 'portalResidualMs', 500, 5000, 50).name('Residual (ms)');
     pTimingFolder.close();
 
     const pEffectsFolder = portalFolder.addFolder('Effects');
     pEffectsFolder.add(pcfg, 'portalSeepEnabled').name('Seep Enabled');
-    pEffectsFolder.add(pcfg, 'portalConfettiEnabled').name('Confetti Enabled');
-    pEffectsFolder.add(pcfg, 'portalEmberCount', 5, 50, 1).name('Ember Count');
-    pEffectsFolder.add(pcfg, 'portalBurstEmberCount', 5, 50, 1).name('Burst Ember Count');
-    pEffectsFolder.add(pcfg, 'portalConfettiCount', 10, 200, 5).name('Confetti Count');
-    pEffectsFolder.add(pcfg, 'portalOrbScale', 0.2, 3.0, 0.05).name('Orb Scale');
-    pEffectsFolder.add(pcfg, 'portalShockwaveScale', 0.2, 3.0, 0.05).name('Shockwave Scale');
-    pEffectsFolder.add(pcfg, 'portalRingScale', 0.2, 3.0, 0.05).name('Ring Scale');
-    pEffectsFolder.add(pcfg, 'portalFlashIntensity', 0, 2.0, 0.05).name('Flash Intensity');
     pEffectsFolder.add(pcfg, 'portalSeepIntensity', 0, 2.0, 0.05).name('Seep Intensity');
-    pEffectsFolder.add(pcfg, 'portalSeepNoiseScale', 0.5, 10.0, 0.1).name('Seep Noise Scale');
+    pEffectsFolder.add(pcfg, 'portalRingRadius', 60, 300, 5).name('Ring Radius');
+    pEffectsFolder.add(pcfg, 'portalWobble', 0, 3.0, 0.05).name('Ring Wobble');
+    pEffectsFolder.add(pcfg, 'portalGlowIntensity', 0, 3.0, 0.05).name('Glow Intensity');
+    pEffectsFolder.add(pcfg, 'portalFlashIntensity', 0, 2.0, 0.05).name('Flash Intensity');
+    pEffectsFolder.add(pcfg, 'portalInteriorEnabled').name('Interior Enabled');
+    pEffectsFolder.add(pcfg, 'portalParticleMultiplier', 0, 3.0, 0.05).name('Particle Density');
+    pEffectsFolder.add(pcfg, 'portalConfettiEnabled').name('Confetti Enabled');
+    pEffectsFolder.add(pcfg, 'portalConfettiCount', 10, 200, 5).name('Confetti Count');
     pEffectsFolder.close();
 
     const pSpawnFolder = portalFolder.addFolder('Spawn');

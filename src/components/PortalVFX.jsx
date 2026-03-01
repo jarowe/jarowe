@@ -8,6 +8,12 @@ import { useRef, useEffect, useCallback } from 'react';
       phase     – null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
       originX   – CSS % string, e.g. '50%'
       originY   – CSS % string, e.g. '50%'
+
+    Reads all visual settings from window.__prismConfig at render time.
+    Colors: portalColor1/2/3, portalSeepColor
+    Settings: portalRingRadius, portalWobble, portalGlowIntensity,
+              portalFlashIntensity, portalInteriorEnabled,
+              portalParticleMultiplier, portalSeepIntensity
     ═══════════════════════════════════════════════════════════ */
 
 const MAX_PARTICLES = 200;
@@ -17,18 +23,24 @@ const DPR = Math.min(window.devicePixelRatio || 1, 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const TAU = Math.PI * 2;
 
+// Convert [r,g,b] 0-1 array to [R,G,B] 0-255 array
+const toRGB = (arr, fallback) => {
+  if (!arr || arr.length < 3) return fallback;
+  return [Math.round(arr[0] * 255), Math.round(arr[1] * 255), Math.round(arr[2] * 255)];
+};
+
 // Wobble: 3-octave sine for organic ring shape
-const wobble = (angle, time, baseR) =>
+const wobble = (angle, time, baseR, mult = 1) =>
   baseR
-  + Math.sin(angle * 3 + time * 1.5) * baseR * 0.07
-  + Math.sin(angle * 5 - time * 2.1) * baseR * 0.045
-  + Math.cos(angle * 7 + time * 3.3) * baseR * 0.025;
+  + Math.sin(angle * 3 + time * 1.5) * baseR * 0.07 * mult
+  + Math.sin(angle * 5 - time * 2.1) * baseR * 0.045 * mult
+  + Math.cos(angle * 7 + time * 3.3) * baseR * 0.025 * mult;
 
 export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
   const phaseRef = useRef(null);
-  const startTimeRef = useRef(0);
+  const lastTimeRef = useRef(0);
 
   // Lerp state – current values smoothly approach targets each frame
   const cur = useRef({
@@ -59,9 +71,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
   // Phase timing
   const phaseStartTime = useRef(0);
 
-  // Gather phase: track whether ring draw has finished
-  const ringDrawComplete = useRef(false);
-
   // Convert % string to px
   const pctToPx = useCallback((pctStr, dim) => {
     const v = parseFloat(pctStr);
@@ -74,11 +83,12 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     const ox = originPx.current.x;
     const oy = originPx.current.y;
     const c = cur.current;
+    const cfg = window.__prismConfig || {};
+    const wMult = cfg.portalWobble ?? 1;
 
     if (type === 'ring') {
-      // Particle orbits along ring edge
       const angle = Math.random() * TAU;
-      const r = wobble(angle, time, c.ringRadius);
+      const r = wobble(angle, time, c.ringRadius, wMult);
       particles.current.push({
         type: 'ring',
         x: ox + Math.cos(angle) * r,
@@ -92,7 +102,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         brightness: 0.6 + Math.random() * 0.4,
       });
     } else {
-      // Flying spark – burst outward from ring
       const angle = Math.random() * TAU;
       const r = c.ringRadius * (0.8 + Math.random() * 0.4);
       const speed = 60 + Math.random() * 180;
@@ -107,7 +116,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         life: 1,
         decay: 0.4 + Math.random() * 0.6,
         size: 1 + Math.random() * 2,
-        hue: Math.random() < 0.3 ? 40 : (260 + Math.random() * 80), // gold or purple/blue
+        hue: Math.random() < 0.3 ? 40 : (260 + Math.random() * 80),
         brightness: 0.8 + Math.random() * 0.2,
       });
     }
@@ -120,46 +129,62 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Real delta time
+    const rawDt = lastTimeRef.current ? (timestamp - lastTimeRef.current) * 0.001 : 1 / 60;
+    const dt = Math.min(rawDt, 1 / 15); // cap to prevent huge jumps
+    lastTimeRef.current = timestamp;
+
     const W = canvas.width;
     const H = canvas.height;
     const time = timestamp * 0.001;
-    const dt = Math.min(1 / 30, 1 / 60); // fixed dt for consistent lerp
     const ox = originPx.current.x * DPR;
     const oy = originPx.current.y * DPR;
     const c = cur.current;
     const t = tgt.current;
 
+    // ── Read config ──
+    const cfg = window.__prismConfig || {};
+    const c1 = toRGB(cfg.portalColor1, [124, 58, 237]);
+    const c2 = toRGB(cfg.portalColor2, [56, 189, 248]);
+    const c3 = toRGB(cfg.portalColor3, [244, 114, 182]);
+    const wMult = cfg.portalWobble ?? 1;
+    const glowMult = cfg.portalGlowIntensity ?? 1;
+    const flashMult = cfg.portalFlashIntensity ?? 1;
+    const interiorOn = cfg.portalInteriorEnabled !== false;
+    const particleMult = cfg.portalParticleMultiplier ?? 1;
+    const seepInt = cfg.portalSeepIntensity ?? 0.8;
+
     // ── Lerp all values toward targets ──
-    const lerpSpeed = 4;
+    const lerpSpeed = 5;
     const lerpAmt = 1 - Math.exp(-lerpSpeed * dt);
     c.ringRadius = lerp(c.ringRadius, t.ringRadius, lerpAmt);
     c.interiorOp = lerp(c.interiorOp, t.interiorOp, lerpAmt);
     c.glowInt = lerp(c.glowInt, t.glowInt, lerpAmt);
     c.vignetteOp = lerp(c.vignetteOp, t.vignetteOp, lerpAmt);
     c.particleRate = lerp(c.particleRate, t.particleRate, lerpAmt);
-    c.seepOp = lerp(c.seepOp, t.seepOp, lerpAmt);
-    c.seepRadius = lerp(c.seepRadius, t.seepRadius, lerpAmt);
+
+    // Seep uses faster lerp for snappy fade-out when gathering starts
+    const seepLerp = 1 - Math.exp(-10 * dt);
+    c.seepOp = lerp(c.seepOp, t.seepOp, seepLerp);
+    c.seepRadius = lerp(c.seepRadius, t.seepRadius, seepLerp);
 
     // Ring draw – time-driven during gathering, instant on rupture+
     if (phaseRef.current === 'gathering') {
       const elapsed = time - phaseStartTime.current;
-      const gatherDur = (window.__prismConfig?.portalGatherMs ?? 500) / 1000;
+      const gatherDur = (cfg.portalGatherMs ?? 500) / 1000;
       c.ringDraw = Math.min(1, elapsed / gatherDur);
-      if (c.ringDraw >= 0.99) ringDrawComplete.current = true;
     } else if (phaseRef.current === 'rupture' || phaseRef.current === 'emerging') {
       c.ringDraw = lerp(c.ringDraw, 1, 0.3);
-    } else if (phaseRef.current === 'residual' || phaseRef.current === null) {
-      // keep at 1, radius handles collapse
     }
 
     // Flash – fast decay
-    c.flashOp *= 0.88;
+    c.flashOp *= (1 - 8 * dt); // ~0.87 per frame at 60fps
     if (c.flashOp < 0.01) c.flashOp = 0;
 
     // Shockwave – expand and fade
     if (c.shockOp > 0.01) {
       c.shockRadius += 600 * dt;
-      c.shockOp *= 0.92;
+      c.shockOp *= (1 - 5 * dt); // ~0.92 per frame at 60fps
       if (c.shockOp < 0.01) c.shockOp = 0;
     }
 
@@ -182,9 +207,11 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
 
     // ── LAYER 2: Flash ──
     if (c.flashOp > 0.01) {
+      const fi = c.flashOp * flashMult;
       const fg = ctx.createRadialGradient(ox, oy, 0, ox, oy, 500 * DPR);
-      fg.addColorStop(0, `rgba(200,180,255,${c.flashOp})`);
-      fg.addColorStop(0.3, `rgba(124,58,237,${c.flashOp * 0.6})`);
+      fg.addColorStop(0, `rgba(${c1[0]},${c1[1]},${c1[2]},${fi})`);
+      fg.addColorStop(0.2, `rgba(255,240,255,${fi * 0.8})`);
+      fg.addColorStop(0.5, `rgba(${c2[0]},${c2[1]},${c2[2]},${fi * 0.4})`);
       fg.addColorStop(1, 'transparent');
       ctx.fillStyle = fg;
       ctx.fillRect(0, 0, W, H);
@@ -192,21 +219,19 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
 
     // ── LAYER 2.5: Seep (Rick & Morty pre-noise) ──
     if (c.seepOp > 0.01 && c.seepRadius > 1) {
-      const cfg = window.__prismConfig || {};
-      const seepCol = cfg.portalSeepColor
-        ? `${Math.round(cfg.portalSeepColor[0]*255)},${Math.round(cfg.portalSeepColor[1]*255)},${Math.round(cfg.portalSeepColor[2]*255)}`
-        : '34,197,94';
+      const sc = toRGB(cfg.portalSeepColor, [34, 197, 94]);
+      const scStr = `${sc[0]},${sc[1]},${sc[2]}`;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const sr = c.seepRadius * DPR;
-      // Pulsating swirl
+      // Pulsating swirl - 3 rotating radial lobes
       for (let i = 0; i < 3; i++) {
         const a = time * (2.5 + i * 0.7) + i * TAU / 3;
-        const dx = Math.cos(a) * sr * 0.15;
-        const dy = Math.sin(a) * sr * 0.15;
+        const dx = Math.cos(a) * sr * 0.2;
+        const dy = Math.sin(a) * sr * 0.2;
         const sg = ctx.createRadialGradient(ox + dx, oy + dy, 0, ox + dx, oy + dy, sr);
-        sg.addColorStop(0, `rgba(${seepCol},${c.seepOp * 0.5})`);
-        sg.addColorStop(0.5, `rgba(${seepCol},${c.seepOp * 0.2})`);
+        sg.addColorStop(0, `rgba(${scStr},${c.seepOp * seepInt * 0.6})`);
+        sg.addColorStop(0.4, `rgba(${scStr},${c.seepOp * seepInt * 0.3})`);
         sg.addColorStop(1, 'transparent');
         ctx.fillStyle = sg;
         ctx.fillRect(ox - sr * 1.5, oy - sr * 1.5, sr * 3, sr * 3);
@@ -218,10 +243,11 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     if (c.glowInt > 0.01 && R > 1) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
+      const gi = c.glowInt * glowMult;
       const gg = ctx.createRadialGradient(ox, oy, 0, ox, oy, R * 2.5);
-      gg.addColorStop(0, `rgba(124,58,237,${c.glowInt * 0.35})`);
-      gg.addColorStop(0.3, `rgba(56,189,248,${c.glowInt * 0.2})`);
-      gg.addColorStop(0.6, `rgba(167,139,250,${c.glowInt * 0.1})`);
+      gg.addColorStop(0, `rgba(${c1[0]},${c1[1]},${c1[2]},${gi * 0.35})`);
+      gg.addColorStop(0.3, `rgba(${c2[0]},${c2[1]},${c2[2]},${gi * 0.2})`);
+      gg.addColorStop(0.6, `rgba(${c1[0]},${c1[1]},${c1[2]},${gi * 0.1})`);
       gg.addColorStop(1, 'transparent');
       ctx.fillStyle = gg;
       ctx.fillRect(ox - R * 3, oy - R * 3, R * 6, R * 6);
@@ -229,7 +255,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     }
 
     // ── LAYER 4: Cosmic interior (clipped to wobbly ring) ──
-    if (c.interiorOp > 0.01 && R > 5) {
+    if (interiorOn && c.interiorOp > 0.01 && R > 5) {
       ctx.save();
       ctx.globalAlpha = c.interiorOp;
 
@@ -238,7 +264,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       const steps = 120;
       for (let i = 0; i <= steps; i++) {
         const a = (i / steps) * TAU;
-        const r = wobble(a, time, R);
+        const r = wobble(a, time, R, wMult);
         const px = ox + Math.cos(a) * r;
         const py = oy + Math.sin(a) * r;
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
@@ -255,13 +281,9 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       ctx.fillStyle = ng;
       ctx.fillRect(ox - R, oy - R, R * 2, R * 2);
 
-      // Rotating nebula clouds (3 layers)
+      // Rotating nebula clouds (3 layers using portal colors)
       ctx.globalCompositeOperation = 'lighter';
-      const cloudColors = [
-        [124, 58, 237],   // purple
-        [56, 189, 248],   // blue
-        [244, 114, 182],  // pink
-      ];
+      const cloudColors = [c1, c2, c3];
       for (let i = 0; i < 3; i++) {
         const ca = time * (0.4 + i * 0.15) * (i % 2 === 0 ? 1 : -1);
         const cdx = Math.cos(ca) * R * 0.2;
@@ -279,7 +301,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       }
 
       // Spiral swirl lines (5 concentric)
-      ctx.globalCompositeOperation = 'lighter';
       for (let s = 0; s < 5; s++) {
         const sR = R * (0.3 + s * 0.14);
         const dir = s % 2 === 0 ? 1 : -1;
@@ -314,14 +335,13 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     if (R > 2 && c.ringDraw > 0.005) {
       const startA = drawStartAngle.current;
       const endA = startA + c.ringDraw * TAU;
-      const steps = Math.max(60, Math.floor(c.ringDraw * 180));
+      const arcSteps = Math.max(60, Math.floor(c.ringDraw * 180));
 
-      // Helper to trace the wobbly arc
-      const traceArc = (radiusOffset) => {
+      const traceArc = () => {
         ctx.beginPath();
-        for (let i = 0; i <= steps; i++) {
-          const a = startA + (i / steps) * (endA - startA);
-          const r = wobble(a, time, R + radiusOffset);
+        for (let i = 0; i <= arcSteps; i++) {
+          const a = startA + (i / arcSteps) * (endA - startA);
+          const r = wobble(a, time, R, wMult);
           const px = ox + Math.cos(a) * r;
           const py = oy + Math.sin(a) * r;
           i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
@@ -332,24 +352,27 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.lineCap = 'round';
 
-      // Pass 1: outer glow
-      traceArc(0);
-      ctx.strokeStyle = `rgba(124,58,237,0.3)`;
+      // Pass 1: outer glow (color 1)
+      traceArc();
+      ctx.strokeStyle = `rgba(${c1[0]},${c1[1]},${c1[2]},0.3)`;
       ctx.lineWidth = 18 * DPR;
       ctx.filter = `blur(${8 * DPR}px)`;
       ctx.stroke();
       ctx.filter = 'none';
 
-      // Pass 2: main body
-      traceArc(0);
-      ctx.strokeStyle = `rgba(167,139,250,0.8)`;
+      // Pass 2: main body (lighter color 1)
+      traceArc();
+      const bodyR = Math.min(255, c1[0] + 40);
+      const bodyG = Math.min(255, c1[1] + 80);
+      const bodyB = Math.min(255, c1[2] + 20);
+      ctx.strokeStyle = `rgba(${bodyR},${bodyG},${bodyB},0.8)`;
       ctx.lineWidth = 6 * DPR;
       ctx.filter = `blur(${1 * DPR}px)`;
       ctx.stroke();
       ctx.filter = 'none';
 
-      // Pass 3: hot core
-      traceArc(0);
+      // Pass 3: hot core (white-ish)
+      traceArc();
       ctx.strokeStyle = `rgba(220,210,255,0.9)`;
       ctx.lineWidth = 2 * DPR;
       ctx.stroke();
@@ -364,7 +387,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       const dotCount = Math.floor(60 * c.ringDraw);
       for (let i = 0; i < dotCount; i++) {
         const a = drawStartAngle.current + (i / 60) * TAU;
-        const r = wobble(a, time, R);
+        const r = wobble(a, time, R, wMult);
         const shimmer = 0.4 + 0.6 * Math.sin(time * 8 + i * 1.7);
         const px = ox + Math.cos(a) * r;
         const py = oy + Math.sin(a) * r;
@@ -380,7 +403,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     // ── LAYER 7: Leading spark (gathering only) ──
     if (phaseRef.current === 'gathering' && c.ringDraw < 0.98 && R > 5) {
       const frontA = drawStartAngle.current + c.ringDraw * TAU;
-      const r = wobble(frontA, time, R);
+      const r = wobble(frontA, time, R, wMult);
       const sx = ox + Math.cos(frontA) * r;
       const sy = oy + Math.sin(frontA) * r;
 
@@ -391,7 +414,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       const lg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30 * DPR);
       lg.addColorStop(0, 'rgba(255,250,220,0.9)');
       lg.addColorStop(0.2, 'rgba(255,200,100,0.6)');
-      lg.addColorStop(0.5, 'rgba(124,58,237,0.3)');
+      lg.addColorStop(0.5, `rgba(${c1[0]},${c1[1]},${c1[2]},0.3)`);
       lg.addColorStop(1, 'transparent');
       ctx.fillStyle = lg;
       ctx.fillRect(sx - 35 * DPR, sy - 35 * DPR, 70 * DPR, 70 * DPR);
@@ -411,14 +434,14 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.beginPath();
       ctx.arc(ox, oy, c.shockRadius * DPR, 0, TAU);
-      ctx.strokeStyle = `rgba(167,139,250,${c.shockOp * 0.7})`;
+      ctx.strokeStyle = `rgba(${c1[0]},${c1[1]},${c1[2]},${c.shockOp * 0.7})`;
       ctx.lineWidth = (3 - c.shockOp * 2) * DPR;
       ctx.stroke();
 
       // Outer haze
       ctx.beginPath();
       ctx.arc(ox, oy, c.shockRadius * DPR, 0, TAU);
-      ctx.strokeStyle = `rgba(56,189,248,${c.shockOp * 0.3})`;
+      ctx.strokeStyle = `rgba(${c2[0]},${c2[1]},${c2[2]},${c.shockOp * 0.3})`;
       ctx.lineWidth = 12 * DPR;
       ctx.filter = `blur(${6 * DPR}px)`;
       ctx.stroke();
@@ -427,8 +450,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     }
 
     // ── LAYER 9: Particles ──
-    // Spawn new particles
-    spawnAcc.current += c.particleRate * dt;
+    spawnAcc.current += c.particleRate * particleMult * dt;
     while (spawnAcc.current >= 1 && particles.current.length < MAX_PARTICLES) {
       spawnAcc.current -= 1;
       const type = (phaseRef.current === 'rupture' || phaseRef.current === 'emerging')
@@ -448,7 +470,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         continue;
       }
 
-      // Store previous pos for trails
       if (p.type === 'spark') {
         p.prevX = p.x;
         p.prevY = p.y;
@@ -456,16 +477,14 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
 
-      // Ring particles: slight tangential drift
       if (p.type === 'ring') {
-        p.vx *= 0.98;
-        p.vy *= 0.98;
+        p.vx *= (1 - 1.2 * dt); // ~0.98 per frame at 60fps
+        p.vy *= (1 - 1.2 * dt);
       }
-      // Sparks: slight gravity / drag
       if (p.type === 'spark') {
-        p.vx *= 0.99;
-        p.vy *= 0.99;
-        p.vy += 15 * dt; // slight gravity
+        p.vx *= (1 - 0.6 * dt);
+        p.vy *= (1 - 0.6 * dt);
+        p.vy += 15 * dt;
       }
 
       const alpha = p.life * p.brightness;
@@ -473,7 +492,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       const sz = p.size * DPR * p.life;
 
       if (p.type === 'spark' && p.prevX !== undefined) {
-        // Motion trail
         ctx.beginPath();
         ctx.moveTo(p.prevX * DPR, p.prevY * DPR);
         ctx.lineTo(p.x * DPR, p.y * DPR);
@@ -483,7 +501,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         ctx.stroke();
       }
 
-      // Dot
       ctx.beginPath();
       ctx.arc(p.x * DPR, p.y * DPR, sz, 0, TAU);
       ctx.fillStyle = `hsla(${hue},80%,75%,${alpha})`;
@@ -504,6 +521,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
 
     if (allDead) {
       rafRef.current = null;
+      lastTimeRef.current = 0;
       return;
     }
 
@@ -516,24 +534,25 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     const t = tgt.current;
     const c = cur.current;
     const time = performance.now() * 0.001;
+    const cfg = window.__prismConfig || {};
+    const ringR = cfg.portalRingRadius ?? 140;
 
     switch (phase) {
       case 'seep':
         drawStartAngle.current = Math.random() * TAU;
-        ringDrawComplete.current = false;
         t.ringRadius = 0;
         t.interiorOp = 0;
         t.glowInt = 0.2;
         t.vignetteOp = 0.3;
         t.particleRate = 5;
-        t.seepOp = 0.8;
+        t.seepOp = 1;
         t.seepRadius = 80;
         break;
 
       case 'gathering':
         phaseStartTime.current = time;
-        t.ringRadius = 140;
-        // ringDraw is time-driven, not lerped
+        c.ringDraw = 0; // reset ring draw progress
+        t.ringRadius = ringR;
         t.interiorOp = 0;
         t.glowInt = 0.6;
         t.vignetteOp = 0.6;
@@ -543,21 +562,19 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         break;
 
       case 'rupture':
-        t.ringRadius = 160;
+        t.ringRadius = ringR + 20;
         c.ringDraw = 1; // snap full
         t.interiorOp = 1;
         t.glowInt = 1.0;
         t.vignetteOp = 0.8;
         t.particleRate = 80;
-        // Trigger flash
-        c.flashOp = 0.9;
-        // Trigger shockwave
+        c.flashOp = 0.9 * (cfg.portalFlashIntensity ?? 1);
         c.shockRadius = 30;
         c.shockOp = 1;
         break;
 
       case 'emerging':
-        t.ringRadius = 160;
+        t.ringRadius = ringR + 20;
         t.interiorOp = 0.8;
         t.glowInt = 0.7;
         t.vignetteOp = 0.4;
@@ -586,6 +603,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
 
     // Start animation loop if not running
     if (phase !== null && !rafRef.current) {
+      lastTimeRef.current = 0;
       rafRef.current = requestAnimationFrame(draw);
     }
   }, [phase, draw]);
@@ -626,7 +644,6 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         inset: 0,
         zIndex: 499,
         pointerEvents: 'none',
-        // Only visible when portal is active (but always mounted for instant start)
         opacity: phase !== null || cur.current.glowInt > 0.01 ? 1 : 0,
       }}
     />

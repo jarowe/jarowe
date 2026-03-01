@@ -3435,6 +3435,9 @@ export default function Home() {
     const cOy = parseFloat(oy) / 100;
     setPortalOrigin({ x: ox, y: oy });
 
+    // Snap portal to actual character DOM center after React renders
+    snapPortalToCharacter();
+
     // Convert portal colors from [r,g,b] (0-1) to hex strings
     const toHex = (arr) => '#' + arr.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
     const c1 = cfg.portalColor1 ? toHex(cfg.portalColor1) : '#7c3aed';
@@ -3446,7 +3449,6 @@ export default function Home() {
     const ruptureMs = cfg.portalRuptureMs ?? 500;
     const emergeMs = cfg.portalEmergeMs ?? 900;
     const residualMs = cfg.portalResidualMs ?? 1800;
-    const cleanupMs = cfg.portalCleanupMs ?? 3200;
     const seepEnabled = cfg.portalSeepEnabled !== false;
     const seepDuration = cfg.portalSeepDuration ?? 800;
 
@@ -3505,19 +3507,43 @@ export default function Home() {
     return totalMs;
   };
 
-  // ── Compute portal origin from spawn point ──
+  // ── Compute portal origin from spawn point (matches CSS peek-* positions) ──
   const getPortalOrigin = (sp) => {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
     if (sp.x != null && sp.y != null) {
       return {
-        x: `${(sp.x / window.innerWidth) * 100}%`,
-        y: `${(sp.y / window.innerHeight) * 100}%`,
+        x: `${(sp.x / W) * 100}%`,
+        y: `${(sp.y / H) * 100}%`,
       };
     }
+    // Approximate character visual center for each CSS-positioned side
+    // .peek-right: right: -80px; top: 50%  →  center ≈ (W - 130, H*0.5)
+    // .peek-left:  left: -80px; top: 40%   →  center ≈ (130, H*0.4)
+    // .peek-top:   left: 50%; top: 20px    →  center ≈ (W*0.5, 230)
     const side = sp.side || 'right';
-    return {
-      x: side === 'right' ? '95%' : side === 'left' ? '5%' : '50%',
-      y: side === 'right' ? '50%' : side === 'left' ? '40%' : '3%',
-    };
+    if (side === 'right') return { x: `${((W - 130) / W) * 100}%`, y: '50%' };
+    if (side === 'left') return { x: `${(130 / W) * 100}%`, y: '40%' };
+    return { x: '50%', y: `${(230 / H) * 100}%` };
+  };
+
+  // Snap portal origin to actual character DOM position (runs after React render)
+  const snapPortalToCharacter = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!peekCharRef.current) return;
+        const rect = peekCharRef.current.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        // Only update if we got valid coordinates
+        if (cx !== 0 || cy !== 0) {
+          setPortalOrigin({
+            x: `${(cx / window.innerWidth) * 100}%`,
+            y: `${(cy / window.innerHeight) * 100}%`,
+          });
+        }
+      });
+    });
   };
 
   useEffect(() => {
@@ -3586,16 +3612,11 @@ export default function Home() {
 
       if (style === 'portal') {
         // ─── CINEMATIC DIMENSIONAL RIFT ───
-        // Use drag position if available, otherwise side-based
-        let ox, oy;
-        if (dragPosition.x != null && dragPosition.y != null) {
-          ox = `${(dragPosition.x / window.innerWidth) * 100}%`;
-          oy = `${(dragPosition.y / window.innerHeight) * 100}%`;
-        } else {
-          ox = side === 'right' ? '85%' : side === 'left' ? '15%' : '50%';
-          oy = side === 'top' ? '20%' : '50%';
-        }
-        runPortalSequence(ox, oy, () => setPeekVisible(true));
+        const sp = (dragPosition.x != null && dragPosition.y != null)
+          ? { x: dragPosition.x, y: dragPosition.y }
+          : { side };
+        const origin = getPortalOrigin(sp);
+        runPortalSequence(origin.x, origin.y, () => setPeekVisible(true));
       } else {
         setPeekVisible(true);
       }

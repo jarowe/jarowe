@@ -118,26 +118,26 @@ export const PRISM_DEFAULTS = {
   portalColor1: [0.486, 0.227, 0.929],
   portalColor2: [0.220, 0.741, 0.910],
   portalColor3: [0.957, 0.447, 0.722],
-  portalEmberCount: 20,
-  portalBurstEmberCount: 24,
   portalConfettiEnabled: true,
   portalConfettiCount: 60,
   portalGatherMs: 500,
   portalRuptureMs: 500,
   portalEmergeMs: 900,
   portalResidualMs: 1800,
-  portalCleanupMs: 3200,
-  portalOrbScale: 1.0,
-  portalShockwaveScale: 1.0,
-  portalRingScale: 1.0,
   portalFlashIntensity: 1.0,
+
+  // Canvas portal VFX settings
+  portalRingRadius: 140,
+  portalWobble: 1.0,
+  portalGlowIntensity: 1.0,
+  portalInteriorEnabled: true,
+  portalParticleMultiplier: 1.0,
 
   // Rick & Morty seep pre-noise
   portalSeepEnabled: true,
   portalSeepDuration: 800,
   portalSeepColor: [0.133, 0.773, 0.349],
   portalSeepIntensity: 0.8,
-  portalSeepNoiseScale: 3.0,
 
   // Spawn
   spawnScale: 1.0,
