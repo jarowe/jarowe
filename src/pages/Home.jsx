@@ -3368,6 +3368,7 @@ export default function Home() {
   const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
   const bubbleElRef = useRef(null); // ref for active bubble/thinking-dots element
   const connectorLineRef = useRef(null); // SVG line element
+  const prismHitRef = useRef(null); // floating hit-target div that follows prism screen pos
   const connectorDot1Ref = useRef(null); // SVG circle at bubble end
   const connectorDot2Ref = useRef(null); // SVG circle at character end
   // Portal phases: null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
@@ -3855,6 +3856,23 @@ export default function Home() {
     return () => cancelAnimationFrame(rafId);
   }, [bubblePhase, peekVisible]);
 
+  // Floating hit-target tracks prism's projected screen position every frame
+  useEffect(() => {
+    if (!peekVisible) return;
+    let rafId;
+    const update = () => {
+      const el = prismHitRef.current;
+      const pos = window.__prismScreenPos;
+      if (el && pos) {
+        el.style.left = `${pos.x}px`;
+        el.style.top = `${pos.y}px`;
+      }
+      rafId = requestAnimationFrame(update);
+    };
+    rafId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rafId);
+  }, [peekVisible]);
+
   // One bop per reveal guard
   const boppedThisRevealRef = useRef(false);
   // Reset when peek becomes visible
@@ -3923,14 +3941,10 @@ export default function Home() {
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
 
-  // Listen for prism-bop custom event from R3F raycast hit mesh (only on actual prism geometry)
-  useEffect(() => {
-    const handler = (e) => {
-      if (!peekVisible || editorDragMode || bopPhase != null) return;
-      handleCatchCharacter(e.detail); // { clientX, clientY }
-    };
-    window.addEventListener('prism-bop', handler);
-    return () => window.removeEventListener('prism-bop', handler);
+  // Hit-target click handler — dispatched from the floating div that tracks prism screen pos
+  const handleHitTargetClick = useCallback((e) => {
+    if (!peekVisible || editorDragMode || bopPhase != null) return;
+    handleCatchCharacter({ clientX: e.clientX, clientY: e.clientY });
   }, [peekVisible, editorDragMode, bopPhase, handleCatchCharacter]);
 
   // Drag mode: global mouse handlers
@@ -4589,6 +4603,25 @@ export default function Home() {
             </motion.div>
           );
         })()}
+
+        {/* PRISM HIT TARGET — small invisible circle that follows the prism's 3D-projected screen pos */}
+        {peekVisible && (
+          <div
+            ref={prismHitRef}
+            onClick={handleHitTargetClick}
+            style={{
+              position: 'fixed',
+              width: 90,
+              height: 90,
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              zIndex: 502,
+              background: 'transparent',
+            }}
+          />
+        )}
 
         {/* SPEED PUZZLE GAME */}
         <AnimatePresence>

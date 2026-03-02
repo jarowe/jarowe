@@ -1709,7 +1709,7 @@ export default function Prism3D() {
         width: size,
         height: size,
         margin: canvasMargin,
-        pointerEvents: 'auto',
+        pointerEvents: 'none',
         ...(cfg.canvasMask ? {
           WebkitMaskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
           maskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
@@ -1731,7 +1731,6 @@ export default function Prism3D() {
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
               {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
-              <PrismHitMesh geometry={geometry} />
               <ScreenTracker />
               <GlassOrbEye />
               <InternalGlow />
