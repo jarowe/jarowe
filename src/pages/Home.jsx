@@ -3845,9 +3845,22 @@ export default function Home() {
       const bRect = inDom ? bubbleEl.getBoundingClientRect() : null;
       const visible = bRect && bRect.width > 0 && prismPos && path;
       if (visible) {
+        // ── Viewport clamping — keep bubble fully on-screen ──
+        const pad = 10;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let dx = 0, dy = 0;
+        if (bRect.left < pad) dx = pad - bRect.left;
+        else if (bRect.right > vw - pad) dx = (vw - pad) - bRect.right;
+        if (bRect.top < pad) dy = pad - bRect.top;
+        else if (bRect.bottom > vh - pad) dy = (vh - pad) - bRect.bottom;
+        // Apply correction via CSS translate property (stacks with Framer Motion's transform)
+        bubbleEl.style.translate = (dx || dy) ? `${dx}px ${dy}px` : '';
+
+        // Use clamped rect for connector anchor point
         const below = bubbleEl.classList.contains('bubble-below');
-        const bx = bRect.left + bRect.width * 0.35;
-        const by = below ? bRect.top : bRect.bottom;
+        const bx = bRect.left + dx + bRect.width * 0.35;
+        const by = (below ? bRect.top : bRect.bottom) + dy;
         const cx = prismPos.x;
         const cy = prismPos.y;
         // Quadratic bezier control point — offset sideways for a nice arc
@@ -3892,6 +3905,8 @@ export default function Home() {
           [path, pulse, d1, d2].forEach(el => { if (el) el.style.display = 'none'; });
           connectorWasVisible.current = false;
         }
+        // Clear any clamp correction from previous bubble
+        if (bubbleEl) bubbleEl.style.translate = '';
       }
       rafId = requestAnimationFrame(update);
     };
