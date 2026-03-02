@@ -166,6 +166,20 @@ async function main() {
     ...musicResult.nodes,
   ];
 
+  // Apply source-level default visibility from pipeline config
+  const sourceVisDefaults = {
+    instagram: PIPELINE_CONFIG.sources.instagram.defaultVisibility,
+    carbonmade: PIPELINE_CONFIG.sources.carbonmade.defaultVisibility,
+    suno: PIPELINE_CONFIG.sources.music.defaultVisibility,
+    soundcloud: PIPELINE_CONFIG.sources.music.defaultVisibility,
+  };
+  for (const node of allNodes) {
+    const srcDefault = sourceVisDefaults[node.source];
+    if (srcDefault && node.visibility === 'private') {
+      node.visibility = srcDefault;
+    }
+  }
+
   log.info(
     `Parsed ${allNodes.length} total nodes ` +
     `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length}, Music: ${musicResult.nodes.length})`
@@ -290,30 +304,47 @@ async function main() {
           continue;
         }
 
-        // Check if source file exists
-        const sourceAbsolute = path.isAbsolute(mediaPath)
+        // Check if source file exists (try project root, then public/)
+        let sourceAbsolute = path.isAbsolute(mediaPath)
           ? mediaPath
           : resolve(mediaPath);
 
+        let foundInPublic = false;
         try {
           await fs.access(sourceAbsolute);
-
-          // Compute output path
-          const relativeName = path.basename(mediaPath);
-          const outputPath = path.join(outputMediaDir, node.id, relativeName);
-
-          const result = await stripAndVerify(sourceAbsolute, outputPath);
-          if (result) {
-            // Store path relative to public/
-            const relativeToPublic = path.relative(resolve('public'), outputPath).replace(/\\/g, '/');
-            processedMedia.push(`/${relativeToPublic}`);
-            mediaProcessed++;
-          } else {
-            mediaSkipped++;
-          }
         } catch {
-          // Source media not available -- skip (log warning, keep empty)
-          log.warn(`Media file not available: ${mediaPath} (node: ${node.id})`);
+          // Try resolving relative to public/ (for junction-served media like Instagram)
+          const publicPath = resolve('public', mediaPath);
+          try {
+            await fs.access(publicPath);
+            sourceAbsolute = publicPath;
+            foundInPublic = true;
+          } catch {
+            // Source media not available -- skip
+            log.warn(`Media file not available: ${mediaPath} (node: ${node.id})`);
+            mediaSkipped++;
+            continue;
+          }
+        }
+
+        // If already served from public/ (e.g. Instagram junction), pass through as-is
+        if (foundInPublic) {
+          processedMedia.push(mediaPath);
+          mediaProcessed++;
+          continue;
+        }
+
+        // Compute output path and strip EXIF
+        const relativeName = path.basename(mediaPath);
+        const outputPath = path.join(outputMediaDir, node.id, relativeName);
+
+        const result = await stripAndVerify(sourceAbsolute, outputPath);
+        if (result) {
+          // Store path relative to public/
+          const relativeToPublic = path.relative(resolve('public'), outputPath).replace(/\\/g, '/');
+          processedMedia.push(`/${relativeToPublic}`);
+          mediaProcessed++;
+        } else {
           mediaSkipped++;
         }
       }

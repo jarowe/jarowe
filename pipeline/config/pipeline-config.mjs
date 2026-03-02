@@ -15,14 +15,17 @@ export const PIPELINE_CONFIG = Object.freeze({
     /** Instagram HTML export (gitignored, private) */
     instagram: {
       dir: process.env.INSTAGRAM_EXPORT_DIR || 'data-private/instagram',
+      defaultVisibility: 'friends',
     },
     /** Carbonmade JSON archive (already in repo, read-only) */
     carbonmade: {
       dir: process.env.CARBONMADE_ARCHIVE_DIR || 'carbonmade-archive',
+      defaultVisibility: 'public',
     },
     /** Music snapshots (produced by ingest:music, read-only during build) */
     music: {
       dir: process.env.MUSIC_SNAPSHOT_DIR || 'data-private/music',
+      defaultVisibility: 'public',
     },
   },
 

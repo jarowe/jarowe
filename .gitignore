@@ -16,6 +16,9 @@ dist-ssr
 public/data/
 data-private/
 
+# Private media served via junctions (never commit personal photos)
+public/images/instagram/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
