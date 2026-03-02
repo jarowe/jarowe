@@ -173,4 +173,14 @@ export const PRISM_DEFAULTS = {
   hoverExpression: 'surprised', // scared look on hover
   hoverGlowBoost: 0.65,
   hoverTremble: 0.35,
+
+  // Bop +1 effect
+  bopPlusFontSize: 2.4,         // rem
+  bopPlusGlowSize: 12,          // px shadow blur
+  bopPlusGlowIntensity: 0.8,    // 0-1
+  bopPlusDuration: 1.2,         // seconds
+  bopPlusDistance: 140,          // px float upward
+  bopPlusScale: 1.8,            // final scale multiplier
+  bopPlusRandomColor: true,     // cycle through prismatic colors each bop
+  bopPlusColor: '#fbbf24',      // base color (used when randomColor is off)
 };

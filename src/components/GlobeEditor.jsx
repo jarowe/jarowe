@@ -880,6 +880,22 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pHover.add(pcfg, 'hoverTremble', 0, 1, 0.05).name('Tremble');
     pHover.close();
 
+    // -- Bop +1 Effect --
+    const pBopPlus = prismBopFolder.addFolder('Bop +1 Effect');
+    const bopColorProxy = { color: pcfg.bopPlusColor || '#fbbf24' };
+    pBopPlus.add(pcfg, 'bopPlusFontSize', 1.0, 5.0, 0.1).name('Font Size (rem)');
+    pBopPlus.addColor(bopColorProxy, 'color').name('Color').onChange((v) => { pcfg.bopPlusColor = v; });
+    pBopPlus.add(pcfg, 'bopPlusRandomColor').name('Random Color Each Bop');
+    pBopPlus.add(pcfg, 'bopPlusGlowSize', 0, 40, 1).name('Glow Size (px)');
+    pBopPlus.add(pcfg, 'bopPlusGlowIntensity', 0, 1, 0.05).name('Glow Intensity');
+    pBopPlus.add(pcfg, 'bopPlusDuration', 0.3, 3.0, 0.1).name('Duration (s)');
+    pBopPlus.add(pcfg, 'bopPlusDistance', 40, 300, 5).name('Float Distance (px)');
+    pBopPlus.add(pcfg, 'bopPlusScale', 1.0, 3.0, 0.1).name('End Scale');
+    pBopPlus.add({ test() {
+      window.dispatchEvent(new CustomEvent('bop-plus-test', { detail: { x: window.innerWidth / 2, y: window.innerHeight / 2 } }));
+    } }, 'test').name('Test +1');
+    pBopPlus.close();
+
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
     pBubble.add(pcfg, 'bubbleLocked').name('Lock to Glint');

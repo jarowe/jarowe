@@ -43,6 +43,12 @@ function getSunDirection(overrideHour) {
   ).normalize();
 }
 
+// Convert hex color to "r, g, b" string for use in rgba()
+const hexToRgb = (hex) => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+};
+
 const quotes = [
   { text: "Build what shouldn't exist yet.", author: "Me, probably at 2am" },
   { text: "The best interface is no interface.", author: "Golden Krishna" },
@@ -3820,12 +3826,26 @@ export default function Home() {
       }
     };
 
+    // Test +1 from editor
+    const bopPlusTestHandler = (e) => {
+      const d = e.detail || {};
+      const bpCfg = window.__prismConfig || {};
+      const bopColors = ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#c4b5fd'];
+      const c = bpCfg.bopPlusRandomColor !== false
+        ? bopColors[Math.floor(Math.random() * bopColors.length)]
+        : (bpCfg.bopPlusColor || '#fbbf24');
+      setBopPlusOne({ x: d.x || window.innerWidth / 2, y: d.y || window.innerHeight / 2, id: Date.now(), color: c });
+      const clearMs = ((bpCfg.bopPlusDuration || 1.2) * 1000) + 200;
+      setTimeout(() => setBopPlusOne(null), clearMs);
+    };
+
     window.addEventListener('trigger-prism-peek', showHandler);
     window.addEventListener('hide-prism-peek', hideHandler);
     window.addEventListener('prism-drag-mode', dragModeHandler);
     window.addEventListener('prism-spawn-point', spawnHandler);
     window.addEventListener('prism-spawn-markers', spawnMarkerHandler);
     window.addEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
+    window.addEventListener('bop-plus-test', bopPlusTestHandler);
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
@@ -3833,6 +3853,7 @@ export default function Home() {
       window.removeEventListener('prism-spawn-point', spawnHandler);
       window.removeEventListener('prism-spawn-markers', spawnMarkerHandler);
       window.removeEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
+      window.removeEventListener('bop-plus-test', bopPlusTestHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
   }, [spawnPoints, dragPosition]);
@@ -4009,8 +4030,14 @@ export default function Home() {
 
     // Floating +1 indicator at prism position
     const plusPos = window.__prismScreenPos || (e && { x: e.clientX, y: e.clientY }) || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    setBopPlusOne({ x: plusPos.x, y: plusPos.y, id: Date.now() });
-    setTimeout(() => setBopPlusOne(null), 1200);
+    const bpCfg = window.__prismConfig || {};
+    const bopColors = ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#c4b5fd'];
+    const plusColor = bpCfg.bopPlusRandomColor !== false
+      ? bopColors[Math.floor(Math.random() * bopColors.length)]
+      : (bpCfg.bopPlusColor || '#fbbf24');
+    setBopPlusOne({ x: plusPos.x, y: plusPos.y, id: Date.now(), color: plusColor });
+    const clearMs = ((bpCfg.bopPlusDuration || 1.2) * 1000) + 200;
+    setTimeout(() => setBopPlusOne(null), clearMs);
 
     // Confetti burst from character
     confetti({ particleCount: 40, spread: 90, origin: confettiOrigin, colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, startVelocity: 35, ticks: 100, shapes: ['circle'] });
@@ -4506,19 +4533,36 @@ export default function Home() {
 
         {/* FLOATING +1 — pops up from prism on bop */}
         <AnimatePresence>
-          {bopPlusOne && (
-            <motion.div
-              key={bopPlusOne.id}
-              className="bop-plus-one"
-              style={{ left: bopPlusOne.x - 20, top: bopPlusOne.y - 16 }}
-              initial={{ opacity: 1, scale: 0.5, y: 0 }}
-              animate={{ opacity: 0, scale: 1.8, y: -140 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: 'easeOut' }}
-            >
-              <span className="bop-plus-one-text">+1</span>
-            </motion.div>
-          )}
+          {bopPlusOne && (() => {
+            const bp = window.__prismConfig || {};
+            const dur = bp.bopPlusDuration || 1.2;
+            const dist = bp.bopPlusDistance || 140;
+            const endScale = bp.bopPlusScale || 1.8;
+            const fontSize = bp.bopPlusFontSize || 2.4;
+            const glowSz = bp.bopPlusGlowSize || 12;
+            const glowA = bp.bopPlusGlowIntensity ?? 0.8;
+            const c = bopPlusOne.color || '#fbbf24';
+            return (
+              <motion.div
+                key={bopPlusOne.id}
+                className="bop-plus-one"
+                style={{ left: bopPlusOne.x, top: bopPlusOne.y }}
+                initial={{ opacity: 1, scale: 0.5, y: 0 }}
+                animate={{ opacity: 0, scale: endScale, y: -dist }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: dur, ease: 'easeOut' }}
+              >
+                <span
+                  className="bop-plus-one-text"
+                  style={{
+                    fontSize: `${fontSize}rem`,
+                    color: c,
+                    textShadow: `0 0 ${glowSz}px rgba(${hexToRgb(c)}, ${glowA}), 0 0 ${glowSz * 2.5}px rgba(${hexToRgb(c)}, ${glowA * 0.5}), 0 0 ${glowSz * 4}px rgba(${hexToRgb(c)}, ${glowA * 0.2})`,
+                  }}
+                >+1</span>
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
 
         {/* DYNAMIC BUBBLE CONNECTOR — SVG line between bubble and character, updates every frame */}

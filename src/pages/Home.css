@@ -747,23 +747,20 @@
 }
 
 /* Floating +1 indicator on bop — outer wrapper handles framer-motion animation */
+/* translate() centering via CSS conflicts with framer-motion transforms, so we use margin offsets */
 .bop-plus-one {
     position: fixed;
     pointer-events: none;
     z-index: 9999;
+    margin-left: -1em;
+    margin-top: -0.6em;
 }
 
-/* Inner span holds gradient text — isolated from opacity animation to avoid background-clip bug */
+/* Inner span — font size, color, and glow set dynamically via inline style */
 .bop-plus-one-text {
     display: block;
-    font-size: 2.4rem;
     font-weight: 900;
     letter-spacing: 2px;
-    color: #fbbf24;
-    text-shadow:
-        0 0 12px rgba(124, 58, 237, 0.8),
-        0 0 30px rgba(56, 189, 248, 0.5),
-        0 0 50px rgba(244, 114, 182, 0.3);
     font-family: 'JetBrains Mono', monospace;
     white-space: nowrap;
     user-select: none;
