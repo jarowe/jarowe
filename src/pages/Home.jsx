@@ -3366,6 +3366,7 @@ export default function Home() {
   const [bopPhase, setBopPhase] = useState(null);
   const [exitStyle, setExitStyle] = useState(null);
   const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
+  const [bopPlusOne, setBopPlusOne] = useState(null); // { x, y, id } for +1 animation
   const bubbleElRef = useRef(null); // ref for active bubble/thinking-dots element
   // connectorPathRef + connectorPulseRef declared inside connector rAF effect
   const prismHitRef = useRef(null); // floating hit-target div that follows prism screen pos
@@ -3972,6 +3973,11 @@ export default function Home() {
       setTimeout(() => setBopRipple(null), 600);
     }
 
+    // Floating +1 indicator at prism position
+    const plusPos = window.__prismScreenPos || (e && { x: e.clientX, y: e.clientY }) || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    setBopPlusOne({ x: plusPos.x, y: plusPos.y, id: Date.now() });
+    setTimeout(() => setBopPlusOne(null), 1200);
+
     // Confetti burst from character
     confetti({ particleCount: 40, spread: 90, origin: confettiOrigin, colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, startVelocity: 35, ticks: 100, shapes: ['circle'] });
 
@@ -4463,6 +4469,23 @@ export default function Home() {
             <div className="bop-ripple-core" />
           </div>
         )}
+
+        {/* FLOATING +1 — pops up from prism on bop */}
+        <AnimatePresence>
+          {bopPlusOne && (
+            <motion.div
+              key={bopPlusOne.id}
+              className="bop-plus-one"
+              initial={{ opacity: 1, scale: 0.3, x: bopPlusOne.x, y: bopPlusOne.y }}
+              animate={{ opacity: 0, scale: 1.4, x: bopPlusOne.x + (Math.random() - 0.5) * 40, y: bopPlusOne.y - 120 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              style={{ position: 'fixed', pointerEvents: 'none', zIndex: 550, transform: 'translate(-50%, -50%)' }}
+            >
+              +1
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* DYNAMIC BUBBLE CONNECTOR — SVG line between bubble and character, updates every frame */}
         <svg className="bubble-connector-svg" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 501, overflow: 'visible' }}>

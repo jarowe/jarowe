@@ -11,14 +11,51 @@
 
 .speed-puzzle-container {
     position: relative;
-    background: rgba(15, 15, 20, 0.95);
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: linear-gradient(145deg, rgba(15, 10, 30, 0.96), rgba(20, 12, 40, 0.94), rgba(12, 15, 35, 0.96));
+    border: 1px solid rgba(167, 139, 250, 0.25);
     border-radius: 1.5rem;
     padding: 2rem;
     width: 340px;
     max-width: 90vw;
-    box-shadow: 0 0 80px rgba(124, 58, 237, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow:
+        0 0 80px rgba(124, 58, 237, 0.2),
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 30px rgba(124, 58, 237, 0.04);
     text-align: center;
+    overflow: hidden;
+}
+
+/* Sweeping light beam across game panel — like Glint's bubble */
+.speed-puzzle-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(167, 139, 250, 0.06) 30%,
+        rgba(255, 255, 255, 0.04) 50%,
+        rgba(56, 189, 248, 0.06) 70%,
+        transparent 100%);
+    animation: prismDashSweep 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes prismDashSweep {
+    0% { left: -60%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { left: 160%; opacity: 0; }
+}
+
+/* Ensure content sits above the sweep */
+.speed-puzzle-container > * {
+    position: relative;
+    z-index: 1;
 }
 
 .speed-close {
@@ -55,6 +92,15 @@
     margin: 1rem 0 0.5rem;
 }
 
+.speed-subtitle {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(167, 139, 250, 0.7);
+    margin: -0.3rem 0 0.6rem;
+}
+
 .speed-ready p {
     color: #999;
     font-size: 0.85rem;
@@ -75,9 +121,21 @@
     animation: pulseRing 2s infinite;
 }
 
+/* Prismatic variant — Glint's colors */
+.speed-icon-ring.prism-icon-ring {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(56, 189, 248, 0.1));
+    border: 2px solid rgba(167, 139, 250, 0.35);
+    animation: prismPulseRing 2.5s ease-in-out infinite;
+}
+
 @keyframes pulseRing {
     0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.3); }
     50% { box-shadow: 0 0 0 12px rgba(251, 191, 36, 0); }
+}
+
+@keyframes prismPulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4), 0 0 20px rgba(124, 58, 237, 0.1); }
+    50% { box-shadow: 0 0 0 14px rgba(124, 58, 237, 0), 0 0 40px rgba(56, 189, 248, 0.15); }
 }
 
 .speed-highscore {
@@ -149,11 +207,17 @@
     top: -0.5rem;
     font-size: 0.7rem;
     font-weight: 800;
-    color: #f472b6;
-    background: rgba(244, 114, 182, 0.15);
-    padding: 0.2rem 0.5rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(244, 114, 182, 0.2));
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    padding: 0.2rem 0.6rem;
     border-radius: 1rem;
     letter-spacing: 1px;
+    /* Prismatic text */
+    background-clip: initial;
+    color: transparent;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(244, 114, 182, 0.2));
+    color: #f472b6;
+    text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
 }
 
 .speed-prompt {
@@ -195,12 +259,33 @@
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.15s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glass-like internal highlight */
+.speed-option-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+    border-radius: 10px 10px 0 0;
+    pointer-events: none;
 }
 
 .speed-option-btn:hover {
     border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(124, 58, 237, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .speed-feedback {

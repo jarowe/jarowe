@@ -1,9 +1,37 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, X, Trophy, Timer, Unlock } from 'lucide-react';
+import { X, Trophy, Timer, Unlock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playClickSound } from '../utils/sounds';
 import './SpeedPuzzle.css';
+
+/* Inline prismatic prism icon — matches Glint's triangular form */
+function PrismIcon({ size = 40 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="prismGrad" x1="0" y1="0" x2="48" y2="48">
+          <stop offset="0%" stopColor="#c4b5fd" />
+          <stop offset="30%" stopColor="#7c3aed" />
+          <stop offset="60%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#f472b6" />
+        </linearGradient>
+        <linearGradient id="prismInner" x1="12" y1="8" x2="36" y2="40">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+          <stop offset="50%" stopColor="rgba(167,139,250,0.15)" />
+          <stop offset="100%" stopColor="rgba(56,189,248,0.2)" />
+        </linearGradient>
+      </defs>
+      {/* Prism body */}
+      <polygon points="24,4 42,40 6,40" fill="url(#prismInner)" stroke="url(#prismGrad)" strokeWidth="2.5" strokeLinejoin="round" />
+      {/* Internal refraction lines */}
+      <line x1="24" y1="4" x2="18" y2="40" stroke="rgba(167,139,250,0.25)" strokeWidth="1" />
+      <line x1="24" y1="4" x2="30" y2="40" stroke="rgba(56,189,248,0.2)" strokeWidth="1" />
+      {/* Light catch highlight */}
+      <polygon points="24,8 30,26 18,26" fill="rgba(255,255,255,0.12)" />
+    </svg>
+  );
+}
 
 const COLORS = [
   { name: 'Purple', hex: '#7c3aed' },
@@ -128,14 +156,15 @@ export default function SpeedPuzzle({ onClose }) {
 
         {phase === 'ready' && (
           <div className="speed-ready">
-            <div className="speed-icon-ring">
-              <Zap size={40} color="#fbbf24" />
+            <div className="speed-icon-ring prism-icon-ring">
+              <PrismIcon size={44} />
             </div>
             <h2>PRISM DASH</h2>
+            <p className="speed-subtitle">Glint's Challenge</p>
             <p>Match the color as fast as you can! You have {GAME_DURATION} seconds.</p>
             <p className="speed-highscore">High Score: {highScore}</p>
             <button className="speed-start-btn" onClick={startGame}>
-              <Zap size={18} /> START
+              <PrismIcon size={18} /> START
             </button>
           </div>
         )}
@@ -227,7 +256,7 @@ export default function SpeedPuzzle({ onClose }) {
             </div>
             <div className="speed-results-actions">
               <button className="speed-start-btn" onClick={startGame}>
-                <Zap size={18} /> PLAY AGAIN
+                <PrismIcon size={18} /> PLAY AGAIN
               </button>
               <button className="speed-done-btn" onClick={onClose}>Done</button>
             </div>
