@@ -929,6 +929,100 @@
     filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3));
 }
 
+/* Thinking dots bubble (iMessage-style typing indicator) */
+.prism-thinking-dots {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg,
+        rgba(12, 8, 35, 0.96) 0%,
+        rgba(25, 12, 55, 0.94) 50%,
+        rgba(15, 8, 40, 0.96) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    padding: 10px 16px;
+    border-radius: 14px 14px 14px 4px;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    box-shadow:
+        0 4px 25px rgba(124, 58, 237, 0.5),
+        0 0 80px rgba(124, 58, 237, 0.15),
+        0 0 3px rgba(167, 139, 250, 0.3);
+    z-index: 20;
+    pointer-events: none;
+}
+
+.thinking-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(167, 139, 250, 0.8);
+    animation: thinkingBounce 1.4s ease-in-out infinite;
+}
+
+@keyframes thinkingBounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        background: rgba(167, 139, 250, 0.6);
+    }
+    30% {
+        transform: translateY(-8px);
+        background: rgba(124, 58, 237, 1);
+    }
+}
+
+/* Spawn point markers overlay */
+.spawn-markers-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 498;
+    pointer-events: none;
+}
+
+.spawn-marker {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.spawn-marker-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.9) 0%, rgba(56, 189, 248, 0.6) 60%, transparent 100%);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.6), 0 0 30px rgba(56, 189, 248, 0.3);
+    animation: spawnMarkerPulse 2s ease-in-out infinite;
+}
+
+.spawn-marker-label {
+    background: rgba(10, 5, 25, 0.85);
+    color: rgba(200, 180, 255, 0.9);
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+@keyframes spawnMarkerPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 12px rgba(124, 58, 237, 0.6), 0 0 30px rgba(56, 189, 248, 0.3);
+    }
+    50% {
+        transform: scale(1.4);
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.8), 0 0 50px rgba(56, 189, 248, 0.5);
+    }
+}
+
 /* Portal burst glow */
 .peek-character.portal-entering {
     filter: drop-shadow(0 0 30px rgba(124, 58, 237, 0.8))

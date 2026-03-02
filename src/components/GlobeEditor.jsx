@@ -861,6 +861,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pBubble.add(pcfg, 'bubbleFontSize', 0.5, 1.6, 0.01).name('Font Size (rem)');
     pBubble.add(pcfg, 'bubbleMaxWidth', 120, 500, 5).name('Max Width (px)');
     pBubble.add(pcfg, 'bubblePadding', 4, 30, 1).name('Padding (px)');
+    pBubble.add(pcfg, 'bubbleThinkingEnabled').name('Thinking Dots');
+    pBubble.add(pcfg, 'bubbleThinkingMs', 400, 3000, 50).name('Think Duration (ms)');
+    pBubble.add(pcfg, 'bubbleAnimSpeed', 0.3, 3.0, 0.05).name('Anim Speed');
     pBubble.close();
 
     // -- Portal Effects --
@@ -920,6 +923,11 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Spawn Point Management --
     const spawnMgmtFolder = prismBopFolder.addFolder('Spawn Points');
+    const spawnMarkerProxy = { showMarkers: pcfg.showSpawnMarkers ?? false };
+    spawnMgmtFolder.add(spawnMarkerProxy, 'showMarkers').name('Show Markers').onChange((v) => {
+      pcfg.showSpawnMarkers = v;
+      window.dispatchEvent(new CustomEvent('prism-spawn-markers', { detail: { enabled: v } }));
+    });
     const spawnCountProxy = { count: 'Loading...' };
     const spawnCountCtrl = spawnMgmtFolder.add(spawnCountProxy, 'count').name('Saved').disable();
     const updateSpawnCount = () => {

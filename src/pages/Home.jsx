@@ -3362,6 +3362,8 @@ export default function Home() {
   const [peekStyle, setPeekStyle] = useState('slide');
   const [prismBops, setPrismBops] = useState(0);
   const [prismBubble, setPrismBubble] = useState(null);
+  const [bubblePhase, setBubblePhase] = useState(null); // null | 'thinking' | 'speaking'
+  const bubbleThinkTimerRef = useRef(null);
   const [prismSparkles, setPrismSparkles] = useState([]);
   const [showSpeedGame, setShowSpeedGame] = useState(false);
   const [editorDragMode, setEditorDragMode] = useState(false);
@@ -3373,6 +3375,9 @@ export default function Home() {
   // Portal phases: null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
   const [portalPhase, setPortalPhase] = useState(null);
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
+  const peekStyleRef = useRef('slide');
+  const portalExitingRef = useRef(false);
+  const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
 
   // Spawn points from localStorage
   const [spawnPoints, setSpawnPoints] = useState(() => {
@@ -3385,6 +3390,9 @@ export default function Home() {
       ];
     } catch { return [{ label: 'Right Edge', side: 'right' }, { label: 'Left Edge', side: 'left' }, { label: 'Top', side: 'top' }]; }
   });
+
+  // Keep peekStyleRef in sync for stale-closure-safe access
+  useEffect(() => { peekStyleRef.current = peekStyle; }, [peekStyle]);
 
   const prismCatchPhrases = [
     "Hey! You found me!",
@@ -3425,11 +3433,48 @@ export default function Home() {
     "Light doesn't ask permission to refract. Neither should your ideas.",
   ];
 
+  // ── Thinking dots → speech bubble helpers ──
+  const showBubbleWithThinking = useCallback((text) => {
+    const cfg = window.__prismConfig || {};
+    const thinkingEnabled = cfg.bubbleThinkingEnabled !== false;
+    const thinkMs = cfg.bubbleThinkingMs ?? 1200;
+
+    // Clear any pending think timer
+    if (bubbleThinkTimerRef.current) clearTimeout(bubbleThinkTimerRef.current);
+
+    if (!thinkingEnabled) {
+      // Skip straight to speaking
+      setBubblePhase('speaking');
+      setPrismBubble(text);
+      return;
+    }
+
+    // Phase 1: thinking dots
+    setPrismBubble(null);
+    setBubblePhase('thinking');
+    window.__prismExpression = 'thinking';
+
+    // Phase 2: speaking
+    bubbleThinkTimerRef.current = setTimeout(() => {
+      setBubblePhase('speaking');
+      setPrismBubble(text);
+      bubbleThinkTimerRef.current = null;
+    }, thinkMs);
+  }, []);
+
+  const clearBubble = useCallback(() => {
+    if (bubbleThinkTimerRef.current) clearTimeout(bubbleThinkTimerRef.current);
+    bubbleThinkTimerRef.current = null;
+    setBubblePhase(null);
+    setPrismBubble(null);
+  }, []);
+
   // Portal entrance ref for CSS glow class
   const peekCharRef = useRef(null);
 
   // ── Portal sequence helper (reads config from window.__prismConfig) ──
   const runPortalSequence = (ox, oy, showCharCallback) => {
+    if (portalExitingRef.current) return 0; // don't start entrance while exiting
     const cfg = window.__prismConfig || {};
     const cOx = parseFloat(ox) / 100;
     const cOy = parseFloat(oy) / 100;
@@ -3546,6 +3591,44 @@ export default function Home() {
     });
   };
 
+  // ── Portal EXIT sequence – re-opens portal at character pos, sucks it back in ──
+  const runPortalExitSequence = useCallback(() => {
+    if (portalExitingRef.current) return; // already exiting
+    portalExitingRef.current = true;
+
+    const cfg = window.__prismConfig || {};
+    const residualMs = cfg.portalResidualMs ?? 1800;
+
+    // Get character's current DOM center
+    let ox = '50%', oy = '50%';
+    if (peekCharRef.current) {
+      const rect = peekCharRef.current.getBoundingClientRect();
+      ox = `${((rect.left + rect.width / 2) / window.innerWidth) * 100}%`;
+      oy = `${((rect.top + rect.height / 2) / window.innerHeight) * 100}%`;
+    }
+
+    // Open portal at full size immediately (no seep/gather — just rupture at character)
+    setPortalOrigin({ x: ox, y: oy });
+    setPortalPhase('emerging');
+
+    // After 400ms, hide the character (framer-motion will scale to 0)
+    setTimeout(() => {
+      setPeekVisible(false);
+      clearBubble();
+    }, 400);
+
+    // After 1000ms, begin fading the portal
+    setTimeout(() => {
+      setPortalPhase('residual');
+    }, 1000);
+
+    // Cleanup
+    setTimeout(() => {
+      setPortalPhase(null);
+      portalExitingRef.current = false;
+    }, 1000 + residualMs);
+  }, [clearBubble]);
+
   useEffect(() => {
     const peekStyles = ['portal', 'portal', 'portal', 'bounce', 'pop', 'roll'];
     const scheduleNext = () => {
@@ -3578,12 +3661,18 @@ export default function Home() {
         const ideaDelay = setTimeout(() => {
           const idea = sparkIdeas[Math.floor(Math.random() * sparkIdeas.length)];
           window.__prismTalking = true;
-          window.__prismExpression = 'excited';
-          setPrismBubble(idea);
+          showBubbleWithThinking(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
-          setTimeout(() => { setPrismBubble(null); window.__prismExpression = 'normal'; }, 5000);
+          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
         }, style === 'portal' ? 2000 : 1200);
-        setTimeout(() => { setPeekVisible(false); clearTimeout(ideaDelay); }, 8000);
+        setTimeout(() => {
+          clearTimeout(ideaDelay);
+          if (peekStyleRef.current === 'portal') {
+            runPortalExitSequence();
+          } else {
+            setPeekVisible(false);
+          }
+        }, 8000);
         timerId = scheduleNext();
       }, delay);
     };
@@ -3623,13 +3712,23 @@ export default function Home() {
 
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
       if (!d.pinned) {
-        peekTimerRef.current = setTimeout(() => setPeekVisible(false), d.duration || 8000);
+        peekTimerRef.current = setTimeout(() => {
+          if (peekStyleRef.current === 'portal') {
+            runPortalExitSequence();
+          } else {
+            setPeekVisible(false);
+          }
+        }, d.duration || 8000);
       }
     };
     const hideHandler = () => {
       peekPinnedRef.current = false;
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
-      setPeekVisible(false);
+      if (peekStyleRef.current === 'portal') {
+        runPortalExitSequence();
+      } else {
+        setPeekVisible(false);
+      }
     };
     // Drag mode listener
     const dragModeHandler = (e) => setEditorDragMode(e.detail?.enabled ?? false);
@@ -3654,15 +3753,20 @@ export default function Home() {
       }
     };
 
+    // Spawn marker toggle
+    const spawnMarkerHandler = (e) => setShowSpawnMarkers(e.detail?.enabled ?? false);
+
     window.addEventListener('trigger-prism-peek', showHandler);
     window.addEventListener('hide-prism-peek', hideHandler);
     window.addEventListener('prism-drag-mode', dragModeHandler);
     window.addEventListener('prism-spawn-point', spawnHandler);
+    window.addEventListener('prism-spawn-markers', spawnMarkerHandler);
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
       window.removeEventListener('prism-drag-mode', dragModeHandler);
       window.removeEventListener('prism-spawn-point', spawnHandler);
+      window.removeEventListener('prism-spawn-markers', spawnMarkerHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
   }, [spawnPoints, dragPosition]);
@@ -3694,6 +3798,7 @@ export default function Home() {
       setBopPhase('reaction');
       window.__prismExpression = 'excited';
       window.__prismTalking = true;
+      setBubblePhase('speaking');
       setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
       confetti({ particleCount: 30, spread: 120, origin: { y: 0.5 }, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, drift: 0.5, ticks: 150 });
 
@@ -3713,16 +3818,26 @@ export default function Home() {
 
     // Phase 3: Theatrical exit (1500ms)
     setTimeout(() => {
-      const exits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt'];
+      const exits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt', 'portal-exit'];
       const style = exits[Math.floor(Math.random() * exits.length)];
+      window.__prismTalking = false;
+      clearBubble();
+
+      if (style === 'portal-exit') {
+        // Use portal exit instead of framer exit
+        setBopPhase(null);
+        setExitStyle(null);
+        runPortalExitSequence();
+        return;
+      }
+
       setExitStyle(style);
       setBopPhase('exit');
-      window.__prismTalking = false;
-      setPrismBubble(null);
     }, 1500);
 
-    // Final cleanup (2500ms)
+    // Final cleanup (2500ms) — skipped if portal-exit was chosen
     setTimeout(() => {
+      if (portalExitingRef.current) return; // portal exit handles its own cleanup
       setPeekVisible(false);
       setBopPhase(null);
       setExitStyle(null);
@@ -4122,6 +4237,40 @@ export default function Home() {
 
         </div>
 
+        {/* SPAWN POINT MARKERS (editor toggle) */}
+        {showSpawnMarkers && (
+          <div className="spawn-markers-overlay">
+            {spawnPoints.map((sp, i) => {
+              // Compute pixel position for each spawn point
+              const W = window.innerWidth;
+              const H = window.innerHeight;
+              let px, py;
+              if (sp.x != null && sp.y != null) {
+                px = sp.x; py = sp.y;
+              } else {
+                const side = sp.side || 'right';
+                if (side === 'right') { px = W - 130; py = H * 0.5; }
+                else if (side === 'left') { px = 130; py = H * 0.4; }
+                else { px = W * 0.5; py = 230; }
+              }
+              return (
+                <div
+                  key={i}
+                  className="spawn-marker"
+                  style={{ left: px, top: py }}
+                  onClick={() => {
+                    const origin = getPortalOrigin(sp);
+                    runPortalSequence(origin.x, origin.y, () => {});
+                  }}
+                >
+                  <div className="spawn-marker-dot" />
+                  <div className="spawn-marker-label">{sp.label || sp.side || `#${i + 1}`}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
 
@@ -4180,12 +4329,31 @@ export default function Home() {
                 ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
               }}
             >
-              {/* Talk bubble */}
-              <AnimatePresence>
-                {prismBubble && (
+              {/* Talk bubble – thinking dots → speech bubble */}
+              <AnimatePresence mode="wait">
+                {bubblePhase === 'thinking' && (
                   <motion.div
+                    key="thinking"
+                    className="prism-thinking-dots"
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    style={{
+                      transform: `translateX(calc(-50% + ${window.__prismConfig?.bubbleOffsetX || 0}px))`,
+                      bottom: `calc(100% - 30px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
+                    }}
+                  >
+                    <span className="thinking-dot" style={{ animationDelay: '0s' }} />
+                    <span className="thinking-dot" style={{ animationDelay: '0.2s' }} />
+                    <span className="thinking-dot" style={{ animationDelay: '0.4s' }} />
+                  </motion.div>
+                )}
+                {bubblePhase === 'speaking' && prismBubble && (
+                  <motion.div
+                    key="speaking"
                     className="prism-bubble"
-                    initial={{ opacity: 0, scale: 0, y: 10 }}
+                    initial={{ opacity: 0, scale: 0, y: 30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.5 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}

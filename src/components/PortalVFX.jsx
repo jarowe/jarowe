@@ -208,7 +208,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     // ── LAYER 2: Flash ──
     if (c.flashOp > 0.01) {
       const fi = c.flashOp * flashMult;
-      const fg = ctx.createRadialGradient(ox, oy, 0, ox, oy, 500 * DPR);
+      const fg = ctx.createRadialGradient(ox, oy, 0, ox, oy, R * 3.6);
       fg.addColorStop(0, `rgba(${c1[0]},${c1[1]},${c1[2]},${fi})`);
       fg.addColorStop(0.2, `rgba(255,240,255,${fi * 0.8})`);
       fg.addColorStop(0.5, `rgba(${c2[0]},${c2[1]},${c2[2]},${fi * 0.4})`);
@@ -352,11 +352,14 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.lineCap = 'round';
 
+      // Scale stroke widths proportionally to ring radius
+      const rScale = R / (140 * DPR);
+
       // Pass 1: outer glow (color 1)
       traceArc();
       ctx.strokeStyle = `rgba(${c1[0]},${c1[1]},${c1[2]},0.3)`;
-      ctx.lineWidth = 18 * DPR;
-      ctx.filter = `blur(${8 * DPR}px)`;
+      ctx.lineWidth = 18 * DPR * rScale;
+      ctx.filter = `blur(${8 * DPR * rScale}px)`;
       ctx.stroke();
       ctx.filter = 'none';
 
@@ -366,15 +369,15 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       const bodyG = Math.min(255, c1[1] + 80);
       const bodyB = Math.min(255, c1[2] + 20);
       ctx.strokeStyle = `rgba(${bodyR},${bodyG},${bodyB},0.8)`;
-      ctx.lineWidth = 6 * DPR;
-      ctx.filter = `blur(${1 * DPR}px)`;
+      ctx.lineWidth = 6 * DPR * rScale;
+      ctx.filter = `blur(${1 * DPR * rScale}px)`;
       ctx.stroke();
       ctx.filter = 'none';
 
       // Pass 3: hot core (white-ish)
       traceArc();
       ctx.strokeStyle = `rgba(220,210,255,0.9)`;
-      ctx.lineWidth = 2 * DPR;
+      ctx.lineWidth = 2 * DPR * rScale;
       ctx.stroke();
 
       ctx.restore();
@@ -384,6 +387,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
     if (R > 10 && c.ringDraw > 0.1) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
+      const dotScale = R / (140 * DPR);
       const dotCount = Math.floor(60 * c.ringDraw);
       for (let i = 0; i < dotCount; i++) {
         const a = drawStartAngle.current + (i / 60) * TAU;
@@ -391,7 +395,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         const shimmer = 0.4 + 0.6 * Math.sin(time * 8 + i * 1.7);
         const px = ox + Math.cos(a) * r;
         const py = oy + Math.sin(a) * r;
-        const sz = (1.5 + Math.sin(i * 0.5 + time * 3) * 1) * DPR;
+        const sz = (1.5 + Math.sin(i * 0.5 + time * 3) * 1) * DPR * dotScale;
         ctx.beginPath();
         ctx.arc(px, py, sz, 0, TAU);
         ctx.fillStyle = `rgba(220,200,255,${shimmer * 0.6})`;
@@ -410,14 +414,16 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
 
-      // Big soft glow
-      const lg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 30 * DPR);
+      // Big soft glow (proportional to ring)
+      const sparkGlow = R * 0.21;
+      const sparkBox = sparkGlow * 1.17;
+      const lg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sparkGlow);
       lg.addColorStop(0, 'rgba(255,250,220,0.9)');
       lg.addColorStop(0.2, 'rgba(255,200,100,0.6)');
       lg.addColorStop(0.5, `rgba(${c1[0]},${c1[1]},${c1[2]},0.3)`);
       lg.addColorStop(1, 'transparent');
       ctx.fillStyle = lg;
-      ctx.fillRect(sx - 35 * DPR, sy - 35 * DPR, 70 * DPR, 70 * DPR);
+      ctx.fillRect(sx - sparkBox, sy - sparkBox, sparkBox * 2, sparkBox * 2);
 
       // Hot white core
       ctx.beginPath();
@@ -546,7 +552,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         t.vignetteOp = 0.3;
         t.particleRate = 5;
         t.seepOp = 1;
-        t.seepRadius = 80;
+        t.seepRadius = ringR * 0.57;
         break;
 
       case 'gathering':
@@ -569,7 +575,7 @@ export default function PortalVFX({ phase, originX = '50%', originY = '50%' }) {
         t.vignetteOp = 0.8;
         t.particleRate = 80;
         c.flashOp = 0.9 * (cfg.portalFlashIntensity ?? 1);
-        c.shockRadius = 30;
+        c.shockRadius = ringR * 0.21;
         c.shockOp = 1;
         break;
 

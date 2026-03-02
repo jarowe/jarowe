@@ -94,6 +94,9 @@ export const PRISM_DEFAULTS = {
   bubbleFontSize: 0.8,
   bubbleMaxWidth: 260,
   bubblePadding: 14,
+  bubbleThinkingEnabled: true,
+  bubbleThinkingMs: 1200,
+  bubbleAnimSpeed: 1.0,
 
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
@@ -141,4 +144,5 @@ export const PRISM_DEFAULTS = {
 
   // Spawn
   spawnScale: 1.0,
+  showSpawnMarkers: false,
 };
