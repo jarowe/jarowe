@@ -3828,21 +3828,21 @@ export default function Home() {
     let rafId;
     const update = () => {
       const bubbleEl = bubbleElRef.current;
-      const charEl = peekCharRef.current;
+      // Use the center marker for exact character position (accounts for all transforms)
+      const marker = peekCharRef.current?.querySelector('.prism-center-marker');
       const line = connectorLineRef.current;
       const d1 = connectorDot1Ref.current;
       const d2 = connectorDot2Ref.current;
-      if (bubbleEl && charEl && line) {
+      if (bubbleEl && marker && line) {
         const bRect = bubbleEl.getBoundingClientRect();
-        const cRect = charEl.getBoundingClientRect();
-        const below = bubbleEl.classList.contains('bubble-below') ||
-                      bubbleEl.classList.contains('thinking-below');
-        // Bubble anchor: slightly left-of-center on the near edge
-        const bx = bRect.left + bRect.width * 0.3;
+        const mRect = marker.getBoundingClientRect();
+        const below = bubbleEl.classList.contains('bubble-below');
+        // Bubble anchor: center of the near edge
+        const bx = bRect.left + bRect.width * 0.35;
         const by = below ? bRect.top : bRect.bottom;
-        // Character anchor: center of peek-character layout (= character visual center)
-        const cx = cRect.left + cRect.width / 2;
-        const cy = cRect.top + cRect.height / 2;
+        // Character anchor: exact center marker position
+        const cx = mRect.left;
+        const cy = mRect.top;
         line.setAttribute('x1', bx); line.setAttribute('y1', by);
         line.setAttribute('x2', cx); line.setAttribute('y2', cy);
         line.style.display = '';
@@ -3922,6 +3922,16 @@ export default function Home() {
       setTimeout(() => setShowSpeedGame(true), 2500);
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
+
+  // Listen for prism-bop custom event from R3F raycast hit mesh (only on actual prism geometry)
+  useEffect(() => {
+    const handler = (e) => {
+      if (!peekVisible || editorDragMode || bopPhase != null) return;
+      handleCatchCharacter(e.detail); // { clientX, clientY }
+    };
+    window.addEventListener('prism-bop', handler);
+    return () => window.removeEventListener('prism-bop', handler);
+  }, [peekVisible, editorDragMode, bopPhase, handleCatchCharacter]);
 
   // Drag mode: global mouse handlers
   useEffect(() => {
@@ -4549,9 +4559,10 @@ export default function Home() {
               })()}
               <div
                 className="prism-3d"
-                onClick={peekVisible && !editorDragMode && bopPhase == null ? (e) => handleCatchCharacter(e) : undefined}
-                style={{ cursor: peekVisible && !editorDragMode ? 'pointer' : 'default' }}
+                style={{ cursor: 'default' }}
               >
+                {/* Invisible marker at prism visual center — used by connector SVG for accurate positioning */}
+                <div className="prism-center-marker" style={{ position: 'absolute', left: '50%', top: '50%', width: 0, height: 0, pointerEvents: 'none' }} />
                 <Suspense fallback={<div className="prism-loading-glow" />}>
                   <Prism3D />
                 </Suspense>

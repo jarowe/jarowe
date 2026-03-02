@@ -795,10 +795,10 @@
     z-index: 20;
 }
 
-/* 3D Glass Prism Container */
+/* 3D Glass Prism Container — clicks go through canvas wrapper to R3F raycast */
 .prism-3d {
     position: relative;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 .prism-3d-canvas-wrapper {

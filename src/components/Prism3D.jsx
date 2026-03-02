@@ -1013,6 +1013,26 @@ function PrismBodyHybrid({ geometry }) {
   );
 }
 
+/* ═══════════ HIT MESH — invisible raycast target for click detection on actual prism ═══════════ */
+function PrismHitMesh({ geometry }) {
+  return (
+    <mesh
+      geometry={geometry}
+      scale={1.15}
+      onClick={(e) => {
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('prism-bop', {
+          detail: { clientX: e.nativeEvent.clientX, clientY: e.nativeEvent.clientY }
+        }));
+      }}
+      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { document.body.style.cursor = ''; }}
+    >
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  );
+}
+
 /* ═══════════ RICH SCENE CONTENT FOR MTM/HYBRID (gives MTM things to refract) ═══════════ */
 function MTMSceneContent() {
   return (
@@ -1669,7 +1689,7 @@ export default function Prism3D() {
         width: size,
         height: size,
         margin: canvasMargin,
-        pointerEvents: 'none',
+        pointerEvents: 'auto',
         ...(cfg.canvasMask ? {
           WebkitMaskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
           maskImage: `radial-gradient(ellipse at ${cfg.sceneCenterX}% ${cfg.sceneCenterY}%, black ${fi}%, transparent ${fo}%)`,
@@ -1691,6 +1711,7 @@ export default function Prism3D() {
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
               {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              <PrismHitMesh geometry={geometry} />
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />
