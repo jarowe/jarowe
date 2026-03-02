@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles, MeshTransmissionMaterial, Environment } from '@react-three/drei';
-import { useRef, useMemo, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 
@@ -10,6 +10,13 @@ export { PRISM_DEFAULTS };
 /* ═══════════ GLASS PRESETS (built-in per mode) ═══════════ */
 export const GLASS_PRESETS = [
   // ── Custom Shader presets ──
+  {
+    name: 'Prismatic Clear',
+    description: 'The signature look — clean prismatic glass with balanced everything',
+    glassMode: 'shader',
+    glassIOR: 0.67, causticIntensity: 1.0, iridescenceIntensity: 1.0,
+    chromaticSpread: 1.0, glassAlpha: 0.22, streakIntensity: 1.0,
+  },
   {
     name: 'Default',
     description: 'Factory default — the proven look',
@@ -1805,6 +1812,37 @@ function ScreenTracker() {
   return <group ref={ref} />;
 }
 
+/* ═══════════ GLASS MODE ERROR BOUNDARY ═══════════ */
+// If MTM or Hybrid crashes (FBO issues, GPU limits), fall back to shader mode
+class GlassErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err) {
+    console.warn('[Prism3D] Glass mode error, falling back to shader:', err.message);
+    // Reset config to shader mode so editor stays in sync
+    if (window.__prismConfig) window.__prismConfig.glassMode = 'shader';
+    window.dispatchEvent(new CustomEvent('prism-glass-mode-change'));
+  }
+  componentDidUpdate(prevProps) {
+    // Reset error state when glass mode changes so user can retry
+    if (prevProps.glassMode !== this.props.glassMode) {
+      this.setState({ hasError: false });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      // Render shader body as fallback
+      return <PrismBody geometry={this.props.geometry} />;
+    }
+    return this.props.children;
+  }
+}
+
 /* ═══════════ MAIN COMPONENT ═══════════ */
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
@@ -1878,7 +1916,9 @@ export default function Prism3D() {
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
-              {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              <GlassErrorBoundary glassMode={glassMode} geometry={geometry}>
+                {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              </GlassErrorBoundary>
               <ScreenTracker />
               <GlassOrbEye />
               <InternalGlow />
