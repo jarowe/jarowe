@@ -79,6 +79,7 @@ export function auditPrivacy(graph, config = {}) {
   const warnings = [];
   const allowlist = config.allowlist || { public: [], friends: [], minors: { firstNames: [], blockedPatterns: [] } };
   const gpsMaxDecimals = config.gpsMaxDecimals ?? 2;
+  const publishMode = config.publishMode === true;
   const nodes = graph.nodes || [];
 
   // ── PRIV-02: No private-tier nodes in output ──────────────────────
@@ -87,6 +88,17 @@ export function auditPrivacy(graph, config = {}) {
       violations.push(
         `PRIV-02: Private node in output: ${node.id} (visibility="${node.visibility}")`
       );
+    }
+  }
+
+  // ── PRIV-09: Publish mode -- ONLY public nodes allowed ────────────
+  if (publishMode) {
+    for (const node of nodes) {
+      if (node.visibility !== 'public') {
+        violations.push(
+          `PRIV-09: Non-public node in publish output: ${node.id} (visibility="${node.visibility}")`
+        );
+      }
     }
   }
 

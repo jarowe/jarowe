@@ -1,0 +1,49 @@
+{
+  "lastRun": "2026-03-02T03:12:19.913Z",
+  "status": "success",
+  "publishMode": true,
+  "stats": {
+    "nodeCount": 106,
+    "edgeCount": 88,
+    "bySource": {
+      "carbonmade": 47,
+      "instagram": 59
+    },
+    "byType": {
+      "moment": 68,
+      "idea": 1,
+      "milestone": 5,
+      "project": 32
+    },
+    "byVisibility": {
+      "public": 106
+    },
+    "byFactuality": {
+      "factual": 106
+    },
+    "ingestSources": {
+      "instagram": {
+        "status": "active",
+        "count": 67
+      },
+      "carbonmade": {
+        "status": "active",
+        "count": 60
+      },
+      "music": {
+        "status": "empty",
+        "count": 0
+      }
+    },
+    "privacyAudit": {
+      "violations": 0,
+      "warnings": 0
+    },
+    "realityGate": {
+      "factualNodes": 106,
+      "threshold": 250,
+      "passed": false,
+      "progress": "106/250"
+    }
+  }
+}

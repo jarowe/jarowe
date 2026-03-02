@@ -173,3 +173,37 @@ export function filterPrivateNodes(nodes) {
 
   return filtered;
 }
+
+/**
+ * Filter to public-only nodes for publish artifacts.
+ * Used by --publish mode to ensure deployed graph contains only public data.
+ *
+ * @param {Object[]} nodes - Array of canonical nodes
+ * @returns {Object[]} Nodes with visibility === "public" only
+ */
+export function filterPublicOnly(nodes) {
+  const before = nodes.length;
+  const filtered = nodes.filter(n => n.visibility === 'public');
+  const removed = before - filtered.length;
+
+  log.info(`Public-only filter: ${filtered.length} public, ${removed} non-public removed`);
+  return filtered;
+}
+
+/**
+ * Prune edges that reference any node not in the surviving set.
+ *
+ * @param {Object[]} edges - Array of edges with source/target IDs
+ * @param {Set<string>} validIds - Set of surviving node IDs
+ * @returns {Object[]} Edges where both source and target are in validIds
+ */
+export function pruneOrphanEdges(edges, validIds) {
+  const before = edges.length;
+  const filtered = edges.filter(e => validIds.has(e.source) && validIds.has(e.target));
+  const removed = before - filtered.length;
+
+  if (removed > 0) {
+    log.info(`Pruned ${removed} orphan edge(s) (${filtered.length} remaining)`);
+  }
+  return filtered;
+}

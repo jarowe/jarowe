@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "prebuild": "node pipeline/index.mjs",
     "pipeline": "node pipeline/index.mjs",
+    "pipeline:publish": "node pipeline/index.mjs --publish",
+    "publish:constellation": "node pipeline/index.mjs --publish && echo Publish artifacts ready — commit public/data/*.json",
     "ingest:music": "node pipeline/ingest-music.mjs",
     "ingest:all": "node pipeline/ingest-music.mjs",
     "lint": "eslint .",

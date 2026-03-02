@@ -47,7 +47,7 @@ import { generateEdges } from './edges/edge-generator.mjs';
 import { computePipelineLayout } from './layout/helix.mjs';
 import { stripAndVerify } from './privacy/exif-stripper.mjs';
 import { redactGPS } from './privacy/gps-redactor.mjs';
-import { assignVisibility, applyAllowlist, filterPrivateNodes } from './privacy/visibility.mjs';
+import { assignVisibility, applyAllowlist, filterPrivateNodes, filterPublicOnly, pruneOrphanEdges } from './privacy/visibility.mjs';
 import { isMinor, enforceMinorsPolicy } from './privacy/minors-guard.mjs';
 import { auditPrivacy } from './validation/privacy-audit.mjs';
 import { validateSchema } from './validation/schema-validator.mjs';
@@ -60,6 +60,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
 const log = createLogger('orchestrator');
+
+/** Publish mode: --publish flag produces public-only output for deployment */
+const PUBLISH_MODE = process.argv.includes('--publish');
 
 // ---------------------------------------------------------------------------
 // Phase helpers
@@ -94,7 +97,7 @@ async function readJsonOrNull(filePath) {
 
 async function main() {
   const startTime = Date.now();
-  log.info('Pipeline starting...');
+  log.info(`Pipeline starting...${PUBLISH_MODE ? ' (PUBLISH MODE -- public-only output)' : ''}`);
 
   // ========================================================================
   // Pre-flight: Snapshot last good output for resilience
@@ -277,11 +280,15 @@ async function main() {
   applyAllowlist(allNodes, allowlist);
 
   // ========================================================================
-  // Phase 5: FILTER PRIVATE NODES
+  // Phase 5: FILTER BY VISIBILITY
   // ========================================================================
-  log.info('--- Phase 5: Filter Private Nodes ---');
-
-  allNodes = filterPrivateNodes(allNodes);
+  if (PUBLISH_MODE) {
+    log.info('--- Phase 5: Filter Public-Only (publish mode) ---');
+    allNodes = filterPublicOnly(allNodes);
+  } else {
+    log.info('--- Phase 5: Filter Private Nodes ---');
+    allNodes = filterPrivateNodes(allNodes);
+  }
 
   // ========================================================================
   // Phase 6: PRIVACY (EXIF + GPS)
@@ -372,7 +379,11 @@ async function main() {
   // ========================================================================
   log.info('--- Phase 7: Edge Generation ---');
 
-  const { edges, stats: edgeStats } = await generateEdges(allNodes);
+  let { edges, stats: edgeStats } = await generateEdges(allNodes);
+
+  // Prune any edges referencing nodes that were filtered out
+  const survivingIds = new Set(allNodes.map(n => n.id));
+  edges = pruneOrphanEdges(edges, survivingIds);
 
   log.info(
     `Edges: ${edgeStats.edgesCreated} created from ${edgeStats.totalPairs} pairs ` +
@@ -446,6 +457,7 @@ async function main() {
   const { violations, warnings: privacyWarnings } = auditPrivacy(graphData, {
     allowlist,
     gpsMaxDecimals: PIPELINE_CONFIG.privacy.gpsMaxDecimals,
+    publishMode: PUBLISH_MODE,
   });
 
   if (violations.length > 0) {
@@ -493,10 +505,15 @@ async function main() {
     byFactuality[f] = (byFactuality[f] || 0) + 1;
   }
 
+  // Reality gate: track factual node count toward 250 threshold
+  const factualCount = sortedNodes.filter(n => (n.factuality || 'factual') === 'factual').length;
+  const REALITY_GATE_THRESHOLD = 250;
+
   // Write pipeline-status.json (runtime artifact, has timestamps -- NOT curation.json)
   const statusData = {
     lastRun: new Date().toISOString(),
     status: 'success',
+    publishMode: PUBLISH_MODE,
     stats: {
       nodeCount: sortedNodes.length,
       edgeCount: sortedEdges.length,
@@ -512,6 +529,12 @@ async function main() {
       privacyAudit: {
         violations: 0,
         warnings: privacyWarnings.length,
+      },
+      realityGate: {
+        factualNodes: factualCount,
+        threshold: REALITY_GATE_THRESHOLD,
+        passed: factualCount >= REALITY_GATE_THRESHOLD,
+        progress: `${factualCount}/${REALITY_GATE_THRESHOLD}`,
       },
     },
   };
