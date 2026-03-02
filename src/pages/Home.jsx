@@ -4510,13 +4510,13 @@ export default function Home() {
             <motion.div
               key={bopPlusOne.id}
               className="bop-plus-one"
-              initial={{ opacity: 1, scale: 0.3, x: bopPlusOne.x, y: bopPlusOne.y }}
-              animate={{ opacity: 0, scale: 1.4, x: bopPlusOne.x + (Math.random() - 0.5) * 40, y: bopPlusOne.y - 120 }}
+              style={{ left: bopPlusOne.x - 20, top: bopPlusOne.y - 16 }}
+              initial={{ opacity: 1, scale: 0.5, y: 0 }}
+              animate={{ opacity: 0, scale: 1.8, y: -140 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              style={{ position: 'fixed', pointerEvents: 'none', zIndex: 550, transform: 'translate(-50%, -50%)' }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
             >
-              +1
+              <span className="bop-plus-one-text">+1</span>
             </motion.div>
           )}
         </AnimatePresence>
