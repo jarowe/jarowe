@@ -42,7 +42,7 @@ export const PRISM_DEFAULTS = {
   // Canvas / display
   canvasSize: 1200,
   featherInner: 9,
-  featherOuter: 57,
+  featherOuter: 80,
   sceneCenterX: 50,
   sceneCenterY: 50,
 
