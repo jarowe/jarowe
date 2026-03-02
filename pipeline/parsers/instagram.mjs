@@ -228,6 +228,55 @@ function findPostContainers($) {
 }
 
 /**
+ * Classify whether a post is original content or a reshare/repost.
+ *
+ * Checks HTML structure and caption patterns for reshare indicators.
+ *
+ * @param {Object} $ - Cheerio instance
+ * @param {Object} $post - Cheerio post element
+ * @param {string} caption - Post caption text
+ * @returns {{ isOwned: boolean, reason: string|null }}
+ */
+function classifyOwnership($, $post, caption) {
+  const postText = $post.text() || '';
+
+  // HTML structure indicators (reshare UI elements)
+  const htmlResharePatterns = [
+    /shared a post/i,
+    /shared a reel/i,
+    /reposted/i,
+    /shared .+?'s post/i,
+    /shared .+?'s reel/i,
+  ];
+
+  for (const pat of htmlResharePatterns) {
+    if (pat.test(postText)) {
+      return { isOwned: false, reason: pat.source };
+    }
+  }
+
+  // Caption-based reshare indicators
+  if (caption) {
+    const captionResharePatterns = [
+      { pattern: /^repost\b/i, reason: 'caption starts with "repost"' },
+      { pattern: /^rp\s+@/i, reason: 'caption starts with "rp @"' },
+      { pattern: /^📸\s*@/i, reason: 'photo credit attribution' },
+      { pattern: /\bcredit:\s*@/i, reason: 'credit attribution' },
+      { pattern: /\brepost\s+from\s+@/i, reason: 'repost from attribution' },
+      { pattern: /\bvia\s+@/i, reason: 'via attribution' },
+    ];
+
+    for (const { pattern, reason } of captionResharePatterns) {
+      if (pattern.test(caption)) {
+        return { isOwned: false, reason };
+      }
+    }
+  }
+
+  return { isOwned: true, reason: null };
+}
+
+/**
  * Extract tagged users from the plain-text format used in 2024-2026 exports.
  * Format: "username1 (Tagged, 0.00, 0.00), username2 (Tagged, 0.00, 0.00)"
  */
@@ -390,12 +439,16 @@ function extractPost($, postElement, fileName, index) {
     // ── Location ──
     const location = extractLocation($, $post);
 
+    // ── Ownership classification ──
+    const ownership = classifyOwnership($, $post, caption);
+
     return {
       caption,
       dateText,
       media,
       taggedUsers,
       location,
+      ownership,
     };
   } catch (err) {
     log.warn(`Post ${index} in ${fileName}: extraction error: ${err.message}`);
@@ -605,6 +658,10 @@ export async function parseInstagram(exportDir, options = {}) {
         projects: [],
       },
       location: post.location,
+      sourceMeta: {
+        isOwned: post.ownership?.isOwned !== false,
+        reshareReason: post.ownership?.reason || null,
+      },
     });
 
     if (node) {

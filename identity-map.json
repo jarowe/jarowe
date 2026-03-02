@@ -1,0 +1,17 @@
+{
+  "identities": {
+    "self": {
+      "canonicalName": "Jared Rowe",
+      "aliases": ["jarowe", "jaredrowe"],
+      "tier": "public",
+      "relationship": "self"
+    },
+    "maria": {
+      "canonicalName": "Maria",
+      "aliases": ["rowetogether"],
+      "tier": "public",
+      "relationship": "wife"
+    }
+  },
+  "selfAliases": ["jarowe", "jaredrowe"]
+}

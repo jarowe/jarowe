@@ -1,6 +1,6 @@
 {
   "_comment": "People allowed to appear publicly by name. Everyone else is labeled generically.",
-  "public": ["Jared Rowe"],
+  "public": ["Jared Rowe", "Maria"],
   "friends": [],
   "minors": {
     "firstNames": ["Jace"],

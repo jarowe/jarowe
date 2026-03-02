@@ -35,6 +35,9 @@ export const SIGNAL_WEIGHTS = Object.freeze({
   'narrative-arc':       0.55,   // Temporal + thematic = story evolution
   'life-chapter':        0.2,    // Same epoch (same phase of life)
   'seasonal-echo':       0.15,   // Same month, different year
+
+  // Identity signals (V3 identity engine)
+  'shared-identity':     0.7,    // Same resolved person (canonical name) in both nodes
 });
 
 /** Minimum total signal weight to create an edge. */
@@ -240,9 +243,10 @@ function getSeason(month) {
  *
  * @param {Object} nodeA - First canonical node (with _motifs)
  * @param {Object} nodeB - Second canonical node (with _motifs)
+ * @param {Object} [identityMap] - Optional identity registry for enriched descriptions
  * @returns {Array<{type: string, signal: string, description: string, weight: number}>}
  */
-export function calculateSignals(nodeA, nodeB) {
+export function calculateSignals(nodeA, nodeB, identityMap) {
   const signals = [];
   const entA = nodeA.entities || {};
   const entB = nodeB.entities || {};
@@ -335,6 +339,35 @@ export function calculateSignals(nodeA, nodeB) {
       signal: 'shared-entity',
       description: `United by ${meaningfulPeople.join(' & ')} in both stories`,
       weight: SIGNAL_WEIGHTS['shared-entity'],
+    });
+  }
+
+  // ---- shared-identity (resolved canonical people) ----
+  if (meaningfulPeople.length > 0) {
+    // Weight: 0.7 base + 0.15 per additional shared identity, capped at 1.2
+    const identityWeight = Math.min(
+      SIGNAL_WEIGHTS['shared-identity'] + (meaningfulPeople.length - 1) * 0.15,
+      1.2
+    );
+
+    // Build description, enriched with relationship if identity map available
+    let identityDesc;
+    if (identityMap?.aliasIndex && meaningfulPeople.length === 1) {
+      const resolved = identityMap.aliasIndex.get(meaningfulPeople[0].toLowerCase());
+      if (resolved?.relationship && resolved.relationship !== 'self') {
+        identityDesc = `${meaningfulPeople[0]} — ${resolved.relationship} — threads through both memories`;
+      } else {
+        identityDesc = `${meaningfulPeople[0]} present in both moments`;
+      }
+    } else {
+      identityDesc = `${meaningfulPeople.join(' & ')} connect${meaningfulPeople.length === 1 ? 's' : ''} these memories`;
+    }
+
+    signals.push({
+      type: 'identity',
+      signal: 'shared-identity',
+      description: identityDesc,
+      weight: Number(identityWeight.toFixed(2)),
     });
   }
 

@@ -27,6 +27,11 @@ export const PIPELINE_CONFIG = Object.freeze({
       dir: process.env.MUSIC_SNAPSHOT_DIR || 'data-private/music',
       defaultVisibility: 'public',
     },
+    /** Facebook HTML export (gitignored, private) */
+    facebook: {
+      dir: process.env.FACEBOOK_EXPORT_DIR || 'data-private/facebook',
+      defaultVisibility: 'public',
+    },
   },
 
   /** Output file paths (generated at build time into public/data/) */
@@ -45,6 +50,10 @@ export const PIPELINE_CONFIG = Object.freeze({
   },
   allowlist: {
     file: 'allowlist.json',
+  },
+  /** Identity resolution (username → canonical person mapping) */
+  identity: {
+    file: 'identity-map.json',
   },
 
   /** Privacy settings */

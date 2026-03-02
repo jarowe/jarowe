@@ -86,8 +86,10 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Per-instance color via Three.js instanceColor API
-      tempColor.set(NODE_COLORS[node.type] || '#ffffff');
+      // Per-instance color scaled by significance-based brightness
+      const sig = node.significance ?? 0.5;
+      const brightness = 0.3 + sig * 1.5; // range 0.3 to 1.8
+      tempColor.set(NODE_COLORS[node.type] || '#ffffff').multiplyScalar(brightness);
       mesh.setColorAt(i, tempColor);
     });
 
@@ -121,16 +123,18 @@ export default function NodeCloud({ nodes, gpuConfig }) {
         }
       }
 
+      const sig = nodes[i].significance ?? 0.5;
+      const brightness = 0.3 + sig * 1.5;
       tempColor.set(NODE_COLORS[nodes[i].type] || '#ffffff');
-      tempColor.multiplyScalar(dimFactor);
+      tempColor.multiplyScalar(dimFactor * brightness);
       mesh.setColorAt(i, tempColor);
     }
 
     mesh.instanceColor.needsUpdate = true;
 
-    // Update emissive intensity for focused node
+    // Update emissive intensity scaled by focus state
     if (materialRef.current) {
-      materialRef.current.emissiveIntensity = focusedNodeId ? 2.0 : 1.5;
+      materialRef.current.emissiveIntensity = focusedNodeId ? 2.0 : 1.0;
     }
   }, [focusedNodeId, filterEntity, nodes, count, storeEdges, storeNodes]);
 
@@ -141,7 +145,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     const time = clock.getElapsedTime();
 
     for (let i = 0; i < count; i++) {
-      const breathe = Math.sin(time * 0.5 + i * 0.3) * 0.05 + 1.0;
+      const sig = nodes[i].significance ?? 0.5;
+      const pulseAmp = 0.02 + sig * 0.06; // 0.02 for low, 0.08 for high
+      const breathe = Math.sin(time * 0.5 + i * 0.3) * pulseAmp + 1.0;
       const scale = baseScales[i] * breathe;
 
       meshRef.current.getMatrixAt(i, dummy.matrix);

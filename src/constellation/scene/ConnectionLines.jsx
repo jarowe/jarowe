@@ -2,10 +2,16 @@ import { useMemo } from 'react';
 import { Line } from '@react-three/drei';
 import { useConstellationStore } from '../store';
 
+/** Linear interpolation. */
+function lerp(a, b, t) {
+  return a + (b - a) * Math.max(0, Math.min(1, t));
+}
+
 /**
  * Connection lines between related constellation nodes.
  *
  * Renders thin luminous threads between nodes connected by edges.
+ * Edge weight drives baseline opacity and width.
  * Focus-aware: connected lines brighten, non-connected lines fade.
  * Entity-filter-aware: only edges involving the filtered entity are visible.
  */
@@ -61,16 +67,18 @@ export default function ConnectionLines({ positions }) {
       const targetPos = positionMap.get(edge.target);
       if (!sourcePos || !targetPos) continue;
 
-      let opacity = 0.08;
-      let lineWidth = 1;
+      // Weight-driven baseline opacity and width
+      const w = (edge.weight || 1) / 2.0; // normalize: typical range 0.5-2.0
+      let opacity = lerp(0.04, 0.15, w);
+      let lineWidth = lerp(0.5, 1.5, w);
 
       if (focusedNodeId) {
         // Focus mode: brighten connected, dim non-connected
         const isConnected =
           edge.source === focusedNodeId || edge.target === focusedNodeId;
         if (isConnected) {
-          opacity = 0.8;
-          lineWidth = 1.5;
+          opacity = lerp(0.5, 0.9, w);
+          lineWidth = lerp(1.0, 2.0, w);
         } else {
           opacity = 0.03;
           lineWidth = 0.5;
@@ -80,8 +88,8 @@ export default function ConnectionLines({ positions }) {
         const sourceMatch = filteredNodeIds.has(edge.source);
         const targetMatch = filteredNodeIds.has(edge.target);
         if (sourceMatch && targetMatch) {
-          opacity = 0.6;
-          lineWidth = 1.5;
+          opacity = lerp(0.4, 0.7, w);
+          lineWidth = lerp(1.0, 2.0, w);
         } else {
           opacity = 0.02;
           lineWidth = 0.5;

@@ -17,20 +17,24 @@
  *   - Privacy audit is the LAST step before declaring success (fail-closed)
  *
  * Pipeline execution order:
- *   1. Parse (Instagram + Carbonmade) -- parsers set default visibility
- *   2. Curation (read-only: hidden list + visibility overrides)
- *   3. Visibility tier refinement (allowlist enforcement, most-restrictive-wins)
- *   3b. Minors guard (strip last names, remove GPS, redact blocked patterns)
- *   4. Allowlist name processing (replace non-public names with generic labels)
- *   6. Filter private nodes (remove from output)
- *   7. EXIF strip + GPS redact
- *   8. Edge generation
- *   9. Layout computation
- *  10. Build output JSON
- *  11. Schema validation (fail on invalid)
- *  12. Privacy audit (FAIL-CLOSED on any violation)
- *  13. Write output files
- *  14. Write pipeline-status.json
+ *   1.   Parse (Instagram + Carbonmade + Music + Facebook)
+ *   1.5  Identity resolution (username → canonical name)
+ *   2.   Curation (read-only: hidden list + visibility overrides)
+ *   3.   Visibility tier refinement (allowlist enforcement, most-restrictive-wins)
+ *   3b.  Minors guard (strip last names, remove GPS, redact blocked patterns)
+ *   4.   Allowlist name processing (replace non-public names with generic labels)
+ *   5.   Filter private nodes (remove from output)
+ *   6.   EXIF strip + GPS redact
+ *   6.5  Motif extraction
+ *   6.7  Significance scoring (multi-dimensional)
+ *   7.   Edge generation (with identity signals)
+ *   7.5  Connection-degree significance update
+ *   8.   Layout computation
+ *   9.   Build output JSON
+ *  10.   Schema validation (fail on invalid)
+ *  11.   Privacy audit (FAIL-CLOSED on any violation)
+ *  12.   Write output files
+ *  13.   Write pipeline-status.json
  *
  * Exit codes: 0 = success, 1 = privacy violation / schema error / failure
  */
@@ -43,6 +47,9 @@ import { fileURLToPath } from 'url';
 import { parseInstagram } from './parsers/instagram.mjs';
 import { parseCarbonmade } from './parsers/carbonmade.mjs';
 import { parseMusic } from './parsers/music.mjs';
+import { parseFacebook } from './parsers/facebook.mjs';
+import { loadIdentityMap, resolvePeopleArray } from './identity/registry.mjs';
+import { computeAllSignificance } from './scoring/significance.mjs';
 import { generateEdges } from './edges/edge-generator.mjs';
 import { extractAllMotifs } from './edges/motifs.mjs';
 import { computePipelineLayout } from './layout/helix.mjs';
@@ -157,17 +164,20 @@ async function main() {
   const instagramDir = resolve(PIPELINE_CONFIG.sources.instagram.dir);
   const carbonmadeDir = resolve(PIPELINE_CONFIG.sources.carbonmade.dir);
   const musicDir = resolve(PIPELINE_CONFIG.sources.music.dir);
+  const facebookDir = resolve(PIPELINE_CONFIG.sources.facebook.dir);
 
-  const [instagramResult, carbonmadeResult, musicResult] = await Promise.all([
+  const [instagramResult, carbonmadeResult, musicResult, facebookResult] = await Promise.all([
     parseInstagram(instagramDir),
     parseCarbonmade(carbonmadeDir),
     parseMusic(musicDir),
+    parseFacebook(facebookDir),
   ]);
 
   let allNodes = [
     ...instagramResult.nodes,
     ...carbonmadeResult.nodes,
     ...musicResult.nodes,
+    ...facebookResult.nodes,
   ];
 
   // Apply source-level default visibility from pipeline config
@@ -176,6 +186,7 @@ async function main() {
     carbonmade: PIPELINE_CONFIG.sources.carbonmade.defaultVisibility,
     suno: PIPELINE_CONFIG.sources.music.defaultVisibility,
     soundcloud: PIPELINE_CONFIG.sources.music.defaultVisibility,
+    facebook: PIPELINE_CONFIG.sources.facebook.defaultVisibility,
   };
   for (const node of allNodes) {
     const srcDefault = sourceVisDefaults[node.source];
@@ -186,12 +197,41 @@ async function main() {
 
   log.info(
     `Parsed ${allNodes.length} total nodes ` +
-    `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length}, Music: ${musicResult.nodes.length})`
+    `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length}, ` +
+    `Music: ${musicResult.nodes.length}, Facebook: ${facebookResult.nodes.length})`
   );
 
   if (allNodes.length === 0) {
     await failPipeline('Pipeline produced zero nodes', 0);
   }
+
+  // ========================================================================
+  // Phase 1.5: IDENTITY RESOLUTION
+  // ========================================================================
+  log.info('--- Phase 1.5: Identity Resolution ---');
+
+  const identityMap = await loadIdentityMap(
+    resolve(PIPELINE_CONFIG.identity?.file || 'identity-map.json')
+  );
+
+  let identityResolved = 0;
+  let identityUnresolved = 0;
+
+  for (const node of allNodes) {
+    if (node.entities?.people?.length > 0) {
+      const before = [...node.entities.people];
+      node.entities.people = resolvePeopleArray(node.entities.people, identityMap);
+      for (let i = 0; i < before.length; i++) {
+        if (before[i] !== node.entities.people[i]) {
+          identityResolved++;
+        } else {
+          identityUnresolved++;
+        }
+      }
+    }
+  }
+
+  log.info(`Identity resolution: ${identityResolved} resolved, ${identityUnresolved} unresolved`);
 
   // ========================================================================
   // Phase 2: CURATION (read-only input)
@@ -409,11 +449,18 @@ async function main() {
   const motifStats = extractAllMotifs(allNodes);
 
   // ========================================================================
+  // Phase 6.7: SIGNIFICANCE SCORING
+  // ========================================================================
+  log.info('--- Phase 6.7: Significance Scoring ---');
+
+  const significanceStats = computeAllSignificance(allNodes);
+
+  // ========================================================================
   // Phase 7: EDGE GENERATION
   // ========================================================================
   log.info('--- Phase 7: Edge Generation ---');
 
-  let { edges, stats: edgeStats } = await generateEdges(allNodes);
+  let { edges, stats: edgeStats } = await generateEdges(allNodes, identityMap);
 
   // Prune any edges referencing nodes that were filtered out
   const survivingIds = new Set(allNodes.map(n => n.id));
@@ -423,6 +470,20 @@ async function main() {
     `Edges: ${edgeStats.edgesCreated} created from ${edgeStats.totalPairs} pairs ` +
     `(${edgeStats.edgesPruned} pruned)`
   );
+
+  // ========================================================================
+  // Phase 7.5: CONNECTION-DEGREE SIGNIFICANCE UPDATE
+  // ========================================================================
+  log.info('--- Phase 7.5: Connection-Degree Update ---');
+
+  const maxConnections = Math.max(1, ...allNodes.map(n => n.connections.length));
+  for (const node of allNodes) {
+    const connectionDegree = node.connections.length / maxConnections;
+    node.significance = Number((0.85 * node.significance + 0.15 * connectionDegree).toFixed(2));
+    node.size = Number((0.4 + node.significance * 1.4).toFixed(2));
+  }
+
+  log.info(`Connection-degree blended into significance (max connections: ${maxConnections})`);
 
   // ========================================================================
   // Phase 8: LAYOUT
@@ -565,6 +626,7 @@ async function main() {
         instagram: { status: instagramResult.nodes.length > 0 ? 'active' : 'empty', count: instagramResult.nodes.length },
         carbonmade: { status: carbonmadeResult.nodes.length > 0 ? 'active' : 'empty', count: carbonmadeResult.nodes.length },
         music: { status: musicResult.nodes.length > 0 ? 'active' : 'empty', count: musicResult.nodes.length },
+        facebook: { status: facebookResult.nodes.length > 0 ? 'active' : 'empty', count: facebookResult.nodes.length },
       },
       edgeQuality: {
         avgConnectionsPerNode: edgeStats.avgConnectionsPerNode,

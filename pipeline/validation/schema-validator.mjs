@@ -34,6 +34,7 @@ const GRAPH_SCHEMA = {
           media: { type: 'array', items: { type: 'string' } },
           connections: { type: 'array', items: { type: 'string' } },
           size: { type: 'number' },
+          significance: { type: 'number', minimum: 0, maximum: 1 },
           isHub: { type: 'boolean' },
           source: { type: 'string' },
           sourceId: { type: 'string' },
@@ -48,6 +49,8 @@ const GRAPH_SCHEMA = {
               sourceItemId: { type: 'string' },
               sourceUrl: { type: 'string' },
               connectorVersion: { type: 'string' },
+              isOwned: { type: 'boolean' },
+              reshareReason: { oneOf: [{ type: 'string' }, { type: 'null' }] },
             },
           },
           entities: {

@@ -27,9 +27,10 @@ const MAX_EDGES_PER_NODE = 8;
  * Generate evidence-based edges between all node pairs.
  *
  * @param {Object[]} nodes - Array of canonical nodes (with _motifs populated)
+ * @param {Object} [identityMap] - Optional identity registry for enriched signals
  * @returns {Promise<{edges: Object[], stats: Object}>}
  */
-export async function generateEdges(nodes) {
+export async function generateEdges(nodes, identityMap) {
   const sorted = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
 
   const allEdges = [];
@@ -40,7 +41,7 @@ export async function generateEdges(nodes) {
     for (let j = i + 1; j < sorted.length; j++) {
       totalPairs++;
 
-      const signals = calculateSignals(sorted[i], sorted[j]);
+      const signals = calculateSignals(sorted[i], sorted[j], identityMap);
       if (signals.length === 0) continue;
 
       const totalWeight = signals.reduce((sum, s) => sum + s.weight, 0);

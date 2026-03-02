@@ -90,6 +90,9 @@ export function createCanonicalNode(fields = {}) {
     media: Array.isArray(fields.media) ? fields.media : [],
     connections: Array.isArray(fields.connections) ? fields.connections : [],
     size: typeof fields.size === 'number' ? fields.size : 1.0,
+    significance: typeof fields.significance === 'number'
+      ? Math.max(0, Math.min(1, fields.significance))
+      : 0.5,
     isHub: Boolean(fields.isHub),
     source: fields.source || '',
     sourceId: fields.sourceId || '',

@@ -31,6 +31,15 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+/** Significance tier as dot indicator */
+function significanceDots(significance) {
+  const s = significance ?? 0.5;
+  if (s >= 0.85) return ' \u2022\u2022\u2022\u2022';
+  if (s >= 0.6)  return ' \u2022\u2022\u2022';
+  if (s >= 0.3)  return ' \u2022\u2022';
+  return ' \u2022';
+}
+
 /**
  * 3D billboard hover label that appears above the hovered node.
  * Shows node title, color-coded type badge, and formatted date.
@@ -73,7 +82,7 @@ export default function HoverLabel({ nodes }) {
           maxWidth={20}
           position={[0, -1.4, 0]}
         >
-          {capitalize(node.type)}
+          {capitalize(node.type)}{significanceDots(node.significance)}
         </Text>
         {/* Date */}
         {node.date && (

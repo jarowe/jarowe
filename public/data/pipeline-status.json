@@ -1,25 +1,26 @@
 {
-  "lastRun": "2026-03-02T04:18:27.553Z",
+  "lastRun": "2026-03-02T05:12:58.032Z",
   "status": "success",
-  "publishMode": true,
+  "publishMode": false,
   "stats": {
-    "nodeCount": 106,
-    "edgeCount": 240,
+    "nodeCount": 127,
+    "edgeCount": 292,
     "bySource": {
-      "carbonmade": 47,
-      "instagram": 59
+      "carbonmade": 60,
+      "instagram": 67
     },
     "byType": {
-      "moment": 68,
+      "moment": 86,
       "idea": 1,
       "milestone": 5,
-      "project": 32
+      "project": 35
     },
     "byVisibility": {
-      "public": 106
+      "public": 113,
+      "friends": 14
     },
     "byFactuality": {
-      "factual": 106
+      "factual": 127
     },
     "ingestSources": {
       "instagram": {
@@ -33,43 +34,49 @@
       "music": {
         "status": "empty",
         "count": 0
+      },
+      "facebook": {
+        "status": "empty",
+        "count": 0
       }
     },
     "edgeQuality": {
-      "avgConnectionsPerNode": 4.5,
-      "crossSourceEdges": 40,
-      "crossSourceRatio": 0.17,
+      "avgConnectionsPerNode": 4.6,
+      "crossSourceEdges": 69,
+      "crossSourceRatio": 0.24,
       "isolatedNodes": 9,
       "signalDistribution": {
-        "seasonal-echo": 87,
-        "shared-motif": 189,
-        "narrative-arc": 164,
-        "life-chapter": 135,
-        "shared-tags": 71,
-        "cross-source-echo": 40,
-        "temporal-proximity": 33,
-        "same-day": 39,
+        "seasonal-echo": 93,
+        "shared-motif": 217,
+        "narrative-arc": 179,
+        "life-chapter": 148,
+        "cross-source-echo": 69,
+        "shared-tags": 78,
+        "temporal-proximity": 37,
+        "same-day": 61,
         "shared-client": 1,
-        "shared-place": 1
+        "shared-place": 4,
+        "shared-entity": 21,
+        "shared-identity": 21
       }
     },
     "motifs": {
-      "love": 11,
+      "family": 16,
+      "fatherhood": 12,
+      "love": 15,
       "travel": 4,
       "faith": 2,
-      "family": 13,
       "reflection": 8,
       "celebration": 4,
-      "fatherhood": 9,
-      "friendship": 8,
-      "growth": 9,
-      "nature": 6,
+      "friendship": 11,
+      "growth": 11,
+      "nature": 7,
       "greece": 7,
       "nostalgia": 1,
       "home": 1,
       "food": 4,
-      "craft": 37,
-      "career": 24,
+      "craft": 46,
+      "career": 28,
       "adventure": 2
     },
     "privacyAudit": {
@@ -77,10 +84,10 @@
       "warnings": 0
     },
     "realityGate": {
-      "factualNodes": 106,
+      "factualNodes": 127,
       "threshold": 250,
       "passed": false,
-      "progress": "106/250"
+      "progress": "127/250"
     }
   }
 }
