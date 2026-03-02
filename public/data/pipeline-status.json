@@ -1,10 +1,10 @@
 {
-  "lastRun": "2026-03-02T03:12:19.913Z",
+  "lastRun": "2026-03-02T04:18:27.553Z",
   "status": "success",
   "publishMode": true,
   "stats": {
     "nodeCount": 106,
-    "edgeCount": 88,
+    "edgeCount": 240,
     "bySource": {
       "carbonmade": 47,
       "instagram": 59
@@ -34,6 +34,43 @@
         "status": "empty",
         "count": 0
       }
+    },
+    "edgeQuality": {
+      "avgConnectionsPerNode": 4.5,
+      "crossSourceEdges": 40,
+      "crossSourceRatio": 0.17,
+      "isolatedNodes": 9,
+      "signalDistribution": {
+        "seasonal-echo": 87,
+        "shared-motif": 189,
+        "narrative-arc": 164,
+        "life-chapter": 135,
+        "shared-tags": 71,
+        "cross-source-echo": 40,
+        "temporal-proximity": 33,
+        "same-day": 39,
+        "shared-client": 1,
+        "shared-place": 1
+      }
+    },
+    "motifs": {
+      "love": 11,
+      "travel": 4,
+      "faith": 2,
+      "family": 13,
+      "reflection": 8,
+      "celebration": 4,
+      "fatherhood": 9,
+      "friendship": 8,
+      "growth": 9,
+      "nature": 6,
+      "greece": 7,
+      "nostalgia": 1,
+      "home": 1,
+      "food": 4,
+      "craft": 37,
+      "career": 24,
+      "adventure": 2
     },
     "privacyAudit": {
       "violations": 0,

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import {
   X,
   ChevronDown,
@@ -262,20 +263,34 @@ export default function DetailPanel() {
             <div className="detail-panel__section">
               <h3 className="detail-panel__section-title">Media</h3>
               <div className="detail-panel__media-grid">
-                {node.media.map((item, idx) => (
-                  <button
-                    key={idx}
-                    className="detail-panel__media-thumb"
-                    onClick={() => openLightbox(node.media, idx)}
-                    aria-label={`View media ${idx + 1}`}
-                  >
-                    <img
-                      src={`${import.meta.env.BASE_URL}${item}`}
-                      alt={`${node.title} media ${idx + 1}`}
-                      loading="lazy"
-                    />
-                  </button>
-                ))}
+                {node.media.map((item, idx) => {
+                  const url = resolveMediaUrl(item);
+                  const type = getMediaType(item);
+                  return (
+                    <button
+                      key={idx}
+                      className="detail-panel__media-thumb"
+                      onClick={() => openLightbox(node.media, idx)}
+                      aria-label={`View media ${idx + 1}`}
+                    >
+                      {type === 'video' ? (
+                        <video
+                          src={url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={url}
+                          alt={`${node.title} media ${idx + 1}`}
+                          loading="lazy"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

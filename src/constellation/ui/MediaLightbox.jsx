@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import { useConstellationStore } from '../store';
 import './MediaLightbox.css';
 
@@ -78,21 +79,37 @@ export default function MediaLightbox() {
             {lightboxIndex + 1} / {total}
           </div>
 
-          {/* Image */}
+          {/* Media (image or video) */}
           <div
             className="media-lightbox__content"
             onClick={(e) => e.stopPropagation()}
           >
-            <motion.img
-              key={lightboxIndex}
-              src={`${import.meta.env.BASE_URL}${lightboxMedia[lightboxIndex]}`}
-              alt={`Media ${lightboxIndex + 1} of ${total}`}
-              className="media-lightbox__image"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-            />
+            {getMediaType(lightboxMedia[lightboxIndex]) === 'video' ? (
+              <motion.video
+                key={lightboxIndex}
+                src={resolveMediaUrl(lightboxMedia[lightboxIndex])}
+                className="media-lightbox__image"
+                controls
+                autoPlay
+                muted
+                playsInline
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              />
+            ) : (
+              <motion.img
+                key={lightboxIndex}
+                src={resolveMediaUrl(lightboxMedia[lightboxIndex])}
+                alt={`Media ${lightboxIndex + 1} of ${total}`}
+                className="media-lightbox__image"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+              />
+            )}
           </div>
 
           {/* Navigation arrows */}

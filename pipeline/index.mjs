@@ -44,6 +44,7 @@ import { parseInstagram } from './parsers/instagram.mjs';
 import { parseCarbonmade } from './parsers/carbonmade.mjs';
 import { parseMusic } from './parsers/music.mjs';
 import { generateEdges } from './edges/edge-generator.mjs';
+import { extractAllMotifs } from './edges/motifs.mjs';
 import { computePipelineLayout } from './layout/helix.mjs';
 import { stripAndVerify } from './privacy/exif-stripper.mjs';
 import { redactGPS } from './privacy/gps-redactor.mjs';
@@ -304,10 +305,20 @@ async function main() {
     if (node.media && node.media.length > 0) {
       const processedMedia = [];
 
+      // In publish mode, if node has CDN URLs, skip local media copies (CDN is primary)
+      const hasCdnUrls = PUBLISH_MODE && node.media.some(
+        m => m.startsWith('http://') || m.startsWith('https://')
+      );
+
       for (const mediaPath of node.media) {
         // Only process local files (not CDN URLs)
         if (mediaPath.startsWith('http://') || mediaPath.startsWith('https://')) {
           processedMedia.push(mediaPath);
+          continue;
+        }
+
+        // In publish mode, skip local copies when CDN URLs exist (avoids committing redundant media)
+        if (hasCdnUrls) {
           continue;
         }
 
@@ -321,7 +332,7 @@ async function main() {
           await fs.access(sourceAbsolute);
         } catch {
           // Try resolving relative to public/ (for junction-served media like Instagram)
-          const publicPath = resolve('public', mediaPath);
+          const publicPath = resolve(path.join('public', mediaPath));
           try {
             await fs.access(publicPath);
             sourceAbsolute = publicPath;
@@ -334,8 +345,10 @@ async function main() {
           }
         }
 
-        // If already served from public/ (e.g. Instagram junction), pass through as-is
-        if (foundInPublic) {
+        // If already served from public/ (e.g. Instagram junction):
+        // - In normal mode: pass through as-is (served via junction)
+        // - In publish mode: MUST copy through EXIF stripper so files are committed
+        if (foundInPublic && !PUBLISH_MODE) {
           processedMedia.push(mediaPath);
           mediaProcessed++;
           continue;
@@ -345,14 +358,28 @@ async function main() {
         const relativeName = path.basename(mediaPath);
         const outputPath = path.join(outputMediaDir, node.id, relativeName);
 
-        const result = await stripAndVerify(sourceAbsolute, outputPath);
-        if (result) {
-          // Store path relative to public/
+        // Video files can't be processed by sharp — copy directly
+        const ext = path.extname(mediaPath).toLowerCase();
+        const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.avi'].includes(ext);
+
+        if (isVideo) {
+          // Direct copy for video files (no EXIF GPS concern in video)
+          const videoOutputDir = path.dirname(outputPath);
+          await fs.mkdir(videoOutputDir, { recursive: true });
+          await fs.copyFile(sourceAbsolute, outputPath);
           const relativeToPublic = path.relative(resolve('public'), outputPath).replace(/\\/g, '/');
           processedMedia.push(`/${relativeToPublic}`);
           mediaProcessed++;
         } else {
-          mediaSkipped++;
+          const result = await stripAndVerify(sourceAbsolute, outputPath);
+          if (result) {
+            // Store path relative to public/
+            const relativeToPublic = path.relative(resolve('public'), outputPath).replace(/\\/g, '/');
+            processedMedia.push(`/${relativeToPublic}`);
+            mediaProcessed++;
+          } else {
+            mediaSkipped++;
+          }
         }
       }
 
@@ -373,6 +400,13 @@ async function main() {
   }
 
   log.info(`Privacy: ${mediaProcessed} media files processed, ${mediaSkipped} skipped`);
+
+  // ========================================================================
+  // Phase 6.5: MOTIF EXTRACTION (powers thematic connections)
+  // ========================================================================
+  log.info('--- Phase 6.5: Motif Extraction ---');
+
+  const motifStats = extractAllMotifs(allNodes);
 
   // ========================================================================
   // Phase 7: EDGE GENERATION
@@ -409,6 +443,12 @@ async function main() {
   // Phase 9: BUILD OUTPUT
   // ========================================================================
   log.info('--- Phase 9: Build Output ---');
+
+  // Strip internal fields before serialization
+  for (const node of allNodes) {
+    delete node._motifs;
+    delete node._isMinor;
+  }
 
   // Sort nodes by id for deterministic output
   const sortedNodes = [...allNodes].sort((a, b) => a.id.localeCompare(b.id));
@@ -526,6 +566,14 @@ async function main() {
         carbonmade: { status: carbonmadeResult.nodes.length > 0 ? 'active' : 'empty', count: carbonmadeResult.nodes.length },
         music: { status: musicResult.nodes.length > 0 ? 'active' : 'empty', count: musicResult.nodes.length },
       },
+      edgeQuality: {
+        avgConnectionsPerNode: edgeStats.avgConnectionsPerNode,
+        crossSourceEdges: edgeStats.crossSourceEdges,
+        crossSourceRatio: edgeStats.crossSourceRatio,
+        isolatedNodes: edgeStats.isolatedNodes,
+        signalDistribution: edgeStats.signalDistribution,
+      },
+      motifs: motifStats.motifDistribution,
       privacyAudit: {
         violations: 0,
         warnings: privacyWarnings.length,

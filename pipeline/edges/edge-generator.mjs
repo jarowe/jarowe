@@ -1,32 +1,35 @@
 /**
  * Evidence-based edge generation for the constellation pipeline.
  *
- * Generates edges between canonical nodes using signal weight calculations.
- * Each edge includes an evidence array showing "Because..." reasons with
- * type, signal, description, and weight.
+ * V2 MEANING ENGINE: Generates deeply meaningful, story-driven edges.
  *
- * Pruning: Limits to top 6 edges per node per signal type (PIPE-05).
+ * Pruning strategy (V2):
+ *   1. Per-signal-type cap: top 4 edges per node per signal type
+ *   2. Overall cap: top 8 edges per node (highest weight first)
+ *   This produces a target density of 4-8 meaningful connections per node.
+ *
+ * Edge quality metrics are tracked for pipeline-status.json reporting.
  * Output: Sorted deterministically for byte-identical results.
  */
 
 import { calculateSignals, EDGE_THRESHOLD } from './signals.mjs';
+import { createLogger } from '../utils/logger.mjs';
+
+const log = createLogger('edges');
+
+/** Max edges per node per signal type (prevents one signal type from dominating). */
+const MAX_EDGES_PER_SIGNAL_TYPE = 6;
+
+/** Max total edges per node (target: 4-8 meaningful connections). */
+const MAX_EDGES_PER_NODE = 8;
 
 /**
  * Generate evidence-based edges between all node pairs.
  *
- * Algorithm:
- * 1. Sort nodes by id for deterministic pair ordering
- * 2. For each unique pair (i < j), calculate signal weights
- * 3. If total weight >= EDGE_THRESHOLD (0.5), create edge
- * 4. Prune: keep top 6 edges per node per signal type
- * 5. Populate node connections arrays
- * 6. Sort edges by source + target for determinism
- *
- * @param {Object[]} nodes - Array of canonical nodes
- * @returns {Promise<{edges: Object[], stats: {totalPairs: number, edgesCreated: number, edgesPruned: number}}>}
+ * @param {Object[]} nodes - Array of canonical nodes (with _motifs populated)
+ * @returns {Promise<{edges: Object[], stats: Object}>}
  */
 export async function generateEdges(nodes) {
-  // Sort nodes by id for deterministic pair ordering
   const sorted = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
 
   const allEdges = [];
@@ -58,24 +61,22 @@ export async function generateEdges(nodes) {
   }
 
   const edgesBeforePruning = allEdges.length;
+  log.info(`Generated ${edgesBeforePruning} candidate edges from ${totalPairs} pairs`);
 
-  // ---- Pruning: top 6 edges per node per signal type ----
-  // For each node, for each signal type, keep only top 6 highest-weighted edges
-  const MAX_EDGES_PER_TYPE = 6;
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRUNING PHASE 1: Per-signal-type cap (top N per node per signal type)
+  // ══════════════════════════════════════════════════════════════════════════
 
   // Build index: nodeId -> signalType -> [edge indices]
   const nodeSignalEdges = new Map();
 
   for (let edgeIdx = 0; edgeIdx < allEdges.length; edgeIdx++) {
     const edge = allEdges[edgeIdx];
-    const nodes_involved = [edge.source, edge.target];
-
-    for (const nodeId of nodes_involved) {
+    for (const nodeId of [edge.source, edge.target]) {
       if (!nodeSignalEdges.has(nodeId)) {
         nodeSignalEdges.set(nodeId, new Map());
       }
       const signalMap = nodeSignalEdges.get(nodeId);
-
       for (const ev of edge.evidence) {
         if (!signalMap.has(ev.signal)) {
           signalMap.set(ev.signal, []);
@@ -85,25 +86,64 @@ export async function generateEdges(nodes) {
     }
   }
 
-  // Mark edges to remove
-  const edgesToRemove = new Set();
+  // Collect per-node removal candidates (edge only removed if BOTH endpoints want it gone)
+  // This prevents well-connected nodes from orphaning their less-connected neighbors
+  const nodeWantsRemoved = new Map(); // nodeId -> Set<edgeIdx>
 
-  for (const [, signalMap] of nodeSignalEdges) {
+  for (const [nodeId, signalMap] of nodeSignalEdges) {
+    const wantsRemoved = new Set();
     for (const [, edgeIndices] of signalMap) {
-      if (edgeIndices.length <= MAX_EDGES_PER_TYPE) continue;
-
-      // Sort by edge weight (highest first), keep top 6
-      const sorted_indices = [...edgeIndices].sort(
+      if (edgeIndices.length <= MAX_EDGES_PER_SIGNAL_TYPE) continue;
+      const sortedIndices = [...edgeIndices].sort(
         (a, b) => allEdges[b].weight - allEdges[a].weight
       );
-      for (let k = MAX_EDGES_PER_TYPE; k < sorted_indices.length; k++) {
-        edgesToRemove.add(sorted_indices[k]);
+      for (let k = MAX_EDGES_PER_SIGNAL_TYPE; k < sortedIndices.length; k++) {
+        wantsRemoved.add(sortedIndices[k]);
       }
+    }
+    nodeWantsRemoved.set(nodeId, wantsRemoved);
+  }
+
+  // Only remove edge if BOTH endpoints want it removed
+  const phase1Remove = new Set();
+  for (let idx = 0; idx < allEdges.length; idx++) {
+    const edge = allEdges[idx];
+    const sourceWants = nodeWantsRemoved.get(edge.source)?.has(idx) ?? false;
+    const targetWants = nodeWantsRemoved.get(edge.target)?.has(idx) ?? false;
+    if (sourceWants && targetWants) {
+      phase1Remove.add(idx);
     }
   }
 
-  // Filter pruned edges
-  const edges = allEdges.filter((_, idx) => !edgesToRemove.has(idx));
+  let edges = allEdges.filter((_, idx) => !phase1Remove.has(idx));
+  const afterPhase1 = edges.length;
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRUNING PHASE 2: Overall cap (top N per node, highest weight wins)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // Build node -> edges index
+  const nodeEdgeMap = new Map();
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    for (const nid of [e.source, e.target]) {
+      if (!nodeEdgeMap.has(nid)) nodeEdgeMap.set(nid, []);
+      nodeEdgeMap.get(nid).push(i);
+    }
+  }
+
+  const phase2Remove = new Set();
+  for (const [, edgeIndices] of nodeEdgeMap) {
+    if (edgeIndices.length <= MAX_EDGES_PER_NODE) continue;
+    const sortedIndices = [...edgeIndices].sort(
+      (a, b) => edges[b].weight - edges[a].weight
+    );
+    for (let k = MAX_EDGES_PER_NODE; k < sortedIndices.length; k++) {
+      phase2Remove.add(sortedIndices[k]);
+    }
+  }
+
+  edges = edges.filter((_, idx) => !phase2Remove.has(idx));
 
   // Sort edges deterministically by source + target
   edges.sort((a, b) => {
@@ -112,7 +152,7 @@ export async function generateEdges(nodes) {
     return a.target.localeCompare(b.target);
   });
 
-  // ---- Populate node connections arrays ----
+  // ── Populate node connections arrays ──
   const connectionMap = new Map();
   for (const edge of edges) {
     if (!connectionMap.has(edge.source)) connectionMap.set(edge.source, new Set());
@@ -126,7 +166,42 @@ export async function generateEdges(nodes) {
     node.connections = conns ? [...conns].sort() : [];
   }
 
+  // ── Quality metrics ──
+  const connectionCounts = nodes.map(n => n.connections.length);
+  const avgConnections = connectionCounts.length > 0
+    ? connectionCounts.reduce((a, b) => a + b, 0) / connectionCounts.length
+    : 0;
+  const maxConnections = Math.max(0, ...connectionCounts);
+  const minConnections = Math.min(Infinity, ...connectionCounts);
+  const isolatedNodes = connectionCounts.filter(c => c === 0).length;
+
+  // Cross-source edge count
+  const crossSourceEdges = edges.filter(e => {
+    const srcA = nodes.find(n => n.id === e.source)?.source;
+    const srcB = nodes.find(n => n.id === e.target)?.source;
+    return srcA && srcB && srcA !== srcB;
+  }).length;
+
+  // Signal type distribution
+  const signalDist = {};
+  for (const e of edges) {
+    for (const ev of e.evidence) {
+      signalDist[ev.signal] = (signalDist[ev.signal] || 0) + 1;
+    }
+  }
+
   const edgesPruned = edgesBeforePruning - edges.length;
+
+  log.info(
+    `After pruning: ${edges.length} edges (phase1: -${edgesBeforePruning - afterPhase1}, phase2: -${afterPhase1 - edges.length})`
+  );
+  log.info(
+    `Connections per node: avg ${avgConnections.toFixed(1)}, ` +
+    `range ${minConnections === Infinity ? 0 : minConnections}-${maxConnections}, ` +
+    `${isolatedNodes} isolated`
+  );
+  log.info(`Cross-source edges: ${crossSourceEdges}/${edges.length} (${edges.length > 0 ? Math.round(crossSourceEdges / edges.length * 100) : 0}%)`);
+  log.info(`Signal distribution: ${Object.entries(signalDist).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}: ${v}`).join(', ')}`);
 
   return {
     edges,
@@ -134,6 +209,11 @@ export async function generateEdges(nodes) {
       totalPairs,
       edgesCreated: edges.length,
       edgesPruned,
+      avgConnectionsPerNode: Number(avgConnections.toFixed(1)),
+      crossSourceEdges,
+      crossSourceRatio: edges.length > 0 ? Number((crossSourceEdges / edges.length).toFixed(2)) : 0,
+      signalDistribution: signalDist,
+      isolatedNodes,
     },
   };
 }
