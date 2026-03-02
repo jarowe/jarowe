@@ -451,14 +451,15 @@ const beamFrag = `
 
     vec3 color = vec3(1.0, 0.98, 0.93) * hint * (1.0 + core * 0.6);
 
-    // Portal cascade: beam retracts from source toward prism, then fades
+    // Portal cascade: beam smoothly retracts from source toward prism
     // vUv.x 0=far, 1=at prism — retract FROM far end inward
-    float cascadeRetract = smoothstep(uCascadeFade * 1.4, uCascadeFade * 1.4 + 0.2, 1.0 - vUv.x);
-    float cascadeFlicker = uCascadeFade > 0.01
-      ? 0.6 + 0.4 * sin(uTime * 35.0 + vUv.x * 40.0) * sin(uTime * 22.0)
-      : 1.0;
+    float cascadeEdge = uCascadeFade * 1.4;
+    float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.2, 1.0 - vUv.x);
+    // Bright concentration at retraction edge (light gathering as it pulls back)
+    float retractionGlow = exp(-pow(((1.0 - vUv.x) - cascadeEdge) * 8.0, 2.0)) * uCascadeFade;
+    color += vec3(1.0, 0.95, 0.85) * retractionGlow;
 
-    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract) * cascadeFlicker;
+    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract);
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -489,21 +490,20 @@ const rayFrag = `
 
     float intensity = (core * 1.4 + glow * 0.45) * fade * edgeFade;
 
-    // Shimmer + cascading travelling sparkle that moves along the ray
+    // Shimmer + travelling sparkle pulse along the ray
     float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
-    // Bright pulse that travels outward along the ray
     float travelPulse = exp(-pow(fract(vUv.x - uTime * 0.4) * 4.0 - 1.0, 2.0) * 8.0) * 0.2;
 
     vec3 color = uColor * (1.6 + core * 0.8 + travelPulse);
 
-    // Portal cascade: ray retracts from tip toward prism, then fades
-    float cascadeRetract = smoothstep(1.0 - uCascadeFade * 1.3, 1.0 - uCascadeFade * 1.3 + 0.15, vUv.x);
-    // Flicker as it retracts — rapid chaotic shimmer
-    float cascadeFlicker = uCascadeFade > 0.01
-      ? 0.5 + 0.5 * sin(uTime * 40.0 + vUv.x * 50.0) * sin(uTime * 27.0 + vUv.x * 30.0)
-      : 1.0;
+    // Portal cascade: ray smoothly retracts from tip toward prism
+    float cascadeEdge = 1.0 - uCascadeFade * 1.3;
+    float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.15, vUv.x);
+    // Bright glow at retraction edge (light concentrating as it pulls back)
+    float retractionGlow = exp(-pow((vUv.x - cascadeEdge) * 8.0, 2.0)) * uCascadeFade * 2.0;
+    color += uColor * retractionGlow;
 
-    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract) * cascadeFlicker;
+    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract);
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -1616,41 +1616,39 @@ function MouthExpression() {
 }
 
 /* ═══════════ LIGHT DIRECTION TRACKER (computes physics each frame) ═══════════ */
-const _lightSrcVec = new THREE.Vector3();
-const _prismWorldPos = new THREE.Vector3();
-const _worldDir = new THREE.Vector3();
+// Shared temp objects for direction computation
+const _lightDir = new THREE.Vector3();
+const _invParentMat = new THREE.Matrix4();
 
 function LightDirectionTracker({ parentRef }) {
   useFrame(() => {
     if (!parentRef?.current) return;
     sampleAudio(); // ensure audio is sampled before beams read it
 
-    // 1. Get prism world position
-    parentRef.current.getWorldPosition(_prismWorldPos);
+    // 1. Fixed light direction in world space (from origin toward light source)
+    //    Using config values — stable, no wobble from prism position
+    const lx = cfg.lightSourceX ?? -5.0;
+    const ly = cfg.lightSourceY ?? 0.5;
+    _lightDir.set(lx, ly, 0).normalize();
 
-    // 2. Virtual light source position from config
-    _lightSrcVec.set(
-      cfg.lightSourceX ?? -5.0,
-      cfg.lightSourceY ?? 2.0,
-      cfg.lightSourceZ ?? 3.0
-    );
+    // 2. Transform to parent's local space via inverse world matrix
+    //    This cancels all parent rotations (drift, float, scale) while keeping
+    //    the beam direction as a 2D angle in the parent's XY plane
+    _invParentMat.copy(parentRef.current.matrixWorld).invert();
+    _lightDir.transformDirection(_invParentMat);
 
-    // 3. Direction from light source to prism — WORLD SPACE (not local)
-    // This gives a stable beam direction that never rotates with the prism
-    _worldDir.copy(_prismWorldPos).sub(_lightSrcVec).normalize();
+    // 3. Local-space beam direction angle (toward light source)
+    lightState.beamAngle = Math.atan2(_lightDir.y, _lightDir.x);
 
-    // 4. Beam angle in world XY plane
-    lightState.beamAngle = Math.atan2(_worldDir.y, _worldDir.x);
-
-    // 5. Smooth-read prism Y rotation
+    // 4. Smooth-read prism Y rotation
     const rawY = window.__prismRotationY || 0;
     lightState.prismYRot += (rawY - lightState.prismYRot) * 0.08;
     const prismY = lightState.prismYRot;
 
-    // 6. Incidence angle — how "head-on" the light hits the prism face
+    // 5. Incidence angle — how "head-on" the light hits the prism face
     lightState.incidenceAngle = Math.acos(Math.abs(Math.cos(prismY)));
 
-    // 7. Dispersion spread — rotation modulates width + breathing
+    // 6. Dispersion spread — rotation modulates width + breathing
     const baseDisp = cfg.baseDispersionAngle ?? 0.35;
     const rotMod = cfg.rotationDispersionMod ?? 0.5;
     const incEff = cfg.incidenceEffect ?? 0.4;
@@ -1658,15 +1656,15 @@ function LightDirectionTracker({ parentRef }) {
       * (1 + lightState.incidenceAngle * incEff)
       * (1 + Math.sin(2 * prismY) * rotMod * 0.5);
 
-    // 8. Dispersion center — rotation sweeps the rainbow direction
+    // 7. Dispersion center — rotation sweeps the rainbow direction
     const fanShift = cfg.rotationFanShift ?? 0.3;
     lightState.dispersionCenter = Math.sin(prismY) * fanShift;
 
-    // 9. Audio modulation — bass widens spread
+    // 8. Audio modulation — bass widens spread
     const rayAudioSpread = cfg.rayAudioSpread ?? 0.15;
     lightState.dispersionSpread *= (1 + audioBass * rayAudioSpread);
 
-    // 10. Portal suck cascade tracking
+    // 9. Portal suck cascade tracking
     const suckActive = !!window.__prismPortalSuck;
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
@@ -1684,28 +1682,7 @@ function LightDirectionTracker({ parentRef }) {
   return null; // invisible — just runs physics
 }
 
-/* ═══════════ WORLD-ANCHORED BEAMS WRAPPER ═══════════ */
-// Counter-rotates against ALL parent transforms (MouseDrift, Float, CharacterScale)
-// so the beams stay truly world-fixed while following the prism's position.
-const _parentQuat = new THREE.Quaternion();
-const _inverseQuat = new THREE.Quaternion();
-
-function WorldAnchoredBeams({ parentRef, children }) {
-  const groupRef = useRef();
-
-  useFrame(() => {
-    if (!groupRef.current || !parentRef?.current) return;
-    // Get the accumulated world rotation of the parent chain
-    parentRef.current.getWorldQuaternion(_parentQuat);
-    // Apply the inverse to cancel all inherited rotation
-    _inverseQuat.copy(_parentQuat).invert();
-    groupRef.current.quaternion.copy(_inverseQuat);
-  });
-
-  return <group ref={groupRef}>{children}</group>;
-}
-
-/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — world-anchored) ═══════════ */
+/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — from the left) ═══════════ */
 function IncomingBeam() {
   const matRef = useRef();
   const meshRef = useRef();
@@ -1716,7 +1693,7 @@ function IncomingBeam() {
   }, []);
 
   useFrame((state) => {
-    if (!matRef.current) return;
+    if (!matRef.current || !meshRef.current) return;
     const t = state.clock.elapsedTime;
     matRef.current.uniforms.uTime.value = t;
     // Audio-modulated opacity
@@ -1725,19 +1702,14 @@ function IncomingBeam() {
     matRef.current.uniforms.uIncidence.value = lightState.incidenceAngle;
     matRef.current.uniforms.uCascadeFade.value = lightState.portalSuckProgress;
 
-    if (meshRef.current) {
-      // Beam angle tracks from light source direction (smooth 5%/frame)
-      // Since we're world-anchored, this is the true world-space angle
-      meshRef.current.rotation.z = THREE.MathUtils.lerp(
-        meshRef.current.rotation.z,
-        lightState.beamAngle,
-        0.05
-      );
-    }
+    // Beam geometry extends in -X direction (angle π in local space).
+    // beamAngle points toward light source. Subtract π to align geometry.
+    // Set directly each frame — no lerp, no jitter, perfectly stable.
+    meshRef.current.rotation.z = lightState.beamAngle - Math.PI;
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0.04]} rotation={[0, 0, Math.PI]} geometry={geo}>
+    <mesh ref={meshRef} position={[0, 0, 0.04]} geometry={geo}>
       <shaderMaterial
         ref={matRef}
         vertexShader={simpleVert}
@@ -1757,7 +1729,7 @@ function IncomingBeam() {
   );
 }
 
-/* ═══════════ RAINBOW FAN (physics-driven dispersion, world-anchored) ═══════════ */
+/* ═══════════ RAINBOW FAN (physics-driven dispersion — exits right) ═══════════ */
 const RAINBOW_BANDS = [
   { color: new THREE.Color('#ff1a1a') },
   { color: new THREE.Color('#ff7700') },
@@ -1780,8 +1752,10 @@ function RainbowFan() {
     const t = state.clock.elapsedTime;
     const bandCount = RAINBOW_BANDS.length;
 
-    // Rainbow exits opposite the beam entry direction
-    const exitBase = lightState.beamAngle + Math.PI;
+    // Rainbow exits OPPOSITE the light source direction.
+    // Ray geometry extends in +X (angle 0). beamAngle points toward light source.
+    // Opposite direction = beamAngle - π. Subtract 0 for +X geometry alignment.
+    const exitBase = lightState.beamAngle - Math.PI;
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
 
     // Normalized dispersion for shader (0 = tight, 1+ = wide)
@@ -1813,8 +1787,7 @@ function RainbowFan() {
       mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
 
       // Cascading portal exit: rays die off one by one, violet first (outer → inner)
-      // Each ray has its own staggered fade threshold
-      const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5; // violet=0, red=0.43
+      const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5;
       const rayCascade = Math.max(0, (lightState.portalSuckProgress - cascadeDelay) / (1 - cascadeDelay));
       mesh.material.uniforms.uCascadeFade.value = Math.min(rayCascade, 1);
     });
@@ -1826,7 +1799,6 @@ function RainbowFan() {
         <mesh
           key={i}
           ref={el => (raysRef.current[i] = el)}
-          rotation={[0, 0, 0]}
           geometry={geo}
         >
           <shaderMaterial
@@ -2113,10 +2085,8 @@ export default function Prism3D() {
               <InternalGlow />
               <VertexHighlights />
               <LightDirectionTracker parentRef={charGroupRef} />
-              <WorldAnchoredBeams parentRef={charGroupRef}>
-                <IncomingBeam />
-                <RainbowFan />
-              </WorldAnchoredBeams>
+              <IncomingBeam />
+              <RainbowFan />
 
               <Sparkles
                 count={cfg.sparkleCount}

@@ -52,7 +52,7 @@ export const PRISM_DEFAULTS = {
 
   // Light source + dispersion physics
   lightSourceX: -5.0,
-  lightSourceY: 2.0,
+  lightSourceY: 0.5,
   lightSourceZ: 3.0,
   baseDispersionAngle: 0.35,
   rotationDispersionMod: 0.5,
