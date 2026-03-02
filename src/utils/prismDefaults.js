@@ -40,9 +40,9 @@ export const PRISM_DEFAULTS = {
   breathingSpeed: 0.8,
 
   // Canvas / display
-  canvasSize: 1600,
-  featherInner: 5,
-  featherOuter: 98,
+  canvasSize: 1200,
+  featherInner: 9,
+  featherOuter: 57,
   sceneCenterX: 50,
   sceneCenterY: 50,
 
@@ -58,7 +58,7 @@ export const PRISM_DEFAULTS = {
   vertexHighlightPulse: 0.15,
 
   // Character scale
-  characterScale: 1.0,
+  characterScale: 0.3,
 
   // Mouth position / scale
   mouthX: 0,
@@ -89,8 +89,8 @@ export const PRISM_DEFAULTS = {
   hybridShaderAdd: 0.6,
 
   // Bop counter position
-  bopCounterOffsetX: 0,
-  bopCounterOffsetY: 0,
+  bopCounterOffsetX: 44,
+  bopCounterOffsetY: -75,
 
   // Bubble controls
   bubbleOffsetX: 0,
@@ -107,17 +107,17 @@ export const PRISM_DEFAULTS = {
   bubbleLocked: true,
 
   // Peek animation lock ('' = random)
-  lockedPeekStyle: '',
+  lockedPeekStyle: 'portal',
   // Exit animation lock ('' = random, 'portal-exit' = always portal out)
   lockedExitStyle: '',
   // Always use portal exit when entrance was portal
   portalAlwaysExits: true,
 
   // Nebula backdrop opacity
-  nebulaOpacity: 0.85,
+  nebulaOpacity: 0.59,
 
   // Canvas masking
-  canvasMask: false,
+  canvasMask: true,
 
   // Wireframe / edge controls
   wireframeOpacity: 0.2,
@@ -131,7 +131,7 @@ export const PRISM_DEFAULTS = {
 
   // ── Portal entrance effects ──
   portalColor1: [0.486, 0.227, 0.929],
-  portalColor2: [0.220, 0.741, 0.910],
+  portalColor2: [0.22, 0.741, 0.91],
   portalColor3: [0.957, 0.447, 0.722],
   portalConfettiEnabled: true,
   portalConfettiCount: 60,
@@ -142,7 +142,7 @@ export const PRISM_DEFAULTS = {
   portalFlashIntensity: 1.0,
 
   // Canvas portal VFX settings
-  portalRingRadius: 140,
+  portalRingRadius: 60,
   portalWobble: 1.0,
   portalGlowIntensity: 1.0,
   portalInteriorEnabled: true,
@@ -156,15 +156,15 @@ export const PRISM_DEFAULTS = {
 
   // Spawn
   spawnScale: 1.0,
-  showSpawnMarkers: false,
+  showSpawnMarkers: true,
 
   // Hitbox (bop click target)
-  hitboxShape: 'circle',   // 'circle' | 'rect'
+  hitboxShape: 'rect',   // 'circle' | 'rect'
   hitboxSize: 90,           // used for circle diameter
-  hitboxWidth: 90,          // used for rect width
+  hitboxWidth: 162,          // used for rect width
   hitboxHeight: 120,        // used for rect height
   hitboxBorderRadius: 16,   // used for rect corner rounding
   hitboxOffsetX: 0,
   hitboxOffsetY: 0,
-  hitboxDebug: false,
+  hitboxDebug: true,
 };
