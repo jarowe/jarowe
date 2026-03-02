@@ -88,6 +88,10 @@ export const PRISM_DEFAULTS = {
   hybridEnvIntensity: 0.4,
   hybridShaderAdd: 0.6,
 
+  // Bop counter position
+  bopCounterOffsetX: 0,
+  bopCounterOffsetY: 0,
+
   // Bubble controls
   bubbleOffsetX: 0,
   bubbleOffsetY: 0,

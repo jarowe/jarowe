@@ -2647,14 +2647,38 @@ export default function Home() {
                 }
               }
 
-              // Lazy-init analyser — Howler.ctx is null until user plays audio
-              if (!window.globalAnalyser && Howler.ctx && Howler.masterGain) {
+              // Lazy-init analyser — Howler.ctx may not exist until audio plays;
+              // html5:true Howls bypass masterGain, so also try MediaElementSource
+              if (!window.globalAnalyser && Howler.ctx) {
                 try {
-                  window.globalAnalyser = Howler.ctx.createAnalyser();
-                  window.globalAnalyser.fftSize = 128;
-                  Howler.masterGain.connect(window.globalAnalyser);
-                  window.globalAnalyser.connect(Howler.ctx.destination);
+                  const analyser = Howler.ctx.createAnalyser();
+                  analyser.fftSize = 128;
+                  if (Howler.masterGain) {
+                    Howler.masterGain.connect(analyser);
+                    analyser.connect(Howler.ctx.destination);
+                  }
+                  window.globalAnalyser = analyser;
+                  window._analyserConnectedElements = new WeakSet();
                 } catch (_) { /* still not ready */ }
+              }
+              // For html5 mode: pipe each <audio> element through the analyser
+              if (window.globalAnalyser && Howler.ctx) {
+                try {
+                  const howls = Howler._howls || [];
+                  for (const h of howls) {
+                    if (!h.playing()) continue;
+                    const sounds = h._sounds || [];
+                    for (const s of sounds) {
+                      const node = s._node;
+                      if (!node || !node.nodeName || node.nodeName !== 'AUDIO') continue;
+                      if (window._analyserConnectedElements?.has(node)) continue;
+                      const src = Howler.ctx.createMediaElementSource(node);
+                      src.connect(window.globalAnalyser);
+                      window.globalAnalyser.connect(Howler.ctx.destination);
+                      window._analyserConnectedElements?.add(node);
+                    }
+                  }
+                } catch (_) { /* ok - not all howls have html5 nodes */ }
               }
               if (window.globalAnalyser) {
                 window.globalAnalyser.getByteFrequencyData(audioDataArray);
@@ -3764,111 +3788,137 @@ export default function Home() {
 
     // Spawn marker toggle
     const spawnMarkerHandler = (e) => setShowSpawnMarkers(e.detail?.enabled ?? false);
+    // Live marker position updates from editor sliders (no folder rebuild)
+    const spawnMarkersUpdateHandler = (e) => {
+      if (e.detail?.points) {
+        setSpawnPoints(e.detail.points);
+      }
+    };
 
     window.addEventListener('trigger-prism-peek', showHandler);
     window.addEventListener('hide-prism-peek', hideHandler);
     window.addEventListener('prism-drag-mode', dragModeHandler);
     window.addEventListener('prism-spawn-point', spawnHandler);
     window.addEventListener('prism-spawn-markers', spawnMarkerHandler);
+    window.addEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
       window.removeEventListener('prism-drag-mode', dragModeHandler);
       window.removeEventListener('prism-spawn-point', spawnHandler);
       window.removeEventListener('prism-spawn-markers', spawnMarkerHandler);
+      window.removeEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
   }, [spawnPoints, dragPosition]);
 
+  // One bop per reveal guard
+  const boppedThisRevealRef = useRef(false);
+  // Reset when peek becomes visible
+  useEffect(() => {
+    if (peekVisible) boppedThisRevealRef.current = false;
+  }, [peekVisible]);
+
   const handleCatchCharacter = useCallback(() => {
-    // DON'T hide immediately - phased bop reaction
+    // One bop per reveal only
+    if (boppedThisRevealRef.current) return;
+    boppedThisRevealRef.current = true;
+
     playBopSound();
     const newBops = prismBops + 1;
-    if (globeRef.current && globeRef.current.customUniforms) {
+    if (globeRef.current?.customUniforms) {
       globeRef.current.customUniforms.prismPulse.value = 1.0;
     }
 
-    // Phase 1: Impact (0–300ms)
+    // Get character center for confetti origin
+    let confettiOrigin = { x: 0.5, y: 0.5 };
+    if (peekCharRef.current) {
+      const rect = peekCharRef.current.getBoundingClientRect();
+      confettiOrigin = {
+        x: (rect.left + rect.width / 2) / window.innerWidth,
+        y: (rect.top + rect.height / 2) / window.innerHeight,
+      };
+    }
+
+    // ── Phase 1: IMPACT (0–400ms) — shocked face, screen shake, flash burst ──
     setBopPhase('impact');
     window.__prismSquash = Date.now();
     setPrismBops(newBops);
     window.__prismExpression = 'surprised';
-    confetti({ particleCount: 20, spread: 60, origin: { y: 0.5 }, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.4, scalar: 0.6, ticks: 80 });
+
+    // Radial confetti burst from character position
+    confetti({ particleCount: 40, spread: 90, origin: confettiOrigin, colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, startVelocity: 35, ticks: 100, shapes: ['circle'] });
 
     // Screen shake
     const bento = document.querySelector('.bento-container');
     if (bento) {
       bento.classList.add('screen-shake');
-      setTimeout(() => bento.classList.remove('screen-shake'), 300);
+      setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // Phase 2: Reaction (300ms)
+    // ── Phase 2: REACTION (400ms) — excited face, talks, light rays fire ──
     setTimeout(() => {
       setBopPhase('reaction');
       window.__prismExpression = 'excited';
       window.__prismTalking = true;
       setBubblePhase('speaking');
       setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
-      confetti({ particleCount: 30, spread: 120, origin: { y: 0.5 }, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, drift: 0.5, ticks: 150 });
 
-      // Spawn sparkle trail particles
-      const sparkles = Array.from({ length: 16 }, (_, i) => ({
-        id: Date.now() + i,
-        x: (Math.random() - 0.5) * 100,
-        y: (Math.random() - 0.5) * 100 - 20,
-        color: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24', '#ef4444', '#a78bfa', '#34d399'][i % 8],
-        delay: Math.random() * 0.6,
-        size: 2 + Math.random() * 5,
-        duration: 1.5 + Math.random() * 1.5,
-      }));
+      // Rainbow confetti burst from character
+      confetti({ particleCount: 50, spread: 160, origin: confettiOrigin, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6', '#ef4444'], gravity: 0.25, scalar: 0.6, drift: 0.5, ticks: 180 });
+
+      // Light ray sparkles
+      const sparkles = Array.from({ length: 24 }, (_, i) => {
+        const angle = (i / 24) * Math.PI * 2;
+        return {
+          id: Date.now() + i,
+          x: Math.cos(angle) * (60 + Math.random() * 80),
+          y: Math.sin(angle) * (60 + Math.random() * 80) - 20,
+          color: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24', '#ef4444', '#a78bfa', '#34d399'][i % 8],
+          delay: Math.random() * 0.3,
+          size: 2 + Math.random() * 6,
+          duration: 1 + Math.random() * 1.5,
+        };
+      });
       setPrismSparkles(sparkles);
-      setTimeout(() => setPrismSparkles([]), 3500);
-    }, 300);
+      setTimeout(() => setPrismSparkles([]), 3000);
+    }, 400);
 
-    // Phase 3: Theatrical exit (1500ms)
+    // ── Phase 3: DAZED (1200ms) — dizzy/mischief face, wobble ──
     setTimeout(() => {
-      const cfg = window.__prismConfig || {};
-      const lockedExit = cfg.lockedExitStyle || '';
-      const portalAlwaysExits = cfg.portalAlwaysExits !== false;
-      const allExits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt', 'portal-exit'];
-
-      let style;
-      if (lockedExit) {
-        style = lockedExit;
-      } else if (portalAlwaysExits && peekStyleRef.current === 'portal') {
-        style = 'portal-exit';
-      } else {
-        style = allExits[Math.floor(Math.random() * allExits.length)];
-      }
-
+      window.__prismExpression = 'mischief';
       window.__prismTalking = false;
-      clearBubble();
+    }, 1200);
 
-      if (style === 'portal-exit') {
-        setBopPhase(null);
-        setExitStyle(null);
-        runPortalExitSequence();
-        return;
+    // ── Phase 4: SCREEN SWALLOW EXIT (1800ms) — sucked back through screen ──
+    setTimeout(() => {
+      clearBubble();
+      window.__prismExpression = 'surprised';
+
+      // Fire idea sparks outward like light from a prism
+      if (peekCharRef.current) {
+        const rect = peekCharRef.current.getBoundingClientRect();
+        const cx = (rect.left + rect.width / 2) / window.innerWidth;
+        const cy = (rect.top + rect.height / 2) / window.innerHeight;
+        // Rainbow rays shooting outward
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            confetti({ particleCount: 15, spread: 25 + i * 15, origin: { x: cx, y: cy }, colors: ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#0088ff', '#8800ff'][i % 6] === '#ff0000' ? ['#ff4444', '#ff8800'] : ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24'], startVelocity: 20 + i * 8, gravity: 0.15, scalar: 0.4, ticks: 100, shapes: ['circle'] });
+          }, i * 60);
+        }
       }
 
-      setExitStyle(style);
-      setBopPhase('exit');
-    }, 1500);
-
-    // Final cleanup (2500ms) — skipped if portal-exit was chosen
-    setTimeout(() => {
-      if (portalExitingRef.current) return; // portal exit handles its own cleanup
-      setPeekVisible(false);
+      // Use portal exit for epic swallow effect
       setBopPhase(null);
       setExitStyle(null);
-      window.__prismExpression = 'normal';
-    }, 2500);
+      runPortalExitSequence();
+    }, 1800);
 
     // Every 3 bops, trigger the speed puzzle game
     if (newBops % 3 === 0) {
-      setTimeout(() => setShowSpeedGame(true), 3000);
+      setTimeout(() => setShowSpeedGame(true), 3500);
     }
-  }, [prismBops]);
+  }, [prismBops, clearBubble, runPortalExitSequence]);
 
   // Drag mode: global mouse handlers
   useEffect(() => {
@@ -4364,7 +4414,6 @@ export default function Home() {
               animate={animateState}
               initial={false}
               transition={exitTransition}
-              onClick={peekVisible && !editorDragMode && bopPhase == null ? handleCatchCharacter : undefined}
               onMouseDown={editorDragMode ? (e) => {
                 dragRef.current.dragging = true;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -4373,7 +4422,7 @@ export default function Home() {
                 e.preventDefault();
               } : undefined}
               style={{
-                cursor: peekVisible ? (editorDragMode ? 'grab' : 'pointer') : 'default',
+                cursor: editorDragMode ? 'grab' : 'default',
                 pointerEvents: peekVisible ? 'auto' : 'none',
                 ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
               }}
@@ -4418,7 +4467,7 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              {/* Bop counter badge — near bubble area */}
+              {/* Bop counter badge — configurable position near bubble area */}
               {prismBops > 0 && (
                 <motion.div
                   className="prism-bop-counter"
@@ -4427,13 +4476,18 @@ export default function Home() {
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                   style={{
-                    bottom: `calc(100% - 40px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
+                    bottom: `calc(100% - 40px + ${window.__prismConfig?.bopCounterOffsetY || 0}px)`,
+                    right: `calc(-8px + ${-(window.__prismConfig?.bopCounterOffsetX || 0)}px)`,
                   }}
                 >
                   {prismBops}
                 </motion.div>
               )}
-              <div className="prism-3d">
+              <div
+                className="prism-3d"
+                onClick={peekVisible && !editorDragMode && bopPhase == null ? handleCatchCharacter : undefined}
+                style={{ cursor: peekVisible && !editorDragMode ? 'pointer' : 'default' }}
+              >
                 <Suspense fallback={<div className="prism-loading-glow" />}>
                   <Prism3D />
                 </Suspense>

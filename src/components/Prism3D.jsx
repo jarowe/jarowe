@@ -2,6 +2,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sparkles, MeshTransmissionMaterial, Environment } from '@react-three/drei';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { Howler } from 'howler';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 
 // Re-export so existing imports from Prism3D still work
@@ -133,6 +134,37 @@ const mouseVel = { current: 0 };
 const audioDataArray = new Uint8Array(64);
 let audioBass = 0, audioMid = 0;
 function sampleAudio() {
+  // Lazy-init: also try creating analyser here if Home.jsx hasn't done it yet
+  if (!window.globalAnalyser) {
+    try {
+      if (Howler?.ctx) {
+        const a = Howler.ctx.createAnalyser();
+        a.fftSize = 128;
+        if (Howler.masterGain) { Howler.masterGain.connect(a); a.connect(Howler.ctx.destination); }
+        window.globalAnalyser = a;
+        window._analyserConnectedElements = new WeakSet();
+      }
+    } catch (_) {}
+  }
+  // For html5 mode: pipe <audio> elements through analyser
+  if (window.globalAnalyser && Howler?.ctx) {
+    try {
+      const howls = Howler._howls || [];
+      for (const h of howls) {
+        if (!h.playing()) continue;
+        const sounds = h._sounds || [];
+        for (const s of sounds) {
+          const node = s._node;
+          if (!node?.nodeName || node.nodeName !== 'AUDIO') continue;
+          if (window._analyserConnectedElements?.has(node)) continue;
+          const src = Howler.ctx.createMediaElementSource(node);
+          src.connect(window.globalAnalyser);
+          window.globalAnalyser.connect(Howler.ctx.destination);
+          window._analyserConnectedElements?.add(node);
+        }
+      }
+    } catch (_) {}
+  }
   if (!window.globalAnalyser) { audioBass = 0; audioMid = 0; return; }
   window.globalAnalyser.getByteFrequencyData(audioDataArray);
   let bassSum = 0, midSum = 0;

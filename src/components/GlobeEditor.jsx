@@ -854,6 +854,12 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     updateMaskCtrls();
     pCanvas.close();
 
+    // -- Bop Counter --
+    const pCounter = prismBopFolder.addFolder('Bop Counter');
+    pCounter.add(pcfg, 'bopCounterOffsetX', -200, 200, 1).name('X Offset');
+    pCounter.add(pcfg, 'bopCounterOffsetY', -200, 200, 1).name('Y Offset');
+    pCounter.close();
+
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
     pBubble.add(pcfg, 'bubbleOffsetX', -200, 200, 1).name('X Offset');
@@ -974,12 +980,13 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
           pf.add(ptProxy, 'x', 0, window.innerWidth, 1).name('X').onChange((v) => {
             pts[i].x = v;
             localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
-            window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+            // Live-update markers without rebuilding folders (which collapses them)
+            window.dispatchEvent(new CustomEvent('prism-spawn-markers-update', { detail: { points: pts } }));
           });
           pf.add(ptProxy, 'y', 0, window.innerHeight, 1).name('Y').onChange((v) => {
             pts[i].y = v;
             localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
-            window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+            window.dispatchEvent(new CustomEvent('prism-spawn-markers-update', { detail: { points: pts } }));
           });
         }
         pf.add({ preview() {

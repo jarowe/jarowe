@@ -799,6 +799,7 @@
 /* 3D Glass Prism Container */
 .prism-3d {
     position: relative;
+    pointer-events: auto;
 }
 
 .prism-3d-canvas-wrapper {
