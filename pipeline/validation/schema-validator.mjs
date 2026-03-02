@@ -49,6 +49,7 @@ const GRAPH_SCHEMA = {
               sourceItemId: { type: 'string' },
               sourceUrl: { type: 'string' },
               connectorVersion: { type: 'string' },
+              authorship: { type: 'string', enum: ['authored', 'tagged_external', 'reshared'] },
               isOwned: { type: 'boolean' },
               reshareReason: { oneOf: [{ type: 'string' }, { type: 'null' }] },
             },

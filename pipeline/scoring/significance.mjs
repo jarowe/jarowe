@@ -129,9 +129,12 @@ export function computeSignificance(node, context = {}) {
     total += (scores[dim] || 0) * weight;
   }
 
-  // Reshare penalty: cap at 0.15 for non-owned content
-  if (node.sourceMeta?.isOwned === false) {
+  // Authorship penalties
+  const authorship = node.sourceMeta?.authorship;
+  if (authorship === 'reshared' || node.sourceMeta?.isOwned === false) {
     total = Math.min(total, 0.15);
+  } else if (authorship === 'tagged_external') {
+    total = Math.min(total, 0.25);
   }
 
   return Number(clamp(total, 0, 1).toFixed(2));

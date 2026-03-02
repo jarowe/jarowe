@@ -15,7 +15,7 @@ export const PIPELINE_CONFIG = Object.freeze({
     /** Instagram HTML export (gitignored, private) */
     instagram: {
       dir: process.env.INSTAGRAM_EXPORT_DIR || 'data-private/instagram',
-      defaultVisibility: 'public',
+      defaultVisibility: 'friends',
     },
     /** Carbonmade JSON archive (already in repo, read-only) */
     carbonmade: {
@@ -30,7 +30,7 @@ export const PIPELINE_CONFIG = Object.freeze({
     /** Facebook HTML export (gitignored, private) */
     facebook: {
       dir: process.env.FACEBOOK_EXPORT_DIR || 'data-private/facebook',
-      defaultVisibility: 'public',
+      defaultVisibility: 'friends',
     },
   },
 

@@ -237,21 +237,23 @@ function findPostContainers($) {
  * @param {string} caption - Post caption text
  * @returns {{ isOwned: boolean, reason: string|null }}
  */
-function classifyOwnership($, $post, caption) {
+function classifyOwnership($, $post, caption, taggedUsers) {
   const postText = $post.text() || '';
 
   // HTML structure indicators (reshare UI elements)
   const htmlResharePatterns = [
     /shared a post/i,
     /shared a reel/i,
-    /reposted/i,
-    /shared .+?'s post/i,
-    /shared .+?'s reel/i,
+    /\breposted\b/i,
+    /shared .+?[''\u2019]s post/i,
+    /shared .+?[''\u2019]s reel/i,
+    /shared by\s+\S/i,
+    /shared from\s+\S/i,
   ];
 
   for (const pat of htmlResharePatterns) {
     if (pat.test(postText)) {
-      return { isOwned: false, reason: pat.source };
+      return { authorship: 'reshared', isOwned: false, reason: pat.source };
     }
   }
 
@@ -260,20 +262,29 @@ function classifyOwnership($, $post, caption) {
     const captionResharePatterns = [
       { pattern: /^repost\b/i, reason: 'caption starts with "repost"' },
       { pattern: /^rp\s+@/i, reason: 'caption starts with "rp @"' },
-      { pattern: /^📸\s*@/i, reason: 'photo credit attribution' },
+      { pattern: /^\u{1F4F8}\s*@/u, reason: 'photo credit attribution' },
       { pattern: /\bcredit:\s*@/i, reason: 'credit attribution' },
       { pattern: /\brepost\s+from\s+@/i, reason: 'repost from attribution' },
       { pattern: /\bvia\s+@/i, reason: 'via attribution' },
+      { pattern: /\bshared\s+by\s+@/i, reason: 'shared by attribution' },
+      { pattern: /\bshared\s+from\s+@/i, reason: 'shared from attribution' },
+      { pattern: /\boriginal\s+(post|content)\s+by\s+@/i, reason: 'original content by attribution' },
     ];
 
     for (const { pattern, reason } of captionResharePatterns) {
       if (pattern.test(caption)) {
-        return { isOwned: false, reason };
+        return { authorship: 'reshared', isOwned: false, reason };
       }
     }
   }
 
-  return { isOwned: true, reason: null };
+  // Tagged-in but not authored: node where user is tagged but didn't post
+  // (heuristic: post has no caption and only tagged users — likely tagged_external)
+  if (taggedUsers && taggedUsers.length > 0 && (!caption || caption.trim().length === 0)) {
+    return { authorship: 'tagged_external', isOwned: true, reason: 'tagged with no caption' };
+  }
+
+  return { authorship: 'authored', isOwned: true, reason: null };
 }
 
 /**
@@ -440,7 +451,7 @@ function extractPost($, postElement, fileName, index) {
     const location = extractLocation($, $post);
 
     // ── Ownership classification ──
-    const ownership = classifyOwnership($, $post, caption);
+    const ownership = classifyOwnership($, $post, caption, taggedUsers);
 
     return {
       caption,
@@ -659,6 +670,7 @@ export async function parseInstagram(exportDir, options = {}) {
       },
       location: post.location,
       sourceMeta: {
+        authorship: post.ownership?.authorship || 'authored',
         isOwned: post.ownership?.isOwned !== false,
         reshareReason: post.ownership?.reason || null,
       },

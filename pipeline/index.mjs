@@ -234,6 +234,27 @@ async function main() {
   log.info(`Identity resolution: ${identityResolved} resolved, ${identityUnresolved} unresolved`);
 
   // ========================================================================
+  // Phase 1.6: AUTHORSHIP FILTER (drop reshared content)
+  // ========================================================================
+  log.info('--- Phase 1.6: Authorship Filter ---');
+
+  const authorshipCounts = { authored: 0, tagged_external: 0, reshared: 0 };
+  for (const node of allNodes) {
+    const auth = node.sourceMeta?.authorship || 'authored';
+    authorshipCounts[auth] = (authorshipCounts[auth] || 0) + 1;
+  }
+
+  const beforeAuthFilter = allNodes.length;
+  allNodes = allNodes.filter(n => (n.sourceMeta?.authorship || 'authored') !== 'reshared');
+  const resharedDropped = beforeAuthFilter - allNodes.length;
+
+  log.info(
+    `Authorship: ${authorshipCounts.authored} authored, ` +
+    `${authorshipCounts.tagged_external} tagged_external, ` +
+    `${authorshipCounts.reshared} reshared (${resharedDropped} dropped)`
+  );
+
+  // ========================================================================
   // Phase 2: CURATION (read-only input)
   // ========================================================================
   log.info('--- Phase 2: Curation ---');
@@ -485,6 +506,21 @@ async function main() {
 
   log.info(`Connection-degree blended into significance (max connections: ${maxConnections})`);
 
+  // Apply manual significance overrides from curation.json (AFTER all auto-scoring)
+  const significanceOverrides = curation?.significance_overrides || {};
+  let overridesApplied = 0;
+  for (const [nodeId, override] of Object.entries(significanceOverrides)) {
+    const node = allNodes.find(n => n.id === nodeId);
+    if (node && typeof override === 'number') {
+      node.significance = Math.max(0, Math.min(1, Number(override.toFixed(2))));
+      node.size = Number((0.4 + node.significance * 1.4).toFixed(2));
+      overridesApplied++;
+    }
+  }
+  if (overridesApplied > 0) {
+    log.info(`Significance overrides: ${overridesApplied} applied from curation.json`);
+  }
+
   // ========================================================================
   // Phase 8: LAYOUT
   // ========================================================================
@@ -606,6 +642,23 @@ async function main() {
     byFactuality[f] = (byFactuality[f] || 0) + 1;
   }
 
+  // Compute authorship breakdown
+  const byAuthorship = {};
+  for (const node of sortedNodes) {
+    const a = node.sourceMeta?.authorship || 'authored';
+    byAuthorship[a] = (byAuthorship[a] || 0) + 1;
+  }
+
+  // Compute significance tier breakdown
+  const bySignificanceTier = { low: 0, medium: 0, high: 0, exceptional: 0 };
+  for (const node of sortedNodes) {
+    const sig = node.significance ?? 0.5;
+    if (sig < 0.3) bySignificanceTier.low++;
+    else if (sig < 0.6) bySignificanceTier.medium++;
+    else if (sig < 0.85) bySignificanceTier.high++;
+    else bySignificanceTier.exceptional++;
+  }
+
   // Reality gate: track factual node count toward 250 threshold
   const factualCount = sortedNodes.filter(n => (n.factuality || 'factual') === 'factual').length;
   const REALITY_GATE_THRESHOLD = 250;
@@ -635,6 +688,9 @@ async function main() {
         isolatedNodes: edgeStats.isolatedNodes,
         signalDistribution: edgeStats.signalDistribution,
       },
+      byAuthorship,
+      bySignificanceTier,
+      significanceOverridesApplied: overridesApplied,
       motifs: motifStats.motifDistribution,
       privacyAudit: {
         violations: 0,
