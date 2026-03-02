@@ -1720,7 +1720,7 @@ export default function Prism3D() {
         gl={{ alpha: true, antialias: true, powerPreference: 'default', premultipliedAlpha: false }}
         dpr={Math.min(1.5, typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1)}
         camera={{ position: [0, 0, 6], fov: 45 }}
-        style={{ background: 'transparent' }}
+        style={{ background: 'transparent', pointerEvents: 'none' }}
       >
         <SceneLights />
         <LightSpill />
