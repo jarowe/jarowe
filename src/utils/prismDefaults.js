@@ -166,5 +166,5 @@ export const PRISM_DEFAULTS = {
   hitboxBorderRadius: 16,   // used for rect corner rounding
   hitboxOffsetX: 0,
   hitboxOffsetY: 0,
-  hitboxDebug: true,
+  hitboxDebug: false,
 };
