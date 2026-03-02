@@ -683,6 +683,10 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     const pFx = prismBopFolder.addFolder('Beams & Effects');
     pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
+    if (pcfg.beamLength === undefined) pcfg.beamLength = 14;
+    if (pcfg.rayLength === undefined) pcfg.rayLength = 14;
+    pFx.add(pcfg, 'beamLength', 4, 30, 0.5).name('Beam Length');
+    pFx.add(pcfg, 'rayLength', 4, 30, 0.5).name('Ray Length');
     pFx.add(pcfg, 'edgeGlowOpacity', 0, 1.0, 0.01).name('Edge Glow');
     pFx.add(pcfg, 'wireframeOpacity', 0, 1.0, 0.01).name('Wireframe Opacity');
     pFx.add(pcfg, 'edgeThresholdAngle', 1, 90, 1).name('Edge Angle Threshold');
@@ -710,6 +714,42 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pLight.add(pcfg, 'beamAudioPulse', 0, 1.0, 0.01).name('Bass → Beam');
     pLight.add(pcfg, 'rayAudioSpread', 0, 1.0, 0.01).name('Bass → Rainbow');
     pLight.close();
+
+    // -- Mouse Proximity --
+    const pProx = pFx.addFolder('Mouse Proximity');
+    if (pcfg.mouseProximityEnabled === undefined) pcfg.mouseProximityEnabled = true;
+    if (pcfg.mouseProximityMin === undefined) pcfg.mouseProximityMin = 0.05;
+    if (pcfg.mouseProximityMax === undefined) pcfg.mouseProximityMax = 0.8;
+    if (pcfg.mouseProximitySpreadMin === undefined) pcfg.mouseProximitySpreadMin = 0.5;
+    if (pcfg.mouseProximitySpreadMax === undefined) pcfg.mouseProximitySpreadMax = 2.0;
+    pProx.add(pcfg, 'mouseProximityEnabled').name('Enabled');
+    pProx.add(pcfg, 'mouseProximityMin', 0.01, 0.5, 0.01).name('Near Threshold');
+    pProx.add(pcfg, 'mouseProximityMax', 0.2, 2.0, 0.01).name('Far Threshold');
+    pProx.add(pcfg, 'mouseProximitySpreadMin', 0, 1.5, 0.01).name('Spread @ Far');
+    pProx.add(pcfg, 'mouseProximitySpreadMax', 0.5, 5.0, 0.01).name('Spread @ Near');
+    pProx.close();
+
+    // -- Saber Effects --
+    const pSaber = pFx.addFolder('Saber Effects');
+    if (pcfg.saberEnabled === undefined) pcfg.saberEnabled = true;
+    if (pcfg.saberCoreWidth === undefined) pcfg.saberCoreWidth = 1.0;
+    if (pcfg.saberGlowWidth === undefined) pcfg.saberGlowWidth = 1.0;
+    if (pcfg.saberPulseSpeed === undefined) pcfg.saberPulseSpeed = 2.0;
+    if (pcfg.saberPulseIntensity === undefined) pcfg.saberPulseIntensity = 0.25;
+    if (pcfg.saberFlickerSpeed === undefined) pcfg.saberFlickerSpeed = 8.0;
+    if (pcfg.saberFlickerIntensity === undefined) pcfg.saberFlickerIntensity = 0.08;
+    if (pcfg.saberColorTemp === undefined) pcfg.saberColorTemp = 0.0;
+    if (pcfg.saberHDRIntensity === undefined) pcfg.saberHDRIntensity = 2.0;
+    pSaber.add(pcfg, 'saberEnabled').name('Enabled');
+    pSaber.add(pcfg, 'saberCoreWidth', 0.1, 3.0, 0.01).name('Core Width');
+    pSaber.add(pcfg, 'saberGlowWidth', 0.1, 3.0, 0.01).name('Glow Width');
+    pSaber.add(pcfg, 'saberPulseSpeed', 0, 8.0, 0.1).name('Pulse Speed');
+    pSaber.add(pcfg, 'saberPulseIntensity', 0, 1.0, 0.01).name('Pulse Intensity');
+    pSaber.add(pcfg, 'saberFlickerSpeed', 0, 20.0, 0.1).name('Flicker Speed');
+    pSaber.add(pcfg, 'saberFlickerIntensity', 0, 0.5, 0.01).name('Flicker Intensity');
+    pSaber.add(pcfg, 'saberColorTemp', -1, 1, 0.01).name('Color Temp');
+    pSaber.add(pcfg, 'saberHDRIntensity', 0.5, 5.0, 0.01).name('HDR Intensity');
+    pSaber.close();
 
     pFx.close();
 

@@ -61,6 +61,28 @@ export const PRISM_DEFAULTS = {
   beamAudioPulse: 0.3,
   rayAudioSpread: 0.15,
 
+  // Beam / ray length (geometry scale)
+  beamLength: 14,
+  rayLength: 14,
+
+  // Mouse proximity → dispersion
+  mouseProximityEnabled: true,
+  mouseProximityMin: 0.05,
+  mouseProximityMax: 0.8,
+  mouseProximitySpreadMin: 0.5,
+  mouseProximitySpreadMax: 2.0,
+
+  // Saber effects on white beam
+  saberEnabled: true,
+  saberCoreWidth: 1.0,
+  saberGlowWidth: 1.0,
+  saberPulseSpeed: 2.0,
+  saberPulseIntensity: 0.25,
+  saberFlickerSpeed: 8.0,
+  saberFlickerIntensity: 0.08,
+  saberColorTemp: 0.0,
+  saberHDRIntensity: 2.0,
+
   // Edge glow
   edgeGlowOpacity: 0.7,
 

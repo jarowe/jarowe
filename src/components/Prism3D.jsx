@@ -143,6 +143,7 @@ const lightState = {
   prismYRot: 0,              // smoothed Y rotation
   dispersionSpread: 0.35,    // current fan half-angle
   dispersionCenter: 0,       // fan center offset from rotation
+  mouseProximityFactor: 1.0, // multiplied into dispersionSpread
   portalSuckProgress: 0,     // 0 = normal, 1 = fully sucked (for cascading ray death)
   portalSuckStartTime: 0,    // when portal suck started
 };
@@ -418,30 +419,63 @@ const glassFrag = `
   }
 `;
 
-/* ── CONVERGING BEAM SHADER (tapers toward prism, incidence-reactive) ── */
+/* ── CONVERGING BEAM SHADER — saber-style multi-layer glow ── */
 const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
   uniform float uIncidence;
-  uniform float uCascadeFade;  // 0 = visible, 1 = fully faded (portal exit)
+  uniform float uCascadeFade;
+  uniform float uSaberEnabled;
+  uniform float uSaberCoreWidth;
+  uniform float uSaberGlowWidth;
+  uniform float uSaberPulseSpeed;
+  uniform float uSaberPulseIntensity;
+  uniform float uSaberFlickerSpeed;
+  uniform float uSaberFlickerIntensity;
+  uniform float uSaberColorTemp;
+  uniform float uSaberHDRIntensity;
   varying vec2 vUv;
+
   void main() {
-    // Beam narrows slightly at steep incidence angles
     float narrowing = 1.0 - uIncidence * 0.2;
     float taper = (1.0 - vUv.x * vUv.x * 0.75) * narrowing;
     float d = abs(vUv.y - 0.5) * 2.0 / max(taper, 0.05);
 
-    // Core gets tighter + brighter near prism
-    float core = exp(-d * d * 20.0);
-    float glow = exp(-d * d * 2.5) * taper;
+    // Layer 1: Ultra-sharp inner core
+    float coreSharp = uSaberCoreWidth * 30.0;
+    float core = exp(-d * d * coreSharp);
+
+    // Layer 2: Medium glow (main body)
+    float midGlow = exp(-d * d * 8.0) * taper;
+
+    // Layer 3: Wide atmospheric scatter
+    float scatter = exp(-d * d * (1.5 / max(uSaberGlowWidth, 0.1))) * taper * 0.3;
+
     float convergeBright = 0.4 + vUv.x * 0.6;
+    float edgeFade = smoothstep(0.0, 0.15, vUv.x);
 
-    // Smooth fade at far end so beam never hits canvas edge
-    float edgeFade = smoothstep(0.0, 0.25, vUv.x);
-    float intensity = (core * 1.5 + glow * 0.35) * convergeBright * edgeFade;
-    float shimmer = 0.93 + 0.07 * sin(vUv.x * 30.0 - uTime * 6.0);
+    // Saber pulsing + flicker
+    float pulse = 1.0;
+    float flicker = 1.0;
+    if (uSaberEnabled > 0.5) {
+      float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
+      float p2 = sin(vUv.x * 3.0 + uTime * uSaberPulseSpeed * 0.7) * 0.5 + 0.5;
+      pulse = 1.0 + tanh((p1 * p2 - 0.25) * 3.0) * uSaberPulseIntensity;
 
-    // Spectral hints scale with incidence — steeper angle = more rainbow splitting
+      float f1 = sin(uTime * uSaberFlickerSpeed * 17.3 + vUv.x * 50.0);
+      float f2 = sin(uTime * uSaberFlickerSpeed * 31.7 + vUv.y * 80.0);
+      flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity;
+    }
+
+    float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
+    intensity *= pulse * flicker;
+
+    // Color temperature: cool blue <-> neutral white <-> warm gold
+    vec3 coolTint = vec3(0.85, 0.92, 1.15);
+    vec3 warmTint = vec3(1.15, 1.0, 0.85);
+    vec3 tempTint = mix(coolTint, warmTint, uSaberColorTemp * 0.5 + 0.5);
+
+    // Spectral hints near prism
     float spectralHint = vUv.x * vUv.x * (0.15 + uIncidence * 0.25);
     vec3 hint = vec3(
       1.0 + sin(vUv.y * 12.0 + uTime) * spectralHint,
@@ -449,18 +483,17 @@ const beamFrag = `
       1.0 - spectralHint * 0.3
     );
 
-    vec3 color = vec3(1.0, 0.98, 0.93) * hint * (1.0 + core * 0.6);
+    // HDR core overdrive for natural bloom
+    float hdrBoost = mix(1.0, uSaberHDRIntensity, core);
+    vec3 color = vec3(1.0, 0.98, 0.93) * tempTint * hint * hdrBoost;
 
-    // Portal cascade: beam smoothly retracts from source toward prism
-    // vUv.x 0=far, 1=at prism — retract FROM far end inward
+    // Portal cascade retraction
     float cascadeEdge = uCascadeFade * 1.4;
     float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.2, 1.0 - vUv.x);
-    // Bright concentration at retraction edge (light gathering as it pulls back)
     float retractionGlow = exp(-pow(((1.0 - vUv.x) - cascadeEdge) * 8.0, 2.0)) * uCascadeFade;
     color += vec3(1.0, 0.95, 0.85) * retractionGlow;
 
-    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract);
-
+    float alpha = intensity * uOpacity * (1.0 - cascadeRetract);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -1654,7 +1687,25 @@ function LightDirectionTracker() {
     const rayAudioSpread = cfg.rayAudioSpread ?? 0.15;
     lightState.dispersionSpread *= (1 + audioBass * rayAudioSpread);
 
-    // 7. Portal suck cascade tracking
+    // 7. Mouse proximity → dispersion spread
+    if (cfg.mouseProximityEnabled) {
+      const prismNDC = window.__prismNDC;
+      if (prismNDC) {
+        const dx = mousePos.x - prismNDC.x;
+        const dy = mousePos.y - prismNDC.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const pMin = cfg.mouseProximityMin ?? 0.05;
+        const pMax = cfg.mouseProximityMax ?? 0.8;
+        const sMin = cfg.mouseProximitySpreadMin ?? 0.5;
+        const sMax = cfg.mouseProximitySpreadMax ?? 2.0;
+        const t = Math.max(0, Math.min(1, (dist - pMin) / (pMax - pMin)));
+        const factor = sMax + t * (sMin - sMax);
+        lightState.mouseProximityFactor += (factor - lightState.mouseProximityFactor) * 0.08;
+      }
+      lightState.dispersionSpread *= lightState.mouseProximityFactor;
+    }
+
+    // 8. Portal suck cascade tracking
     const suckActive = !!window.__prismPortalSuck;
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
@@ -1683,12 +1734,27 @@ function IncomingBeam() {
   useFrame((state) => {
     if (!matRef.current || !meshRef.current) return;
     const t = state.clock.elapsedTime;
-    matRef.current.uniforms.uTime.value = t;
+    const u = matRef.current.uniforms;
+    u.uTime.value = t;
     // Audio-modulated opacity — bass brightens the beam
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
-    matRef.current.uniforms.uOpacity.value = cfg.beamOpacity + audioBoost;
-    matRef.current.uniforms.uIncidence.value = lightState.incidenceAngle;
-    matRef.current.uniforms.uCascadeFade.value = lightState.portalSuckProgress;
+    u.uOpacity.value = cfg.beamOpacity + audioBoost;
+    u.uIncidence.value = lightState.incidenceAngle;
+    u.uCascadeFade.value = lightState.portalSuckProgress;
+
+    // Saber uniforms — live from cfg for editor tweaking
+    u.uSaberEnabled.value = cfg.saberEnabled ? 1.0 : 0.0;
+    u.uSaberCoreWidth.value = cfg.saberCoreWidth ?? 1.0;
+    u.uSaberGlowWidth.value = cfg.saberGlowWidth ?? 1.0;
+    u.uSaberPulseSpeed.value = cfg.saberPulseSpeed ?? 2.0;
+    u.uSaberPulseIntensity.value = cfg.saberPulseIntensity ?? 0.25;
+    u.uSaberFlickerSpeed.value = cfg.saberFlickerSpeed ?? 8.0;
+    u.uSaberFlickerIntensity.value = cfg.saberFlickerIntensity ?? 0.08;
+    u.uSaberColorTemp.value = cfg.saberColorTemp ?? 0.0;
+    u.uSaberHDRIntensity.value = cfg.saberHDRIntensity ?? 2.0;
+
+    // Configurable beam length via scale (base geo is 7 wide)
+    meshRef.current.scale.x = (cfg.beamLength ?? 14) / 7;
 
     // Fixed beam angle: beamAngle points toward light source (~174° for upper-left).
     // Geometry extends in -X direction (180°), so offset = beamAngle - π.
@@ -1707,6 +1773,15 @@ function IncomingBeam() {
           uOpacity: { value: cfg.beamOpacity },
           uIncidence: { value: 0 },
           uCascadeFade: { value: 0 },
+          uSaberEnabled: { value: cfg.saberEnabled ? 1.0 : 0.0 },
+          uSaberCoreWidth: { value: cfg.saberCoreWidth ?? 1.0 },
+          uSaberGlowWidth: { value: cfg.saberGlowWidth ?? 1.0 },
+          uSaberPulseSpeed: { value: cfg.saberPulseSpeed ?? 2.0 },
+          uSaberPulseIntensity: { value: cfg.saberPulseIntensity ?? 0.25 },
+          uSaberFlickerSpeed: { value: cfg.saberFlickerSpeed ?? 8.0 },
+          uSaberFlickerIntensity: { value: cfg.saberFlickerIntensity ?? 0.08 },
+          uSaberColorTemp: { value: cfg.saberColorTemp ?? 0.0 },
+          uSaberHDRIntensity: { value: cfg.saberHDRIntensity ?? 2.0 },
         }}
         transparent
         blending={THREE.AdditiveBlending}
@@ -1750,6 +1825,9 @@ function RainbowFan() {
     const baseDisp = cfg.baseDispersionAngle ?? 0.35;
     const normalizedDisp = lightState.dispersionSpread / Math.max(baseDisp, 0.01);
 
+    // Configurable ray length via scale (base geo is 7 wide)
+    const rayScale = (cfg.rayLength ?? 14) / 7;
+
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
 
@@ -1761,6 +1839,9 @@ function RainbowFan() {
       mesh.rotation.z = exitBase
         + lightState.dispersionCenter
         + normalizedPos * lightState.dispersionSpread;
+
+      // Ray length scaling
+      mesh.scale.x = rayScale;
 
       // Opacity: subtle per-band intensity variation (outer bands slightly dimmer
       // when dispersed, simulating real light energy distribution across spectrum)
@@ -1946,6 +2027,7 @@ function ScreenTracker() {
     if (!ref.current) return;
     ref.current.getWorldPosition(_projVec);
     _projVec.project(camera);
+    window.__prismNDC = { x: _projVec.x, y: _projVec.y };
     const rect = gl.domElement.getBoundingClientRect();
     window.__prismScreenPos = {
       x: rect.left + (_projVec.x * 0.5 + 0.5) * rect.width,
