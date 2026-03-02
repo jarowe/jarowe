@@ -1615,40 +1615,30 @@ function MouthExpression() {
   );
 }
 
-/* ═══════════ LIGHT DIRECTION TRACKER (computes physics each frame) ═══════════ */
-// Shared temp objects for direction computation
-const _lightDir = new THREE.Vector3();
-const _invParentMat = new THREE.Matrix4();
-
-function LightDirectionTracker({ parentRef }) {
+/* ═══════════ DISPERSION PHYSICS TRACKER ═══════════ */
+// Computes beam angle from config + dispersion breathing from prism rotation.
+// No matrix transforms — beams live in the same local space as PrismBody siblings
+// and naturally float with the character. Only the prism's Y-spin affects dispersion.
+function LightDirectionTracker() {
   useFrame(() => {
-    if (!parentRef?.current) return;
-    sampleAudio(); // ensure audio is sampled before beams read it
+    sampleAudio();
 
-    // 1. Fixed light direction in world space (from origin toward light source)
-    //    Using config values — stable, no wobble from prism position
+    // 1. Fixed beam angle from config (stable — only changes via editor sliders)
+    //    atan2(Y,X) of light source position gives the direction toward the source.
+    //    Beam geometry extends in -X, so we subtract π to get the rotation offset.
     const lx = cfg.lightSourceX ?? -5.0;
     const ly = cfg.lightSourceY ?? 0.5;
-    _lightDir.set(lx, ly, 0).normalize();
+    lightState.beamAngle = Math.atan2(ly, lx);
 
-    // 2. Transform to parent's local space via inverse world matrix
-    //    This cancels all parent rotations (drift, float, scale) while keeping
-    //    the beam direction as a 2D angle in the parent's XY plane
-    _invParentMat.copy(parentRef.current.matrixWorld).invert();
-    _lightDir.transformDirection(_invParentMat);
-
-    // 3. Local-space beam direction angle (toward light source)
-    lightState.beamAngle = Math.atan2(_lightDir.y, _lightDir.x);
-
-    // 4. Smooth-read prism Y rotation
+    // 2. Smooth-read prism Y rotation for dispersion breathing
     const rawY = window.__prismRotationY || 0;
     lightState.prismYRot += (rawY - lightState.prismYRot) * 0.08;
     const prismY = lightState.prismYRot;
 
-    // 5. Incidence angle — how "head-on" the light hits the prism face
+    // 3. Incidence angle — how "head-on" the light hits the prism face
     lightState.incidenceAngle = Math.acos(Math.abs(Math.cos(prismY)));
 
-    // 6. Dispersion spread — rotation modulates width + breathing
+    // 4. Dispersion spread — rotation modulates width (the breathing effect)
     const baseDisp = cfg.baseDispersionAngle ?? 0.35;
     const rotMod = cfg.rotationDispersionMod ?? 0.5;
     const incEff = cfg.incidenceEffect ?? 0.4;
@@ -1656,30 +1646,28 @@ function LightDirectionTracker({ parentRef }) {
       * (1 + lightState.incidenceAngle * incEff)
       * (1 + Math.sin(2 * prismY) * rotMod * 0.5);
 
-    // 7. Dispersion center — rotation sweeps the rainbow direction
+    // 5. Dispersion center — rotation sweeps the rainbow fan
     const fanShift = cfg.rotationFanShift ?? 0.3;
     lightState.dispersionCenter = Math.sin(prismY) * fanShift;
 
-    // 8. Audio modulation — bass widens spread
+    // 6. Audio modulation — bass widens spread
     const rayAudioSpread = cfg.rayAudioSpread ?? 0.15;
     lightState.dispersionSpread *= (1 + audioBass * rayAudioSpread);
 
-    // 9. Portal suck cascade tracking
+    // 7. Portal suck cascade tracking
     const suckActive = !!window.__prismPortalSuck;
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
     }
     if (suckActive) {
-      // Ramp up over ~600ms
       const elapsed = (performance.now() - lightState.portalSuckStartTime) / 600;
       lightState.portalSuckProgress = Math.min(elapsed, 1);
     } else {
-      // Fade back quickly if suck ends before full cascade
       lightState.portalSuckProgress = Math.max(0, lightState.portalSuckProgress - 0.05);
     }
   });
 
-  return null; // invisible — just runs physics
+  return null;
 }
 
 /* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — from the left) ═══════════ */
@@ -1688,7 +1676,7 @@ function IncomingBeam() {
   const meshRef = useRef();
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(7, 1);
-    g.translate(-3.5, 0, 0); // extends from x=-7 to x=0
+    g.translate(-3.5, 0, 0); // extends from x=-7 to x=0 (long beam to the left)
     return g;
   }, []);
 
@@ -1696,20 +1684,20 @@ function IncomingBeam() {
     if (!matRef.current || !meshRef.current) return;
     const t = state.clock.elapsedTime;
     matRef.current.uniforms.uTime.value = t;
-    // Audio-modulated opacity
+    // Audio-modulated opacity — bass brightens the beam
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
     matRef.current.uniforms.uOpacity.value = cfg.beamOpacity + audioBoost;
     matRef.current.uniforms.uIncidence.value = lightState.incidenceAngle;
     matRef.current.uniforms.uCascadeFade.value = lightState.portalSuckProgress;
 
-    // Beam geometry extends in -X direction (angle π in local space).
-    // beamAngle points toward light source. Subtract π to align geometry.
-    // Set directly each frame — no lerp, no jitter, perfectly stable.
+    // Fixed beam angle: beamAngle points toward light source (~174° for upper-left).
+    // Geometry extends in -X direction (180°), so offset = beamAngle - π.
+    // This gives a slight upward tilt (~-6°) matching a real stage light.
     meshRef.current.rotation.z = lightState.beamAngle - Math.PI;
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0.04]} geometry={geo}>
+    <mesh ref={meshRef} position={[0, 0, 0.04]} rotation={[0, 0, 0.05]} geometry={geo}>
       <shaderMaterial
         ref={matRef}
         vertexShader={simpleVert}
@@ -1729,7 +1717,7 @@ function IncomingBeam() {
   );
 }
 
-/* ═══════════ RAINBOW FAN (physics-driven dispersion — exits right) ═══════════ */
+/* ═══════════ RAINBOW FAN (dispersion breathing — exits right) ═══════════ */
 const RAINBOW_BANDS = [
   { color: new THREE.Color('#ff1a1a') },
   { color: new THREE.Color('#ff7700') },
@@ -1744,7 +1732,7 @@ function RainbowFan() {
   const raysRef = useRef([]);
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(7, 0.5);
-    g.translate(3.5, 0, 0); // extends from x=0 to x=7
+    g.translate(3.5, 0, 0); // extends from x=0 to x=7 (long rays to the right)
     return g;
   }, []);
 
@@ -1752,9 +1740,9 @@ function RainbowFan() {
     const t = state.clock.elapsedTime;
     const bandCount = RAINBOW_BANDS.length;
 
-    // Rainbow exits OPPOSITE the light source direction.
-    // Ray geometry extends in +X (angle 0). beamAngle points toward light source.
-    // Opposite direction = beamAngle - π. Subtract 0 for +X geometry alignment.
+    // Rainbow exits OPPOSITE the beam: beam points toward source (upper-left),
+    // so rainbow exits lower-right. beamAngle ≈ 174° → exitBase ≈ -6°.
+    // Ray geometry extends in +X (0°), so exitBase is the rotation offset.
     const exitBase = lightState.beamAngle - Math.PI;
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
 
@@ -1768,25 +1756,20 @@ function RainbowFan() {
       // Normalized position across spectrum: -1 (red) to +1 (violet)
       const normalizedPos = (i / (bandCount - 1)) * 2 - 1;
 
-      // Dynamic angle: exit direction + dispersion center + spread
-      const wave = Math.sin(t * 0.8 + i * 0.9) * 0.01;
-      const verticalBend = Math.sin(lightState.prismYRot + i * 0.3) * 0.03;
-      const finalAngle = exitBase
+      // Fixed angle: exitBase + dispersion center + spread per band
+      // No wave oscillation, no vertical bend — light rays are perfectly stable
+      mesh.rotation.z = exitBase
         + lightState.dispersionCenter
-        + normalizedPos * lightState.dispersionSpread
-        + wave;
+        + normalizedPos * lightState.dispersionSpread;
 
-      mesh.rotation.z = finalAngle;
-      mesh.rotation.x = verticalBend;
-
-      // Audio-modulated opacity
-      mesh.material.uniforms.uOpacity.value = cfg.rayOpacity
-        + Math.sin(t * 1.8 + i * 1.3) * 0.15
-        + audioBoost;
+      // Opacity: subtle per-band intensity variation (outer bands slightly dimmer
+      // when dispersed, simulating real light energy distribution across spectrum)
+      const bandIntensity = 1.0 - Math.abs(normalizedPos) * 0.12 * normalizedDisp;
+      mesh.material.uniforms.uOpacity.value = (cfg.rayOpacity + audioBoost) * bandIntensity;
       mesh.material.uniforms.uTime.value = t;
       mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
 
-      // Cascading portal exit: rays die off one by one, violet first (outer → inner)
+      // Cascading portal exit: rays smoothly retract violet-first → red-last
       const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5;
       const rayCascade = Math.max(0, (lightState.portalSuckProgress - cascadeDelay) / (1 - cascadeDelay));
       mesh.material.uniforms.uCascadeFade.value = Math.min(rayCascade, 1);
@@ -2084,7 +2067,7 @@ export default function Prism3D() {
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />
-              <LightDirectionTracker parentRef={charGroupRef} />
+              <LightDirectionTracker />
               <IncomingBeam />
               <RainbowFan />
 
