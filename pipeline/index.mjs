@@ -49,7 +49,7 @@ import { parseCarbonmade } from './parsers/carbonmade.mjs';
 import { parseMusic } from './parsers/music.mjs';
 import { parseFacebook } from './parsers/facebook.mjs';
 import { loadIdentityMap, resolvePeopleArray } from './identity/registry.mjs';
-import { computeAllSignificance } from './scoring/significance.mjs';
+import { computeAllSignificance, sizeFromSignificance } from './scoring/significance.mjs';
 import { generateEdges } from './edges/edge-generator.mjs';
 import { extractAllMotifs } from './edges/motifs.mjs';
 import { computePipelineLayout } from './layout/helix.mjs';
@@ -501,7 +501,7 @@ async function main() {
   for (const node of allNodes) {
     const connectionDegree = node.connections.length / maxConnections;
     node.significance = Number((0.85 * node.significance + 0.15 * connectionDegree).toFixed(2));
-    node.size = Number((0.4 + node.significance * 1.4).toFixed(2));
+    node.size = sizeFromSignificance(node.significance);
   }
 
   log.info(`Connection-degree blended into significance (max connections: ${maxConnections})`);
@@ -513,7 +513,7 @@ async function main() {
     const node = allNodes.find(n => n.id === nodeId);
     if (node && typeof override === 'number') {
       node.significance = Math.max(0, Math.min(1, Number(override.toFixed(2))));
-      node.size = Number((0.4 + node.significance * 1.4).toFixed(2));
+      node.size = sizeFromSignificance(node.significance);
       overridesApplied++;
     }
   }

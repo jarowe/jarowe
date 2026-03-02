@@ -141,6 +141,16 @@ export function computeSignificance(node, context = {}) {
 }
 
 /**
+ * Compute node display size from significance score.
+ * Single source of truth — used by all size assignment points.
+ * @param {number} sig - Significance score 0-1
+ * @returns {number} Size value rounded to 2dp
+ */
+export function sizeFromSignificance(sig) {
+  return Number(((0.4 + sig * 1.4) * 1.35).toFixed(2));
+}
+
+/**
  * Batch compute significance for all nodes.
  * Sets `node.significance` and `node.size` on each node.
  *
@@ -168,7 +178,7 @@ export function computeAllSignificance(nodes) {
   // Score all nodes
   for (const node of nodes) {
     node.significance = computeSignificance(node, context);
-    node.size = Number((0.4 + node.significance * 1.4).toFixed(2));
+    node.size = sizeFromSignificance(node.significance);
   }
 
   // Compute distribution stats
