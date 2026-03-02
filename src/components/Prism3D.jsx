@@ -132,17 +132,42 @@ const mouseVel = { current: 0 };
 /* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
 const audioDataArray = new Uint8Array(128); // fftSize=256 → 128 bins
 let audioBass = 0, audioMid = 0;
+let analyserZeroFrames = 0; // track consecutive zero-data frames
 function sampleAudio() {
-  if (!window.globalAnalyser) { audioBass = 0; audioMid = 0; return; }
-  window.globalAnalyser.getByteFrequencyData(audioDataArray);
-  let bassSum = 0, midSum = 0;
-  for (let i = 0; i < 20; i++) bassSum += audioDataArray[i];
-  for (let i = 20; i < 60; i++) midSum += audioDataArray[i];
-  const rawBass = (bassSum / 20) / 255;
-  const rawMid = (midSum / 40) / 255;
-  // Smooth with exponential decay (analyser already does smoothingTimeConstant=0.8)
-  audioBass = audioBass * 0.6 + rawBass * 0.4;
-  audioMid = audioMid * 0.6 + rawMid * 0.4;
+  // Try real analyser data first
+  if (window.globalAnalyser) {
+    window.globalAnalyser.getByteFrequencyData(audioDataArray);
+    let bassSum = 0, midSum = 0;
+    for (let i = 0; i < 20; i++) bassSum += audioDataArray[i];
+    for (let i = 20; i < 60; i++) midSum += audioDataArray[i];
+    const rawBass = (bassSum / 20) / 255;
+    const rawMid = (midSum / 40) / 255;
+
+    if (rawBass > 0.001 || rawMid > 0.001) {
+      // Real data flowing — use it
+      analyserZeroFrames = 0;
+      audioBass = audioBass * 0.6 + rawBass * 0.4;
+      audioMid = audioMid * 0.6 + rawMid * 0.4;
+      return;
+    }
+    analyserZeroFrames++;
+  }
+
+  // Fallback: synthetic reactivity when music is playing but analyser returns zeros.
+  // This handles HTML5 audio mode where Web Audio graph is bypassed.
+  if (window.__musicPlaying) {
+    const t = performance.now() / 1000;
+    // Generate rhythmic pulsing from layered sine waves (simulates bass + mid)
+    const synthBass = 0.35 + 0.25 * Math.sin(t * 2.1) + 0.15 * Math.sin(t * 4.3) + 0.1 * Math.sin(t * 0.7);
+    const synthMid = 0.3 + 0.2 * Math.sin(t * 3.7 + 1.2) + 0.15 * Math.sin(t * 5.9 + 0.5) + 0.1 * Math.sin(t * 1.3 + 2.0);
+    audioBass = audioBass * 0.7 + synthBass * 0.3;
+    audioMid = audioMid * 0.7 + synthMid * 0.3;
+    return;
+  }
+
+  // No music playing
+  audioBass = audioBass * 0.9; // fade out
+  audioMid = audioMid * 0.9;
 }
 
 /* ═══════════ SHADERS ═══════════ */

@@ -943,74 +943,17 @@
     100% { left: 160%; opacity: 0; }
 }
 
-/* Geometric connector line from bubble to Glint (replaces simple triangle) */
-.prism-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -20px;
-    left: 22px;
-    width: 2px;
-    height: 18px;
-    background: linear-gradient(to bottom,
-        rgba(167, 139, 250, 0.9),
-        rgba(56, 189, 248, 0.3));
-    filter: drop-shadow(0 0 4px rgba(124, 58, 237, 0.5));
-}
-/* Glowing dot at the connector endpoint toward Glint */
-.bubble-connector-dot {
-    position: absolute;
-    bottom: -26px;
-    left: 19px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(167, 139, 250, 0.9) 30%, rgba(56, 189, 248, 0.5) 80%, transparent 100%);
-    box-shadow: 0 0 8px rgba(124, 58, 237, 0.6), 0 0 16px rgba(56, 189, 248, 0.3);
-    pointer-events: none;
-}
+/* Static connector removed — replaced by dynamic SVG connector in Home.jsx */
 
 /* Bubble flipped below character (when at top of screen) */
 .prism-bubble.bubble-below {
     border-radius: 14px 14px 4px 14px;
 }
-.prism-bubble.bubble-below::after {
-    bottom: auto;
-    top: -20px;
-    background: linear-gradient(to top,
-        rgba(167, 139, 250, 0.9),
-        rgba(56, 189, 248, 0.3));
-}
-.prism-bubble.bubble-below .bubble-connector-dot {
-    bottom: auto;
-    top: -26px;
-}
+/* bubble-below connector handled by dynamic SVG */
 .prism-thinking-dots.bubble-below {
     border-radius: 14px 14px 4px 14px;
 }
-/* Connector line from thinking dots to Glint */
-.prism-thinking-dots::after {
-    content: '';
-    position: absolute;
-    bottom: -20px;
-    left: 22px;
-    width: 2px;
-    height: 18px;
-    background: linear-gradient(to bottom,
-        rgba(167, 139, 250, 0.9),
-        rgba(56, 189, 248, 0.3));
-    filter: drop-shadow(0 0 4px rgba(124, 58, 237, 0.5));
-}
-.prism-thinking-dots.bubble-below::after {
-    bottom: auto;
-    top: -20px;
-    background: linear-gradient(to top,
-        rgba(167, 139, 250, 0.9),
-        rgba(56, 189, 248, 0.3));
-}
-.prism-thinking-dots.bubble-below .bubble-connector-dot {
-    bottom: auto;
-    top: -26px;
-}
+/* thinking-dots connector handled by dynamic SVG */
 
 /* Thinking dots bubble (iMessage-style typing indicator) */
 .prism-thinking-dots {

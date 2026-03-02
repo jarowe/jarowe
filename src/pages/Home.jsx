@@ -3366,6 +3366,10 @@ export default function Home() {
   const [bopPhase, setBopPhase] = useState(null);
   const [exitStyle, setExitStyle] = useState(null);
   const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
+  const bubbleElRef = useRef(null); // ref for active bubble/thinking-dots element
+  const connectorLineRef = useRef(null); // SVG line element
+  const connectorDot1Ref = useRef(null); // SVG circle at bubble end
+  const connectorDot2Ref = useRef(null); // SVG circle at character end
   // Portal phases: null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
   const [portalPhase, setPortalPhase] = useState(null);
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
@@ -3810,6 +3814,47 @@ export default function Home() {
     };
   }, [spawnPoints, dragPosition]);
 
+  // Dynamic bubble-to-character connector — rAF loop updates SVG directly (no re-renders)
+  useEffect(() => {
+    if (!bubblePhase || !peekVisible) {
+      // Hide connector after brief delay (lets exit animation play)
+      const hideTimer = setTimeout(() => {
+        if (connectorLineRef.current) connectorLineRef.current.style.display = 'none';
+        if (connectorDot1Ref.current) connectorDot1Ref.current.style.display = 'none';
+        if (connectorDot2Ref.current) connectorDot2Ref.current.style.display = 'none';
+      }, 300);
+      return () => clearTimeout(hideTimer);
+    }
+    let rafId;
+    const update = () => {
+      const bubbleEl = bubbleElRef.current;
+      const charEl = peekCharRef.current;
+      const line = connectorLineRef.current;
+      const d1 = connectorDot1Ref.current;
+      const d2 = connectorDot2Ref.current;
+      if (bubbleEl && charEl && line) {
+        const bRect = bubbleEl.getBoundingClientRect();
+        const cRect = charEl.getBoundingClientRect();
+        const below = bubbleEl.classList.contains('bubble-below') ||
+                      bubbleEl.classList.contains('thinking-below');
+        // Bubble anchor: slightly left-of-center on the near edge
+        const bx = bRect.left + bRect.width * 0.3;
+        const by = below ? bRect.top : bRect.bottom;
+        // Character anchor: center of peek-character layout (= character visual center)
+        const cx = cRect.left + cRect.width / 2;
+        const cy = cRect.top + cRect.height / 2;
+        line.setAttribute('x1', bx); line.setAttribute('y1', by);
+        line.setAttribute('x2', cx); line.setAttribute('y2', cy);
+        line.style.display = '';
+        if (d1) { d1.setAttribute('cx', bx); d1.setAttribute('cy', by); d1.style.display = ''; }
+        if (d2) { d2.setAttribute('cx', cx); d2.setAttribute('cy', cy); d2.style.display = ''; }
+      }
+      rafId = requestAnimationFrame(update);
+    };
+    rafId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rafId);
+  }, [bubblePhase, peekVisible]);
+
   // One bop per reveal guard
   const boppedThisRevealRef = useRef(false);
   // Reset when peek becomes visible
@@ -3817,7 +3862,7 @@ export default function Home() {
     if (peekVisible) boppedThisRevealRef.current = false;
   }, [peekVisible]);
 
-  const handleCatchCharacter = useCallback(() => {
+  const handleCatchCharacter = useCallback((e) => {
     // One bop per reveal only
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
@@ -3844,8 +3889,11 @@ export default function Home() {
     setPrismBops(newBops);
     window.__prismExpression = 'surprised';
 
-    // Ripple overlay at character center (exact pixel position)
-    if (peekCharRef.current) {
+    // Ripple overlay at exact click position (not getBoundingClientRect which drifts)
+    if (e && e.clientX != null) {
+      setBopRipple({ x: e.clientX, y: e.clientY });
+      setTimeout(() => setBopRipple(null), 600);
+    } else if (peekCharRef.current) {
       const rect = peekCharRef.current.getBoundingClientRect();
       setBopRipple({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
       setTimeout(() => setBopRipple(null), 600);
@@ -4329,13 +4377,29 @@ export default function Home() {
           </div>
         )}
 
-        {/* BOP RIPPLE — fixed-position at exact character center */}
+        {/* BOP RIPPLE — fixed-position at exact click point */}
         {bopRipple && (
           <div className="bop-ripple-overlay" style={{ left: bopRipple.x, top: bopRipple.y }}>
             <div className="bop-ripple-ring" />
             <div className="bop-ripple-core" />
           </div>
         )}
+
+        {/* DYNAMIC BUBBLE CONNECTOR — SVG line between bubble and character, updates every frame */}
+        <svg className="bubble-connector-svg" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 501, overflow: 'visible' }}>
+          <defs>
+            <filter id="connGlow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <line ref={connectorLineRef} stroke="rgba(167,139,250,0.6)" strokeWidth="2" strokeDasharray="8 5" filter="url(#connGlow)" style={{ display: 'none' }} />
+          <circle ref={connectorDot1Ref} r="3.5" fill="rgba(167,139,250,0.9)" filter="url(#connGlow)" style={{ display: 'none' }} />
+          <circle ref={connectorDot2Ref} r="5" fill="rgba(56,189,248,0.5)" filter="url(#connGlow)" style={{ display: 'none' }} />
+        </svg>
 
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
@@ -4426,6 +4490,7 @@ export default function Home() {
                     <AnimatePresence mode="wait">
                       {bubblePhase === 'thinking' && (
                         <motion.div
+                          ref={bubbleElRef}
                           key="thinking"
                           className={`prism-thinking-dots ${below ? 'bubble-below' : ''}`}
                           initial={{ opacity: 0, scale: 0 }}
@@ -4440,11 +4505,11 @@ export default function Home() {
                           <span className="thinking-dot" style={{ animationDelay: '0s' }} />
                           <span className="thinking-dot" style={{ animationDelay: '0.2s' }} />
                           <span className="thinking-dot" style={{ animationDelay: '0.4s' }} />
-                          <span className="bubble-connector-dot" />
                         </motion.div>
                       )}
                       {bubblePhase === 'speaking' && prismBubble && (
                         <motion.div
+                          ref={bubbleElRef}
                           key="speaking"
                           className={`prism-bubble ${below ? 'bubble-below' : ''}`}
                           initial={{ opacity: 0, scale: 0, y: below ? -30 : 30 }}
@@ -4460,7 +4525,6 @@ export default function Home() {
                           }}
                         >
                           {prismBubble}
-                          <span className="bubble-connector-dot" />
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -4485,7 +4549,7 @@ export default function Home() {
               })()}
               <div
                 className="prism-3d"
-                onClick={peekVisible && !editorDragMode && bopPhase == null ? handleCatchCharacter : undefined}
+                onClick={peekVisible && !editorDragMode && bopPhase == null ? (e) => handleCatchCharacter(e) : undefined}
                 style={{ cursor: peekVisible && !editorDragMode ? 'pointer' : 'default' }}
               >
                 <Suspense fallback={<div className="prism-loading-glow" />}>
