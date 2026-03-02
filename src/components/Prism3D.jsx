@@ -172,11 +172,22 @@ function sampleAudio() {
 
 /* ═══════════ ANGULAR MOMENTUM PHYSICS ═══════════ */
 // Shared helper consumed by all 3 PrismBody variants.
-// Replaces direct rotation assignment with velocity-based physics.
+// Base Y-axis spin + mouse tilt are DIRECT (like original behaviour).
+// Only bop impulse, drag spin, and portal suck use the velocity system.
 function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, portalSuckLerp) {
   const av = angVelRef.current;
+  const rot = groupRef.current.rotation;
 
-  // ── Consume bop impulse from Home.jsx ──
+  // ── 1. Direct base rotation (Y-axis steady spin — never compounds) ──
+  rot.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
+  rot.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+
+  // ── 2. Direct X wobble + mouse tilt (like original) ──
+  const wobble = cfg.angularWobbleAmp ?? 0.12;
+  rot.x = Math.sin(t * 0.4) * wobble;
+  rot.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+
+  // ── 3. Consume bop impulse (velocity-based — decays over time) ──
   const impulse = window.__prismBopImpulse;
   if (impulse) {
     av.x += impulse.x;
@@ -185,7 +196,7 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
     window.__prismBopImpulse = null;
   }
 
-  // ── Consume drag spin from Home.jsx ──
+  // ── 4. Consume drag spin (velocity-based) ──
   const drag = window.__prismDragSpin;
   if (drag) {
     const sens = cfg.angularDragSensitivity ?? 0.012;
@@ -194,19 +205,16 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
     window.__prismDragSpin = null;
   }
 
-  // ── Base forces: rotation speed + music boost + mouse influence ──
-  av.y += cfg.rotationSpeed * delta;
-  av.y += musicRotBoost * delta;
-  av.y += mousePos.x * delta * cfg.rotationMouseInfluence;
-  av.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
-
-  // ── Portal suck vortex ──
+  // ── 5. Portal suck vortex — multiplies ALL rotation (direct + velocity) ──
   const suckTarget = window.__prismPortalSuck ? 1 : 0;
   portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 6);
   const suckLerp = portalSuckLerp.current;
-  const suckMult = 1 + suckLerp * (cfg.portalSuckSpinMult ?? 8.0);
+  if (suckLerp > 0.01) {
+    const suckBoost = suckLerp * (cfg.portalSuckSpinMult ?? 8.0);
+    rot.y += rot.y * suckBoost * delta;
+  }
 
-  // ── Damping ──
+  // ── 6. Damping on impulse/drag velocity only ──
   const baseDamp = cfg.angularDamping ?? 0.96;
   const suckDamp = cfg.portalSuckDamping ?? 0.99;
   const damp = THREE.MathUtils.lerp(baseDamp, suckDamp, suckLerp);
@@ -214,15 +222,10 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
   av.y *= damp;
   av.z *= damp;
 
-  // ── Apply velocity (frame-rate independent) ──
-  const rot = groupRef.current.rotation;
-  rot.x += av.x * delta * 60 * suckMult;
-  rot.y += av.y * delta * 60 * suckMult;
-  rot.z += av.z * delta * 60 * suckMult;
-
-  // ── Subtle wobble layered on top ──
-  const wobble = cfg.angularWobbleAmp ?? 0.12;
-  rot.x += Math.sin(t * 0.4) * wobble * delta;
+  // ── 7. Apply impulse/drag velocity on top of direct rotation ──
+  rot.x += av.x * delta * 60;
+  rot.y += av.y * delta * 60;
+  rot.z += av.z * delta * 60;
 }
 
 /* ═══════════ SHADERS ═══════════ */
