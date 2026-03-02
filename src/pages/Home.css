@@ -746,11 +746,12 @@
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
 }
 
-/* Hidden Prism Character */
+/* Hidden Prism Character — pointer-events:none so the 420px div doesn't block page content.
+   Bop clicks handled by a small floating hit-target div that tracks the prism's screen position. */
 .peek-character {
     position: fixed;
     z-index: 500;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 .peek-character.peek-right {

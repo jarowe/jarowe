@@ -4477,8 +4477,8 @@ export default function Home() {
                 e.preventDefault();
               } : undefined}
               style={{
-                cursor: editorDragMode ? 'grab' : 'default',
-                pointerEvents: peekVisible ? 'auto' : 'none',
+                cursor: 'default',
+                pointerEvents: editorDragMode ? 'auto' : 'none',
                 ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
               }}
             >
