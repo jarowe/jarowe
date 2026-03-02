@@ -12,7 +12,6 @@ import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
 import './Home.css';
-import { Howler } from 'howler';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
@@ -608,15 +607,8 @@ export default function Home() {
         // ------------------------------------------------------------------
         // AUDIO ANALYSER
         // ------------------------------------------------------------------
+        // Audio analyser is set up by AudioContext.jsx; just read from it here
         let audioDataArray = new Uint8Array(64);
-        try {
-          if (!window.globalAnalyser) {
-            window.globalAnalyser = Howler.ctx.createAnalyser();
-            window.globalAnalyser.fftSize = 128;
-            Howler.masterGain.connect(window.globalAnalyser);
-            window.globalAnalyser.connect(Howler.ctx.destination);
-          }
-        } catch (e) { }
 
         // ------------------------------------------------------------------
         // EXTREME MAGICAL SHADERS & EFFECTS
@@ -2647,21 +2639,7 @@ export default function Home() {
                 }
               }
 
-              // Lazy-init analyser — connect to Howler.masterGain for audio data
-              // NOTE: html5:true Howls bypass masterGain (no reactivity data for
-              // cross-origin audio). Music still plays fine. When audio sources are
-              // same-origin, createMediaElementSource can be added back for reactivity.
-              if (!window.globalAnalyser && Howler.ctx) {
-                try {
-                  const analyser = Howler.ctx.createAnalyser();
-                  analyser.fftSize = 128;
-                  if (Howler.masterGain) {
-                    Howler.masterGain.connect(analyser);
-                  }
-                  analyser.connect(Howler.ctx.destination);
-                  window.globalAnalyser = analyser;
-                } catch (_) { /* AudioContext not ready yet */ }
-              }
+              // Read audio data from global analyser (set up by AudioContext.jsx)
               if (window.globalAnalyser) {
                 window.globalAnalyser.getByteFrequencyData(audioDataArray);
                 let sum = 0;
@@ -3406,6 +3384,18 @@ export default function Home() {
     } catch { return [{ label: 'Right Edge', side: 'right' }, { label: 'Left Edge', side: 'left' }, { label: 'Top', side: 'top' }]; }
   });
 
+  // Responsive spawn point helpers — store as viewport % for resize tolerance
+  const spawnToPixels = (sp) => {
+    if (sp.xPct != null && sp.yPct != null) {
+      return { x: sp.xPct * window.innerWidth, y: sp.yPct * window.innerHeight };
+    }
+    // Legacy pixel format (pre-responsive migration)
+    if (sp.x != null && sp.y != null) {
+      return { x: sp.x, y: sp.y };
+    }
+    return null;
+  };
+
   // Keep peekStyleRef in sync for stale-closure-safe access
   useEffect(() => { peekStyleRef.current = peekStyle; }, [peekStyle]);
 
@@ -3573,11 +3563,13 @@ export default function Home() {
   const getPortalOrigin = (sp) => {
     const W = window.innerWidth;
     const H = window.innerHeight;
-    if (sp.x != null && sp.y != null) {
-      // sp.x/y = div top-left corner; visual center is offset by CHAR_HALF
+    // Responsive percentage format
+    const px = spawnToPixels(sp);
+    if (px) {
+      // px = div top-left corner; visual center is offset by CHAR_HALF
       return {
-        x: `${((sp.x + CHAR_HALF) / W) * 100}%`,
-        y: `${((sp.y + CHAR_HALF) / H) * 100}%`,
+        x: `${((px.x + CHAR_HALF) / W) * 100}%`,
+        y: `${((px.y + CHAR_HALF) / H) * 100}%`,
       };
     }
     // Approximate character visual center for each CSS-positioned side
@@ -3660,8 +3652,9 @@ export default function Home() {
       return setTimeout(() => {
         // Pick from spawn points
         const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-        if (sp.x != null && sp.y != null) {
-          setDragPosition({ x: sp.x, y: sp.y });
+        const spPx = spawnToPixels(sp);
+        if (spPx) {
+          setDragPosition({ x: spPx.x, y: spPx.y });
           setPeekPosition({ cell: 0, side: 'custom' });
         } else {
           setPeekPosition({
@@ -3767,7 +3760,8 @@ export default function Home() {
     const spawnHandler = (e) => {
       const d = e.detail || {};
       if (d.action === 'add' && dragPosition.x != null) {
-        const newPoints = [...spawnPoints, { label: d.label || `Point ${spawnPoints.length + 1}`, x: dragPosition.x, y: dragPosition.y, side: 'custom' }];
+        // Store as viewport percentages for responsive scaling
+        const newPoints = [...spawnPoints, { label: d.label || `Point ${spawnPoints.length + 1}`, xPct: dragPosition.x / window.innerWidth, yPct: dragPosition.y / window.innerHeight, side: 'custom' }];
         setSpawnPoints(newPoints);
         localStorage.setItem('prism_spawn_points', JSON.stringify(newPoints));
       } else if (d.action === 'remove' && d.index != null) {
@@ -3838,13 +3832,13 @@ export default function Home() {
       };
     }
 
-    // ── Phase 1: IMPACT (0–400ms) — shocked face, screen shake, flash burst ──
+    // ── BONK — shocked face, screen shake, confetti burst ──
     setBopPhase('impact');
     window.__prismSquash = Date.now();
     setPrismBops(newBops);
     window.__prismExpression = 'surprised';
 
-    // Radial confetti burst from character position
+    // Confetti burst from character
     confetti({ particleCount: 40, spread: 90, origin: confettiOrigin, colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, startVelocity: 35, ticks: 100, shapes: ['circle'] });
 
     // Screen shake
@@ -3854,62 +3848,17 @@ export default function Home() {
       setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // ── Phase 2: REACTION (400ms) — excited face, talks, light rays fire ──
+    // ── PORTAL EXIT (600ms) — same as Hide Glint but with bonk face ──
     setTimeout(() => {
-      setBopPhase('reaction');
-      window.__prismExpression = 'excited';
-      window.__prismTalking = true;
-      setBubblePhase('speaking');
-      setPrismBubble(glintCatchPhrases[(newBops - 1) % glintCatchPhrases.length]);
-
-      // Rainbow confetti burst from character
-      confetti({ particleCount: 50, spread: 160, origin: confettiOrigin, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6', '#ef4444'], gravity: 0.25, scalar: 0.6, drift: 0.5, ticks: 180 });
-
-      // Light ray sparkles
-      const sparkles = Array.from({ length: 24 }, (_, i) => {
-        const angle = (i / 24) * Math.PI * 2;
-        return {
-          id: Date.now() + i,
-          x: Math.cos(angle) * (60 + Math.random() * 80),
-          y: Math.sin(angle) * (60 + Math.random() * 80) - 20,
-          color: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24', '#ef4444', '#a78bfa', '#34d399'][i % 8],
-          delay: Math.random() * 0.3,
-          size: 2 + Math.random() * 6,
-          duration: 1 + Math.random() * 1.5,
-        };
-      });
-      setPrismSparkles(sparkles);
-      setTimeout(() => setPrismSparkles([]), 3000);
-    }, 400);
-
-    // ── Phase 3: PORTAL SUCK (1000ms) — portal opens, character spirals in ──
-    setTimeout(() => {
-      window.__prismExpression = 'surprised';
-      window.__prismTalking = false;
-      clearBubble();
-
-      // Fire idea sparks outward like light from a prism
-      if (peekCharRef.current) {
-        const rect = peekCharRef.current.getBoundingClientRect();
-        const cx = (rect.left + rect.width / 2) / window.innerWidth;
-        const cy = (rect.top + rect.height / 2) / window.innerHeight;
-        for (let i = 0; i < 5; i++) {
-          setTimeout(() => {
-            confetti({ particleCount: 15, spread: 25 + i * 15, origin: { x: cx, y: cy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24'], startVelocity: 20 + i * 8, gravity: 0.15, scalar: 0.4, ticks: 100, shapes: ['circle'] });
-          }, i * 60);
-        }
-      }
-
-      // Add spin-suck class for dramatic portal pull
-      peekCharRef.current?.classList.add('portal-suck');
       setBopPhase(null);
       setExitStyle(null);
+      clearBubble();
       runPortalExitSequence();
-    }, 1000);
+    }, 600);
 
     // Every 3 bops, trigger the speed puzzle game
     if (newBops % 3 === 0) {
-      setTimeout(() => setShowSpeedGame(true), 3000);
+      setTimeout(() => setShowSpeedGame(true), 2500);
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
 
@@ -4307,10 +4256,11 @@ export default function Home() {
               const W = window.innerWidth;
               const H = window.innerHeight;
               let px, py;
-              const isCustom = sp.side === 'custom' || (sp.x != null && sp.y != null && !sp.side);
-              if (sp.x != null && sp.y != null) {
-                // sp.x/y = div corner; show marker at visual center (+CHAR_HALF)
-                px = sp.x + CHAR_HALF; py = sp.y + CHAR_HALF;
+              const isCustom = sp.side === 'custom' || (sp.xPct != null || sp.x != null);
+              const spPx = spawnToPixels(sp);
+              if (spPx) {
+                // spPx = div corner; show marker at visual center (+CHAR_HALF)
+                px = spPx.x + CHAR_HALF; py = spPx.y + CHAR_HALF;
               } else {
                 const side = sp.side || 'right';
                 if (side === 'right') { px = W - 130; py = H * 0.5; }
@@ -4330,29 +4280,28 @@ export default function Home() {
                   onMouseDown={isCustom ? (e) => {
                     e.preventDefault();
                     const startX = e.clientX, startY = e.clientY;
+                    const startPx = spawnToPixels(sp) || { x: 0, y: 0 };
                     let moved = false;
                     const onMove = (ev) => {
                       moved = true;
-                      // Track delta from start; display at visual center
                       const dx = ev.clientX - startX;
                       const dy = ev.clientY - startY;
                       const marker = ev.target.closest?.('.spawn-marker');
-                      marker?.style?.setProperty?.('left', `${sp.x + CHAR_HALF + dx}px`);
-                      marker?.style?.setProperty?.('top', `${sp.y + CHAR_HALF + dy}px`);
+                      marker?.style?.setProperty?.('left', `${startPx.x + CHAR_HALF + dx}px`);
+                      marker?.style?.setProperty?.('top', `${startPx.y + CHAR_HALF + dy}px`);
                     };
                     const onUp = (ev) => {
                       window.removeEventListener('mousemove', onMove);
                       window.removeEventListener('mouseup', onUp);
                       if (!moved) return;
                       ev.preventDefault();
-                      // Store as div corner (visual center - CHAR_HALF)
-                      const newX = Math.round(sp.x + (ev.clientX - startX));
-                      const newY = Math.round(sp.y + (ev.clientY - startY));
+                      // Store as viewport percentage for responsive positioning
+                      const newX = startPx.x + (ev.clientX - startX);
+                      const newY = startPx.y + (ev.clientY - startY);
                       const updated = [...spawnPoints];
-                      updated[i] = { ...updated[i], x: newX, y: newY };
+                      updated[i] = { ...updated[i], xPct: newX / window.innerWidth, yPct: newY / window.innerHeight, x: undefined, y: undefined, side: 'custom' };
                       setSpawnPoints(updated);
                       localStorage.setItem('prism_spawn_points', JSON.stringify(updated));
-                      // Notify editor to rebuild
                       window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: updated } }));
                     };
                     window.addEventListener('mousemove', onMove);
@@ -4434,12 +4383,23 @@ export default function Home() {
                 const below = pos === 'below' || (pos === 'auto' && isNearTop);
                 const offX = cfg.bubbleOffsetX || 0;
                 const offY = cfg.bubbleOffsetY || 0;
-                const bubblePos = below
-                  ? { top: `calc(100% + 10px + ${offY}px)`, bottom: 'auto' }
-                  : { bottom: `calc(100% - 30px + ${offY}px)`, top: 'auto' };
-                const counterPos = below
-                  ? { top: `calc(100% + 5px + ${cfg.bopCounterOffsetY || 0}px)`, bottom: 'auto' }
-                  : { bottom: `calc(100% - 40px + ${cfg.bopCounterOffsetY || 0}px)`, top: 'auto' };
+                const locked = cfg.bubbleLocked !== false; // default true
+                // Locked: position tight to character center (50% of 420px layout)
+                // Unlocked: position at container edge (old behavior)
+                const bubblePos = locked
+                  ? (below
+                    ? { top: `calc(50% + 50px + ${offY}px)`, bottom: 'auto' }
+                    : { bottom: `calc(50% + 50px + ${offY}px)`, top: 'auto' })
+                  : (below
+                    ? { top: `calc(100% + 10px + ${offY}px)`, bottom: 'auto' }
+                    : { bottom: `calc(100% - 30px + ${offY}px)`, top: 'auto' });
+                const counterPos = locked
+                  ? (below
+                    ? { top: `calc(50% + 45px + ${cfg.bopCounterOffsetY || 0}px)`, bottom: 'auto' }
+                    : { bottom: `calc(50% + 45px + ${cfg.bopCounterOffsetY || 0}px)`, top: 'auto' })
+                  : (below
+                    ? { top: `calc(100% + 5px + ${cfg.bopCounterOffsetY || 0}px)`, bottom: 'auto' }
+                    : { bottom: `calc(100% - 40px + ${cfg.bopCounterOffsetY || 0}px)`, top: 'auto' });
                 return (
                   <>
                     <AnimatePresence mode="wait">

@@ -862,6 +862,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
+    pBubble.add(pcfg, 'bubbleLocked').name('Lock to Glint');
     pBubble.add(pcfg, 'bubblePosition', ['auto', 'above', 'below']).name('Position');
     pBubble.add(pcfg, 'bubbleOffsetX', -200, 200, 1).name('X Offset');
     pBubble.add(pcfg, 'bubbleOffsetY', -200, 200, 1).name('Y Offset');

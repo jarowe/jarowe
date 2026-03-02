@@ -103,6 +103,8 @@ export const PRISM_DEFAULTS = {
   bubbleAnimSpeed: 1.0,
   // Bubble position: 'auto' flips below when character is near top, 'above', 'below'
   bubblePosition: 'auto',
+  // Lock bubble & counter to Glint's body (moves with character, tight positioning)
+  bubbleLocked: true,
 
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
