@@ -3864,8 +3864,17 @@ export default function Home() {
       const el = prismHitRef.current;
       const pos = window.__prismScreenPos;
       if (el && pos) {
-        el.style.left = `${pos.x}px`;
-        el.style.top = `${pos.y}px`;
+        const cfg = window.__prismConfig || {};
+        const offX = cfg.hitboxOffsetX ?? 0;
+        const offY = cfg.hitboxOffsetY ?? 0;
+        const size = cfg.hitboxSize ?? 90;
+        const debug = cfg.hitboxDebug ?? false;
+        el.style.left = `${pos.x + offX}px`;
+        el.style.top = `${pos.y + offY}px`;
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.outline = debug ? '2px solid rgba(255,0,0,0.7)' : 'none';
+        el.style.background = debug ? 'rgba(255,0,0,0.15)' : 'transparent';
       }
       rafId = requestAnimationFrame(update);
     };
@@ -4604,7 +4613,7 @@ export default function Home() {
           );
         })()}
 
-        {/* PRISM HIT TARGET — small invisible circle that follows the prism's 3D-projected screen pos */}
+        {/* PRISM HIT TARGET — follows the prism's 3D-projected screen pos, size/offset from editor config */}
         {peekVisible && (
           <div
             ref={prismHitRef}
@@ -4618,7 +4627,6 @@ export default function Home() {
               cursor: 'pointer',
               pointerEvents: 'auto',
               zIndex: 502,
-              background: 'transparent',
             }}
           />
         )}

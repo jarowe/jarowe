@@ -860,6 +860,14 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pCounter.add(pcfg, 'bopCounterOffsetY', -200, 200, 1).name('Y Offset');
     pCounter.close();
 
+    // -- Hitbox --
+    const pHitbox = prismBopFolder.addFolder('Hitbox');
+    pHitbox.add(pcfg, 'hitboxSize', 30, 250, 1).name('Size (px)');
+    pHitbox.add(pcfg, 'hitboxOffsetX', -200, 200, 1).name('X Offset');
+    pHitbox.add(pcfg, 'hitboxOffsetY', -200, 200, 1).name('Y Offset');
+    pHitbox.add(pcfg, 'hitboxDebug').name('Show Outline');
+    pHitbox.close();
+
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
     pBubble.add(pcfg, 'bubbleLocked').name('Lock to Glint');

@@ -157,4 +157,10 @@ export const PRISM_DEFAULTS = {
   // Spawn
   spawnScale: 1.0,
   showSpawnMarkers: false,
+
+  // Hitbox (bop click target)
+  hitboxSize: 90,
+  hitboxOffsetX: 0,
+  hitboxOffsetY: 0,
+  hitboxDebug: false,
 };
