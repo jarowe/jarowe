@@ -3365,6 +3365,7 @@ export default function Home() {
   // Bop phases: null | 'impact' | 'reaction' | 'exit'
   const [bopPhase, setBopPhase] = useState(null);
   const [exitStyle, setExitStyle] = useState(null);
+  const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
   // Portal phases: null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
   const [portalPhase, setPortalPhase] = useState(null);
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
@@ -3493,9 +3494,6 @@ export default function Home() {
     const cOy = parseFloat(oy) / 100;
     setPortalOrigin({ x: ox, y: oy });
 
-    // Snap portal to actual character DOM center after React renders
-    snapPortalToCharacter();
-
     // Convert portal colors from [r,g,b] (0-1) to hex strings
     const toHex = (arr) => '#' + arr.map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
     const c1 = cfg.portalColor1 ? toHex(cfg.portalColor1) : '#7c3aed';
@@ -3580,14 +3578,14 @@ export default function Home() {
         y: `${((px.y + CHAR_HALF) / H) * 100}%`,
       };
     }
-    // Approximate character visual center for each CSS-positioned side
-    // .peek-right: right: -80px; top: 50%  →  center ≈ (W - 130, H*0.5)
-    // .peek-left:  left: -80px; top: 40%   →  center ≈ (130, H*0.4)
-    // .peek-top:   left: 50%; top: 20px    →  center ≈ (W*0.5, 230)
+    // Character visual center for each CSS-positioned side:
+    // .peek-right: right:-80px, top:50% → right-edge at W+80, left-edge W-340, center (W-130, H*0.5+210)
+    // .peek-left:  left:-80px, top:40%  → left-edge -80, center (-80+210, H*0.4+210) = (130, H*0.4+210)
+    // .peek-top:   left:50%, top:20px   → center (W*0.5+210, 20+210) = (W*0.5+210, 230)
     const side = sp.side || 'right';
-    if (side === 'right') return { x: `${((W - 130) / W) * 100}%`, y: '50%' };
-    if (side === 'left') return { x: `${(130 / W) * 100}%`, y: '40%' };
-    return { x: '50%', y: `${(230 / H) * 100}%` };
+    if (side === 'right') return { x: `${((W - 130) / W) * 100}%`, y: `${((H * 0.5 + CHAR_HALF) / H) * 100}%` };
+    if (side === 'left') return { x: `${(130 / W) * 100}%`, y: `${((H * 0.4 + CHAR_HALF) / H) * 100}%` };
+    return { x: `${((W * 0.5 + CHAR_HALF) / W) * 100}%`, y: `${(230 / H) * 100}%` };
   };
 
   // Snap portal origin to actual character DOM position (runs after React render)
@@ -3840,11 +3838,18 @@ export default function Home() {
       };
     }
 
-    // ── BONK — shocked face, screen shake, confetti burst ──
+    // ── BONK — shocked face, screen shake, confetti burst, ripple ──
     setBopPhase('impact');
     window.__prismSquash = Date.now();
     setPrismBops(newBops);
     window.__prismExpression = 'surprised';
+
+    // Ripple overlay at character center (exact pixel position)
+    if (peekCharRef.current) {
+      const rect = peekCharRef.current.getBoundingClientRect();
+      setBopRipple({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      setTimeout(() => setBopRipple(null), 600);
+    }
 
     // Confetti burst from character
     confetti({ particleCount: 40, spread: 90, origin: confettiOrigin, colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6'], gravity: 0.3, scalar: 0.7, startVelocity: 35, ticks: 100, shapes: ['circle'] });
@@ -4324,6 +4329,14 @@ export default function Home() {
           </div>
         )}
 
+        {/* BOP RIPPLE — fixed-position at exact character center */}
+        {bopRipple && (
+          <div className="bop-ripple-overlay" style={{ left: bopRipple.x, top: bopRipple.y }}>
+            <div className="bop-ripple-ring" />
+            <div className="bop-ripple-core" />
+          </div>
+        )}
+
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
 
@@ -4364,7 +4377,7 @@ export default function Home() {
           return (
             <motion.div
               ref={peekCharRef}
-              className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`} ${bopPhase === 'impact' ? 'bop-impact' : ''}`}
+              className={`peek-character ${editorDragMode ? 'drag-mode' : ''} ${isDragCustom || isCustomPos ? '' : `peek-${peekPosition.side}`}`}
               animate={animateState}
               initial={false}
               transition={exitTransition}

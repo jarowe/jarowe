@@ -9,23 +9,24 @@ export const sunoTracks = [
     { title: "The Void Calls", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" }
 ];
 
-// Insert analyser INLINE in Howler's audio graph so it actually receives data.
-// masterGain → analyser → destination (instead of branch connection)
+// Branch-connect analyser to Howler's masterGain (read-only tap, never disconnect).
+// AnalyserNode can read frequency data without being in the direct audio path.
 function ensureAnalyser() {
     if (window.globalAnalyser || !Howler.ctx || !Howler.masterGain) return;
     try {
-        // Safari requires AudioContext resume after user gesture
         if (Howler.ctx.state === 'suspended') Howler.ctx.resume();
         const analyser = Howler.ctx.createAnalyser();
         analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.8;
-        // Insert analyser inline: masterGain → analyser → destination
-        Howler.masterGain.disconnect();
+        analyser.smoothingTimeConstant = 0.7;
+        // Branch: tap masterGain output, DON'T disconnect or re-route anything
         Howler.masterGain.connect(analyser);
-        analyser.connect(Howler.ctx.destination);
         window.globalAnalyser = analyser;
     } catch (_) { /* AudioContext not ready */ }
 }
+// Retry periodically — Howler.ctx/masterGain may not exist when first sound plays
+setInterval(() => {
+    if (!window.globalAnalyser) ensureAnalyser();
+}, 1000);
 
 export function AudioProvider({ children }) {
     const [isPlaying, setIsPlaying] = useState(false);

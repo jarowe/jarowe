@@ -704,9 +704,14 @@
     80% { transform: translateX(1px); }
 }
 
-/* Bop impact flash — centered starburst ring that expands outward from Glint */
-.bop-impact .prism-3d::after {
-    content: '';
+/* Bop impact ripple — fixed-position overlay at character center (set via JS) */
+.bop-ripple-overlay {
+    position: fixed;
+    pointer-events: none;
+    z-index: 600;
+    transform: translate(-50%, -50%);
+}
+.bop-ripple-ring {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -716,13 +721,9 @@
     background:
         radial-gradient(circle, transparent 15%, rgba(255,255,255,0.6) 25%, rgba(124,58,237,0.5) 40%, rgba(56,189,248,0.3) 55%, transparent 70%);
     animation: impactRingBurst 0.5s ease-out forwards;
-    pointer-events: none;
-    z-index: 15;
     border-radius: 50%;
 }
-
-.bop-impact .prism-3d::before {
-    content: '';
+.bop-ripple-core {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -731,8 +732,6 @@
     transform: translate(-50%, -50%);
     background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(167,139,250,0.5) 25%, transparent 55%);
     animation: impactCoreFlash 0.3s ease-out forwards;
-    pointer-events: none;
-    z-index: 16;
     border-radius: 50%;
 }
 
@@ -800,9 +799,6 @@
 .prism-3d {
     position: relative;
     pointer-events: auto;
-    width: 420px;
-    height: 420px;
-    overflow: visible;
 }
 
 .prism-3d-canvas-wrapper {
@@ -901,7 +897,6 @@
     z-index: 20;
     pointer-events: none;
     animation: sparkBubbleGlow 2.5s ease-in-out infinite;
-    overflow: hidden;
 }
 
 /* Cycling prismatic text glow - like light refracting through the prism */
@@ -938,6 +933,7 @@
     animation: sparkSweep 3.5s ease-in-out infinite;
     pointer-events: none;
     z-index: 1;
+    clip-path: inset(0 round 14px);
 }
 
 @keyframes sparkSweep {

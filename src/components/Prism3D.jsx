@@ -687,12 +687,12 @@ function PrismBody({ geometry }) {
       lastThreshold.current = thresh;
     }
 
-    // Music reactivity
+    // Music reactivity — effects must be dramatic enough to notice
     sampleAudio();
     const react = cfg.musicReactivity ?? 0;
-    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
-    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
-    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react : 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react * 4 : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
+    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react * 3 : 0;
 
     groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
@@ -818,8 +818,8 @@ function PrismBodyMTM({ geometry }) {
 
     sampleAudio();
     const react = cfg.musicReactivity ?? 0;
-    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
-    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react * 4 : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
 
     groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
@@ -897,9 +897,9 @@ function PrismBodyHybrid({ geometry }) {
 
     sampleAudio();
     const react = cfg.musicReactivity ?? 0;
-    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react : 0;
-    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react : 0;
-    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react : 0;
+    const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react * 4 : 0;
+    const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
+    const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react * 3 : 0;
 
     groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
     groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
