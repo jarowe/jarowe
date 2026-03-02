@@ -3998,7 +3998,11 @@ export default function Home() {
   const boppedThisRevealRef = useRef(false);
   // Reset when peek becomes visible
   useEffect(() => {
-    if (peekVisible) boppedThisRevealRef.current = false;
+    if (peekVisible) {
+      boppedThisRevealRef.current = false;
+      // Reset Glint's rotation + angular velocity so it starts with clean Y spin
+      window.__prismResetRotation = true;
+    }
   }, [peekVisible]);
 
   const handleCatchCharacter = useCallback((e) => {
@@ -4095,12 +4099,11 @@ export default function Home() {
   // Hit-target click handler — dispatched from the floating div that tracks prism screen pos
   const handleHitTargetClick = useCallback((e) => {
     if (!peekVisible || editorDragMode || bopPhase != null) return;
-    // Distinguish click vs drag: if total movement > 5px, it was a drag
+    // Distinguish click vs drag: if total movement > 12px, it was a drag (generous threshold)
     const ds = dragSpinRef.current;
-    if (ds.active) return; // still dragging
     const dx = e.clientX - ds.startX;
     const dy = e.clientY - ds.startY;
-    if (Math.sqrt(dx * dx + dy * dy) > 5) return; // was a drag, not a click
+    if (dx * dx + dy * dy > 144) return; // 12px² — was a drag, not a click
     // Compute directional bop impulse
     const impulse = computeBopImpulse(e);
     if (impulse) window.__prismBopImpulse = impulse;

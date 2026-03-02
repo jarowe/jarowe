@@ -623,7 +623,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // -- Shape --
     const pShape = prismBopFolder.addFolder('Shape');
     if (!pcfg.shape) pcfg.shape = 'rounded-prism';
-    pShape.add(pcfg, 'shape', ['rounded-prism', 'pyramid', 'crystal', 'sphere', 'gem', 'prism']).name('Shape').onChange(() => {
+    pShape.add(pcfg, 'shape', ['rounded-prism', 'rounded-pyramid', 'pyramid', 'crystal', 'sphere', 'gem', 'prism']).name('Shape').onChange(() => {
       window.dispatchEvent(new CustomEvent('prism-shape-change'));
     });
     pShape.close();

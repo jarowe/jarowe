@@ -178,6 +178,18 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
   const av = angVelRef.current;
   const rot = groupRef.current.rotation;
 
+  // ── 0. Reset rotation on spawn (prevents drift-off-screen) ──
+  if (window.__prismResetRotation) {
+    rot.x = 0;
+    rot.y = 0;
+    rot.z = 0;
+    av.x = 0;
+    av.y = 0;
+    av.z = 0;
+    portalSuckLerp.current = 0;
+    window.__prismResetRotation = false;
+  }
+
   // ── 1. Direct base rotation (Y-axis steady spin — never compounds) ──
   rot.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
   rot.y += mousePos.x * delta * cfg.rotationMouseInfluence;
@@ -700,17 +712,74 @@ function usePrismGeometry(shape) {
         geo.computeVertexNormals();
         return geo;
       }
-      case 'pyramid':
-        return new THREE.ConeGeometry(1, 2, 4);
-      case 'crystal':
-        return new THREE.OctahedronGeometry(1.2, 0);
+      case 'rounded-pyramid': {
+        // 4-sided pyramid base as a rounded square, extruded into a tapered shape
+        const pyShape = new THREE.Shape();
+        const pyR = 0.9;
+        const pyBevel = 0.18;
+        const pyPts = [[-pyR, -pyR], [pyR, -pyR], [pyR, pyR], [-pyR, pyR]];
+        for (let i = 0; i < 4; i++) {
+          const curr = pyPts[i];
+          const next = pyPts[(i + 1) % 4];
+          const prev = pyPts[(i + 3) % 4];
+          const toN = [next[0] - curr[0], next[1] - curr[1]];
+          const toP = [prev[0] - curr[0], prev[1] - curr[1]];
+          const lN = Math.sqrt(toN[0] ** 2 + toN[1] ** 2);
+          const lP = Math.sqrt(toP[0] ** 2 + toP[1] ** 2);
+          const pA = [curr[0] + (toN[0] / lN) * pyBevel * 2, curr[1] + (toN[1] / lN) * pyBevel * 2];
+          const pB = [curr[0] + (toP[0] / lP) * pyBevel * 2, curr[1] + (toP[1] / lP) * pyBevel * 2];
+          if (i === 0) pyShape.moveTo(pB[0], pB[1]);
+          else pyShape.lineTo(pB[0], pB[1]);
+          pyShape.quadraticCurveTo(curr[0], curr[1], pA[0], pA[1]);
+        }
+        pyShape.closePath();
+        const pyGeo = new THREE.ExtrudeGeometry(pyShape, {
+          depth: 2.0, bevelEnabled: true, bevelThickness: 0.1,
+          bevelSize: 0.1, bevelSegments: 4,
+        });
+        pyGeo.center();
+        // Taper top vertices to form pyramid (pinch top half toward center)
+        const pyPos = pyGeo.attributes.position;
+        for (let i = 0; i < pyPos.count; i++) {
+          const z = pyPos.getZ(i);
+          if (z > 0) {
+            const taper = 1 - (z / 1.2);  // 1 at bottom → 0 at top
+            const t = Math.max(0.05, taper);
+            pyPos.setX(i, pyPos.getX(i) * t);
+            pyPos.setY(i, pyPos.getY(i) * t);
+          }
+        }
+        pyPos.needsUpdate = true;
+        pyGeo.computeVertexNormals();
+        return pyGeo;
+      }
+      case 'pyramid': {
+        // Rounded 4-sided pyramid (ConeGeometry with subdivision for soft edges)
+        const geo = new THREE.ConeGeometry(1, 2, 4, 1);
+        geo.computeVertexNormals();
+        return geo;
+      }
+      case 'crystal': {
+        // Rounded octahedron — higher subdivision for softer edges
+        const geo = new THREE.OctahedronGeometry(1.2, 2);
+        geo.computeVertexNormals();
+        return geo;
+      }
       case 'sphere':
         return new THREE.SphereGeometry(1, 32, 32);
-      case 'gem':
-        return new THREE.DodecahedronGeometry(1, 0);
+      case 'gem': {
+        // Rounded dodecahedron — subdivision smooths the edges
+        const geo = new THREE.DodecahedronGeometry(1, 1);
+        geo.computeVertexNormals();
+        return geo;
+      }
       case 'prism':
-      default:
-        return new THREE.CylinderGeometry(1, 1, 1.8, 3);
+      default: {
+        // Rounded triangular prism (same technique as rounded-prism but no bevel label)
+        const geo = new THREE.CylinderGeometry(1, 1, 1.8, 3, 1);
+        geo.computeVertexNormals();
+        return geo;
+      }
     }
   }, [shape]);
 }
