@@ -872,6 +872,14 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pHitbox.add(pcfg, 'hitboxDebug').name('Show Outline');
     pHitbox.close();
 
+    // -- Hover Reaction --
+    const pHover = prismBopFolder.addFolder('Hover Reaction');
+    pHover.add(pcfg, 'hoverScale', 0.85, 1.25, 0.01).name('Scale');
+    pHover.add(pcfg, 'hoverExpression', ['surprised', 'curious', 'excited', 'love', 'angry', 'thinking', 'mischief']).name('Expression');
+    pHover.add(pcfg, 'hoverGlowBoost', 0, 2, 0.05).name('Glow Boost');
+    pHover.add(pcfg, 'hoverTremble', 0, 1, 0.05).name('Tremble');
+    pHover.close();
+
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
     pBubble.add(pcfg, 'bubbleLocked').name('Lock to Glint');

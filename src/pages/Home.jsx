@@ -3367,7 +3367,7 @@ export default function Home() {
   const [exitStyle, setExitStyle] = useState(null);
   const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
   const bubbleElRef = useRef(null); // ref for active bubble/thinking-dots element
-  const connectorLineRef = useRef(null); // SVG line element
+  // connectorPathRef + connectorPulseRef declared inside connector rAF effect
   const prismHitRef = useRef(null); // floating hit-target div that follows prism screen pos
   const connectorDot1Ref = useRef(null); // SVG circle at bubble end
   const connectorDot2Ref = useRef(null); // SVG circle at character end
@@ -3817,44 +3817,86 @@ export default function Home() {
     };
   }, [spawnPoints, dragPosition]);
 
-  // Dynamic bubble-to-character connector — rAF loop updates SVG directly (no re-renders)
+  // Dynamic bubble-to-character connector — rAF loop updates SVG path directly (no re-renders)
+  const connectorPathRef = useRef(null); // main curved path
+  const connectorPulseRef = useRef(null); // glowing pulse path overlay
+  const connectorBirthRef = useRef(0); // timestamp when connector appeared (for draw-in animation)
+  const connectorWasVisible = useRef(false);
   useEffect(() => {
-    if (!bubblePhase || !peekVisible) {
-      // Hide connector after brief delay (lets exit animation play)
-      const hideTimer = setTimeout(() => {
-        if (connectorLineRef.current) connectorLineRef.current.style.display = 'none';
-        if (connectorDot1Ref.current) connectorDot1Ref.current.style.display = 'none';
-        if (connectorDot2Ref.current) connectorDot2Ref.current.style.display = 'none';
-      }, 300);
-      return () => clearTimeout(hideTimer);
+    if (!peekVisible) {
+      // Hide all connector elements
+      [connectorPathRef, connectorPulseRef, connectorDot1Ref, connectorDot2Ref].forEach(r => {
+        if (r.current) r.current.style.display = 'none';
+      });
+      connectorWasVisible.current = false;
+      return;
     }
     let rafId;
     const update = () => {
       const bubbleEl = bubbleElRef.current;
-      const prismPos = window.__prismScreenPos; // projected 3D position from ScreenTracker
-      const line = connectorLineRef.current;
+      const prismPos = window.__prismScreenPos;
+      const path = connectorPathRef.current;
+      const pulse = connectorPulseRef.current;
       const d1 = connectorDot1Ref.current;
       const d2 = connectorDot2Ref.current;
-      if (bubbleEl && prismPos && line) {
-        const bRect = bubbleEl.getBoundingClientRect();
+      // Check bubble is still in the DOM and has dimensions
+      const inDom = bubbleEl && document.body.contains(bubbleEl);
+      const bRect = inDom ? bubbleEl.getBoundingClientRect() : null;
+      const visible = bRect && bRect.width > 0 && prismPos && path;
+      if (visible) {
         const below = bubbleEl.classList.contains('bubble-below');
-        // Bubble anchor: center of the near edge
         const bx = bRect.left + bRect.width * 0.35;
         const by = below ? bRect.top : bRect.bottom;
-        // Character anchor: exact 3D-projected screen position of the prism
         const cx = prismPos.x;
         const cy = prismPos.y;
-        line.setAttribute('x1', bx); line.setAttribute('y1', by);
-        line.setAttribute('x2', cx); line.setAttribute('y2', cy);
-        line.style.display = '';
-        if (d1) { d1.setAttribute('cx', bx); d1.setAttribute('cy', by); d1.style.display = ''; }
-        if (d2) { d2.setAttribute('cx', cx); d2.setAttribute('cy', cy); d2.style.display = ''; }
+        // Quadratic bezier control point — offset sideways for a nice arc
+        const mx = (bx + cx) / 2 + (by - cy) * 0.25;
+        const my = (by + cy) / 2 - (bx - cx) * 0.15;
+        const d = `M${bx},${by} Q${mx},${my} ${cx},${cy}`;
+        path.setAttribute('d', d);
+        if (pulse) pulse.setAttribute('d', d);
+        // Draw-in animation on first appearance
+        if (!connectorWasVisible.current) {
+          connectorBirthRef.current = Date.now();
+          connectorWasVisible.current = true;
+        }
+        const age = Date.now() - connectorBirthRef.current;
+        const pathLen = path.getTotalLength?.() || 200;
+        // Draw-in: 400ms from prism→bubble
+        if (age < 400) {
+          const progress = Math.min(age / 400, 1);
+          const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+          path.style.strokeDasharray = `${pathLen}`;
+          path.style.strokeDashoffset = `${pathLen * (1 - ease)}`;
+          if (pulse) pulse.style.display = 'none';
+        } else {
+          // Flowing dash animation
+          path.style.strokeDasharray = '8 5';
+          path.style.strokeDashoffset = `${-((age - 400) * 0.04) % 26}`;
+          if (pulse) {
+            pulse.style.display = '';
+            pulse.style.strokeDasharray = `${pathLen * 0.15} ${pathLen * 0.85}`;
+            pulse.style.strokeDashoffset = `${-((age - 400) * 0.08) % (pathLen * 2)}`;
+          }
+        }
+        path.style.display = '';
+        // Dot pop-in (spring from 0)
+        const dotAge = Math.min(age / 300, 1);
+        const dotEase = dotAge < 1 ? 1 + Math.sin(dotAge * Math.PI) * 0.6 : 1;
+        if (d1) { d1.setAttribute('cx', bx); d1.setAttribute('cy', by); d1.setAttribute('r', 3.5 * dotEase); d1.style.display = ''; d1.style.opacity = dotAge; }
+        if (d2) { d2.setAttribute('cx', cx); d2.setAttribute('cy', cy); d2.setAttribute('r', 5 * dotEase); d2.style.display = ''; d2.style.opacity = Math.min(dotAge, 0.5); }
+      } else {
+        // Hide connector when bubble not visible
+        if (connectorWasVisible.current) {
+          [path, pulse, d1, d2].forEach(el => { if (el) el.style.display = 'none'; });
+          connectorWasVisible.current = false;
+        }
       }
       rafId = requestAnimationFrame(update);
     };
     rafId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(rafId);
-  }, [bubblePhase, peekVisible]);
+  }, [peekVisible]);
 
   // Floating hit-target tracks prism's projected screen position every frame
   useEffect(() => {
@@ -4426,14 +4468,25 @@ export default function Home() {
         <svg className="bubble-connector-svg" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 501, overflow: 'visible' }}>
           <defs>
             <filter id="connGlow">
-              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="connPulseGlow">
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
-          <line ref={connectorLineRef} stroke="rgba(167,139,250,0.6)" strokeWidth="2" strokeDasharray="8 5" filter="url(#connGlow)" style={{ display: 'none' }} />
+          {/* Main curved connector path */}
+          <path ref={connectorPathRef} fill="none" stroke="rgba(167,139,250,0.55)" strokeWidth="2" strokeLinecap="round" filter="url(#connGlow)" style={{ display: 'none' }} />
+          {/* Bright pulse that travels along the path */}
+          <path ref={connectorPulseRef} fill="none" stroke="rgba(56,189,248,0.7)" strokeWidth="3" strokeLinecap="round" filter="url(#connPulseGlow)" style={{ display: 'none' }} />
+          {/* Endpoint dots */}
           <circle ref={connectorDot1Ref} r="3.5" fill="rgba(167,139,250,0.9)" filter="url(#connGlow)" style={{ display: 'none' }} />
           <circle ref={connectorDot2Ref} r="5" fill="rgba(56,189,248,0.5)" filter="url(#connGlow)" style={{ display: 'none' }} />
         </svg>
@@ -4622,6 +4675,14 @@ export default function Home() {
           <div
             ref={prismHitRef}
             onClick={handleHitTargetClick}
+            onMouseEnter={() => {
+              window.__prismHovered = true;
+              const expr = (window.__prismConfig || {}).hoverExpression || 'surprised';
+              window.__prismExpression = expr;
+            }}
+            onMouseLeave={() => {
+              window.__prismHovered = false;
+            }}
             style={{
               position: 'fixed',
               width: 90,

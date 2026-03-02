@@ -897,6 +897,7 @@
     border: 1px solid rgba(167, 139, 250, 0.3);
     z-index: 20;
     pointer-events: none;
+    overflow: hidden; /* clips light sweep to bubble shape */
     animation: sparkBubbleGlow 2.5s ease-in-out infinite;
 }
 
@@ -934,7 +935,7 @@
     animation: sparkSweep 3.5s ease-in-out infinite;
     pointer-events: none;
     z-index: 1;
-    clip-path: inset(0 round 14px);
+    /* parent overflow:hidden clips this to bubble shape */
 }
 
 @keyframes sparkSweep {
@@ -998,6 +999,31 @@
         transform: translateY(-8px);
         background: rgba(124, 58, 237, 1);
     }
+}
+
+/* Connector draw-in animation */
+@keyframes connectorDraw {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+}
+
+/* Connector flowing pulse */
+@keyframes connectorFlow {
+    from { stroke-dashoffset: 26; }
+    to { stroke-dashoffset: 0; }
+}
+
+/* Connector dot pop-in */
+@keyframes connectorDotPop {
+    0% { r: 0; opacity: 0; }
+    50% { r: 6; opacity: 1; }
+    100% { r: 3.5; opacity: 1; }
+}
+
+@keyframes connectorDotPop2 {
+    0% { r: 0; opacity: 0; }
+    50% { r: 8; opacity: 1; }
+    100% { r: 5; opacity: 0.5; }
 }
 
 /* Spawn point markers overlay */

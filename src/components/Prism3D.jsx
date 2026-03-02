@@ -677,6 +677,7 @@ function PrismBody({ geometry }) {
   const outerMatRef = useRef();
   const innerMatRef = useRef();
   const edgeMatRef = useRef();
+  const hoverGlow = useRef(0);
 
   // Stable uniform objects - avoids R3F reconciler replacing them on re-render
   const innerUniforms = useMemo(() => ({
@@ -746,15 +747,20 @@ function PrismBody({ geometry }) {
       groupRef.current.scale.setScalar(breath);
     }
 
+    // Hover glow — smooth ramp for glass brightness on hover
+    const hvTarget = window.__prismHovered ? 1 : 0;
+    hoverGlow.current = THREE.MathUtils.lerp(hoverGlow.current, hvTarget, delta * 8);
+    const hv = hoverGlow.current * (cfg.hoverGlowBoost ?? 0.5);
+
     // Update glass shader uniforms on both layers (stable refs, no reconciler issues)
     [innerUniforms, outerUniforms].forEach(u => {
       u.uTime.value = t;
       u.uIOR.value = cfg.glassIOR;
-      u.uCausticIntensity.value = cfg.causticIntensity * (1 + musicGlow);
-      u.uIridescenceIntensity.value = cfg.iridescenceIntensity;
-      u.uChromaticSpread.value = cfg.chromaticSpread;
-      u.uGlassAlpha.value = cfg.glassAlpha;
-      u.uStreakIntensity.value = cfg.streakIntensity * (1 + musicGlow * 0.5);
+      u.uCausticIntensity.value = cfg.causticIntensity * (1 + musicGlow) + hv * 0.8;
+      u.uIridescenceIntensity.value = cfg.iridescenceIntensity + hv * 0.6;
+      u.uChromaticSpread.value = cfg.chromaticSpread + hv * 0.4;
+      u.uGlassAlpha.value = cfg.glassAlpha + hv * 0.12;
+      u.uStreakIntensity.value = cfg.streakIntensity * (1 + musicGlow * 0.5) + hv * 0.5;
     });
     // Update edge glow shader
     if (edgeMatRef.current) {
@@ -1628,11 +1634,29 @@ function LightSpill() {
   return <pointLight ref={lightRef} color="#a855f7" distance={6} />;
 }
 
-/* ═══════════ CHARACTER SCALE (overall size from editor) ═══════════ */
+/* ═══════════ CHARACTER SCALE (overall size from editor + hover boost) ═══════════ */
 function CharacterScaleGroup({ children }) {
   const ref = useRef();
-  useFrame(() => {
-    if (ref.current) ref.current.scale.setScalar(cfg.characterScale ?? 1);
+  const hoverLerp = useRef(0);
+  const tremblePhase = useRef(Math.random() * 100);
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    const hovered = !!window.__prismHovered;
+    const target = hovered ? 1 : 0;
+    hoverLerp.current = THREE.MathUtils.lerp(hoverLerp.current, target, delta * 8);
+    const hv = hoverLerp.current;
+    const hoverBoost = 1 + hv * ((cfg.hoverScale ?? 1.08) - 1);
+    // Tremble — tiny rapid wobble when hovered
+    const tremble = cfg.hoverTremble ?? 0.3;
+    if (hv > 0.01 && tremble > 0) {
+      tremblePhase.current += delta * 35;
+      const t = tremblePhase.current;
+      ref.current.rotation.z = Math.sin(t) * 0.015 * tremble * hv;
+      ref.current.rotation.x += Math.cos(t * 1.3) * 0.008 * tremble * hv;
+    } else {
+      ref.current.rotation.z = THREE.MathUtils.lerp(ref.current.rotation.z, 0, delta * 12);
+    }
+    ref.current.scale.setScalar((cfg.characterScale ?? 1) * hoverBoost);
   });
   return <group ref={ref}>{children}</group>;
 }
