@@ -9,45 +9,11 @@ export const sunoTracks = [
     { title: "The Void Calls", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" }
 ];
 
-// Shared AudioContext for analyser (separate from Howler's ctx when in HTML5 mode)
-let sharedCtx = null;
-function getAudioCtx() {
-    if (!sharedCtx) {
-        try { sharedCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
-    }
-    return sharedCtx;
-}
-
-// Connect analyser to the HTML5 <audio> element via createMediaElementSource.
-// This routes: <audio> → MediaElementSource → analyser → ctx.destination
-// Audio is heard AND analysed. CORS may zero-out analyser data (synthetic fallback handles it).
-function connectAnalyserToAudioEl(sound) {
-    try {
-        if (!sound || !sound._sounds || !sound._sounds[0]) return;
-        const audioEl = sound._sounds[0]._node;
-        if (!(audioEl instanceof HTMLAudioElement)) return;
-        // createMediaElementSource can only be called ONCE per element
-        if (audioEl._mediaSourceConnected) return;
-
-        const ctx = getAudioCtx();
-        if (!ctx) return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const source = ctx.createMediaElementSource(audioEl);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.7;
-        source.connect(analyser);
-        analyser.connect(ctx.destination);
-        window.globalAnalyser = analyser;
-        audioEl._mediaSourceConnected = true;
-    } catch (e) {
-        console.warn('[Audio] createMediaElementSource failed:', e);
-    }
-}
-
-// Fallback: branch-connect to Howler's masterGain (Web Audio mode)
-function connectAnalyserToMasterGain() {
+// Try to connect an analyser to Howler's masterGain.
+// In html5 mode masterGain may not carry audio, but the call is harmless.
+// Real frequency data only flows in Web Audio mode; html5 mode relies on
+// the synthetic fallback in Prism3D.jsx for music reactivity.
+function connectAnalyser() {
     if (!Howler.ctx || !Howler.masterGain) return;
     try {
         if (Howler.ctx.state === 'suspended') Howler.ctx.resume();
@@ -76,21 +42,23 @@ export function AudioProvider({ children }) {
             soundRef.current.unload();
         }
 
+        // Resume AudioContext in user-gesture callstack
+        if (Howler.ctx && Howler.ctx.state === 'suspended') {
+            Howler.ctx.resume();
+        }
+
         const track = sunoTracks[index];
         trackIndexRef.current = index;
 
         const sound = new Howl({
             src: [track.src],
             format: ['mp3'],
-            html5: true, // Stream immediately (no XHR wait) — fixes double-play issue
+            html5: true,  // Stream via <audio> element — works with cross-origin URLs
             onplay: () => {
                 loadingRef.current = false;
                 setIsPlaying(true);
                 window.__musicPlaying = true;
-                // Connect analyser to the <audio> element
-                connectAnalyserToAudioEl(sound);
-                // Also try masterGain fallback
-                connectAnalyserToMasterGain();
+                connectAnalyser();
             },
             onpause: () => {
                 setIsPlaying(false);
@@ -106,7 +74,6 @@ export function AudioProvider({ children }) {
             },
             onplayerror: () => {
                 loadingRef.current = false;
-                // Browser blocked autoplay — retry after unlock
                 if (Howler.ctx && Howler.ctx.state === 'suspended') {
                     Howler.ctx.resume().then(() => sound.play());
                 }
@@ -125,6 +92,10 @@ export function AudioProvider({ children }) {
     const togglePlay = () => {
         if (loadingRef.current) return;
 
+        if (Howler.ctx && Howler.ctx.state === 'suspended') {
+            Howler.ctx.resume();
+        }
+
         if (!soundRef.current) {
             playTrack(0);
             return;
@@ -132,15 +103,13 @@ export function AudioProvider({ children }) {
 
         if (isPlaying) {
             soundRef.current.pause();
-            // onpause callback handles setIsPlaying(false)
         } else {
             soundRef.current.play();
-            // onplay callback handles setIsPlaying(true)
         }
     };
 
     const handleNext = () => {
-        loadingRef.current = false; // reset guard
+        loadingRef.current = false;
         const nextIndex = (trackIndexRef.current + 1) % sunoTracks.length;
         playTrack(nextIndex);
     };

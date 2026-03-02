@@ -3537,6 +3537,8 @@ export default function Home() {
     setTimeout(() => {
       setPortalPhase('emerging');
       showCharCallback();
+      // Re-center portal on actual character DOM position (fixes drift from calculated positions)
+      snapPortalToCharacter();
       if (peekCharRef.current) {
         peekCharRef.current.classList.add('portal-entering');
         setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
@@ -3828,21 +3830,19 @@ export default function Home() {
     let rafId;
     const update = () => {
       const bubbleEl = bubbleElRef.current;
-      // Use the center marker for exact character position (accounts for all transforms)
-      const marker = peekCharRef.current?.querySelector('.prism-center-marker');
+      const prismPos = window.__prismScreenPos; // projected 3D position from ScreenTracker
       const line = connectorLineRef.current;
       const d1 = connectorDot1Ref.current;
       const d2 = connectorDot2Ref.current;
-      if (bubbleEl && marker && line) {
+      if (bubbleEl && prismPos && line) {
         const bRect = bubbleEl.getBoundingClientRect();
-        const mRect = marker.getBoundingClientRect();
         const below = bubbleEl.classList.contains('bubble-below');
         // Bubble anchor: center of the near edge
         const bx = bRect.left + bRect.width * 0.35;
         const by = below ? bRect.top : bRect.bottom;
-        // Character anchor: exact center marker position
-        const cx = mRect.left;
-        const cy = mRect.top;
+        // Character anchor: exact 3D-projected screen position of the prism
+        const cx = prismPos.x;
+        const cy = prismPos.y;
         line.setAttribute('x1', bx); line.setAttribute('y1', by);
         line.setAttribute('x2', cx); line.setAttribute('y2', cy);
         line.style.display = '';
@@ -4561,8 +4561,6 @@ export default function Home() {
                 className="prism-3d"
                 style={{ cursor: 'default' }}
               >
-                {/* Invisible marker at prism visual center — used by connector SVG for accurate positioning */}
-                <div className="prism-center-marker" style={{ position: 'absolute', left: '50%', top: '50%', width: 0, height: 0, pointerEvents: 'none' }} />
                 <Suspense fallback={<div className="prism-loading-glow" />}>
                   <Prism3D />
                 </Suspense>

@@ -1637,6 +1637,26 @@ function CharacterScaleGroup({ children }) {
   return <group ref={ref}>{children}</group>;
 }
 
+/* ═══════════ SCREEN POSITION TRACKER ═══════════ */
+// Projects the prism's world-space position to viewport pixels every frame.
+// Accounts for MouseDriftGroup, Float, and CharacterScaleGroup transforms.
+// Result stored as window.__prismScreenPos = { x, y } for the bubble connector.
+const _projVec = new THREE.Vector3();
+function ScreenTracker() {
+  const ref = useRef();
+  useFrame(({ camera, gl }) => {
+    if (!ref.current) return;
+    ref.current.getWorldPosition(_projVec);
+    _projVec.project(camera);
+    const rect = gl.domElement.getBoundingClientRect();
+    window.__prismScreenPos = {
+      x: rect.left + (_projVec.x * 0.5 + 0.5) * rect.width,
+      y: rect.top + (-_projVec.y * 0.5 + 0.5) * rect.height,
+    };
+  });
+  return <group ref={ref} />;
+}
+
 /* ═══════════ MAIN COMPONENT ═══════════ */
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
@@ -1712,6 +1732,7 @@ export default function Prism3D() {
             <CharacterScaleGroup>
               {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
               <PrismHitMesh geometry={geometry} />
+              <ScreenTracker />
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />
