@@ -880,6 +880,31 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pHover.add(pcfg, 'hoverTremble', 0, 1, 0.05).name('Tremble');
     pHover.close();
 
+    // -- Angular Physics --
+    const pAngular = prismBopFolder.addFolder('Angular Physics');
+    pAngular.add(pcfg, 'angularDamping', 0.80, 0.999, 0.005).name('Damping');
+    pAngular.add(pcfg, 'angularBopStrength', 0, 3.0, 0.05).name('Bop Strength');
+    pAngular.add(pcfg, 'angularBopZTorque', 0, 1.5, 0.05).name('Bop Z Torque');
+    pAngular.add(pcfg, 'angularDragSensitivity', 0.001, 0.05, 0.001).name('Drag Sensitivity');
+    pAngular.add(pcfg, 'angularWobbleAmp', 0, 0.5, 0.01).name('Wobble Amp');
+    pAngular.add(pcfg, 'portalSuckSpinMult', 1.0, 20.0, 0.5).name('Portal Suck Spin');
+    pAngular.add(pcfg, 'portalSuckDamping', 0.90, 0.999, 0.005).name('Portal Suck Damping');
+    pAngular.add({ testBop() {
+      const angle = Math.random() * Math.PI * 2;
+      const str = pcfg.angularBopStrength ?? 1.0;
+      window.__prismBopImpulse = {
+        x: Math.sin(angle) * str,
+        y: Math.cos(angle) * str,
+        z: (Math.random() - 0.5) * (pcfg.angularBopZTorque ?? 0.3),
+      };
+      window.__prismSquash = Date.now();
+    } }, 'testBop').name('Test Bop');
+    pAngular.add({ testSuck() {
+      window.__prismPortalSuck = true;
+      setTimeout(() => { window.__prismPortalSuck = false; }, 3000);
+    } }, 'testSuck').name('Test Portal Suck (3s)');
+    pAngular.close();
+
     // -- Bop +1 Effect --
     const pBopPlus = prismBopFolder.addFolder('Bop +1 Effect');
     const bopColorProxy = { color: pcfg.bopPlusColor || '#fbbf24' };

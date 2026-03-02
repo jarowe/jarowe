@@ -3368,6 +3368,7 @@ export default function Home() {
   const [editorDragMode, setEditorDragMode] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
   const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
+  const dragSpinRef = useRef({ active: false, lastX: 0, lastY: 0, startX: 0, startY: 0 });
   // Bop phases: null | 'impact' | 'reaction' | 'exit'
   const [bopPhase, setBopPhase] = useState(null);
   const [exitStyle, setExitStyle] = useState(null);
@@ -3583,23 +3584,24 @@ export default function Home() {
   const getPortalOrigin = (sp) => {
     const W = window.innerWidth;
     const H = window.innerHeight;
+    let cx, cy;
     // Responsive percentage format
     const px = spawnToPixels(sp);
     if (px) {
       // px = div top-left corner; visual center is offset by CHAR_HALF
-      return {
-        x: `${((px.x + CHAR_HALF) / W) * 100}%`,
-        y: `${((px.y + CHAR_HALF) / H) * 100}%`,
-      };
+      cx = px.x + CHAR_HALF;
+      cy = px.y + CHAR_HALF;
+    } else {
+      // Character visual center for each CSS-positioned side:
+      const side = sp.side || 'right';
+      if (side === 'right') { cx = W - 130; cy = H * 0.5 + CHAR_HALF; }
+      else if (side === 'left') { cx = 130; cy = H * 0.4 + CHAR_HALF; }
+      else { cx = W * 0.5 + CHAR_HALF; cy = 230; }
     }
-    // Character visual center for each CSS-positioned side:
-    // .peek-right: right:-80px, top:50% → right-edge at W+80, left-edge W-340, center (W-130, H*0.5+210)
-    // .peek-left:  left:-80px, top:40%  → left-edge -80, center (-80+210, H*0.4+210) = (130, H*0.4+210)
-    // .peek-top:   left:50%, top:20px   → center (W*0.5+210, 20+210) = (W*0.5+210, 230)
-    const side = sp.side || 'right';
-    if (side === 'right') return { x: `${((W - 130) / W) * 100}%`, y: `${((H * 0.5 + CHAR_HALF) / H) * 100}%` };
-    if (side === 'left') return { x: `${(130 / W) * 100}%`, y: `${((H * 0.4 + CHAR_HALF) / H) * 100}%` };
-    return { x: `${((W * 0.5 + CHAR_HALF) / W) * 100}%`, y: `${(230 / H) * 100}%` };
+    // Clamp portal origin to viewport so it never opens off-screen
+    cx = Math.max(0, Math.min(W, cx));
+    cy = Math.max(0, Math.min(H, cy));
+    return { x: `${(cx / W) * 100}%`, y: `${(cy / H) * 100}%` };
   };
 
   // ── Compute character position offset from portal toward screen center ──
@@ -3615,10 +3617,14 @@ export default function Home() {
     const dx = centerX - portalX;
     const dy = centerY - portalY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 1) return { charPos: { x: portalX - CHAR_HALF, y: portalY - CHAR_HALF }, offset: { x: 0, y: 0 } };
+    if (dist < 1) return { charPos: { x: centerX - CHAR_HALF, y: centerY - CHAR_HALF }, offset: { x: 0, y: 0 } };
     // Character visual center = portal pos + DISTANCE toward screen center
-    const charCX = portalX + (dx / dist) * PORTAL_SPAWN_DISTANCE;
-    const charCY = portalY + (dy / dist) * PORTAL_SPAWN_DISTANCE;
+    let charCX = portalX + (dx / dist) * PORTAL_SPAWN_DISTANCE;
+    let charCY = portalY + (dy / dist) * PORTAL_SPAWN_DISTANCE;
+    // Clamp visual center to stay within viewport with comfortable padding
+    const PAD = 80;
+    charCX = Math.max(PAD, Math.min(W - PAD, charCX));
+    charCY = Math.max(PAD, Math.min(H - PAD, charCY));
     // Offset FROM final position BACK to portal (for framer-motion initial state)
     const offsetX = portalX - charCX;
     const offsetY = portalY - charCY;
@@ -3633,6 +3639,10 @@ export default function Home() {
   const runPortalExitSequence = useCallback(() => {
     if (portalExitingRef.current) return; // already exiting
     portalExitingRef.current = true;
+
+    // Activate portal-suck vortex spin in Prism3D
+    window.__prismPortalSuck = true;
+    setTimeout(() => { window.__prismPortalSuck = false; }, 800);
 
     const cfg = window.__prismConfig || {};
     const residualMs = cfg.portalResidualMs ?? 1800;
@@ -4063,11 +4073,39 @@ export default function Home() {
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
 
+  // Compute directional bop impulse based on WHERE you hit the hitbox
+  const computeBopImpulse = useCallback((clickEvent) => {
+    const el = prismHitRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const localX = clickEvent.clientX - rect.left;
+    const localY = clickEvent.clientY - rect.top;
+    const nx = (localX / rect.width) * 2 - 1;   // -1..+1 horizontal
+    const ny = (localY / rect.height) * 2 - 1;   // -1..+1 vertical
+    const pcfg = window.__prismConfig || {};
+    const strength = pcfg.angularBopStrength ?? 1.0;
+    const zTorque = pcfg.angularBopZTorque ?? 0.3;
+    return {
+      x: -ny * strength,        // top hit → backward spin
+      y: nx * strength,          // right hit → rightward spin
+      z: nx * ny * zTorque,      // corners get Z twist
+    };
+  }, []);
+
   // Hit-target click handler — dispatched from the floating div that tracks prism screen pos
   const handleHitTargetClick = useCallback((e) => {
     if (!peekVisible || editorDragMode || bopPhase != null) return;
+    // Distinguish click vs drag: if total movement > 5px, it was a drag
+    const ds = dragSpinRef.current;
+    if (ds.active) return; // still dragging
+    const dx = e.clientX - ds.startX;
+    const dy = e.clientY - ds.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) return; // was a drag, not a click
+    // Compute directional bop impulse
+    const impulse = computeBopImpulse(e);
+    if (impulse) window.__prismBopImpulse = impulse;
     handleCatchCharacter({ clientX: e.clientX, clientY: e.clientY });
-  }, [peekVisible, editorDragMode, bopPhase, handleCatchCharacter]);
+  }, [peekVisible, editorDragMode, bopPhase, handleCatchCharacter, computeBopImpulse]);
 
   // Drag mode: global mouse handlers
   useEffect(() => {
@@ -4777,6 +4815,28 @@ export default function Home() {
           <div
             ref={prismHitRef}
             onClick={handleHitTargetClick}
+            onPointerDown={(e) => {
+              const ds = dragSpinRef.current;
+              ds.active = true;
+              ds.lastX = e.clientX;
+              ds.lastY = e.clientY;
+              ds.startX = e.clientX;
+              ds.startY = e.clientY;
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              const ds = dragSpinRef.current;
+              if (!ds.active) return;
+              const dx = e.clientX - ds.lastX;
+              const dy = e.clientY - ds.lastY;
+              ds.lastX = e.clientX;
+              ds.lastY = e.clientY;
+              window.__prismDragSpin = { x: dx, y: dy };
+            }}
+            onPointerUp={(e) => {
+              dragSpinRef.current.active = false;
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
             onMouseEnter={() => {
               window.__prismHovered = true;
               const expr = (window.__prismConfig || {}).hoverExpression || 'surprised';
@@ -4791,9 +4851,10 @@ export default function Home() {
               height: 90,
               borderRadius: '50%', // overridden by rAF loop based on hitboxShape
               transform: 'translate(-50%, -50%)',
-              cursor: 'pointer',
+              cursor: 'grab',
               pointerEvents: 'auto',
               zIndex: 502,
+              touchAction: 'none',
             }}
           />
         )}

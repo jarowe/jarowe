@@ -174,6 +174,15 @@ export const PRISM_DEFAULTS = {
   hoverGlowBoost: 0.65,
   hoverTremble: 0.35,
 
+  // Angular physics
+  angularDamping: 0.96,          // velocity decay per frame (higher = more floaty)
+  angularBopStrength: 1.0,       // directional bop impulse strength
+  angularBopZTorque: 0.3,        // diagonal corner twist amount
+  angularDragSensitivity: 0.012, // drag-to-spin sensitivity
+  angularWobbleAmp: 0.12,        // subtle X wobble amplitude
+  portalSuckSpinMult: 8.0,       // spin acceleration during portal suck
+  portalSuckDamping: 0.99,       // reduced friction during suck
+
   // Bop +1 effect
   bopPlusFontSize: 2.4,         // rem
   bopPlusGlowSize: 12,          // px shadow blur

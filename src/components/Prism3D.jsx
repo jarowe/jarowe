@@ -170,6 +170,61 @@ function sampleAudio() {
   audioMid = audioMid * 0.9;
 }
 
+/* ═══════════ ANGULAR MOMENTUM PHYSICS ═══════════ */
+// Shared helper consumed by all 3 PrismBody variants.
+// Replaces direct rotation assignment with velocity-based physics.
+function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, portalSuckLerp) {
+  const av = angVelRef.current;
+
+  // ── Consume bop impulse from Home.jsx ──
+  const impulse = window.__prismBopImpulse;
+  if (impulse) {
+    av.x += impulse.x;
+    av.y += impulse.y;
+    av.z += impulse.z;
+    window.__prismBopImpulse = null;
+  }
+
+  // ── Consume drag spin from Home.jsx ──
+  const drag = window.__prismDragSpin;
+  if (drag) {
+    const sens = cfg.angularDragSensitivity ?? 0.012;
+    av.y += drag.x * sens;
+    av.x += -drag.y * sens;
+    window.__prismDragSpin = null;
+  }
+
+  // ── Base forces: rotation speed + music boost + mouse influence ──
+  av.y += cfg.rotationSpeed * delta;
+  av.y += musicRotBoost * delta;
+  av.y += mousePos.x * delta * cfg.rotationMouseInfluence;
+  av.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+
+  // ── Portal suck vortex ──
+  const suckTarget = window.__prismPortalSuck ? 1 : 0;
+  portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 6);
+  const suckLerp = portalSuckLerp.current;
+  const suckMult = 1 + suckLerp * (cfg.portalSuckSpinMult ?? 8.0);
+
+  // ── Damping ──
+  const baseDamp = cfg.angularDamping ?? 0.96;
+  const suckDamp = cfg.portalSuckDamping ?? 0.99;
+  const damp = THREE.MathUtils.lerp(baseDamp, suckDamp, suckLerp);
+  av.x *= damp;
+  av.y *= damp;
+  av.z *= damp;
+
+  // ── Apply velocity (frame-rate independent) ──
+  const rot = groupRef.current.rotation;
+  rot.x += av.x * delta * 60 * suckMult;
+  rot.y += av.y * delta * 60 * suckMult;
+  rot.z += av.z * delta * 60 * suckMult;
+
+  // ── Subtle wobble layered on top ──
+  const wobble = cfg.angularWobbleAmp ?? 0.12;
+  rot.x += Math.sin(t * 0.4) * wobble * delta;
+}
+
 /* ═══════════ SHADERS ═══════════ */
 
 const simpleVert = `
@@ -678,6 +733,8 @@ function PrismBody({ geometry }) {
   const innerMatRef = useRef();
   const edgeMatRef = useRef();
   const hoverGlow = useRef(0);
+  const angVelRef = useRef({ x: 0, y: 0, z: 0 });
+  const portalSuckLerp = useRef(0);
 
   // Stable uniform objects - avoids R3F reconciler replacing them on re-render
   const innerUniforms = useMemo(() => ({
@@ -720,10 +777,7 @@ function PrismBody({ geometry }) {
     const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
     const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react * 3 : 0;
 
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
-    groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
-    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
-    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, portalSuckLerp);
 
     // Squash & stretch from bop
     const squashTs = window.__prismSquash;
@@ -832,6 +886,8 @@ function PrismBody({ geometry }) {
 function PrismBodyMTM({ geometry }) {
   const groupRef = useRef();
   const edgeMatRef = useRef();
+  const angVelRef = useRef({ x: 0, y: 0, z: 0 });
+  const portalSuckLerp = useRef(0);
   const edgesGeoRef = useRef(null);
   const lastThreshold = useRef(cfg.edgeThresholdAngle ?? 20);
   const edgesGeo = useMemo(() => new THREE.EdgesGeometry(geometry, cfg.edgeThresholdAngle ?? 20), [geometry]);
@@ -852,10 +908,7 @@ function PrismBodyMTM({ geometry }) {
     const musicScale = react > 0 ? audioBass * (cfg.musicScalePulse ?? 0.15) * react * 4 : 0;
     const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
 
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
-    groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
-    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
-    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, portalSuckLerp);
     const squashTs = window.__prismSquash;
     if (squashTs && Date.now() - squashTs < 600) {
       const progress = (Date.now() - squashTs) / 600;
@@ -895,6 +948,8 @@ function PrismBodyHybrid({ geometry }) {
   const overlayInnerRef = useRef();
   const overlayOuterRef = useRef();
   const edgeMatRef = useRef();
+  const angVelRef = useRef({ x: 0, y: 0, z: 0 });
+  const portalSuckLerp = useRef(0);
 
   // Shader overlay uniforms - these render ADDITIVELY over the MTM base
   const overlayInnerUni = useMemo(() => ({
@@ -932,10 +987,7 @@ function PrismBodyHybrid({ geometry }) {
     const musicRotBoost = react > 0 ? audioMid * (cfg.musicRotationBoost ?? 0.3) * react * 6 : 0;
     const musicGlow = react > 0 ? audioBass * (cfg.musicGlowPulse ?? 0.5) * react * 3 : 0;
 
-    groupRef.current.rotation.y += delta * cfg.rotationSpeed + musicRotBoost * delta;
-    groupRef.current.rotation.x = Math.sin(t * 0.4) * 0.12;
-    groupRef.current.rotation.y += mousePos.x * delta * cfg.rotationMouseInfluence;
-    groupRef.current.rotation.x += mousePos.y * delta * (cfg.rotationMouseInfluence * 0.6);
+    applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, portalSuckLerp);
     const squashTs = window.__prismSquash;
     if (squashTs && Date.now() - squashTs < 600) {
       const progress = (Date.now() - squashTs) / 600;
