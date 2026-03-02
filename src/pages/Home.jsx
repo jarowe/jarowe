@@ -2648,21 +2648,29 @@ export default function Home() {
               }
 
               // Lazy-init analyser — Howler.ctx may not exist until audio plays;
-              // html5:true Howls bypass masterGain, so also try MediaElementSource
+              // html5:true Howls bypass masterGain, so we pipe <audio> elements
+              // through analyser via createMediaElementSource (can only be called ONCE per element)
               if (!window.globalAnalyser && Howler.ctx) {
                 try {
                   const analyser = Howler.ctx.createAnalyser();
                   analyser.fftSize = 128;
+                  // Also connect masterGain for non-html5 Howls
                   if (Howler.masterGain) {
                     Howler.masterGain.connect(analyser);
-                    analyser.connect(Howler.ctx.destination);
                   }
+                  analyser.connect(Howler.ctx.destination);
                   window.globalAnalyser = analyser;
-                  window._analyserConnectedElements = new WeakSet();
+                  if (!window._analyserConnectedElements) {
+                    window._analyserConnectedElements = new WeakSet();
+                  }
                 } catch (_) { /* still not ready */ }
               }
               // For html5 mode: pipe each <audio> element through the analyser
+              // IMPORTANT: createMediaElementSource can only be called ONCE per element
               if (window.globalAnalyser && Howler.ctx) {
+                if (!window._analyserConnectedElements) {
+                  window._analyserConnectedElements = new WeakSet();
+                }
                 try {
                   const howls = Howler._howls || [];
                   for (const h of howls) {
@@ -2671,11 +2679,10 @@ export default function Home() {
                     for (const s of sounds) {
                       const node = s._node;
                       if (!node || !node.nodeName || node.nodeName !== 'AUDIO') continue;
-                      if (window._analyserConnectedElements?.has(node)) continue;
+                      if (window._analyserConnectedElements.has(node)) continue;
                       const src = Howler.ctx.createMediaElementSource(node);
                       src.connect(window.globalAnalyser);
-                      window.globalAnalyser.connect(Howler.ctx.destination);
-                      window._analyserConnectedElements?.add(node);
+                      window._analyserConnectedElements.add(node);
                     }
                   }
                 } catch (_) { /* ok - not all howls have html5 nodes */ }
@@ -3586,13 +3593,16 @@ export default function Home() {
   };
 
   // ── Compute portal origin from spawn point (matches CSS peek-* positions) ──
+  // Character layout is always 420x420 (canvasSize - 2*margin = 420), visual center = +210
+  const CHAR_HALF = 210;
   const getPortalOrigin = (sp) => {
     const W = window.innerWidth;
     const H = window.innerHeight;
     if (sp.x != null && sp.y != null) {
+      // sp.x/y = div top-left corner; visual center is offset by CHAR_HALF
       return {
-        x: `${(sp.x / W) * 100}%`,
-        y: `${(sp.y / H) * 100}%`,
+        x: `${((sp.x + CHAR_HALF) / W) * 100}%`,
+        y: `${((sp.y + CHAR_HALF) / H) * 100}%`,
       };
     }
     // Approximate character visual center for each CSS-positioned side
@@ -4316,7 +4326,8 @@ export default function Home() {
               let px, py;
               const isCustom = sp.side === 'custom' || (sp.x != null && sp.y != null && !sp.side);
               if (sp.x != null && sp.y != null) {
-                px = sp.x; py = sp.y;
+                // sp.x/y = div corner; show marker at visual center (+CHAR_HALF)
+                px = sp.x + CHAR_HALF; py = sp.y + CHAR_HALF;
               } else {
                 const side = sp.side || 'right';
                 if (side === 'right') { px = W - 130; py = H * 0.5; }
@@ -4339,16 +4350,19 @@ export default function Home() {
                     let moved = false;
                     const onMove = (ev) => {
                       moved = true;
-                      const newX = sp.x + (ev.clientX - startX);
-                      const newY = sp.y + (ev.clientY - startY);
-                      ev.target.closest?.('.spawn-marker')?.style?.setProperty?.('left', `${newX}px`);
-                      ev.target.closest?.('.spawn-marker')?.style?.setProperty?.('top', `${newY}px`);
+                      // Track delta from start; display at visual center
+                      const dx = ev.clientX - startX;
+                      const dy = ev.clientY - startY;
+                      const marker = ev.target.closest?.('.spawn-marker');
+                      marker?.style?.setProperty?.('left', `${sp.x + CHAR_HALF + dx}px`);
+                      marker?.style?.setProperty?.('top', `${sp.y + CHAR_HALF + dy}px`);
                     };
                     const onUp = (ev) => {
                       window.removeEventListener('mousemove', onMove);
                       window.removeEventListener('mouseup', onUp);
                       if (!moved) return;
                       ev.preventDefault();
+                      // Store as div corner (visual center - CHAR_HALF)
                       const newX = Math.round(sp.x + (ev.clientX - startX));
                       const newY = Math.round(sp.y + (ev.clientY - startY));
                       const updated = [...spawnPoints];
@@ -4427,62 +4441,82 @@ export default function Home() {
                 ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
               }}
             >
-              {/* Talk bubble – thinking dots → speech bubble */}
-              <AnimatePresence mode="wait">
-                {bubblePhase === 'thinking' && (
-                  <motion.div
-                    key="thinking"
-                    className="prism-thinking-dots"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5, y: -20 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                    style={{
-                      transform: `translateX(calc(-50% + ${window.__prismConfig?.bubbleOffsetX || 0}px))`,
-                      bottom: `calc(100% - 30px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
-                    }}
-                  >
-                    <span className="thinking-dot" style={{ animationDelay: '0s' }} />
-                    <span className="thinking-dot" style={{ animationDelay: '0.2s' }} />
-                    <span className="thinking-dot" style={{ animationDelay: '0.4s' }} />
-                  </motion.div>
-                )}
-                {bubblePhase === 'speaking' && prismBubble && (
-                  <motion.div
-                    key="speaking"
-                    className="prism-bubble"
-                    initial={{ opacity: 0, scale: 0, y: 30 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    style={{
-                      transform: `translateX(calc(-50% + ${window.__prismConfig?.bubbleOffsetX || 0}px))`,
-                      bottom: `calc(100% - 30px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
-                      fontSize: `${window.__prismConfig?.bubbleFontSize || 0.8}rem`,
-                      maxWidth: `${window.__prismConfig?.bubbleMaxWidth || 260}px`,
-                      padding: `${window.__prismConfig?.bubblePadding || 14}px ${(window.__prismConfig?.bubblePadding || 14) + 2}px`,
-                    }}
-                  >
-                    {prismBubble}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              {/* Bop counter badge — configurable position near bubble area */}
-              {prismBops > 0 && (
-                <motion.div
-                  className="prism-bop-counter"
-                  key={prismBops}
-                  initial={{ scale: 1.5 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                  style={{
-                    bottom: `calc(100% - 40px + ${window.__prismConfig?.bopCounterOffsetY || 0}px)`,
-                    right: `calc(-8px + ${-(window.__prismConfig?.bopCounterOffsetX || 0)}px)`,
-                  }}
-                >
-                  {prismBops}
-                </motion.div>
-              )}
+              {/* Talk bubble – thinking dots → speech bubble (auto-flips below when at top) */}
+              {(() => {
+                const cfg = window.__prismConfig || {};
+                const pos = cfg.bubblePosition || 'auto';
+                // Check if character visual center is in top 35% of viewport
+                const isNearTop = peekPosition.side === 'top' ||
+                  (isCustomPos && dragPosition.y != null && (dragPosition.y + CHAR_HALF) < window.innerHeight * 0.35);
+                const below = pos === 'below' || (pos === 'auto' && isNearTop);
+                const offX = cfg.bubbleOffsetX || 0;
+                const offY = cfg.bubbleOffsetY || 0;
+                const bubblePos = below
+                  ? { top: `calc(100% + 10px + ${offY}px)`, bottom: 'auto' }
+                  : { bottom: `calc(100% - 30px + ${offY}px)`, top: 'auto' };
+                const counterPos = below
+                  ? { top: `calc(100% + 5px + ${cfg.bopCounterOffsetY || 0}px)`, bottom: 'auto' }
+                  : { bottom: `calc(100% - 40px + ${cfg.bopCounterOffsetY || 0}px)`, top: 'auto' };
+                return (
+                  <>
+                    <AnimatePresence mode="wait">
+                      {bubblePhase === 'thinking' && (
+                        <motion.div
+                          key="thinking"
+                          className={`prism-thinking-dots ${below ? 'bubble-below' : ''}`}
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5, y: below ? 20 : -20 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                          style={{
+                            transform: `translateX(calc(-50% + ${offX}px))`,
+                            ...bubblePos,
+                          }}
+                        >
+                          <span className="thinking-dot" style={{ animationDelay: '0s' }} />
+                          <span className="thinking-dot" style={{ animationDelay: '0.2s' }} />
+                          <span className="thinking-dot" style={{ animationDelay: '0.4s' }} />
+                        </motion.div>
+                      )}
+                      {bubblePhase === 'speaking' && prismBubble && (
+                        <motion.div
+                          key="speaking"
+                          className={`prism-bubble ${below ? 'bubble-below' : ''}`}
+                          initial={{ opacity: 0, scale: 0, y: below ? -30 : 30 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                          style={{
+                            transform: `translateX(calc(-50% + ${offX}px))`,
+                            ...bubblePos,
+                            fontSize: `${cfg.bubbleFontSize || 0.8}rem`,
+                            maxWidth: `${cfg.bubbleMaxWidth || 260}px`,
+                            padding: `${cfg.bubblePadding || 14}px ${(cfg.bubblePadding || 14) + 2}px`,
+                          }}
+                        >
+                          {prismBubble}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {/* Bop counter badge — follows bubble direction */}
+                    {prismBops > 0 && (
+                      <motion.div
+                        className="prism-bop-counter"
+                        key={prismBops}
+                        initial={{ scale: 1.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                        style={{
+                          ...counterPos,
+                          right: `calc(-8px + ${-(cfg.bopCounterOffsetX || 0)}px)`,
+                        }}
+                      >
+                        {prismBops}
+                      </motion.div>
+                    )}
+                  </>
+                );
+              })()}
               <div
                 className="prism-3d"
                 onClick={peekVisible && !editorDragMode && bopPhase == null ? handleCatchCharacter : undefined}

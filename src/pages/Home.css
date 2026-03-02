@@ -957,6 +957,21 @@
     filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3));
 }
 
+/* Bubble flipped below character (when at top of screen) */
+.prism-bubble.bubble-below {
+    border-radius: 14px 14px 4px 14px;
+}
+.prism-bubble.bubble-below::after {
+    bottom: auto;
+    top: -6px;
+    border-top: none;
+    border-bottom: 6px solid rgba(18, 10, 45, 0.96);
+    filter: drop-shadow(0 -2px 4px rgba(124, 58, 237, 0.3));
+}
+.prism-thinking-dots.bubble-below {
+    border-radius: 14px 14px 4px 14px;
+}
+
 /* Thinking dots bubble (iMessage-style typing indicator) */
 .prism-thinking-dots {
     position: absolute;

@@ -101,6 +101,8 @@ export const PRISM_DEFAULTS = {
   bubbleThinkingEnabled: true,
   bubbleThinkingMs: 1200,
   bubbleAnimSpeed: 1.0,
+  // Bubble position: 'auto' flips below when character is near top, 'above', 'below'
+  bubblePosition: 'auto',
 
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',

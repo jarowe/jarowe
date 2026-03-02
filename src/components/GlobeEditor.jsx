@@ -862,6 +862,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');
+    pBubble.add(pcfg, 'bubblePosition', ['auto', 'above', 'below']).name('Position');
     pBubble.add(pcfg, 'bubbleOffsetX', -200, 200, 1).name('X Offset');
     pBubble.add(pcfg, 'bubbleOffsetY', -200, 200, 1).name('Y Offset');
     pBubble.add(pcfg, 'bubbleFontSize', 0.5, 1.6, 0.01).name('Font Size (rem)');
