@@ -794,13 +794,24 @@ function usePrismGeometry(shape) {
 /* ═══════════ NEBULA BACKDROP ═══════════ */
 function NebulaBackdrop({ texture }) {
   const matRef = useRef();
-  useFrame(() => {
-    if (matRef.current) matRef.current.opacity = cfg.nebulaOpacity ?? 0.85;
+  const currentOpacity = useRef(cfg.nebulaOpacity ?? 0.59);
+  useFrame((_, delta) => {
+    if (!matRef.current) return;
+    const target = cfg.nebulaOpacity ?? 0.59;
+    // Portal entrance: boost opacity briefly, then ease back to target
+    const boost = window.__nebulaFlash ?? 0;
+    const boostedTarget = Math.min(1, target + boost * 0.4);
+    // Smooth lerp toward target (never instant-pop)
+    currentOpacity.current += (boostedTarget - currentOpacity.current) * Math.min(1, delta * 3);
+    matRef.current.opacity = currentOpacity.current;
+    // Decay flash
+    if (window.__nebulaFlash > 0.01) window.__nebulaFlash *= 0.94;
+    else window.__nebulaFlash = 0;
   });
   return (
     <mesh position={[0, 0, -5]}>
       <planeGeometry args={[16, 16]} />
-      <meshBasicMaterial ref={matRef} map={texture} transparent opacity={cfg.nebulaOpacity ?? 0.85} depthWrite={false} />
+      <meshBasicMaterial ref={matRef} map={texture} transparent opacity={cfg.nebulaOpacity ?? 0.59} depthWrite={false} />
     </mesh>
   );
 }

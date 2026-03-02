@@ -3548,6 +3548,26 @@ export default function Home() {
     setTimeout(() => {
       setPortalPhase('emerging');
       showCharCallback();
+
+      // ── Landing physics: flash nebula + spin impulse + landing squash ──
+      window.__nebulaFlash = 1.0;
+      window.__prismExpression = 'excited';
+      // Directional spin from portal → gives "shot out" feel
+      window.__prismBopImpulse = {
+        x: (Math.random() - 0.5) * 0.3,
+        y: 0.4 + Math.random() * 0.2,  // forward Y spin
+        z: (Math.random() - 0.5) * 0.15,
+      };
+      // Landing squash after spring settles (~400ms after emerge)
+      setTimeout(() => {
+        window.__prismSquash = Date.now();
+        window.__prismExpression = 'happy';
+      }, 400);
+      // Return to normal after landing settles
+      setTimeout(() => {
+        window.__prismExpression = 'normal';
+      }, 1200);
+
       if (peekCharRef.current) {
         peekCharRef.current.classList.add('portal-entering');
         setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
@@ -4644,14 +4664,14 @@ export default function Home() {
           const offY = peekPosition.side === 'top' ? -120 : 0;
           const pso = portalSpawnOffsetRef.current;
           const hiddenState =
-            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: 0 }
+            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
             : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            peekStyle === 'portal' ? { type: 'spring', stiffness: 120, damping: 8, mass: 1.2 }
+            peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 10, mass: 0.8, velocity: 8 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
             : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
             : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
