@@ -143,6 +143,8 @@ const lightState = {
   prismYRot: 0,              // smoothed Y rotation
   dispersionSpread: 0.35,    // current fan half-angle
   dispersionCenter: 0,       // fan center offset from rotation
+  portalSuckProgress: 0,     // 0 = normal, 1 = fully sucked (for cascading ray death)
+  portalSuckStartTime: 0,    // when portal suck started
 };
 
 /* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
@@ -421,6 +423,7 @@ const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
   uniform float uIncidence;
+  uniform float uCascadeFade;  // 0 = visible, 1 = fully faded (portal exit)
   varying vec2 vUv;
   void main() {
     // Beam narrows slightly at steep incidence angles
@@ -447,34 +450,60 @@ const beamFrag = `
     );
 
     vec3 color = vec3(1.0, 0.98, 0.93) * hint * (1.0 + core * 0.6);
-    float alpha = intensity * uOpacity * shimmer;
+
+    // Portal cascade: beam retracts from source toward prism, then fades
+    // vUv.x 0=far, 1=at prism — retract FROM far end inward
+    float cascadeRetract = smoothstep(uCascadeFade * 1.4, uCascadeFade * 1.4 + 0.2, 1.0 - vUv.x);
+    float cascadeFlicker = uCascadeFade > 0.01
+      ? 0.6 + 0.4 * sin(uTime * 35.0 + vUv.x * 40.0) * sin(uTime * 22.0)
+      : 1.0;
+
+    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract) * cascadeFlicker;
 
     gl_FragColor = vec4(color, alpha);
   }
 `;
 
-/* ── SPREADING RAY SHADER (widens from prism) ── */
+/* ── SPREADING RAY SHADER (widens from prism, dispersion-reactive) ── */
 const rayFrag = `
   uniform vec3 uColor;
   uniform float uOpacity;
   uniform float uTime;
+  uniform float uDispersionWidth;  // 0-1+ : how wide dispersion is right now
+  uniform float uCascadeFade;      // 0 = visible, 1 = fully faded (portal exit cascade)
   varying vec2 vUv;
   void main() {
-    // Ray widens as it spreads from prism (vUv.x: 0=at prism, 1=far right)
-    float spread = 0.25 + vUv.x * 0.75;
+    // Ray widens more dramatically when dispersion is wide
+    float dispersionInfluence = 0.6 + uDispersionWidth * 0.8;
+    float spread = (0.15 + vUv.x * 0.85) * dispersionInfluence;
     float d = abs(vUv.y - 0.5) * 2.0 / max(spread, 0.05);
 
     float fade = pow(1.0 - vUv.x, 0.6);
     // Smooth fade at far end so rays never hit canvas edge
     float edgeFade = smoothstep(1.0, 0.75, vUv.x);
-    float core = exp(-d * d * 25.0);
+
+    // Core gets tighter when dispersion is narrow (focused beam), looser when wide
+    float coreTight = 25.0 + (1.0 - uDispersionWidth) * 20.0;
+    float core = exp(-d * d * coreTight);
     float glow = exp(-d * d * 3.5);
 
     float intensity = (core * 1.4 + glow * 0.45) * fade * edgeFade;
-    float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
 
-    vec3 color = uColor * (1.6 + core * 0.8);
-    float alpha = intensity * uOpacity * shimmer;
+    // Shimmer + cascading travelling sparkle that moves along the ray
+    float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
+    // Bright pulse that travels outward along the ray
+    float travelPulse = exp(-pow(fract(vUv.x - uTime * 0.4) * 4.0 - 1.0, 2.0) * 8.0) * 0.2;
+
+    vec3 color = uColor * (1.6 + core * 0.8 + travelPulse);
+
+    // Portal cascade: ray retracts from tip toward prism, then fades
+    float cascadeRetract = smoothstep(1.0 - uCascadeFade * 1.3, 1.0 - uCascadeFade * 1.3 + 0.15, vUv.x);
+    // Flicker as it retracts — rapid chaotic shimmer
+    float cascadeFlicker = uCascadeFade > 0.01
+      ? 0.5 + 0.5 * sin(uTime * 40.0 + vUv.x * 50.0) * sin(uTime * 27.0 + vUv.x * 30.0)
+      : 1.0;
+
+    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract) * cascadeFlicker;
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -1589,8 +1618,7 @@ function MouthExpression() {
 /* ═══════════ LIGHT DIRECTION TRACKER (computes physics each frame) ═══════════ */
 const _lightSrcVec = new THREE.Vector3();
 const _prismWorldPos = new THREE.Vector3();
-const _localDir = new THREE.Vector3();
-const _invMat = new THREE.Matrix4();
+const _worldDir = new THREE.Vector3();
 
 function LightDirectionTracker({ parentRef }) {
   useFrame(() => {
@@ -1607,25 +1635,22 @@ function LightDirectionTracker({ parentRef }) {
       cfg.lightSourceZ ?? 3.0
     );
 
-    // 3. Direction from light source to prism (in world space)
-    _localDir.copy(_prismWorldPos).sub(_lightSrcVec);
+    // 3. Direction from light source to prism — WORLD SPACE (not local)
+    // This gives a stable beam direction that never rotates with the prism
+    _worldDir.copy(_prismWorldPos).sub(_lightSrcVec).normalize();
 
-    // 4. Transform to local space of the parent group
-    _invMat.copy(parentRef.current.matrixWorld).invert();
-    _localDir.transformDirection(_invMat);
+    // 4. Beam angle in world XY plane
+    lightState.beamAngle = Math.atan2(_worldDir.y, _worldDir.x);
 
-    // 5. Beam angle = atan2 of local direction (XY plane)
-    lightState.beamAngle = Math.atan2(_localDir.y, _localDir.x);
-
-    // 6. Smooth-read prism Y rotation
+    // 5. Smooth-read prism Y rotation
     const rawY = window.__prismRotationY || 0;
     lightState.prismYRot += (rawY - lightState.prismYRot) * 0.08;
     const prismY = lightState.prismYRot;
 
-    // 7. Incidence angle — how "head-on" the light hits the prism face
+    // 6. Incidence angle — how "head-on" the light hits the prism face
     lightState.incidenceAngle = Math.acos(Math.abs(Math.cos(prismY)));
 
-    // 8. Dispersion spread — rotation modulates width
+    // 7. Dispersion spread — rotation modulates width + breathing
     const baseDisp = cfg.baseDispersionAngle ?? 0.35;
     const rotMod = cfg.rotationDispersionMod ?? 0.5;
     const incEff = cfg.incidenceEffect ?? 0.4;
@@ -1633,19 +1658,54 @@ function LightDirectionTracker({ parentRef }) {
       * (1 + lightState.incidenceAngle * incEff)
       * (1 + Math.sin(2 * prismY) * rotMod * 0.5);
 
-    // 9. Dispersion center — rotation sweeps the rainbow direction
+    // 8. Dispersion center — rotation sweeps the rainbow direction
     const fanShift = cfg.rotationFanShift ?? 0.3;
     lightState.dispersionCenter = Math.sin(prismY) * fanShift;
 
-    // 10. Audio modulation — bass widens spread
+    // 9. Audio modulation — bass widens spread
     const rayAudioSpread = cfg.rayAudioSpread ?? 0.15;
     lightState.dispersionSpread *= (1 + audioBass * rayAudioSpread);
+
+    // 10. Portal suck cascade tracking
+    const suckActive = !!window.__prismPortalSuck;
+    if (suckActive && lightState.portalSuckProgress === 0) {
+      lightState.portalSuckStartTime = performance.now();
+    }
+    if (suckActive) {
+      // Ramp up over ~600ms
+      const elapsed = (performance.now() - lightState.portalSuckStartTime) / 600;
+      lightState.portalSuckProgress = Math.min(elapsed, 1);
+    } else {
+      // Fade back quickly if suck ends before full cascade
+      lightState.portalSuckProgress = Math.max(0, lightState.portalSuckProgress - 0.05);
+    }
   });
 
   return null; // invisible — just runs physics
 }
 
-/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — physics-driven) ═══════════ */
+/* ═══════════ WORLD-ANCHORED BEAMS WRAPPER ═══════════ */
+// Counter-rotates against ALL parent transforms (MouseDrift, Float, CharacterScale)
+// so the beams stay truly world-fixed while following the prism's position.
+const _parentQuat = new THREE.Quaternion();
+const _inverseQuat = new THREE.Quaternion();
+
+function WorldAnchoredBeams({ parentRef, children }) {
+  const groupRef = useRef();
+
+  useFrame(() => {
+    if (!groupRef.current || !parentRef?.current) return;
+    // Get the accumulated world rotation of the parent chain
+    parentRef.current.getWorldQuaternion(_parentQuat);
+    // Apply the inverse to cancel all inherited rotation
+    _inverseQuat.copy(_parentQuat).invert();
+    groupRef.current.quaternion.copy(_inverseQuat);
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+}
+
+/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — world-anchored) ═══════════ */
 function IncomingBeam() {
   const matRef = useRef();
   const meshRef = useRef();
@@ -1663,9 +1723,11 @@ function IncomingBeam() {
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
     matRef.current.uniforms.uOpacity.value = cfg.beamOpacity + audioBoost;
     matRef.current.uniforms.uIncidence.value = lightState.incidenceAngle;
+    matRef.current.uniforms.uCascadeFade.value = lightState.portalSuckProgress;
 
     if (meshRef.current) {
       // Beam angle tracks from light source direction (smooth 5%/frame)
+      // Since we're world-anchored, this is the true world-space angle
       meshRef.current.rotation.z = THREE.MathUtils.lerp(
         meshRef.current.rotation.z,
         lightState.beamAngle,
@@ -1684,6 +1746,7 @@ function IncomingBeam() {
           uTime: { value: 0 },
           uOpacity: { value: cfg.beamOpacity },
           uIncidence: { value: 0 },
+          uCascadeFade: { value: 0 },
         }}
         transparent
         blending={THREE.AdditiveBlending}
@@ -1694,7 +1757,7 @@ function IncomingBeam() {
   );
 }
 
-/* ═══════════ RAINBOW FAN (physics-driven dispersion) ═══════════ */
+/* ═══════════ RAINBOW FAN (physics-driven dispersion, world-anchored) ═══════════ */
 const RAINBOW_BANDS = [
   { color: new THREE.Color('#ff1a1a') },
   { color: new THREE.Color('#ff7700') },
@@ -1721,6 +1784,10 @@ function RainbowFan() {
     const exitBase = lightState.beamAngle + Math.PI;
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
 
+    // Normalized dispersion for shader (0 = tight, 1+ = wide)
+    const baseDisp = cfg.baseDispersionAngle ?? 0.35;
+    const normalizedDisp = lightState.dispersionSpread / Math.max(baseDisp, 0.01);
+
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
 
@@ -1743,6 +1810,13 @@ function RainbowFan() {
         + Math.sin(t * 1.8 + i * 1.3) * 0.15
         + audioBoost;
       mesh.material.uniforms.uTime.value = t;
+      mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
+
+      // Cascading portal exit: rays die off one by one, violet first (outer → inner)
+      // Each ray has its own staggered fade threshold
+      const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5; // violet=0, red=0.43
+      const rayCascade = Math.max(0, (lightState.portalSuckProgress - cascadeDelay) / (1 - cascadeDelay));
+      mesh.material.uniforms.uCascadeFade.value = Math.min(rayCascade, 1);
     });
   });
 
@@ -1762,6 +1836,8 @@ function RainbowFan() {
               uColor: { value: band.color },
               uOpacity: { value: cfg.rayOpacity },
               uTime: { value: 0 },
+              uDispersionWidth: { value: 1.0 },
+              uCascadeFade: { value: 0 },
             }}
             transparent
             blending={THREE.AdditiveBlending}
@@ -2037,8 +2113,10 @@ export default function Prism3D() {
               <InternalGlow />
               <VertexHighlights />
               <LightDirectionTracker parentRef={charGroupRef} />
-              <IncomingBeam />
-              <RainbowFan />
+              <WorldAnchoredBeams parentRef={charGroupRef}>
+                <IncomingBeam />
+                <RainbowFan />
+              </WorldAnchoredBeams>
 
               <Sparkles
                 count={cfg.sparkleCount}
