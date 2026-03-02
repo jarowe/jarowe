@@ -158,13 +158,5 @@ export const PRISM_DEFAULTS = {
   spawnScale: 1.0,
   showSpawnMarkers: false,
 
-  // Hitbox (bop click target)
-  hitboxShape: 'circle',   // 'circle' | 'rect'
-  hitboxSize: 90,           // used for circle diameter
-  hitboxWidth: 90,          // used for rect width
-  hitboxHeight: 120,        // used for rect height
-  hitboxBorderRadius: 16,   // used for rect corner rounding
-  hitboxOffsetX: 0,
-  hitboxOffsetY: 0,
-  hitboxDebug: false,
+  // Hitbox — uses 3D raycast against actual prism mesh (no config needed)
 };

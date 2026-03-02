@@ -3368,7 +3368,7 @@ export default function Home() {
   const [bopRipple, setBopRipple] = useState(null); // { x, y } in viewport px
   const bubbleElRef = useRef(null); // ref for active bubble/thinking-dots element
   const connectorLineRef = useRef(null); // SVG line element
-  const prismHitRef = useRef(null); // floating hit-target div that follows prism screen pos
+  const prismCursorActiveRef = useRef(false); // tracks if cursor is over prism mesh
   const connectorDot1Ref = useRef(null); // SVG circle at bubble end
   const connectorDot2Ref = useRef(null); // SVG circle at character end
   // Portal phases: null | 'seep' | 'gathering' | 'rupture' | 'emerging' | 'residual'
@@ -3856,35 +3856,39 @@ export default function Home() {
     return () => cancelAnimationFrame(rafId);
   }, [bubblePhase, peekVisible]);
 
-  // Floating hit-target tracks prism's projected screen position every frame
+  // 3D raycast hitbox — clicks that hit the actual prism mesh trigger bop,
+  // all other clicks pass through to the page. Cursor changes on hover.
   useEffect(() => {
     if (!peekVisible) return;
-    let rafId;
-    const update = () => {
-      const el = prismHitRef.current;
-      const pos = window.__prismScreenPos;
-      if (el && pos) {
-        const cfg = window.__prismConfig || {};
-        const offX = cfg.hitboxOffsetX ?? 0;
-        const offY = cfg.hitboxOffsetY ?? 0;
-        const shape = cfg.hitboxShape ?? 'circle';
-        const debug = cfg.hitboxDebug ?? false;
-        const w = shape === 'rect' ? (cfg.hitboxWidth ?? 90) : (cfg.hitboxSize ?? 90);
-        const h = shape === 'rect' ? (cfg.hitboxHeight ?? 120) : (cfg.hitboxSize ?? 90);
-        const br = shape === 'rect' ? `${cfg.hitboxBorderRadius ?? 16}px` : '50%';
-        el.style.left = `${pos.x + offX}px`;
-        el.style.top = `${pos.y + offY}px`;
-        el.style.width = `${w}px`;
-        el.style.height = `${h}px`;
-        el.style.borderRadius = br;
-        el.style.outline = debug ? '2px solid rgba(255,0,0,0.7)' : 'none';
-        el.style.background = debug ? 'rgba(255,0,0,0.15)' : 'transparent';
+    const onClick = (e) => {
+      if (editorDragMode || bopPhase != null) return;
+      if (window.__prismRaytest && window.__prismRaytest(e.clientX, e.clientY)) {
+        e.stopPropagation();
+        e.preventDefault();
+        handleCatchCharacterRef.current?.({ clientX: e.clientX, clientY: e.clientY });
       }
-      rafId = requestAnimationFrame(update);
     };
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
-  }, [peekVisible]);
+    const onMove = (e) => {
+      const hit = window.__prismRaytest?.(e.clientX, e.clientY);
+      if (hit && !prismCursorActiveRef.current) {
+        document.body.style.cursor = 'pointer';
+        prismCursorActiveRef.current = true;
+      } else if (!hit && prismCursorActiveRef.current) {
+        document.body.style.cursor = '';
+        prismCursorActiveRef.current = false;
+      }
+    };
+    document.addEventListener('click', onClick, true); // capture phase
+    document.addEventListener('pointermove', onMove);
+    return () => {
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('pointermove', onMove);
+      if (prismCursorActiveRef.current) {
+        document.body.style.cursor = '';
+        prismCursorActiveRef.current = false;
+      }
+    };
+  }, [peekVisible, editorDragMode, bopPhase]);
 
   // One bop per reveal guard
   const boppedThisRevealRef = useRef(false);
@@ -3954,11 +3958,9 @@ export default function Home() {
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
 
-  // Hit-target click handler — dispatched from the floating div that tracks prism screen pos
-  const handleHitTargetClick = useCallback((e) => {
-    if (!peekVisible || editorDragMode || bopPhase != null) return;
-    handleCatchCharacter({ clientX: e.clientX, clientY: e.clientY });
-  }, [peekVisible, editorDragMode, bopPhase, handleCatchCharacter]);
+  // Ref keeps capture-phase listener from going stale
+  const handleCatchCharacterRef = useRef(handleCatchCharacter);
+  useEffect(() => { handleCatchCharacterRef.current = handleCatchCharacter; }, [handleCatchCharacter]);
 
   // Drag mode: global mouse handlers
   useEffect(() => {
@@ -4617,23 +4619,7 @@ export default function Home() {
           );
         })()}
 
-        {/* PRISM HIT TARGET — follows the prism's 3D-projected screen pos, size/offset from editor config */}
-        {peekVisible && (
-          <div
-            ref={prismHitRef}
-            onClick={handleHitTargetClick}
-            style={{
-              position: 'fixed',
-              width: 90,
-              height: 90,
-              borderRadius: '50%', // overridden by rAF loop based on hitboxShape
-              transform: 'translate(-50%, -50%)',
-              cursor: 'pointer',
-              pointerEvents: 'auto',
-              zIndex: 502,
-            }}
-          />
-        )}
+        {/* Hitbox uses 3D raycast via window.__prismRaytest — no floating div needed */}
 
         {/* SPEED PUZZLE GAME */}
         <AnimatePresence>

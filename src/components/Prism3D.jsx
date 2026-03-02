@@ -1,4 +1,4 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float, Sparkles, MeshTransmissionMaterial, Environment } from '@react-three/drei';
 import { useRef, useMemo, useEffect, useState } from 'react';
 import * as THREE from 'three';
@@ -1657,10 +1657,33 @@ function ScreenTracker() {
   return <group ref={ref} />;
 }
 
+/* ═══════════ RAYCAST EXPOSER ═══════════ */
+// Exposes window.__prismRaytest(clientX, clientY) → boolean
+// Tests clicks against the actual prism mesh geometry so the hitbox follows
+// every animation (drift, float, rotation, breathing) perfectly.
+const _rayMouse = new THREE.Vector2();
+const _raycaster = new THREE.Raycaster();
+function RaycastExposer({ targetRef }) {
+  const { camera, gl } = useThree();
+  useEffect(() => {
+    window.__prismRaytest = (clientX, clientY) => {
+      if (!targetRef.current) return false;
+      const rect = gl.domElement.getBoundingClientRect();
+      _rayMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      _rayMouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      _raycaster.setFromCamera(_rayMouse, camera);
+      return _raycaster.intersectObject(targetRef.current, true).length > 0;
+    };
+    return () => { window.__prismRaytest = null; };
+  }, [camera, gl, targetRef]);
+  return null;
+}
+
 /* ═══════════ MAIN COMPONENT ═══════════ */
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
   const prevMouseRef = useRef(new THREE.Vector2(0, 0));
+  const prismBodyRef = useRef(); // wrapper group for raycast hit-testing
   const [glassMode, setGlassMode] = useState(cfg.glassMode || 'shader');
 
   const [shape, setShape] = useState(cfg.shape || 'rounded-prism');
@@ -1730,7 +1753,10 @@ export default function Prism3D() {
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup>
-              {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              <group ref={prismBodyRef}>
+                {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+              </group>
+              <RaycastExposer targetRef={prismBodyRef} />
               <ScreenTracker />
               <GlassOrbEye />
               <InternalGlow />
