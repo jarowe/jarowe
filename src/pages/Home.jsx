@@ -2647,6 +2647,15 @@ export default function Home() {
                 }
               }
 
+              // Lazy-init analyser — Howler.ctx is null until user plays audio
+              if (!window.globalAnalyser && Howler.ctx && Howler.masterGain) {
+                try {
+                  window.globalAnalyser = Howler.ctx.createAnalyser();
+                  window.globalAnalyser.fftSize = 128;
+                  Howler.masterGain.connect(window.globalAnalyser);
+                  window.globalAnalyser.connect(Howler.ctx.destination);
+                } catch (_) { /* still not ready */ }
+              }
               if (window.globalAnalyser) {
                 window.globalAnalyser.getByteFrequencyData(audioDataArray);
                 let sum = 0;
@@ -3818,13 +3827,24 @@ export default function Home() {
 
     // Phase 3: Theatrical exit (1500ms)
     setTimeout(() => {
-      const exits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt', 'portal-exit'];
-      const style = exits[Math.floor(Math.random() * exits.length)];
+      const cfg = window.__prismConfig || {};
+      const lockedExit = cfg.lockedExitStyle || '';
+      const portalAlwaysExits = cfg.portalAlwaysExits !== false;
+      const allExits = ['spin-shrink', 'tumble-fall', 'pop-burst', 'melt', 'portal-exit'];
+
+      let style;
+      if (lockedExit) {
+        style = lockedExit;
+      } else if (portalAlwaysExits && peekStyleRef.current === 'portal') {
+        style = 'portal-exit';
+      } else {
+        style = allExits[Math.floor(Math.random() * allExits.length)];
+      }
+
       window.__prismTalking = false;
       clearBubble();
 
       if (style === 'portal-exit') {
-        // Use portal exit instead of framer exit
         setBopPhase(null);
         setExitStyle(null);
         runPortalExitSequence();
@@ -4237,14 +4257,14 @@ export default function Home() {
 
         </div>
 
-        {/* SPAWN POINT MARKERS (editor toggle) */}
+        {/* SPAWN POINT MARKERS (editor toggle) — click to preview, drag to reposition */}
         {showSpawnMarkers && (
           <div className="spawn-markers-overlay">
             {spawnPoints.map((sp, i) => {
-              // Compute pixel position for each spawn point
               const W = window.innerWidth;
               const H = window.innerHeight;
               let px, py;
+              const isCustom = sp.side === 'custom' || (sp.x != null && sp.y != null && !sp.side);
               if (sp.x != null && sp.y != null) {
                 px = sp.x; py = sp.y;
               } else {
@@ -4255,13 +4275,42 @@ export default function Home() {
               }
               return (
                 <div
-                  key={i}
-                  className="spawn-marker"
+                  key={`${i}-${sp.label || sp.side}`}
+                  className={`spawn-marker ${isCustom ? 'spawn-marker-draggable' : ''}`}
                   style={{ left: px, top: py }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    if (e.defaultPrevented) return; // skip if drag just ended
                     const origin = getPortalOrigin(sp);
                     runPortalSequence(origin.x, origin.y, () => {});
                   }}
+                  onMouseDown={isCustom ? (e) => {
+                    e.preventDefault();
+                    const startX = e.clientX, startY = e.clientY;
+                    let moved = false;
+                    const onMove = (ev) => {
+                      moved = true;
+                      const newX = sp.x + (ev.clientX - startX);
+                      const newY = sp.y + (ev.clientY - startY);
+                      ev.target.closest?.('.spawn-marker')?.style?.setProperty?.('left', `${newX}px`);
+                      ev.target.closest?.('.spawn-marker')?.style?.setProperty?.('top', `${newY}px`);
+                    };
+                    const onUp = (ev) => {
+                      window.removeEventListener('mousemove', onMove);
+                      window.removeEventListener('mouseup', onUp);
+                      if (!moved) return;
+                      ev.preventDefault();
+                      const newX = Math.round(sp.x + (ev.clientX - startX));
+                      const newY = Math.round(sp.y + (ev.clientY - startY));
+                      const updated = [...spawnPoints];
+                      updated[i] = { ...updated[i], x: newX, y: newY };
+                      setSpawnPoints(updated);
+                      localStorage.setItem('prism_spawn_points', JSON.stringify(updated));
+                      // Notify editor to rebuild
+                      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: updated } }));
+                    };
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onUp);
+                  } : undefined}
                 >
                   <div className="spawn-marker-dot" />
                   <div className="spawn-marker-label">{sp.label || sp.side || `#${i + 1}`}</div>
@@ -4369,22 +4418,25 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {/* Bop counter badge — near bubble area */}
+              {prismBops > 0 && (
+                <motion.div
+                  className="prism-bop-counter"
+                  key={prismBops}
+                  initial={{ scale: 1.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  style={{
+                    bottom: `calc(100% - 40px + ${window.__prismConfig?.bubbleOffsetY || 0}px)`,
+                  }}
+                >
+                  {prismBops}
+                </motion.div>
+              )}
               <div className="prism-3d">
                 <Suspense fallback={<div className="prism-loading-glow" />}>
                   <Prism3D />
                 </Suspense>
-                {/* Bop counter badge */}
-                {prismBops > 0 && (
-                  <motion.div
-                    className="prism-bop-counter"
-                    key={prismBops}
-                    initial={{ scale: 1.5 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                  >
-                    {prismBops}
-                  </motion.div>
-                )}
                 {/* Sparkle trail particles */}
                 {prismSparkles.map(s => (
                   <div

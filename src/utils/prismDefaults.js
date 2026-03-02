@@ -100,6 +100,10 @@ export const PRISM_DEFAULTS = {
 
   // Peek animation lock ('' = random)
   lockedPeekStyle: '',
+  // Exit animation lock ('' = random, 'portal-exit' = always portal out)
+  lockedExitStyle: '',
+  // Always use portal exit when entrance was portal
+  portalAlwaysExits: true,
 
   // Nebula backdrop opacity
   nebulaOpacity: 0.85,

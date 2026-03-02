@@ -914,6 +914,18 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pSpawnFolder.add(pcfg, 'spawnScale', 0.3, 3.0, 0.05).name('Spawn Scale');
     pSpawnFolder.close();
 
+    const pExitFolder = portalFolder.addFolder('Exit Animation');
+    pExitFolder.add(pcfg, 'portalAlwaysExits').name('Portal Always Exits');
+    pExitFolder.add(pcfg, 'lockedExitStyle', {
+      'Random': '',
+      'Portal Exit': 'portal-exit',
+      'Spin Shrink': 'spin-shrink',
+      'Tumble Fall': 'tumble-fall',
+      'Pop Burst': 'pop-burst',
+      'Melt': 'melt',
+    }).name('Locked Exit Style');
+    pExitFolder.close();
+
     portalFolder.add({ trigger() {
       window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
         detail: { style: 'portal', pinned: true }
@@ -928,31 +940,105 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       pcfg.showSpawnMarkers = v;
       window.dispatchEvent(new CustomEvent('prism-spawn-markers', { detail: { enabled: v } }));
     });
-    const spawnCountProxy = { count: 'Loading...' };
-    const spawnCountCtrl = spawnMgmtFolder.add(spawnCountProxy, 'count').name('Saved').disable();
-    const updateSpawnCount = () => {
-      try {
-        const pts = JSON.parse(localStorage.getItem('prism_spawn_points') || '[]');
-        spawnCountProxy.count = `${pts.length} point${pts.length !== 1 ? 's' : ''}`;
-      } catch { spawnCountProxy.count = '? points'; }
-      spawnCountCtrl.updateDisplay();
+
+    // Dynamic spawn point list — each point gets its own sub-folder
+    const spawnListFolder = spawnMgmtFolder.addFolder('Point List');
+    let spawnPointFolders = [];
+
+    const rebuildSpawnList = () => {
+      // Remove old folders
+      spawnPointFolders.forEach(f => { try { f.destroy(); } catch(_) {} });
+      spawnPointFolders = [];
+
+      let pts;
+      try { pts = JSON.parse(localStorage.getItem('prism_spawn_points') || '[]'); }
+      catch { pts = []; }
+
+      pts.forEach((pt, i) => {
+        const ptProxy = {
+          label: pt.label || pt.side || `Point ${i + 1}`,
+          side: pt.side || 'custom',
+          x: pt.x ?? 0,
+          y: pt.y ?? 0,
+        };
+        const pf = spawnListFolder.addFolder(`#${i + 1}: ${ptProxy.label}`);
+        pf.add(ptProxy, 'label').name('Label').onFinishChange((v) => {
+          pts[i].label = v;
+          localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
+          window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+          pf.title(`#${i + 1}: ${v}`);
+        });
+        if (pt.side && pt.side !== 'custom') {
+          pf.add(ptProxy, 'side').name('Side').disable();
+        } else {
+          pf.add(ptProxy, 'x', 0, window.innerWidth, 1).name('X').onChange((v) => {
+            pts[i].x = v;
+            localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
+            window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+          });
+          pf.add(ptProxy, 'y', 0, window.innerHeight, 1).name('Y').onChange((v) => {
+            pts[i].y = v;
+            localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
+            window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+          });
+        }
+        pf.add({ preview() {
+          const W = window.innerWidth, H = window.innerHeight;
+          let ox, oy;
+          if (pt.x != null && pt.y != null && (!pt.side || pt.side === 'custom')) {
+            ox = `${(pt.x / W) * 100}%`; oy = `${(pt.y / H) * 100}%`;
+          } else {
+            const s = pt.side || 'right';
+            if (s === 'right') { ox = `${((W - 130) / W) * 100}%`; oy = '50%'; }
+            else if (s === 'left') { ox = `${(130 / W) * 100}%`; oy = '40%'; }
+            else { ox = '50%'; oy = `${(230 / H) * 100}%`; }
+          }
+          window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+            detail: { style: 'portal', pinned: false, duration: 4000, side: pt.side, x: pt.x, y: pt.y }
+          }));
+        } }, 'preview').name('Preview Portal');
+        pf.add({ remove() {
+          pts.splice(i, 1);
+          localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
+          window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+          rebuildSpawnList();
+        } }, 'remove').name('Delete Point');
+        pf.close();
+        spawnPointFolders.push(pf);
+      });
     };
-    updateSpawnCount();
+    rebuildSpawnList();
+
+    // Listen for spawn point changes to rebuild list
+    const spawnChangeHandler = () => setTimeout(rebuildSpawnList, 150);
+    window.addEventListener('prism-spawn-point', spawnChangeHandler);
+
     spawnMgmtFolder.add({ save() {
       window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'add', label: `Point ${Date.now()}` } }));
-      setTimeout(updateSpawnCount, 100);
+      setTimeout(rebuildSpawnList, 200);
     } }, 'save').name('Save Current Position');
+    spawnMgmtFolder.add({ addCustom() {
+      const pts = JSON.parse(localStorage.getItem('prism_spawn_points') || '[]');
+      pts.push({ label: `Custom ${pts.length + 1}`, x: window.innerWidth / 2, y: window.innerHeight / 2, side: 'custom' });
+      localStorage.setItem('prism_spawn_points', JSON.stringify(pts));
+      window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: pts } }));
+      rebuildSpawnList();
+    } }, 'addCustom').name('Add Custom Point');
     spawnMgmtFolder.add({ clearAll() {
       if (!confirm('Clear all saved spawn points?')) return;
       localStorage.removeItem('prism_spawn_points');
       window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'clear' } }));
-      updateSpawnCount();
+      rebuildSpawnList();
     } }, 'clearAll').name('Clear All Points');
     spawnMgmtFolder.add({ resetDefaults() {
-      const defaults = [{ side: 'right' }, { side: 'left' }, { side: 'top' }];
+      const defaults = [
+        { label: 'Right Edge', side: 'right' },
+        { label: 'Left Edge', side: 'left' },
+        { label: 'Top', side: 'top' },
+      ];
       localStorage.setItem('prism_spawn_points', JSON.stringify(defaults));
       window.dispatchEvent(new CustomEvent('prism-spawn-point', { detail: { action: 'reset', points: defaults } }));
-      updateSpawnCount();
+      rebuildSpawnList();
     } }, 'resetDefaults').name('Reset to Defaults');
     spawnMgmtFolder.close();
 
@@ -1339,7 +1425,11 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       gui.controllersRecursive().forEach(c => c.updateDisplay());
     }
 
-    return () => { gui.destroy(); guiRef.current = null; };
+    return () => {
+      gui.destroy();
+      guiRef.current = null;
+      window.removeEventListener('prism-spawn-point', spawnChangeHandler);
+    };
   }, [editorParams, globeRef, globeShaderMaterial, setOverlayParams]);
 
   return null;
