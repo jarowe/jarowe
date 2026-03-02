@@ -2647,45 +2647,20 @@ export default function Home() {
                 }
               }
 
-              // Lazy-init analyser — Howler.ctx may not exist until audio plays;
-              // html5:true Howls bypass masterGain, so we pipe <audio> elements
-              // through analyser via createMediaElementSource (can only be called ONCE per element)
+              // Lazy-init analyser — connect to Howler.masterGain for audio data
+              // NOTE: html5:true Howls bypass masterGain (no reactivity data for
+              // cross-origin audio). Music still plays fine. When audio sources are
+              // same-origin, createMediaElementSource can be added back for reactivity.
               if (!window.globalAnalyser && Howler.ctx) {
                 try {
                   const analyser = Howler.ctx.createAnalyser();
                   analyser.fftSize = 128;
-                  // Also connect masterGain for non-html5 Howls
                   if (Howler.masterGain) {
                     Howler.masterGain.connect(analyser);
                   }
                   analyser.connect(Howler.ctx.destination);
                   window.globalAnalyser = analyser;
-                  if (!window._analyserConnectedElements) {
-                    window._analyserConnectedElements = new WeakSet();
-                  }
-                } catch (_) { /* still not ready */ }
-              }
-              // For html5 mode: pipe each <audio> element through the analyser
-              // IMPORTANT: createMediaElementSource can only be called ONCE per element
-              if (window.globalAnalyser && Howler.ctx) {
-                if (!window._analyserConnectedElements) {
-                  window._analyserConnectedElements = new WeakSet();
-                }
-                try {
-                  const howls = Howler._howls || [];
-                  for (const h of howls) {
-                    if (!h.playing()) continue;
-                    const sounds = h._sounds || [];
-                    for (const s of sounds) {
-                      const node = s._node;
-                      if (!node || !node.nodeName || node.nodeName !== 'AUDIO') continue;
-                      if (window._analyserConnectedElements.has(node)) continue;
-                      const src = Howler.ctx.createMediaElementSource(node);
-                      src.connect(window.globalAnalyser);
-                      window._analyserConnectedElements.add(node);
-                    }
-                  }
-                } catch (_) { /* ok - not all howls have html5 nodes */ }
+                } catch (_) { /* AudioContext not ready yet */ }
               }
               if (window.globalAnalyser) {
                 window.globalAnalyser.getByteFrequencyData(audioDataArray);
@@ -3434,12 +3409,12 @@ export default function Home() {
   // Keep peekStyleRef in sync for stale-closure-safe access
   useEffect(() => { peekStyleRef.current = peekStyle; }, [peekStyle]);
 
-  const prismCatchPhrases = [
+  const glintCatchPhrases = [
     "Hey! You found me!",
     "Boop! Again!",
     "One more... I dare you!",
     "WHOA! Secret time!",
-    "Can't catch me!",
+    "Can't catch Glint!",
     "Did you try the cipher?",
     "Go explore the universe!",
     "Refraction is my cardio",
@@ -3449,8 +3424,8 @@ export default function Home() {
     "I'm basically a disco ball",
   ];
 
-  // Spark of Genius - the creative thread traveling through the vessel
-  const sparkIdeas = [
+  // Glint — the spark of an idea, the vessel for creativity
+  const glintIdeas = [
     "What if we raised our kids on curiosity instead of curriculum?",
     "The best classroom is a foreign country you've never heard of",
     "Technology should feel like magic. If it doesn't, we're not done yet.",
@@ -3650,26 +3625,32 @@ export default function Home() {
       oy = `${((rect.top + rect.height / 2) / window.innerHeight) * 100}%`;
     }
 
-    // Open portal at full size immediately (no seep/gather — just rupture at character)
+    // Open portal at character position — rupture immediately
     setPortalOrigin({ x: ox, y: oy });
     setPortalPhase('emerging');
 
-    // After 400ms, hide the character (framer-motion will scale to 0)
+    // Confetti burst as portal opens
+    const cOx = parseFloat(ox) / 100;
+    const cOy = parseFloat(oy) / 100;
+    confetti({ particleCount: 30, spread: 360, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], startVelocity: 12, gravity: 0.1, scalar: 0.4, ticks: 120, shapes: ['circle'] });
+
+    // After 300ms, suck character in (hide via framer-motion)
     setTimeout(() => {
       setPeekVisible(false);
       clearBubble();
-    }, 400);
+      peekCharRef.current?.classList.remove('portal-suck');
+    }, 300);
 
-    // After 1000ms, begin fading the portal
+    // After 800ms, begin fading the portal
     setTimeout(() => {
       setPortalPhase('residual');
-    }, 1000);
+    }, 800);
 
     // Cleanup
     setTimeout(() => {
       setPortalPhase(null);
       portalExitingRef.current = false;
-    }, 1000 + residualMs);
+    }, 800 + residualMs);
   }, [clearBubble]);
 
   useEffect(() => {
@@ -3700,9 +3681,9 @@ export default function Home() {
           setPeekVisible(true);
         }
 
-        // Show a spark of genius idea after character settles
+        // Show a Glint idea after character settles
         const ideaDelay = setTimeout(() => {
-          const idea = sparkIdeas[Math.floor(Math.random() * sparkIdeas.length)];
+          const idea = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
           window.__prismTalking = true;
           showBubbleWithThinking(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
@@ -3732,11 +3713,20 @@ export default function Home() {
     const showHandler = (e) => {
       const d = e.detail || {};
       const sides = ['right', 'left', 'top'];
-      const side = d.side || sides[Math.floor(Math.random() * sides.length)];
-      setPeekPosition({
-        cell: d.cell ?? Math.floor(Math.random() * 4),
-        side,
-      });
+      const hasCustomPos = d.x != null && d.y != null;
+      const side = hasCustomPos ? 'custom' : (d.side || sides[Math.floor(Math.random() * sides.length)]);
+
+      if (hasCustomPos) {
+        setDragPosition({ x: d.x, y: d.y });
+        setPeekPosition({ cell: 0, side: 'custom' });
+      } else {
+        setDragPosition({ x: null, y: null }); // clear stale custom position
+        setPeekPosition({
+          cell: d.cell ?? Math.floor(Math.random() * 4),
+          side,
+        });
+      }
+
       const lockedStyle = window.__prismConfig?.lockedPeekStyle;
       const style = d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
       setPeekStyle(style);
@@ -3744,9 +3734,7 @@ export default function Home() {
 
       if (style === 'portal') {
         // ─── CINEMATIC DIMENSIONAL RIFT ───
-        const sp = (dragPosition.x != null && dragPosition.y != null)
-          ? { x: dragPosition.x, y: dragPosition.y }
-          : { side };
+        const sp = hasCustomPos ? { x: d.x, y: d.y } : { side };
         const origin = getPortalOrigin(sp);
         runPortalSequence(origin.x, origin.y, () => setPeekVisible(true));
       } else {
@@ -3872,7 +3860,7 @@ export default function Home() {
       window.__prismExpression = 'excited';
       window.__prismTalking = true;
       setBubblePhase('speaking');
-      setPrismBubble(prismCatchPhrases[(newBops - 1) % prismCatchPhrases.length]);
+      setPrismBubble(glintCatchPhrases[(newBops - 1) % glintCatchPhrases.length]);
 
       // Rainbow confetti burst from character
       confetti({ particleCount: 50, spread: 160, origin: confettiOrigin, colors: ['#22c55e', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6', '#ef4444'], gravity: 0.25, scalar: 0.6, drift: 0.5, ticks: 180 });
@@ -3894,39 +3882,34 @@ export default function Home() {
       setTimeout(() => setPrismSparkles([]), 3000);
     }, 400);
 
-    // ── Phase 3: DAZED (1200ms) — dizzy/mischief face, wobble ──
+    // ── Phase 3: PORTAL SUCK (1000ms) — portal opens, character spirals in ──
     setTimeout(() => {
-      window.__prismExpression = 'mischief';
-      window.__prismTalking = false;
-    }, 1200);
-
-    // ── Phase 4: SCREEN SWALLOW EXIT (1800ms) — sucked back through screen ──
-    setTimeout(() => {
-      clearBubble();
       window.__prismExpression = 'surprised';
+      window.__prismTalking = false;
+      clearBubble();
 
       // Fire idea sparks outward like light from a prism
       if (peekCharRef.current) {
         const rect = peekCharRef.current.getBoundingClientRect();
         const cx = (rect.left + rect.width / 2) / window.innerWidth;
         const cy = (rect.top + rect.height / 2) / window.innerHeight;
-        // Rainbow rays shooting outward
         for (let i = 0; i < 5; i++) {
           setTimeout(() => {
-            confetti({ particleCount: 15, spread: 25 + i * 15, origin: { x: cx, y: cy }, colors: ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#0088ff', '#8800ff'][i % 6] === '#ff0000' ? ['#ff4444', '#ff8800'] : ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24'], startVelocity: 20 + i * 8, gravity: 0.15, scalar: 0.4, ticks: 100, shapes: ['circle'] });
+            confetti({ particleCount: 15, spread: 25 + i * 15, origin: { x: cx, y: cy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#22c55e', '#fbbf24'], startVelocity: 20 + i * 8, gravity: 0.15, scalar: 0.4, ticks: 100, shapes: ['circle'] });
           }, i * 60);
         }
       }
 
-      // Use portal exit for epic swallow effect
+      // Add spin-suck class for dramatic portal pull
+      peekCharRef.current?.classList.add('portal-suck');
       setBopPhase(null);
       setExitStyle(null);
       runPortalExitSequence();
-    }, 1800);
+    }, 1000);
 
     // Every 3 bops, trigger the speed puzzle game
     if (newBops % 3 === 0) {
-      setTimeout(() => setShowSpeedGame(true), 3500);
+      setTimeout(() => setShowSpeedGame(true), 3000);
     }
   }, [prismBops, clearBubble, runPortalExitSequence]);
 

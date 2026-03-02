@@ -297,7 +297,7 @@ export const GLOBE_DEFAULTS = {
   labelSize: 1.2,
   labelDotRadius: 0.3,
 
-  // ── Prism Bop Effector ──
+  // ── Glint Effector ──
   bopDecayRate: 0.12,
   bopParticleBurst: 1.4,
   bopColorShift: 0.37,

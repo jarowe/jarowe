@@ -865,7 +865,7 @@
     pointer-events: none;
 }
 
-/* Prism talk bubble - Spark of Genius */
+/* Prism talk bubble - Glint */
 .prism-bubble {
     position: absolute;
     bottom: calc(100% - 30px);
@@ -1084,6 +1084,19 @@
 @keyframes portalGlow {
     0% { filter: drop-shadow(0 0 60px rgba(124, 58, 237, 1)) drop-shadow(0 0 120px rgba(56, 189, 248, 0.8)); }
     100% { filter: drop-shadow(0 0 15px rgba(124, 58, 237, 0.3)) drop-shadow(0 0 30px rgba(56, 189, 248, 0.1)); }
+}
+
+/* Portal suck — character gets pulled into portal with dramatic spin */
+.peek-character.portal-suck {
+    animation: portalSuck 0.3s ease-in forwards;
+    filter: drop-shadow(0 0 40px rgba(124, 58, 237, 1))
+            drop-shadow(0 0 80px rgba(56, 189, 248, 0.7));
+}
+
+@keyframes portalSuck {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(0.6) rotate(180deg); filter: brightness(2); }
+    100% { transform: scale(0) rotate(540deg); filter: brightness(3); }
 }
 
 /* Portal CSS replaced by canvas-based PortalVFX component */

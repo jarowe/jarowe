@@ -548,7 +548,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // ══════════════════════════════════════════
     // PRISM BOP EFFECTOR
     // ══════════════════════════════════════════
-    const bopFolder = gui.addFolder('Prism Bop Effects');
+    const bopFolder = gui.addFolder('Glint Effects');
     bopFolder.add(proxy, 'bopDecayRate', 0.01, 0.5, 0.005).name('Decay Rate').onChange(updateParam('bopDecayRate'));
     bopFolder.add(proxy, 'bopParticleBurst', 0.0, 5.0, 0.1).name('Particle Burst').onChange(updateShaderUniform(getParticleMat, 'bopParticleBurst'));
     bopFolder.add(proxy, 'bopColorShift', 0.0, 1.0, 0.01).name('Color Shift').onChange(updateShaderUniform(getParticleMat, 'bopColorShift'));
@@ -572,7 +572,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // ══════════════════════════════════════════
     // PRISM BOP CHARACTER (Full Control Panel)
     // ══════════════════════════════════════════
-    const prismBopFolder = gui.addFolder('Prism Bop Character');
+    const prismBopFolder = gui.addFolder('Glint Character');
     // Ensure config exists with all defaults (including new portal/spawn keys)
     if (!window.__prismConfig) {
       window.__prismConfig = { ...PRISM_DEFAULTS };
@@ -599,10 +599,10 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
         detail: { side: peekProxy.side, cell: Math.round(peekProxy.cell), duration: peekProxy.duration * 1000, pinned: peekProxy.pinned, style: peekProxy.style }
       }));
-    } }, 'show').name('Show Prism');
+    } }, 'show').name('Show Glint');
     peekFolder.add({ hide() {
       window.dispatchEvent(new CustomEvent('hide-prism-peek'));
-    } }, 'hide').name('Hide Prism');
+    } }, 'hide').name('Hide Glint');
     peekFolder.add(peekProxy, 'dragMode').name('Drag Mode').onChange((v) => {
       window.dispatchEvent(new CustomEvent('prism-drag-mode', { detail: { enabled: v } }));
       // Auto-show prism when entering drag mode
