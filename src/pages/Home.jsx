@@ -3873,9 +3873,12 @@ export default function Home() {
       if (hit && !prismCursorActiveRef.current) {
         document.body.style.cursor = 'pointer';
         prismCursorActiveRef.current = true;
+        window.__prismHovered = true;
+        window.__prismExpression = 'curious';
       } else if (!hit && prismCursorActiveRef.current) {
         document.body.style.cursor = '';
         prismCursorActiveRef.current = false;
+        window.__prismHovered = false;
       }
     };
     document.addEventListener('click', onClick, true); // capture phase
@@ -3886,6 +3889,7 @@ export default function Home() {
       if (prismCursorActiveRef.current) {
         document.body.style.cursor = '';
         prismCursorActiveRef.current = false;
+        window.__prismHovered = false;
       }
     };
   }, [peekVisible, editorDragMode, bopPhase]);

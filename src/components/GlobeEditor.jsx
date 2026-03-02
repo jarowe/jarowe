@@ -860,7 +860,11 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pCounter.add(pcfg, 'bopCounterOffsetY', -200, 200, 1).name('Y Offset');
     pCounter.close();
 
-    // Hitbox now uses 3D raycast against actual prism mesh — no manual controls needed
+    // -- Hitbox (3D raycast) --
+    const pHitbox = prismBopFolder.addFolder('Hitbox');
+    pHitbox.add(pcfg, 'hitboxScale', 1.0, 2.5, 0.05).name('Hit Area Scale');
+    pHitbox.add(pcfg, 'hitboxDebug').name('Show Hit Area');
+    pHitbox.close();
 
     // -- Speech Bubble --
     const pBubble = prismBopFolder.addFolder('Speech Bubble');

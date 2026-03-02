@@ -158,5 +158,7 @@ export const PRISM_DEFAULTS = {
   spawnScale: 1.0,
   showSpawnMarkers: false,
 
-  // Hitbox — uses 3D raycast against actual prism mesh (no config needed)
+  // Hitbox — 3D raycast against prism mesh
+  hitboxScale: 1.4,
+  hitboxDebug: false,
 };

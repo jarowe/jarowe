@@ -677,6 +677,7 @@ function PrismBody({ geometry }) {
   const outerMatRef = useRef();
   const innerMatRef = useRef();
   const edgeMatRef = useRef();
+  const hoverGlow = useRef(0); // smooth lerp for hover glow boost
 
   // Stable uniform objects - avoids R3F reconciler replacing them on re-render
   const innerUniforms = useMemo(() => ({
@@ -746,15 +747,20 @@ function PrismBody({ geometry }) {
       groupRef.current.scale.setScalar(breath);
     }
 
+    // Hover glow — smooth ramp up/down
+    const hTarget = window.__prismHovered ? 1 : 0;
+    hoverGlow.current = THREE.MathUtils.lerp(hoverGlow.current, hTarget, delta * 8);
+    const hv = hoverGlow.current;
+
     // Update glass shader uniforms on both layers (stable refs, no reconciler issues)
     [innerUniforms, outerUniforms].forEach(u => {
       u.uTime.value = t;
       u.uIOR.value = cfg.glassIOR;
-      u.uCausticIntensity.value = cfg.causticIntensity * (1 + musicGlow);
-      u.uIridescenceIntensity.value = cfg.iridescenceIntensity;
-      u.uChromaticSpread.value = cfg.chromaticSpread;
-      u.uGlassAlpha.value = cfg.glassAlpha;
-      u.uStreakIntensity.value = cfg.streakIntensity * (1 + musicGlow * 0.5);
+      u.uCausticIntensity.value = cfg.causticIntensity * (1 + musicGlow) + hv * 0.5;
+      u.uIridescenceIntensity.value = cfg.iridescenceIntensity + hv * 0.4;
+      u.uChromaticSpread.value = cfg.chromaticSpread + hv * 0.3;
+      u.uGlassAlpha.value = cfg.glassAlpha + hv * 0.1;
+      u.uStreakIntensity.value = cfg.streakIntensity * (1 + musicGlow * 0.5) + hv * 0.4;
     });
     // Update edge glow shader
     if (edgeMatRef.current) {
@@ -1013,22 +1019,18 @@ function PrismBodyHybrid({ geometry }) {
   );
 }
 
-/* ═══════════ HIT MESH — invisible raycast target for click detection on actual prism ═══════════ */
-function PrismHitMesh({ geometry }) {
+/* ═══════════ HIT MESH — scaled-up invisible raycast target ═══════════ */
+// Provides a generous click area around the prism. Debug mode shows it in purple.
+function HitMesh({ geometry }) {
+  const meshRef = useRef();
+  useFrame(() => {
+    if (!meshRef.current) return;
+    meshRef.current.scale.setScalar(cfg.hitboxScale ?? 1.4);
+    meshRef.current.material.opacity = (cfg.hitboxDebug ?? false) ? 0.18 : 0;
+  });
   return (
-    <mesh
-      geometry={geometry}
-      scale={1.15}
-      onClick={(e) => {
-        e.stopPropagation();
-        window.dispatchEvent(new CustomEvent('prism-bop', {
-          detail: { clientX: e.nativeEvent.clientX, clientY: e.nativeEvent.clientY }
-        }));
-      }}
-      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { document.body.style.cursor = ''; }}
-    >
-      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    <mesh ref={meshRef} geometry={geometry} renderOrder={-1}>
+      <meshBasicMaterial transparent opacity={0} color="#7c3aed" depthWrite={false} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -1628,11 +1630,16 @@ function LightSpill() {
   return <pointLight ref={lightRef} color="#a855f7" distance={6} />;
 }
 
-/* ═══════════ CHARACTER SCALE (overall size from editor) ═══════════ */
+/* ═══════════ CHARACTER SCALE (overall size from editor + hover boost) ═══════════ */
 function CharacterScaleGroup({ children }) {
   const ref = useRef();
-  useFrame(() => {
-    if (ref.current) ref.current.scale.setScalar(cfg.characterScale ?? 1);
+  const hoverLerp = useRef(0);
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    const hoverTarget = window.__prismHovered ? 1 : 0;
+    hoverLerp.current = THREE.MathUtils.lerp(hoverLerp.current, hoverTarget, delta * 8);
+    const hoverBoost = 1 + hoverLerp.current * 0.08; // up to 8% bigger on hover
+    ref.current.scale.setScalar((cfg.characterScale ?? 1) * hoverBoost);
   });
   return <group ref={ref}>{children}</group>;
 }
@@ -1755,6 +1762,7 @@ export default function Prism3D() {
             <CharacterScaleGroup>
               <group ref={prismBodyRef}>
                 {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
+                <HitMesh geometry={geometry} />
               </group>
               <RaycastExposer targetRef={prismBodyRef} />
               <ScreenTracker />
