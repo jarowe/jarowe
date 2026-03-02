@@ -608,7 +608,7 @@ export default function Home() {
         // AUDIO ANALYSER
         // ------------------------------------------------------------------
         // Audio analyser is set up by AudioContext.jsx; just read from it here
-        let audioDataArray = new Uint8Array(64);
+        let audioDataArray = new Uint8Array(128); // fftSize=256 → 128 bins
 
         // ------------------------------------------------------------------
         // EXTREME MAGICAL SHADERS & EFFECTS
@@ -3168,13 +3168,13 @@ export default function Home() {
   }, []);
 
   const container = useRef();
-  const [showBrand, setShowBrand] = useState(() => !sessionStorage.getItem('jarowe_visited'));
+  const [showBrand, setShowBrand] = useState(() => { try { return !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
 
   // Brand reveal - pure CSS animation handles visuals, this just dismisses the overlay
   useEffect(() => {
     if (!showBrand) return;
     const timer = setTimeout(() => {
-      sessionStorage.setItem('jarowe_visited', 'true');
+      try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
       setShowBrand(false);
     }, 3300);
     return () => clearTimeout(timer);
@@ -3271,7 +3271,7 @@ export default function Home() {
   const [avatarEffect, setAvatarEffect] = useState(null);
   const [avatarPhotoIdx, setAvatarPhotoIdx] = useState(0);
   const avatarClickCount = useRef(0);
-  const avatarDiscovered = useRef(localStorage.getItem('jarowe_avatar_discovered') === 'true');
+  const avatarDiscovered = useRef((() => { try { return localStorage.getItem('jarowe_avatar_discovered') === 'true'; } catch { return false; } })());
 
   // Auto-cycle avatar photos every 6 seconds
   useEffect(() => {
@@ -3371,6 +3371,14 @@ export default function Home() {
   const peekStyleRef = useRef('slide');
   const portalExitingRef = useRef(false);
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
+
+  // Track viewport size to force re-render on resize (spawn markers + character positioning)
+  const [viewportKey, setViewportKey] = useState(0);
+  useEffect(() => {
+    const onResize = () => setViewportKey(k => k + 1);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Spawn points from localStorage
   const [spawnPoints, setSpawnPoints] = useState(() => {
@@ -4251,7 +4259,7 @@ export default function Home() {
 
         {/* SPAWN POINT MARKERS (editor toggle) — click to preview, drag to reposition */}
         {showSpawnMarkers && (
-          <div className="spawn-markers-overlay">
+          <div className="spawn-markers-overlay" data-viewport={viewportKey}>
             {spawnPoints.map((sp, i) => {
               const W = window.innerWidth;
               const H = window.innerHeight;
@@ -4419,6 +4427,7 @@ export default function Home() {
                           <span className="thinking-dot" style={{ animationDelay: '0s' }} />
                           <span className="thinking-dot" style={{ animationDelay: '0.2s' }} />
                           <span className="thinking-dot" style={{ animationDelay: '0.4s' }} />
+                          <span className="bubble-connector-dot" />
                         </motion.div>
                       )}
                       {bubblePhase === 'speaking' && prismBubble && (
@@ -4438,6 +4447,7 @@ export default function Home() {
                           }}
                         >
                           {prismBubble}
+                          <span className="bubble-connector-dot" />
                         </motion.div>
                       )}
                     </AnimatePresence>

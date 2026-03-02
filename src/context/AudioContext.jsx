@@ -9,15 +9,19 @@ export const sunoTracks = [
     { title: "The Void Calls", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" }
 ];
 
-// Set up global analyser once Howler's AudioContext is available
+// Insert analyser INLINE in Howler's audio graph so it actually receives data.
+// masterGain → analyser → destination (instead of branch connection)
 function ensureAnalyser() {
-    if (window.globalAnalyser || !Howler.ctx) return;
+    if (window.globalAnalyser || !Howler.ctx || !Howler.masterGain) return;
     try {
+        // Safari requires AudioContext resume after user gesture
+        if (Howler.ctx.state === 'suspended') Howler.ctx.resume();
         const analyser = Howler.ctx.createAnalyser();
-        analyser.fftSize = 128;
-        if (Howler.masterGain) {
-            Howler.masterGain.connect(analyser);
-        }
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        // Insert analyser inline: masterGain → analyser → destination
+        Howler.masterGain.disconnect();
+        Howler.masterGain.connect(analyser);
         analyser.connect(Howler.ctx.destination);
         window.globalAnalyser = analyser;
     } catch (_) { /* AudioContext not ready */ }

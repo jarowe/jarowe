@@ -129,18 +129,20 @@ const cfg = window.__prismConfig;
 const mousePos = new THREE.Vector2(0, 0);
 const mouseVel = { current: 0 };
 
-/* ═══════════ Audio reactivity (reads global analyser from Home.jsx) ═══════════ */
-const audioDataArray = new Uint8Array(64);
+/* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
+const audioDataArray = new Uint8Array(128); // fftSize=256 → 128 bins
 let audioBass = 0, audioMid = 0;
 function sampleAudio() {
-  // Read from the global analyser set up by Home.jsx (single owner of createMediaElementSource)
   if (!window.globalAnalyser) { audioBass = 0; audioMid = 0; return; }
   window.globalAnalyser.getByteFrequencyData(audioDataArray);
   let bassSum = 0, midSum = 0;
-  for (let i = 0; i < 16; i++) bassSum += audioDataArray[i];
-  for (let i = 16; i < 40; i++) midSum += audioDataArray[i];
-  audioBass = (bassSum / 16) / 255;
-  audioMid = (midSum / 24) / 255;
+  for (let i = 0; i < 20; i++) bassSum += audioDataArray[i];
+  for (let i = 20; i < 60; i++) midSum += audioDataArray[i];
+  const rawBass = (bassSum / 20) / 255;
+  const rawMid = (midSum / 40) / 255;
+  // Smooth with exponential decay (analyser already does smoothingTimeConstant=0.8)
+  audioBass = audioBass * 0.6 + rawBass * 0.4;
+  audioMid = audioMid * 0.6 + rawMid * 0.4;
 }
 
 /* ═══════════ SHADERS ═══════════ */
