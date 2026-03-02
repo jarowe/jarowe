@@ -3377,6 +3377,8 @@ export default function Home() {
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
   const peekStyleRef = useRef('slide');
   const portalExitingRef = useRef(false);
+  // Offset from character's final position back to portal origin (for emerge animation)
+  const portalSpawnOffsetRef = useRef({ x: 0, y: 0 });
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
 
   // Track viewport size to force re-render on resize (spawn markers + character positioning)
@@ -3539,8 +3541,6 @@ export default function Home() {
     setTimeout(() => {
       setPortalPhase('emerging');
       showCharCallback();
-      // Re-center portal on actual character DOM position (fixes drift from calculated positions)
-      snapPortalToCharacter();
       if (peekCharRef.current) {
         peekCharRef.current.classList.add('portal-entering');
         setTimeout(() => peekCharRef.current?.classList.remove('portal-entering'), 1200);
@@ -3596,24 +3596,32 @@ export default function Home() {
     return { x: `${((W * 0.5 + CHAR_HALF) / W) * 100}%`, y: `${(230 / H) * 100}%` };
   };
 
-  // Snap portal origin to actual character DOM position (runs after React render)
-  const snapPortalToCharacter = () => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!peekCharRef.current) return;
-        const rect = peekCharRef.current.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        // Only update if we got valid coordinates
-        if (cx !== 0 || cy !== 0) {
-          setPortalOrigin({
-            x: `${(cx / window.innerWidth) * 100}%`,
-            y: `${(cy / window.innerHeight) * 100}%`,
-          });
-        }
-      });
-    });
+  // ── Compute character position offset from portal toward screen center ──
+  // Returns { charPos: {x,y} (container top-left), offset: {x,y} (delta from final pos back to portal) }
+  const PORTAL_SPAWN_DISTANCE = 140; // consistent px from portal toward center
+  const getPortalCharPosition = (portalOriginPct) => {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const portalX = parseFloat(portalOriginPct.x) / 100 * W;
+    const portalY = parseFloat(portalOriginPct.y) / 100 * H;
+    const centerX = W / 2;
+    const centerY = H / 2;
+    const dx = centerX - portalX;
+    const dy = centerY - portalY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return { charPos: { x: portalX - CHAR_HALF, y: portalY - CHAR_HALF }, offset: { x: 0, y: 0 } };
+    // Character visual center = portal pos + DISTANCE toward screen center
+    const charCX = portalX + (dx / dist) * PORTAL_SPAWN_DISTANCE;
+    const charCY = portalY + (dy / dist) * PORTAL_SPAWN_DISTANCE;
+    // Offset FROM final position BACK to portal (for framer-motion initial state)
+    const offsetX = portalX - charCX;
+    const offsetY = portalY - charCY;
+    return {
+      charPos: { x: charCX - CHAR_HALF, y: charCY - CHAR_HALF },
+      offset: { x: offsetX, y: offsetY },
+    };
   };
+
 
   // ── Portal EXIT sequence – re-opens portal at character pos, sucks it back in ──
   const runPortalExitSequence = useCallback(() => {
@@ -3666,25 +3674,32 @@ export default function Home() {
       return setTimeout(() => {
         // Pick from spawn points
         const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-        const spPx = spawnToPixels(sp);
-        if (spPx) {
-          setDragPosition({ x: spPx.x, y: spPx.y });
-          setPeekPosition({ cell: 0, side: 'custom' });
-        } else {
-          setPeekPosition({
-            cell: Math.floor(Math.random() * 4),
-            side: sp.side || 'right'
-          });
-        }
         const lockedStyle = window.__prismConfig?.lockedPeekStyle;
         const style = lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
         setPeekStyle(style);
 
         if (style === 'portal') {
           // ─── CINEMATIC DIMENSIONAL RIFT ───
+          // Portal opens at spawn edge; character appears offset toward screen center
           const origin = getPortalOrigin(sp);
+          const { charPos, offset } = getPortalCharPosition(origin);
+          portalSpawnOffsetRef.current = offset;
+          setDragPosition({ x: charPos.x, y: charPos.y });
+          setPeekPosition({ cell: 0, side: 'custom' });
           runPortalSequence(origin.x, origin.y, () => setPeekVisible(true));
         } else {
+          // Non-portal: use edge-based CSS positioning
+          portalSpawnOffsetRef.current = { x: 0, y: 0 };
+          const spPx = spawnToPixels(sp);
+          if (spPx) {
+            setDragPosition({ x: spPx.x, y: spPx.y });
+            setPeekPosition({ cell: 0, side: 'custom' });
+          } else {
+            setPeekPosition({
+              cell: Math.floor(Math.random() * 4),
+              side: sp.side || 'right'
+            });
+          }
           setPeekVisible(true);
         }
 
@@ -3723,17 +3738,6 @@ export default function Home() {
       const hasCustomPos = d.x != null && d.y != null;
       const side = hasCustomPos ? 'custom' : (d.side || sides[Math.floor(Math.random() * sides.length)]);
 
-      if (hasCustomPos) {
-        setDragPosition({ x: d.x, y: d.y });
-        setPeekPosition({ cell: 0, side: 'custom' });
-      } else {
-        setDragPosition({ x: null, y: null }); // clear stale custom position
-        setPeekPosition({
-          cell: d.cell ?? Math.floor(Math.random() * 4),
-          side,
-        });
-      }
-
       const lockedStyle = window.__prismConfig?.lockedPeekStyle;
       const style = d.style || lockedStyle || peekStyles[Math.floor(Math.random() * peekStyles.length)];
       setPeekStyle(style);
@@ -3743,8 +3747,23 @@ export default function Home() {
         // ─── CINEMATIC DIMENSIONAL RIFT ───
         const sp = hasCustomPos ? { x: d.x, y: d.y } : { side };
         const origin = getPortalOrigin(sp);
+        const { charPos, offset } = getPortalCharPosition(origin);
+        portalSpawnOffsetRef.current = offset;
+        setDragPosition({ x: charPos.x, y: charPos.y });
+        setPeekPosition({ cell: 0, side: 'custom' });
         runPortalSequence(origin.x, origin.y, () => setPeekVisible(true));
       } else {
+        portalSpawnOffsetRef.current = { x: 0, y: 0 };
+        if (hasCustomPos) {
+          setDragPosition({ x: d.x, y: d.y });
+          setPeekPosition({ cell: 0, side: 'custom' });
+        } else {
+          setDragPosition({ x: null, y: null }); // clear stale custom position
+          setPeekPosition({
+            cell: d.cell ?? Math.floor(Math.random() * 4),
+            side,
+          });
+        }
         setPeekVisible(true);
       }
 
@@ -4538,8 +4557,9 @@ export default function Home() {
           const isCustomPos = peekPosition.side === 'custom' && dragPosition.x != null;
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
+          const pso = portalSpawnOffsetRef.current;
           const hiddenState =
-            peekStyle === 'portal' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
+            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: 0 }
             : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
