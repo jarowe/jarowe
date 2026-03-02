@@ -136,6 +136,15 @@ const cfg = window.__prismConfig;
 const mousePos = new THREE.Vector2(0, 0);
 const mouseVel = { current: 0 };
 
+/* ═══════════ Light ray physics state ═══════════ */
+const lightState = {
+  beamAngle: Math.PI,        // direction beam comes FROM (radians)
+  incidenceAngle: 0,         // angle vs prism face normal
+  prismYRot: 0,              // smoothed Y rotation
+  dispersionSpread: 0.35,    // current fan half-angle
+  dispersionCenter: 0,       // fan center offset from rotation
+};
+
 /* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
 const audioDataArray = new Uint8Array(128); // fftSize=256 → 128 bins
 let audioBass = 0, audioMid = 0;
@@ -245,6 +254,9 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
   rot.x += av.x * delta * 60;
   rot.y += av.y * delta * 60;
   rot.z += av.z * delta * 60;
+
+  // ── 8. Expose Y rotation for light ray physics ──
+  window.__prismRotationY = rot.y;
 }
 
 /* ═══════════ SHADERS ═══════════ */
@@ -404,14 +416,16 @@ const glassFrag = `
   }
 `;
 
-/* ── CONVERGING BEAM SHADER (tapers toward prism) ── */
+/* ── CONVERGING BEAM SHADER (tapers toward prism, incidence-reactive) ── */
 const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
+  uniform float uIncidence;
   varying vec2 vUv;
   void main() {
-    // Beam tapers as it converges toward prism (vUv.x: 0=far left, 1=at prism)
-    float taper = 1.0 - vUv.x * vUv.x * 0.75;
+    // Beam narrows slightly at steep incidence angles
+    float narrowing = 1.0 - uIncidence * 0.2;
+    float taper = (1.0 - vUv.x * vUv.x * 0.75) * narrowing;
     float d = abs(vUv.y - 0.5) * 2.0 / max(taper, 0.05);
 
     // Core gets tighter + brighter near prism
@@ -424,8 +438,8 @@ const beamFrag = `
     float intensity = (core * 1.5 + glow * 0.35) * convergeBright * edgeFade;
     float shimmer = 0.93 + 0.07 * sin(vUv.x * 30.0 - uTime * 6.0);
 
-    // Near prism, start showing spectral hints
-    float spectralHint = vUv.x * vUv.x * 0.15;
+    // Spectral hints scale with incidence — steeper angle = more rainbow splitting
+    float spectralHint = vUv.x * vUv.x * (0.15 + uIncidence * 0.25);
     vec3 hint = vec3(
       1.0 + sin(vUv.y * 12.0 + uTime) * spectralHint,
       1.0 + sin(vUv.y * 12.0 + uTime + 2.0) * spectralHint,
@@ -1572,7 +1586,66 @@ function MouthExpression() {
   );
 }
 
-/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style) ═══════════ */
+/* ═══════════ LIGHT DIRECTION TRACKER (computes physics each frame) ═══════════ */
+const _lightSrcVec = new THREE.Vector3();
+const _prismWorldPos = new THREE.Vector3();
+const _localDir = new THREE.Vector3();
+const _invMat = new THREE.Matrix4();
+
+function LightDirectionTracker({ parentRef }) {
+  useFrame(() => {
+    if (!parentRef?.current) return;
+    sampleAudio(); // ensure audio is sampled before beams read it
+
+    // 1. Get prism world position
+    parentRef.current.getWorldPosition(_prismWorldPos);
+
+    // 2. Virtual light source position from config
+    _lightSrcVec.set(
+      cfg.lightSourceX ?? -5.0,
+      cfg.lightSourceY ?? 2.0,
+      cfg.lightSourceZ ?? 3.0
+    );
+
+    // 3. Direction from light source to prism (in world space)
+    _localDir.copy(_prismWorldPos).sub(_lightSrcVec);
+
+    // 4. Transform to local space of the parent group
+    _invMat.copy(parentRef.current.matrixWorld).invert();
+    _localDir.transformDirection(_invMat);
+
+    // 5. Beam angle = atan2 of local direction (XY plane)
+    lightState.beamAngle = Math.atan2(_localDir.y, _localDir.x);
+
+    // 6. Smooth-read prism Y rotation
+    const rawY = window.__prismRotationY || 0;
+    lightState.prismYRot += (rawY - lightState.prismYRot) * 0.08;
+    const prismY = lightState.prismYRot;
+
+    // 7. Incidence angle — how "head-on" the light hits the prism face
+    lightState.incidenceAngle = Math.acos(Math.abs(Math.cos(prismY)));
+
+    // 8. Dispersion spread — rotation modulates width
+    const baseDisp = cfg.baseDispersionAngle ?? 0.35;
+    const rotMod = cfg.rotationDispersionMod ?? 0.5;
+    const incEff = cfg.incidenceEffect ?? 0.4;
+    lightState.dispersionSpread = baseDisp
+      * (1 + lightState.incidenceAngle * incEff)
+      * (1 + Math.sin(2 * prismY) * rotMod * 0.5);
+
+    // 9. Dispersion center — rotation sweeps the rainbow direction
+    const fanShift = cfg.rotationFanShift ?? 0.3;
+    lightState.dispersionCenter = Math.sin(prismY) * fanShift;
+
+    // 10. Audio modulation — bass widens spread
+    const rayAudioSpread = cfg.rayAudioSpread ?? 0.15;
+    lightState.dispersionSpread *= (1 + audioBass * rayAudioSpread);
+  });
+
+  return null; // invisible — just runs physics
+}
+
+/* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — physics-driven) ═══════════ */
 function IncomingBeam() {
   const matRef = useRef();
   const meshRef = useRef();
@@ -1584,19 +1657,25 @@ function IncomingBeam() {
 
   useFrame((state) => {
     if (!matRef.current) return;
-    matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-    matRef.current.uniforms.uOpacity.value = cfg.beamOpacity;
+    const t = state.clock.elapsedTime;
+    matRef.current.uniforms.uTime.value = t;
+    // Audio-modulated opacity
+    const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
+    matRef.current.uniforms.uOpacity.value = cfg.beamOpacity + audioBoost;
+    matRef.current.uniforms.uIncidence.value = lightState.incidenceAngle;
+
     if (meshRef.current) {
+      // Beam angle tracks from light source direction (smooth 5%/frame)
       meshRef.current.rotation.z = THREE.MathUtils.lerp(
         meshRef.current.rotation.z,
-        0.05 + mousePos.y * cfg.beamTrackAmount,
+        lightState.beamAngle,
         0.05
       );
     }
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0.04]} rotation={[0, 0, 0.05]} geometry={geo}>
+    <mesh ref={meshRef} position={[0, 0, 0.04]} rotation={[0, 0, Math.PI]} geometry={geo}>
       <shaderMaterial
         ref={matRef}
         vertexShader={simpleVert}
@@ -1604,6 +1683,7 @@ function IncomingBeam() {
         uniforms={{
           uTime: { value: 0 },
           uOpacity: { value: cfg.beamOpacity },
+          uIncidence: { value: 0 },
         }}
         transparent
         blending={THREE.AdditiveBlending}
@@ -1614,15 +1694,15 @@ function IncomingBeam() {
   );
 }
 
-/* ═══════════ RAINBOW FAN (spreads from prism - light splitting!) ═══════════ */
+/* ═══════════ RAINBOW FAN (physics-driven dispersion) ═══════════ */
 const RAINBOW_BANDS = [
-  { color: new THREE.Color('#ff1a1a'), angle: -0.35 },
-  { color: new THREE.Color('#ff7700'), angle: -0.23 },
-  { color: new THREE.Color('#ffdd00'), angle: -0.12 },
-  { color: new THREE.Color('#22dd44'), angle: 0.00 },
-  { color: new THREE.Color('#2288ff'), angle: 0.12 },
-  { color: new THREE.Color('#5533ff'), angle: 0.23 },
-  { color: new THREE.Color('#aa22ff'), angle: 0.35 },
+  { color: new THREE.Color('#ff1a1a') },
+  { color: new THREE.Color('#ff7700') },
+  { color: new THREE.Color('#ffdd00') },
+  { color: new THREE.Color('#22dd44') },
+  { color: new THREE.Color('#2288ff') },
+  { color: new THREE.Color('#5533ff') },
+  { color: new THREE.Color('#aa22ff') },
 ];
 
 function RainbowFan() {
@@ -1635,14 +1715,33 @@ function RainbowFan() {
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const mouseSpread = mousePos.x * cfg.rayBendAmount;
-    const mouseVertical = mousePos.y * cfg.rayVerticalBend;
+    const bandCount = RAINBOW_BANDS.length;
+
+    // Rainbow exits opposite the beam entry direction
+    const exitBase = lightState.beamAngle + Math.PI;
+    const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
+
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
+
+      // Normalized position across spectrum: -1 (red) to +1 (violet)
+      const normalizedPos = (i / (bandCount - 1)) * 2 - 1;
+
+      // Dynamic angle: exit direction + dispersion center + spread
       const wave = Math.sin(t * 0.8 + i * 0.9) * 0.01;
-      mesh.rotation.z = RAINBOW_BANDS[i].angle + wave + mouseSpread;
-      mesh.rotation.x = mouseVertical;
-      mesh.material.uniforms.uOpacity.value = cfg.rayOpacity + Math.sin(t * 1.8 + i * 1.3) * 0.15;
+      const verticalBend = Math.sin(lightState.prismYRot + i * 0.3) * 0.03;
+      const finalAngle = exitBase
+        + lightState.dispersionCenter
+        + normalizedPos * lightState.dispersionSpread
+        + wave;
+
+      mesh.rotation.z = finalAngle;
+      mesh.rotation.x = verticalBend;
+
+      // Audio-modulated opacity
+      mesh.material.uniforms.uOpacity.value = cfg.rayOpacity
+        + Math.sin(t * 1.8 + i * 1.3) * 0.15
+        + audioBoost;
       mesh.material.uniforms.uTime.value = t;
     });
   });
@@ -1653,7 +1752,7 @@ function RainbowFan() {
         <mesh
           key={i}
           ref={el => (raysRef.current[i] = el)}
-          rotation={[0, 0, band.angle]}
+          rotation={[0, 0, 0]}
           geometry={geo}
         >
           <shaderMaterial
@@ -1777,12 +1876,14 @@ function LightSpill() {
 }
 
 /* ═══════════ CHARACTER SCALE (overall size from editor + hover boost) ═══════════ */
-function CharacterScaleGroup({ children }) {
+function CharacterScaleGroup({ children, groupRef }) {
   const ref = useRef();
   const hoverLerp = useRef(0);
   const tremblePhase = useRef(Math.random() * 100);
   useFrame((state, delta) => {
     if (!ref.current) return;
+    // Expose ref for LightDirectionTracker
+    if (groupRef) groupRef.current = ref.current;
     const hovered = !!window.__prismHovered;
     const target = hovered ? 1 : 0;
     hoverLerp.current = THREE.MathUtils.lerp(hoverLerp.current, target, delta * 8);
@@ -1858,6 +1959,7 @@ class GlassErrorBoundary extends React.Component {
 export default function Prism3D() {
   const nebulaTex = useMemo(() => createNebulaTexture(), []);
   const prevMouseRef = useRef(new THREE.Vector2(0, 0));
+  const charGroupRef = useRef(null);
   const [glassMode, setGlassMode] = useState(cfg.glassMode || 'shader');
 
   const [shape, setShape] = useState(cfg.shape || 'rounded-prism');
@@ -1926,7 +2028,7 @@ export default function Prism3D() {
 
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
-            <CharacterScaleGroup>
+            <CharacterScaleGroup groupRef={charGroupRef}>
               <GlassErrorBoundary glassMode={glassMode} geometry={geometry}>
                 {glassMode === 'hybrid' ? <PrismBodyHybrid geometry={geometry} /> : glassMode === 'mtm' ? <PrismBodyMTM geometry={geometry} /> : <PrismBody geometry={geometry} />}
               </GlassErrorBoundary>
@@ -1934,6 +2036,7 @@ export default function Prism3D() {
               <GlassOrbEye />
               <InternalGlow />
               <VertexHighlights />
+              <LightDirectionTracker parentRef={charGroupRef} />
               <IncomingBeam />
               <RainbowFan />
 

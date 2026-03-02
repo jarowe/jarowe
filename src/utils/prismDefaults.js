@@ -50,6 +50,17 @@ export const PRISM_DEFAULTS = {
   beamOpacity: 1.0,
   rayOpacity: 0.85,
 
+  // Light source + dispersion physics
+  lightSourceX: -5.0,
+  lightSourceY: 2.0,
+  lightSourceZ: 3.0,
+  baseDispersionAngle: 0.35,
+  rotationDispersionMod: 0.5,
+  rotationFanShift: 0.3,
+  incidenceEffect: 0.4,
+  beamAudioPulse: 0.3,
+  rayAudioSpread: 0.15,
+
   // Edge glow
   edgeGlowOpacity: 0.7,
 

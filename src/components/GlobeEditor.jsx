@@ -688,6 +688,29 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pFx.add(pcfg, 'edgeThresholdAngle', 1, 90, 1).name('Edge Angle Threshold');
     pFx.add(pcfg, 'vertexHighlightScale', 0, 1.0, 0.01).name('Star Scale');
     pFx.add(pcfg, 'vertexHighlightPulse', 0, 0.5, 0.01).name('Star Pulse');
+
+    // -- Light Source (dispersion physics) --
+    const pLight = pFx.addFolder('Light Source');
+    if (pcfg.lightSourceX === undefined) pcfg.lightSourceX = -5.0;
+    if (pcfg.lightSourceY === undefined) pcfg.lightSourceY = 2.0;
+    if (pcfg.lightSourceZ === undefined) pcfg.lightSourceZ = 3.0;
+    if (pcfg.baseDispersionAngle === undefined) pcfg.baseDispersionAngle = 0.35;
+    if (pcfg.rotationDispersionMod === undefined) pcfg.rotationDispersionMod = 0.5;
+    if (pcfg.rotationFanShift === undefined) pcfg.rotationFanShift = 0.3;
+    if (pcfg.incidenceEffect === undefined) pcfg.incidenceEffect = 0.4;
+    if (pcfg.beamAudioPulse === undefined) pcfg.beamAudioPulse = 0.3;
+    if (pcfg.rayAudioSpread === undefined) pcfg.rayAudioSpread = 0.15;
+    pLight.add(pcfg, 'lightSourceX', -15, 15, 0.1).name('Light X');
+    pLight.add(pcfg, 'lightSourceY', -10, 10, 0.1).name('Light Y');
+    pLight.add(pcfg, 'lightSourceZ', -10, 10, 0.1).name('Light Z');
+    pLight.add(pcfg, 'baseDispersionAngle', 0.05, 1.2, 0.01).name('Dispersion Angle');
+    pLight.add(pcfg, 'rotationDispersionMod', 0, 2.0, 0.01).name('Rotation → Spread');
+    pLight.add(pcfg, 'rotationFanShift', 0, 1.0, 0.01).name('Rotation → Shift');
+    pLight.add(pcfg, 'incidenceEffect', 0, 2.0, 0.01).name('Incidence → Spread');
+    pLight.add(pcfg, 'beamAudioPulse', 0, 1.0, 0.01).name('Bass → Beam');
+    pLight.add(pcfg, 'rayAudioSpread', 0, 1.0, 0.01).name('Bass → Rainbow');
+    pLight.close();
+
     pFx.close();
 
     // -- Music Reactivity --
