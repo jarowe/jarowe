@@ -862,7 +862,11 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Hitbox --
     const pHitbox = prismBopFolder.addFolder('Hitbox');
-    pHitbox.add(pcfg, 'hitboxSize', 30, 250, 1).name('Size (px)');
+    pHitbox.add(pcfg, 'hitboxShape', ['circle', 'rect']).name('Shape');
+    pHitbox.add(pcfg, 'hitboxSize', 30, 250, 1).name('Circle Size');
+    pHitbox.add(pcfg, 'hitboxWidth', 30, 300, 1).name('Rect Width');
+    pHitbox.add(pcfg, 'hitboxHeight', 30, 300, 1).name('Rect Height');
+    pHitbox.add(pcfg, 'hitboxBorderRadius', 0, 80, 1).name('Rect Rounding');
     pHitbox.add(pcfg, 'hitboxOffsetX', -200, 200, 1).name('X Offset');
     pHitbox.add(pcfg, 'hitboxOffsetY', -200, 200, 1).name('Y Offset');
     pHitbox.add(pcfg, 'hitboxDebug').name('Show Outline');

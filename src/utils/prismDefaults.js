@@ -159,7 +159,11 @@ export const PRISM_DEFAULTS = {
   showSpawnMarkers: false,
 
   // Hitbox (bop click target)
-  hitboxSize: 90,
+  hitboxShape: 'circle',   // 'circle' | 'rect'
+  hitboxSize: 90,           // used for circle diameter
+  hitboxWidth: 90,          // used for rect width
+  hitboxHeight: 120,        // used for rect height
+  hitboxBorderRadius: 16,   // used for rect corner rounding
   hitboxOffsetX: 0,
   hitboxOffsetY: 0,
   hitboxDebug: false,
