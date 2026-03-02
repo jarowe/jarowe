@@ -3,16 +3,18 @@ import { Howl, Howler } from 'howler';
 
 const AudioContext = createContext(null);
 
+const BASE = import.meta.env.BASE_URL;
+
 export const sunoTracks = [
-    { title: "Electric Dreams", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" },
-    { title: "Neon Nights", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3" },
-    { title: "The Void Calls", artist: "Jarowe", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" }
+    { title: "Electric Dreams", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-16.mp3` },
+    { title: "Neon Nights", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-13.mp3` },
+    { title: "The Void Calls", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-14.mp3` }
 ];
 
-// Try to connect an analyser to Howler's masterGain.
-// In html5 mode masterGain may not carry audio, but the call is harmless.
-// Real frequency data only flows in Web Audio mode; html5 mode relies on
-// the synthetic fallback in Prism3D.jsx for music reactivity.
+// Branch-connect an AnalyserNode to Howler's masterGain (Web Audio mode).
+// Audio flows: XHR download → decode → BufferSource → masterGain → destination
+//              masterGain ──→ analyser (read-only tap for visualization)
+// Same-origin audio = real frequency data. No CORS issues.
 function connectAnalyser() {
     if (!Howler.ctx || !Howler.masterGain) return;
     try {
@@ -23,6 +25,7 @@ function connectAnalyser() {
             analyser.smoothingTimeConstant = 0.7;
             window.globalAnalyser = analyser;
         }
+        // Branch-connect (Web Audio deduplicates repeated connections)
         Howler.masterGain.connect(window.globalAnalyser);
     } catch (_) {}
 }
@@ -53,7 +56,12 @@ export function AudioProvider({ children }) {
         const sound = new Howl({
             src: [track.src],
             format: ['mp3'],
-            html5: true,  // Stream via <audio> element — works with cross-origin URLs
+            // Web Audio mode (default, no html5:true) — audio flows through masterGain
+            // for real analyser data. Same-origin files avoid CORS issues.
+            onload: () => {
+                // Pre-connect analyser as soon as audio is decoded
+                connectAnalyser();
+            },
             onplay: () => {
                 loadingRef.current = false;
                 setIsPlaying(true);
