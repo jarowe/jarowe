@@ -169,8 +169,8 @@ export const PRISM_DEFAULTS = {
   hitboxDebug: false,
 
   // Hover reaction
-  hoverScale: 1.08,
+  hoverScale: 1.25,
   hoverExpression: 'surprised', // scared look on hover
-  hoverGlowBoost: 0.5,
-  hoverTremble: 0.3,
+  hoverGlowBoost: 0.65,
+  hoverTremble: 0.35,
 };
