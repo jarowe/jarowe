@@ -64,6 +64,12 @@ export const PIPELINE_CONFIG = Object.freeze({
     defaultVisibility: 'private',
   },
 
+  /** Publish rollup: promote friends → public for selected sources in publish mode */
+  publishRollup: {
+    enabled: true,
+    sources: ['instagram', 'facebook'],
+  },
+
   /** Helix layout parameters (V2 — continuous angle, compact bands) */
   layout: {
     radius: 34,

@@ -342,6 +342,35 @@ async function main() {
   applyAllowlist(allNodes, allowlist);
 
   // ========================================================================
+  // Phase 4: PUBLISH ROLLUP (promote friends → public for social sources)
+  // ========================================================================
+  const rollupPromotions = { totalPromoted: 0, bySource: {} };
+
+  if (PUBLISH_MODE && PIPELINE_CONFIG.publishRollup?.enabled) {
+    log.info('--- Phase 4: Publish Rollup ---');
+
+    const rollupSources = new Set(PIPELINE_CONFIG.publishRollup.sources || []);
+
+    for (const node of allNodes) {
+      if (
+        node.visibility === 'friends' &&
+        rollupSources.has(node.source) &&
+        (node.sourceMeta?.authorship || 'authored') !== 'reshared' &&
+        node._isMinor !== true
+      ) {
+        node.visibility = 'public';
+        rollupPromotions.totalPromoted++;
+        rollupPromotions.bySource[node.source] = (rollupPromotions.bySource[node.source] || 0) + 1;
+      }
+    }
+
+    log.info(
+      `Publish rollup: ${rollupPromotions.totalPromoted} nodes promoted to public ` +
+      `(${Object.entries(rollupPromotions.bySource).map(([k, v]) => `${k}: ${v}`).join(', ') || 'none'})`
+    );
+  }
+
+  // ========================================================================
   // Phase 5: FILTER BY VISIBILITY
   // ========================================================================
   if (PUBLISH_MODE) {
@@ -691,6 +720,11 @@ async function main() {
       byAuthorship,
       bySignificanceTier,
       significanceOverridesApplied: overridesApplied,
+      rollupPromotions: {
+        totalPromoted: rollupPromotions.totalPromoted,
+        bySource: rollupPromotions.bySource,
+        publishMode: PUBLISH_MODE,
+      },
       motifs: motifStats.motifDistribution,
       privacyAudit: {
         violations: 0,
