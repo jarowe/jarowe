@@ -88,6 +88,22 @@ export default function ConstellationCanvas() {
   // Helix vertical bounds for timeline scrubber
   const helixBounds = useMemo(() => getHelixBounds(layoutNodes), [layoutNodes]);
 
+  // Adaptive camera distance based on helix extent
+  const cameraFit = useMemo(() => {
+    const helixHeight = (helixBounds.maxY - helixBounds.minY) || 100;
+    const helixWidth = 68; // 2 * helix radius (34)
+    const maxExtent = Math.max(helixHeight, helixWidth);
+    // At 60° FOV, visible height at distance D ≈ 1.155 * D
+    // Fill ~65% of viewport: D = maxExtent / (0.65 * 1.155)
+    const idealZ = maxExtent / 0.75;
+    const z = Math.max(65, Math.min(180, idealZ));
+    return {
+      z,
+      minDistance: Math.max(30, z * 0.45),
+      maxDistance: Math.min(250, z * 2.0),
+    };
+  }, [helixBounds]);
+
   // Disposal verification on unmount
   useEffect(() => {
     return () => {
@@ -107,7 +123,7 @@ export default function ConstellationCanvas() {
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{
-        position: [0, center.y + 10, 110],
+        position: [0, center.y + 10, cameraFit.z],
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
@@ -133,8 +149,8 @@ export default function ConstellationCanvas() {
         enablePan={false}
         minPolarAngle={Math.PI * (15 / 180)}
         maxPolarAngle={Math.PI * (165 / 180)}
-        minDistance={55}
-        maxDistance={170}
+        minDistance={cameraFit.minDistance}
+        maxDistance={cameraFit.maxDistance}
         target={[center.x, center.y, center.z]}
       />
 
