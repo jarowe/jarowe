@@ -128,6 +128,8 @@ export const PRISM_DEFAULTS = {
 
   // Beam feathering (0=sharp crisp rays, 1=soft glowy rays)
   beamFeathering: 0.5,
+  beamFeatherBreathing: 0.3,     // breathing amount (0=static, 1=full range oscillation)
+  beamFeatherBreathSpeed: 0.4,   // breathing speed (Hz-ish, lower=slower)
 
   // Glass mode
   glassMode: 'shader',

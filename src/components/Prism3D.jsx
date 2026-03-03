@@ -2139,6 +2139,16 @@ function RainbowFan() {
     // Portal exit spread boost: rays fan apart as they retract (scaled by exit excitement)
     const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5) * (isExiting ? excitement : 1.0);
 
+    // ── Beam feathering breathing — organic oscillation for "alive" feel ──
+    const baseFeathering = cfg.beamFeathering ?? 0.5;
+    const breathAmt = cfg.beamFeatherBreathing ?? 0.3;
+    const breathSpd = cfg.beamFeatherBreathSpeed ?? 0.4;
+    // Multi-frequency sine sum → non-repeating organic rhythm
+    const featherBreath = Math.sin(t * breathSpd * 2.0) * 0.5
+      + Math.sin(t * breathSpd * 3.7 + 1.3) * 0.3
+      + Math.sin(t * breathSpd * 0.7 + 2.7) * 0.2;
+    const featherVal = THREE.MathUtils.clamp(baseFeathering + featherBreath * breathAmt, 0, 1);
+
     const activeBands = window.__birthdayMode ? BIRTHDAY_BANDS : RAINBOW_BANDS;
 
     raysRef.current.forEach((mesh, i) => {
@@ -2165,7 +2175,7 @@ function RainbowFan() {
       mesh.material.uniforms.uTime.value = t;
       mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
       mesh.material.uniforms.uPortalWiden.value = cfg.portalExitWiden ?? 1.0;
-      mesh.material.uniforms.uFeathering.value = cfg.beamFeathering ?? 0.5;
+      mesh.material.uniforms.uFeathering.value = featherVal;
 
       // Cascading portal exit: rays smoothly retract violet-first → red-last
       const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5;

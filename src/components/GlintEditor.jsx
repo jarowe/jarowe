@@ -131,6 +131,10 @@ export default function GlintEditor({ parentGui }) {
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
     if (pcfg.beamFeathering === undefined) pcfg.beamFeathering = 0.5;
     pFx.add(pcfg, 'beamFeathering', 0, 1.0, 0.01).name('Beam Feathering');
+    if (pcfg.beamFeatherBreathing === undefined) pcfg.beamFeatherBreathing = 0.3;
+    pFx.add(pcfg, 'beamFeatherBreathing', 0, 1.0, 0.01).name('Feather Breathing');
+    if (pcfg.beamFeatherBreathSpeed === undefined) pcfg.beamFeatherBreathSpeed = 0.4;
+    pFx.add(pcfg, 'beamFeatherBreathSpeed', 0.05, 2.0, 0.05).name('Breath Speed');
     if (pcfg.beamLength === undefined) pcfg.beamLength = 14;
     if (pcfg.rayLength === undefined) pcfg.rayLength = 14;
     pFx.add(pcfg, 'beamLength', 4, 30, 0.5).name('Beam Length');

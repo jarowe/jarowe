@@ -3877,7 +3877,7 @@ export default function Home() {
     "I'm basically a disco ball",
   ];
 
-  // Birthday Glint ideas
+  // Birthday Glint ideas — the LAST one is a secret slingshot unlock card
   const birthdayGlintIdeas = [
     "It's my BIRTHDAY! I'm basically a party in prism form!",
     "40 years of refracting pure genius. You're welcome, world.",
@@ -3889,6 +3889,7 @@ export default function Home() {
     "Age is just a number. Refraction is forever.",
     "I'm 40% more fabulous than yesterday. Math checks out.",
     "Best birthday gift? Someone finally built me a party hat!",
+    "__SECRET_CARD__", // Special: triggers the birthday card launcher invite
   ];
 
   // Glint — the spark of an idea, the vessel for creativity
@@ -4150,22 +4151,21 @@ export default function Home() {
     const cOy = parseFloat(oy) / 100;
     confetti({ particleCount: 30, spread: 360, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], startVelocity: 12, gravity: 0.1, scalar: 0.4, ticks: 120, shapes: ['circle'] });
 
-    // Start in-place shrink animation (framer-motion animates scale→0 + opacity→0)
-    // This keeps x:0, y:0 so the character NEVER moves — only shrinks and fades
+    // Start in-place shrink animation (stays visible, scale tweens to 0 over 0.7s)
     setPortalExitAnim(true);
     clearBubble();
 
-    // After shrink completes, hide character (no visual change — already at 0,0,0)
+    // After shrink tween completes (0.7s), hide character
     setTimeout(() => {
       setPeekVisible(false);
       setPortalExitAnim(false);
-    }, 500);
+    }, 700);
 
-    // After 800ms, stop portal suck + begin fading the portal
+    // After 900ms, stop portal suck + begin fading the portal
     setTimeout(() => {
       window.__prismPortalSuck = false;
       setPortalPhase('residual');
-    }, 800);
+    }, 900);
 
     // Cleanup
     setTimeout(() => {
@@ -4215,9 +4215,15 @@ export default function Home() {
           const ideaPool = isBirthday ? birthdayGlintIdeas : glintIdeas;
           const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)];
           window.__prismTalking = true;
-          showBubbleWithThinking(idea);
+          if (idea === '__SECRET_CARD__') {
+            // Secret birthday card launcher invite!
+            showBubbleWithThinking("Psst! I made Jared a birthday card... wanna help me LAUNCH it? Click me!");
+            window.__prismSecretCard = true;
+          } else {
+            showBubbleWithThinking(idea);
+          }
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
-          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
+          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; window.__prismSecretCard = false; }, 5000);
         }, style === 'portal' ? 2000 : 1200);
         setTimeout(() => {
           clearTimeout(ideaDelay);
@@ -4502,6 +4508,16 @@ export default function Home() {
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
 
+    // Secret birthday card launcher — Glint is offering the hidden game!
+    if (window.__prismSecretCard) {
+      window.__prismSecretCard = false;
+      clearBubble();
+      playBopSound();
+      confetti({ particleCount: 60, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: ['#fbbf24', '#f472b6', '#7c3aed'] });
+      setBirthdayFlow('slingshot');
+      return;
+    }
+
     playBopSound();
     const newBops = prismBops + 1;
     if (globeRef.current?.customUniforms) {
@@ -4706,37 +4722,21 @@ export default function Home() {
             <button className="birthday-game-btn" onClick={() => setBirthdayFlow('balloon-game')}>
               Pop Balloons!
             </button>
-            <button className="birthday-game-btn birthday-sling-btn" onClick={() => setBirthdayFlow('slingshot')}>
-              Birthday Card Launcher!
-            </button>
             <button className="birthday-game-btn birthday-wish-btn" onClick={() => setBirthdayFlow('make-wish')}>
               Make a Wish
             </button>
           </div>
-          {/* Leaderboard panel + ticker */}
+          {/* Scrolling leaderboard ticker */}
           {tickerScores.length > 0 && (
-            <div className="birthday-leaderboard-section">
-              <div className="birthday-leaderboard-panel">
-                <div className="birthday-lb-title">Balloon Pop Leaderboard</div>
-                {tickerScores.slice(0, 5).map((s, i) => (
-                  <div key={i} className="birthday-lb-row">
-                    <span className="birthday-lb-rank">{i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `#${i + 1}`}</span>
-                    <span className="birthday-lb-name">{s.initials || '???'}</span>
-                    <span className="birthday-lb-score">{s.score}</span>
-                    <span className="birthday-lb-round">R{s.round}</span>
-                  </div>
+            <div className="birthday-ticker">
+              <div className="birthday-ticker-track">
+                {[...tickerScores.slice(0, 10), ...tickerScores.slice(0, 10)].map((s, i) => (
+                  <span key={i} className="birthday-ticker-entry">
+                    <span className="ticker-rank">#{(i % tickerScores.slice(0, 10).length) + 1}</span>
+                    <span className="ticker-initials">{s.initials}</span>
+                    <span className="ticker-score">{s.score}</span>
+                  </span>
                 ))}
-              </div>
-              <div className="birthday-ticker">
-                <div className="birthday-ticker-track">
-                  {[...tickerScores.slice(0, 10), ...tickerScores.slice(0, 10)].map((s, i) => (
-                    <span key={i} className="birthday-ticker-entry">
-                      <span className="ticker-rank">#{(i % tickerScores.slice(0, 10).length) + 1}</span>
-                      <span className="ticker-initials">{s.initials}</span>
-                      <span className="ticker-score">{s.score}</span>
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           )}
@@ -5314,8 +5314,8 @@ export default function Home() {
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            // Portal exit: smooth shrink (x/y stay at 0 — NO position movement)
-            portalExitAnim ? { type: 'tween', duration: 0.5, ease: [0.4, 0, 0.2, 1] }
+            // Portal exit: smooth shrink — slow start, accelerates into vortex (0.7s to see spin)
+            portalExitAnim ? { type: 'tween', duration: 0.7, ease: [0.25, 0, 0.2, 1] }
             // Portal entrance: snappy scale-up at final position (no x/y animation)
             : peekStyle === 'portal' ? { type: 'spring', stiffness: 300, damping: 14 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
@@ -5330,10 +5330,10 @@ export default function Home() {
             : bopPhase === 'exit' && exitStyle === 'melt' ? { opacity: 0, x: 0, y: 0, scaleX: 2, scaleY: 0, rotate: 0 }
             : null;
           const spawnScale = window.__prismConfig?.spawnScale ?? 1.0;
-          // portalExitAnim: shrink in-place (x/y stay at 0 — NO position change)
+          // portalExitAnim: shrink in-place — keep opacity 1 so spin is visible during suck
           const animateState = exitAnimState
             ? exitAnimState
-            : portalExitAnim ? { opacity: 0, x: 0, y: 0, scale: 0 }
+            : portalExitAnim ? { opacity: 1, x: 0, y: 0, scale: 0 }
             : peekVisible ? { opacity: 1, x: 0, y: 0, scale: spawnScale, rotate: 0 }
             : hiddenState;
           const exitTransition = bopPhase === 'exit'
@@ -5556,6 +5556,7 @@ export default function Home() {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
                   cameFromGame.current = true;
                 }}
+                onSecretUnlock={() => setBirthdayFlow('slingshot')}
               />
             </Suspense>
           )}
