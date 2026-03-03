@@ -472,15 +472,19 @@ const beamFrag = `
 
       intensity *= pulse * flicker;
 
-      // Traveling energy streaks — bright additive bands flowing toward prism
+      // Traveling energy streaks — MULTIPLICATIVE modulation (dims between, brightens at peaks)
+      // Using x*x instead of pow(x, 2.0) to avoid GLSL undefined behavior with negative args
       float spd = uSaberStreakSpeed;
-      float st1 = exp(-pow((fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0, 2.0) * 10.0);
-      float st2 = exp(-pow((fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0, 2.0) * 12.0);
-      float st3 = exp(-pow((fract(vUv.x * 1.2 + uTime * spd * 0.5) - 0.5) * 3.0, 2.0) * 8.0);
-      float streaks = (st1 + st2 * 0.7 + st3 * 0.5) * uSaberStreakIntensity;
-      // Streaks brightest near beam center, taper at edges
-      streaks *= exp(-d * d * 4.0) * taper * edgeFade;
-      intensity += streaks;
+      float v1 = (fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0;
+      float v2 = (fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0;
+      float v3 = (fract(vUv.x * 1.2 + uTime * spd * 0.5) - 0.5) * 3.0;
+      float st1 = exp(-v1 * v1 * 10.0);
+      float st2 = exp(-v2 * v2 * 12.0);
+      float st3 = exp(-v3 * v3 * 8.0);
+      float rawStreaks = st1 + st2 * 0.7 + st3 * 0.5;
+      // Modulate: dims to ~(1-intensity*0.4) between streaks, brightens to ~(1+intensity*0.3) at peaks
+      float streakMod = mix(1.0 - uSaberStreakIntensity * 0.4, 1.0 + uSaberStreakIntensity * 0.3, rawStreaks / 2.2);
+      intensity *= streakMod;
     }
 
     // Color temperature: cool blue <-> neutral white <-> warm gold
@@ -536,11 +540,15 @@ const beamGlowFrag = `
       float breath = 0.8 + 0.2 * sin(uTime * uSaberPulseSpeed);
       brightness *= breath;
 
-      // Traveling brightness bands in the halo
+      // Traveling brightness bands in the halo (x*x avoids GLSL pow(negative, 2.0) UB)
       float spd = uSaberStreakSpeed;
-      float st = exp(-pow((fract(vUv.x * 1.5 - uTime * spd * 0.6) - 0.5) * 2.5, 2.0) * 6.0);
-      float st2 = exp(-pow((fract(vUv.x * 2.5 + uTime * spd * 0.4) - 0.5) * 2.5, 2.0) * 8.0);
-      brightness += (st + st2 * 0.5) * uSaberStreakIntensity * 0.3 * glow * edgeFade;
+      float g1 = (fract(vUv.x * 1.5 - uTime * spd * 0.6) - 0.5) * 2.5;
+      float g2 = (fract(vUv.x * 2.5 + uTime * spd * 0.4) - 0.5) * 2.5;
+      float st = exp(-g1 * g1 * 6.0);
+      float st2 = exp(-g2 * g2 * 8.0);
+      // Multiplicative modulation on the glow halo
+      float haloMod = mix(1.0 - uSaberStreakIntensity * 0.3, 1.0 + uSaberStreakIntensity * 0.4, (st + st2 * 0.5) / 1.5);
+      brightness *= haloMod;
     }
 
     // Portal cascade
@@ -578,16 +586,21 @@ const rayFrag = `
     // Shimmer
     float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
 
-    // Traveling energy streaks — bright bands flowing away from prism
-    float st1 = exp(-pow(fract(vUv.x - uTime * 0.5) * 4.0 - 1.0, 2.0) * 6.0) * 0.5;
-    float st2 = exp(-pow(fract(vUv.x * 1.8 - uTime * 0.8) * 3.0 - 1.0, 2.0) * 8.0) * 0.35;
-    float st3 = exp(-pow(fract(vUv.x * 0.7 + uTime * 0.3) * 3.5 - 1.0, 2.0) * 5.0) * 0.25;
-    float streaks = (st1 + st2 + st3) * exp(-d * d * 5.0) * fade * edgeFade;
+    // Traveling energy streaks — multiplicative modulation (x*x avoids GLSL pow UB)
+    float r1 = fract(vUv.x - uTime * 0.5) * 4.0 - 1.0;
+    float r2 = fract(vUv.x * 1.8 - uTime * 0.8) * 3.0 - 1.0;
+    float r3 = fract(vUv.x * 0.7 + uTime * 0.3) * 3.5 - 1.0;
+    float st1 = exp(-r1 * r1 * 6.0);
+    float st2 = exp(-r2 * r2 * 8.0);
+    float st3 = exp(-r3 * r3 * 5.0);
+    float rawRayStreaks = st1 + st2 * 0.7 + st3 * 0.5;
+    // Dims between streaks, brightens at peaks — visible on colored rays
+    float rayStreakMod = mix(0.7, 1.3, rawRayStreaks / 2.2);
 
     // Breathing pulse
     float breath = 0.85 + 0.15 * sin(uTime * 1.8 + vUv.x * 2.0);
 
-    vec3 color = uColor * (1.6 + core * 0.8 + streaks);
+    vec3 color = uColor * (1.6 + core * 0.8) * rayStreakMod;
 
     // Portal cascade
     float cascadeEdge = 1.0 - uCascadeFade * 1.3;
@@ -957,6 +970,7 @@ function PrismBody({ geometry }) {
   const outerMatRef = useRef();
   const innerMatRef = useRef();
   const edgeMatRef = useRef();
+  const wireMatRef = useRef();
   const hoverGlow = useRef(0);
   const angVelRef = useRef({ x: 0, y: 0, z: 0 });
   const portalSuckLerp = useRef(0);
@@ -1046,6 +1060,8 @@ function PrismBody({ geometry }) {
       edgeMatRef.current.uniforms.uTime.value = t;
       edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity;
     }
+    // Update wireframe opacity live
+    if (wireMatRef.current) wireMatRef.current.opacity = cfg.wireframeOpacity ?? 0.2;
   });
 
   return (
@@ -1095,6 +1111,7 @@ function PrismBody({ geometry }) {
       {/* Wireframe overlay */}
       <mesh geometry={geometry}>
         <meshBasicMaterial
+          ref={wireMatRef}
           wireframe
           color="#ffffff"
           transparent
@@ -1111,6 +1128,7 @@ function PrismBody({ geometry }) {
 function PrismBodyMTM({ geometry }) {
   const groupRef = useRef();
   const edgeMatRef = useRef();
+  const wireMatRef = useRef();
   const angVelRef = useRef({ x: 0, y: 0, z: 0 });
   const portalSuckLerp = useRef(0);
   const edgesGeoRef = useRef(null);
@@ -1146,6 +1164,7 @@ function PrismBodyMTM({ geometry }) {
       groupRef.current.scale.setScalar(1 + Math.sin(t * cfg.breathingSpeed) * cfg.breathingAmp + musicScale);
     }
     if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
+    if (wireMatRef.current) wireMatRef.current.opacity = cfg.wireframeOpacity ?? 0.2;
   });
 
   return (
@@ -1160,7 +1179,7 @@ function PrismBodyMTM({ geometry }) {
           transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
       <mesh geometry={geometry}>
-        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial ref={wireMatRef} wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -1173,6 +1192,7 @@ function PrismBodyHybrid({ geometry }) {
   const overlayInnerRef = useRef();
   const overlayOuterRef = useRef();
   const edgeMatRef = useRef();
+  const wireMatRef = useRef();
   const angVelRef = useRef({ x: 0, y: 0, z: 0 });
   const portalSuckLerp = useRef(0);
 
@@ -1247,6 +1267,7 @@ function PrismBodyHybrid({ geometry }) {
     }
 
     if (edgeMatRef.current) { edgeMatRef.current.uniforms.uTime.value = t; edgeMatRef.current.uniforms.uOpacity.value = cfg.edgeGlowOpacity; }
+    if (wireMatRef.current) wireMatRef.current.opacity = cfg.wireframeOpacity ?? 0.2;
   });
 
   const mtmScale = cfg.hybridMtmScale ?? 1.06;
@@ -1290,7 +1311,7 @@ function PrismBodyHybrid({ geometry }) {
           transparent blending={THREE.AdditiveBlending} depthWrite={false} />
       </lineSegments>
       <mesh geometry={geometry} renderOrder={5}>
-        <meshBasicMaterial wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial ref={wireMatRef} wireframe color="#ffffff" transparent opacity={cfg.wireframeOpacity ?? 0.2} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   );
