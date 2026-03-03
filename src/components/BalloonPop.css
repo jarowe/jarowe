@@ -382,6 +382,53 @@
   color: #a1a1aa;
 }
 
+/* Birthday Card Launcher CTA */
+.balloon-card-launcher-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(244, 114, 182, 0.12));
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 16px;
+  padding: 0.8rem 1.4rem;
+  margin-top: 0.6rem;
+  animation: cardCtaPulse 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes cardCtaPulse {
+  from { box-shadow: 0 0 8px rgba(251, 191, 36, 0.15); }
+  to { box-shadow: 0 0 22px rgba(251, 191, 36, 0.4); }
+}
+
+.balloon-card-icon {
+  font-size: 1.4rem;
+}
+
+.balloon-card-text {
+  color: #fde68a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.balloon-card-btn {
+  padding: 0.45rem 1.1rem;
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.3);
+}
+
+.balloon-card-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.5);
+}
+
 /* Next round button */
 .balloon-next-round-btn {
   background: linear-gradient(135deg, #7c3aed, #38bdf8) !important;

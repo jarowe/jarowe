@@ -1853,6 +1853,7 @@
     overflow: hidden;
     position: relative;
     z-index: 1;
+    margin-top: 1.2rem;
     mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
     -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }

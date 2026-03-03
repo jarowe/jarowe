@@ -3877,7 +3877,6 @@ export default function Home() {
     "I'm basically a disco ball",
   ];
 
-  // Birthday Glint ideas — the LAST one is a secret slingshot unlock card
   const birthdayGlintIdeas = [
     "It's my BIRTHDAY! I'm basically a party in prism form!",
     "40 years of refracting pure genius. You're welcome, world.",
@@ -3889,7 +3888,6 @@ export default function Home() {
     "Age is just a number. Refraction is forever.",
     "I'm 40% more fabulous than yesterday. Math checks out.",
     "Best birthday gift? Someone finally built me a party hat!",
-    "__SECRET_CARD__", // Special: triggers the birthday card launcher invite
   ];
 
   // Glint — the spark of an idea, the vessel for creativity
@@ -4215,15 +4213,9 @@ export default function Home() {
           const ideaPool = isBirthday ? birthdayGlintIdeas : glintIdeas;
           const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)];
           window.__prismTalking = true;
-          if (idea === '__SECRET_CARD__') {
-            // Secret birthday card launcher invite!
-            showBubbleWithThinking("Psst! I made Jared a birthday card... wanna help me LAUNCH it? Click me!");
-            window.__prismSecretCard = true;
-          } else {
-            showBubbleWithThinking(idea);
-          }
+          showBubbleWithThinking(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
-          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; window.__prismSecretCard = false; }, 5000);
+          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
         }, style === 'portal' ? 2000 : 1200);
         setTimeout(() => {
           clearTimeout(ideaDelay);
@@ -4507,16 +4499,6 @@ export default function Home() {
     // One bop per reveal only
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
-
-    // Secret birthday card launcher — Glint is offering the hidden game!
-    if (window.__prismSecretCard) {
-      window.__prismSecretCard = false;
-      clearBubble();
-      playBopSound();
-      confetti({ particleCount: 60, spread: 100, origin: { x: 0.5, y: 0.5 }, colors: ['#fbbf24', '#f472b6', '#7c3aed'] });
-      setBirthdayFlow('slingshot');
-      return;
-    }
 
     playBopSound();
     const newBops = prismBops + 1;
@@ -5556,7 +5538,9 @@ export default function Home() {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
                   cameFromGame.current = true;
                 }}
-                onSecretUnlock={() => setBirthdayFlow('slingshot')}
+                onLaunchCard={() => {
+                  setBirthdayFlow('slingshot');
+                }}
               />
             </Suspense>
           )}

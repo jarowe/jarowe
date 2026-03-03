@@ -49,7 +49,7 @@ function saveScore(initials, score, round, bestCombo) {
   return top;
 }
 
-export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
+export default function BalloonPop({ targetCount = 40, onClose, onComplete, onLaunchCard }) {
   // complete-screen sub-state: 'score' -> 'leaderboard' -> 'next-or-done'
   const [gameState, setGameState] = useState('ready');
   const [completeStep, setCompleteStep] = useState('score');
@@ -369,7 +369,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
                 </motion.div>
               )}
 
-              {/* Step 2: Leaderboard + Next Round / Done */}
+              {/* Step 2: Leaderboard + Next Round / Card Launcher / Done */}
               {completeStep === 'leaderboard' && (
                 <motion.div key="lb-step" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                   <h2 style={{ fontSize: '2rem' }}>{won ? 'Nice One!' : 'Good Try!'}</h2>
@@ -389,7 +389,22 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
                       ))}
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {/* Birthday Card Launcher */}
+                  {onLaunchCard && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3, type: 'spring', bounce: 0.4 }}
+                      className="balloon-card-launcher-cta"
+                    >
+                      <span className="balloon-card-icon">{'\uD83C\uDF82'}</span>
+                      <span className="balloon-card-text">Send Jared a birthday card!</span>
+                      <button className="balloon-card-btn" onClick={() => { onClose(); setTimeout(() => onLaunchCard(), 300); }}>
+                        Launch Card!
+                      </button>
+                    </motion.div>
+                  )}
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.8rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                     {won && (
                       <button className="balloon-start-btn balloon-next-round-btn" onClick={handleNextRound}>
                         Round {round + 1} (Harder!)

@@ -6,20 +6,20 @@ import './BirthdaySlingshot.css';
 
 const GRAVITY = 0.35;
 const MAX_DRAG = 150;
-const PROJ_RADIUS = 18;
-const GROUND_Y_RATIO = 0.85; // ground at 85% of canvas height
-const SLING_X_RATIO = 0.12;
-const SLING_Y_OFFSET = 80; // above ground
+const PROJ_RADIUS = 20;
+const GROUND_Y_RATIO = 0.88; // ground at 88% of canvas height — more room for blocks
+const SLING_X_RATIO = 0.10;
+const SLING_Y_OFFSET = 100; // above ground
 
 // ─── LEVELS ───
+// Levels use a scale factor (s) derived from canvas height for responsive block sizes
 const LEVELS = [
   {
     name: 'Birthday Tower',
     desc: 'Topple the tower!',
     shots: 5,
-    build: (cx, gy) => {
-      // Tall tower, 3 wide x 6 high
-      const bw = 48, bh = 48, gap = 2;
+    build: (cx, gy, s) => {
+      const bw = 56 * s, bh = 56 * s, gap = 3 * s;
       const baseX = cx - (3 * (bw + gap)) / 2;
       const blocks = [];
       for (let row = 0; row < 6; row++) {
@@ -34,24 +34,20 @@ const LEVELS = [
     name: 'Gift Fortress',
     desc: 'Breach the walls!',
     shots: 6,
-    build: (cx, gy) => {
-      // Two walls with gap, platform on top
-      const bw = 50, bh = 50, gap = 2;
+    build: (cx, gy, s) => {
+      const bw = 58 * s, bh = 58 * s, gap = 3 * s;
       const blocks = [];
-      // Left wall (4 high)
+      const spread = 140 * s;
       for (let r = 0; r < 4; r++) {
-        blocks.push({ x: cx - 120, y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
+        blocks.push({ x: cx - spread, y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
       }
-      // Right wall (4 high)
       for (let r = 0; r < 4; r++) {
-        blocks.push({ x: cx + 70, y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
+        blocks.push({ x: cx + spread - bw, y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
       }
-      // Platform on top (3 blocks)
       for (let c = 0; c < 3; c++) {
-        blocks.push({ x: cx - 120 + c * (bw + gap + 20), y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
+        blocks.push({ x: cx - spread + c * (bw + gap + 24 * s), y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
       }
-      // Crown block on platform
-      blocks.push({ x: cx - 25, y: gy - 6 * bh, w: bw, h: bh, hp: 1 });
+      blocks.push({ x: cx - bw / 2, y: gy - 6 * bh, w: bw, h: bh, hp: 1 });
       return blocks;
     },
   },
@@ -59,22 +55,20 @@ const LEVELS = [
     name: 'Party Bridge',
     desc: 'Collapse the bridge!',
     shots: 5,
-    build: (cx, gy) => {
-      const bw = 44, bh = 44;
+    build: (cx, gy, s) => {
+      const bw = 52 * s, bh = 52 * s;
       const blocks = [];
-      // Two pillars
+      const spread = 150 * s;
       for (let r = 0; r < 3; r++) {
-        blocks.push({ x: cx - 130, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 2 });
-        blocks.push({ x: cx + 90, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 2 });
+        blocks.push({ x: cx - spread, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 2 });
+        blocks.push({ x: cx + spread - bw, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 2 });
       }
-      // Bridge deck (5 blocks across)
       for (let c = 0; c < 5; c++) {
-        blocks.push({ x: cx - 130 + c * (bw + 8), y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
+        blocks.push({ x: cx - spread + c * (bw + 10 * s), y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
       }
-      // Stuff on bridge (3 blocks)
-      blocks.push({ x: cx - 80, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
-      blocks.push({ x: cx, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
-      blocks.push({ x: cx + 80, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
+      blocks.push({ x: cx - 90 * s, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
+      blocks.push({ x: cx - bw / 2, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
+      blocks.push({ x: cx + 90 * s - bw, y: gy - 5 * bh, w: bw, h: bh, hp: 1 });
       return blocks;
     },
   },
@@ -82,27 +76,24 @@ const LEVELS = [
     name: 'Candle Castle',
     desc: 'Blow out the candles!',
     shots: 6,
-    build: (cx, gy) => {
-      const bw = 46, bh = 46;
+    build: (cx, gy, s) => {
+      const bw = 54 * s, bh = 54 * s;
       const blocks = [];
-      // Base layer (5 wide)
+      const sp = bw + 5 * s;
       for (let c = 0; c < 5; c++) {
-        blocks.push({ x: cx - 120 + c * (bw + 4), y: gy - bh, w: bw, h: bh, hp: 2 });
+        blocks.push({ x: cx - 2.5 * sp + c * sp, y: gy - bh, w: bw, h: bh, hp: 2 });
       }
-      // Second layer (4 wide, offset)
       for (let c = 0; c < 4; c++) {
-        blocks.push({ x: cx - 96 + c * (bw + 4), y: gy - 2 * bh, w: bw, h: bh, hp: 1 });
+        blocks.push({ x: cx - 2 * sp + c * sp, y: gy - 2 * bh, w: bw, h: bh, hp: 1 });
       }
-      // Third layer (3 wide)
       for (let c = 0; c < 3; c++) {
-        blocks.push({ x: cx - 72 + c * (bw + 4), y: gy - 3 * bh, w: bw, h: bh, hp: 1 });
+        blocks.push({ x: cx - 1.5 * sp + c * sp, y: gy - 3 * bh, w: bw, h: bh, hp: 1 });
       }
-      // Two candle towers
-      blocks.push({ x: cx - 48, y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
-      blocks.push({ x: cx + 2, y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
-      // Candle flames (small)
-      blocks.push({ x: cx - 38, y: gy - 5 * bh + 10, w: 26, h: 26, hp: 1 });
-      blocks.push({ x: cx + 12, y: gy - 5 * bh + 10, w: 26, h: 26, hp: 1 });
+      blocks.push({ x: cx - sp, y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
+      blocks.push({ x: cx, y: gy - 4 * bh, w: bw, h: bh, hp: 1 });
+      const fw = 30 * s, fh = 30 * s;
+      blocks.push({ x: cx - sp + (bw - fw) / 2, y: gy - 4 * bh - fh - 2, w: fw, h: fh, hp: 1 });
+      blocks.push({ x: cx + (bw - fw) / 2, y: gy - 4 * bh - fh - 2, w: fw, h: fh, hp: 1 });
       return blocks;
     },
   },
@@ -110,28 +101,20 @@ const LEVELS = [
     name: 'THE BIG 4-0',
     desc: 'The grand finale!',
     shots: 7,
-    build: (cx, gy) => {
-      const bw = 36, bh = 36;
+    build: (cx, gy, s) => {
+      const bw = 42 * s, bh = 42 * s, sp = bw + 3 * s;
       const blocks = [];
-      // "4" shape (left side)
-      const fourX = cx - 100;
-      // Vertical left of 4
+      const fourX = cx - 120 * s;
       for (let r = 0; r < 5; r++) blocks.push({ x: fourX, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 1 });
-      // Horizontal bar of 4
-      for (let c = 1; c < 3; c++) blocks.push({ x: fourX + c * (bw + 2), y: gy - 3 * bh, w: bw, h: bh, hp: 1 });
-      // Vertical right of 4
-      for (let r = 0; r < 5; r++) blocks.push({ x: fourX + 3 * (bw + 2), y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
+      for (let c = 1; c < 3; c++) blocks.push({ x: fourX + c * sp, y: gy - 3 * bh, w: bw, h: bh, hp: 1 });
+      for (let r = 0; r < 5; r++) blocks.push({ x: fourX + 3 * sp, y: gy - (r + 1) * bh, w: bw, h: bh, hp: r < 2 ? 2 : 1 });
 
-      // "0" shape (right side)
-      const zeroX = cx + 40;
-      // Left side of 0
+      const zeroX = cx + 50 * s;
       for (let r = 0; r < 5; r++) blocks.push({ x: zeroX, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 1 });
-      // Right side of 0
-      for (let r = 0; r < 5; r++) blocks.push({ x: zeroX + 3 * (bw + 2), y: gy - (r + 1) * bh, w: bw, h: bh, hp: 1 });
-      // Top and bottom of 0
+      for (let r = 0; r < 5; r++) blocks.push({ x: zeroX + 3 * sp, y: gy - (r + 1) * bh, w: bw, h: bh, hp: 1 });
       for (let c = 1; c < 3; c++) {
-        blocks.push({ x: zeroX + c * (bw + 2), y: gy - bh, w: bw, h: bh, hp: 2 });
-        blocks.push({ x: zeroX + c * (bw + 2), y: gy - 5 * bh, w: bw, h: bh, hp: 2 });
+        blocks.push({ x: zeroX + c * sp, y: gy - bh, w: bw, h: bh, hp: 2 });
+        blocks.push({ x: zeroX + c * sp, y: gy - 5 * bh, w: bw, h: bh, hp: 2 });
       }
       return blocks;
     },
@@ -200,9 +183,10 @@ export default function BirthdaySlingshot({ onClose }) {
     if (!canvas) return;
     const cw = canvas.width, ch = canvas.height;
     const gy = getGround(ch);
-    const centerX = cw * 0.55; // blocks centered right of middle
+    const centerX = cw * 0.58; // blocks centered right of middle
+    const scale = Math.min(ch / 900, cw / 1400); // responsive scale factor
     const lvl = LEVELS[lvlIndex];
-    const rawBlocks = lvl.build(centerX, gy);
+    const rawBlocks = lvl.build(centerX, gy, scale);
 
     let id = 0;
     const blocks = rawBlocks.map(b => ({
