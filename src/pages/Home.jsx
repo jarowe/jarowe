@@ -3980,14 +3980,15 @@ export default function Home() {
       // ── Landing physics: flash nebula + spin impulse + landing squash ──
       window.__nebulaFlash = 1.0;
       window.__prismExpression = 'excited';
-      // Signal beam excitement system that entrance is active
-      window.__prismEntering = true;
-      setTimeout(() => { window.__prismEntering = false; }, 1500);
-      // Directional spin from portal → gives "shot out" feel
+      // Signal beam excitement system that entrance is active (fades out smoothly)
+      window.__prismEnteringStart = performance.now();
+      window.__prismEnteringDuration = 1500;
+      // Directional spin from portal → gives "shot out" feel (randomized per entrance)
+      const spinDir = Math.random() > 0.5 ? 1 : -1;
       window.__prismBopImpulse = {
-        x: (Math.random() - 0.5) * 0.3,
-        y: 0.4 + Math.random() * 0.2,  // forward Y spin
-        z: (Math.random() - 0.5) * 0.15,
+        x: (Math.random() - 0.5) * 0.4,
+        y: spinDir * (0.3 + Math.random() * 0.3),  // random direction + varied speed
+        z: (Math.random() - 0.5) * 0.2,
       };
       // Landing squash after spring settles (~400ms after emerge)
       setTimeout(() => {
@@ -4092,10 +4093,17 @@ export default function Home() {
     portalExitingRef.current = true;
 
     // Reset any stale beam state before starting exit
-    window.__prismEntering = false;
+    window.__prismEnteringStart = 0;
 
-    // Activate portal-suck vortex spin in Prism3D (3D Y-spin boost only)
+    // Activate portal-suck vortex spin in Prism3D
     window.__prismPortalSuck = true;
+    // Random exit spin impulse — each exit feels different
+    const exitDir = Math.random() > 0.5 ? 1 : -1;
+    window.__prismBopImpulse = {
+      x: (Math.random() - 0.5) * 0.2,
+      y: exitDir * (0.2 + Math.random() * 0.2),
+      z: (Math.random() - 0.5) * 0.1,
+    };
 
     const cfg = window.__prismConfig || {};
     const residualMs = cfg.portalResidualMs ?? 1800;

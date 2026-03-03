@@ -306,14 +306,19 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
     window.__prismDragSpin = null;
   }
 
-  // ── 5. Portal suck vortex — additive spin boost (not multiplicative!) ──
+  // ── 5. Portal suck vortex — smooth ease-in spin with organic wobble ──
   const suckTarget = window.__prismPortalSuck ? 1 : 0;
-  portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 6);
+  // Slower ramp for natural easing (delta*3 instead of *6)
+  portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 3);
   const suckLerp = portalSuckLerp.current;
   if (suckLerp > 0.01) {
-    // Additive: constant spin rate that ramps up, not exponential multiplication
-    const suckSpeed = suckLerp * (cfg.portalSuckSpinMult ?? 6.0);
+    // Ease-in curve: suckLerp² gives slow start, fast finish
+    const eased = suckLerp * suckLerp;
+    const suckSpeed = eased * (cfg.portalSuckSpinMult ?? 6.0);
     rot.y += suckSpeed * delta;
+    // Organic wobble — subtle X/Z tumble that increases with suck intensity
+    rot.x += Math.sin(t * 5.3) * eased * 0.15 * delta * 60;
+    rot.z += Math.cos(t * 3.7) * eased * 0.08 * delta * 60;
   }
 
   // ── 6. Damping on impulse/drag velocity only ──
@@ -1924,7 +1929,8 @@ function LightDirectionTracker() {
 
     // 8. Portal suck cascade tracking
     const suckActive = !!window.__prismPortalSuck;
-    const isEnteringNow = !!window.__prismEntering;
+    const isEnteringNow = (window.__prismEnteringStart || 0) > 0 &&
+      (performance.now() - window.__prismEnteringStart) < (window.__prismEnteringDuration || 1500);
     // Hard reset when entering — prevents stale exit progress from bleeding into entrance
     if (isEnteringNow && !suckActive) {
       lightState.portalSuckProgress = 0;
@@ -2104,11 +2110,18 @@ function RainbowFan() {
 
     // Separate controls: jitter = spread breathing, sweep = rotational center shaking
     // During entrance/exit, scale by excitement multiplier (0=calm, 1=full shake)
-    const isEntering = !!window.__prismEntering;
+    // Entrance excitement fades smoothly from 1→0 over the duration (no hard cutoff pop)
+    const enterStart = window.__prismEnteringStart || 0;
+    const enterDur = window.__prismEnteringDuration || 1500;
+    const enterElapsed = enterStart > 0 ? performance.now() - enterStart : enterDur + 1;
+    const enterFade = Math.max(0, 1 - enterElapsed / enterDur); // 1→0 smooth fade
+    const isEntering = enterFade > 0.01;
     const isExiting = lightState.portalSuckProgress > 0.01;
     let excitement = 1.0;
-    if (isEntering) excitement = cfg.entranceBeamExcitement ?? 1.0;
-    else if (isExiting) excitement = cfg.exitBeamExcitement ?? 1.0;
+    // entranceBeamExcitement multiplies jitter/sweep: >1 = more lively, <1 = calmer
+    // Smoothly interpolate from excited value back to 1.0 (normal) over entrance duration
+    if (isEntering) excitement = THREE.MathUtils.lerp(1.0, cfg.entranceBeamExcitement ?? 1.4, enterFade);
+    else if (isExiting) excitement = cfg.exitBeamExcitement ?? 0.6;
 
     const jitter = (cfg.rayJitter ?? 1.0) * excitement;
     const sweep = (cfg.raySweep ?? 0.5) * excitement;
