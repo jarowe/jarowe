@@ -3864,6 +3864,9 @@ export default function Home() {
   const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
   const peekStyleRef = useRef('slide');
   const portalExitingRef = useRef(false);
+  const peekVisibleRef = useRef(false); // stale-closure-safe peekVisible
+  const autoExitTimerRef = useRef(null); // auto-exit 8s timer — cancelled on bop
+  const entranceTimersRef = useRef([]); // entrance sequence timeouts — cancelled on exit
   // Offset from character's final position back to portal origin (for emerge animation)
   const portalSpawnOffsetRef = useRef({ x: 0, y: 0 });
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
@@ -3900,8 +3903,9 @@ export default function Home() {
     return null;
   };
 
-  // Keep peekStyleRef in sync for stale-closure-safe access
+  // Keep refs in sync for stale-closure-safe access
   useEffect(() => { peekStyleRef.current = peekStyle; }, [peekStyle]);
+  useEffect(() => { peekVisibleRef.current = peekVisible; }, [peekVisible]);
 
   const glintCatchPhrases = [
     "Hey! You found me!",
@@ -4019,18 +4023,23 @@ export default function Home() {
     // Time offset: seep adds time before gathering
     const t0 = seepEnabled ? seepDuration : 0;
 
+    // Cancel any prior entrance timers (prevents phase conflicts if entrance interrupted)
+    entranceTimersRef.current.forEach(clearTimeout);
+    entranceTimersRef.current = [];
+    const eT = (fn, ms) => { const id = setTimeout(fn, ms); entranceTimersRef.current.push(id); return id; };
+
     // Seep phase (canvas handles the visual)
     if (seepEnabled) {
       setPortalPhase('seep');
     }
 
     // Phase 1: Sling ring draws
-    setTimeout(() => {
+    eT(() => {
       setPortalPhase('gathering');
     }, t0);
 
     // Phase 2: Portal ruptures open
-    setTimeout(() => {
+    eT(() => {
       setPortalPhase('rupture');
       if (confettiEnabled) {
         confetti({ particleCount: Math.round(confettiCount * 0.5), spread: 40, startVelocity: 25, gravity: 0.2, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3, '#a78bfa', '#c4b5fd'], scalar: 0.5, ticks: 60, shapes: ['circle'] });
@@ -4038,7 +4047,7 @@ export default function Home() {
     }, t0 + gatherMs);
 
     // Phase 3: Character emerges through rift
-    setTimeout(() => {
+    eT(() => {
       setPortalPhase('emerging');
       showCharCallback();
 
@@ -4078,7 +4087,7 @@ export default function Home() {
     }, t0 + gatherMs + ruptureMs);
 
     // Phase 4: Residual glow
-    setTimeout(() => {
+    eT(() => {
       setPortalPhase('residual');
       if (confettiEnabled) {
         confetti({ particleCount: Math.round(confettiCount * 0.33), spread: 360, startVelocity: 6, gravity: 0.1, origin: { x: cOx, y: cOy }, colors: [c1, c2, c3, '#c4b5fd'], scalar: 0.35, ticks: 250, shapes: ['circle'] });
@@ -4087,7 +4096,7 @@ export default function Home() {
 
     // Cleanup
     const totalMs = t0 + gatherMs + ruptureMs + emergeMs + residualMs;
-    setTimeout(() => {
+    eT(() => {
       setPortalPhase(null);
     }, totalMs);
 
@@ -4155,7 +4164,12 @@ export default function Home() {
   // ── Portal EXIT sequence – re-opens portal at character pos, sucks it back in ──
   const runPortalExitSequence = useCallback(() => {
     if (portalExitingRef.current) return; // already exiting
+    if (!peekVisibleRef.current) return;  // character already hidden — no ghost portals
     portalExitingRef.current = true;
+
+    // Cancel any pending entrance timers (prevents phase conflicts)
+    entranceTimersRef.current.forEach(clearTimeout);
+    entranceTimersRef.current = [];
 
     // Reset any stale beam state before starting exit
     window.__prismEnteringStart = 0;
@@ -4258,7 +4272,7 @@ export default function Home() {
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
           setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
         }, style === 'portal' ? 2000 : 1200);
-        setTimeout(() => {
+        autoExitTimerRef.current = setTimeout(() => {
           clearTimeout(ideaDelay);
           if (peekStyleRef.current === 'portal') {
             runPortalExitSequence();
@@ -4540,6 +4554,10 @@ export default function Home() {
     // One bop per reveal only
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
+
+    // Cancel any pending exit timers — bop takes over the exit sequence
+    if (autoExitTimerRef.current) { clearTimeout(autoExitTimerRef.current); autoExitTimerRef.current = null; }
+    if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
 
     playBopSound();
     const newBops = prismBops + 1;
