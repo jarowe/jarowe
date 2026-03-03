@@ -2008,9 +2008,10 @@ function RainbowFan() {
     // Configurable ray length via scale (base geo is 7 wide)
     const rayScale = (cfg.rayLength ?? 14) / 7;
 
-    // Jitter control: 0=rays stay at base angle, 1=full rotation-driven motion
-    const jitter = cfg.rayJitter ?? 1.0;
-    const jitteredCenter = lightState.dispersionCenter * jitter;
+    // Separate controls: jitter = spread breathing, sweep = rotational center shaking
+    const jitter = cfg.rayJitter ?? 1.0;       // scales widening/narrowing (the breathing)
+    const sweep = cfg.raySweep ?? 0.5;          // scales rotational center sweep (the shaking)
+    const jitteredCenter = lightState.dispersionCenter * sweep;
     const jitteredSpread = baseDisp + (lightState.dispersionSpread - baseDisp) * jitter;
 
     // Portal exit spread boost: rays fan apart as they retract

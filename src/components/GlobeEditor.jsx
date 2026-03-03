@@ -761,9 +761,11 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // -- Ray Motion --
     const pRayMotion = pFx.addFolder('Ray Motion');
     if (pcfg.rayJitter === undefined) pcfg.rayJitter = 1.0;
+    if (pcfg.raySweep === undefined) pcfg.raySweep = 0.5;
     if (pcfg.portalExitSpread === undefined) pcfg.portalExitSpread = 1.5;
     if (pcfg.portalExitWiden === undefined) pcfg.portalExitWiden = 1.0;
-    pRayMotion.add(pcfg, 'rayJitter', 0, 1.0, 0.01).name('Ray Jitter');
+    pRayMotion.add(pcfg, 'rayJitter', 0, 1.0, 0.01).name('Spread Breathing');
+    pRayMotion.add(pcfg, 'raySweep', 0, 1.0, 0.01).name('Rotation Sweep');
     pRayMotion.add(pcfg, 'portalExitSpread', 0, 4.0, 0.01).name('Portal Fan-Out');
     pRayMotion.add(pcfg, 'portalExitWiden', 0, 3.0, 0.01).name('Portal Ray Widen');
     pRayMotion.close();
