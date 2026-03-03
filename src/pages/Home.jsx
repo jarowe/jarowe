@@ -5259,7 +5259,9 @@ export default function Home() {
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
           const pso = portalSpawnOffsetRef.current;
-          const isPortalExiting = portalExitingRef.current;
+          // Only activate exit mode when peekVisible is already false — prevents
+          // transition swap from causing a snap while entrance spring is still settling
+          const isPortalExiting = portalExitingRef.current && !peekVisible;
           const hiddenState =
             // Portal exit: smooth shrink in-place (reverse of entrance pop)
             peekStyle === 'portal' && isPortalExiting ? { opacity: 0, x: 0, y: 0, scale: 0 }
@@ -5499,13 +5501,17 @@ export default function Home() {
               <BalloonPop
                 targetCount={age}
                 onClose={() => {
-                  setBirthdayFlow('idle');
                   try { setTickerScores(JSON.parse(localStorage.getItem('jarowe_balloon_scores') || '[]')); } catch {}
+                  if (cameFromGame.current) {
+                    cameFromGame.current = false;
+                    setBirthdayFlow('make-wish');
+                  } else {
+                    setBirthdayFlow('idle');
+                  }
                 }}
                 onComplete={() => {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
                   cameFromGame.current = true;
-                  setTimeout(() => setBirthdayFlow('make-wish'), 2500);
                 }}
               />
             </Suspense>
