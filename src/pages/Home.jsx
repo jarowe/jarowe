@@ -4083,7 +4083,7 @@ export default function Home() {
 
   // ── Compute character position offset from portal toward screen center ──
   // Returns { charPos: {x,y} (container top-left), offset: {x,y} (delta from final pos back to portal) }
-  const PORTAL_SPAWN_DISTANCE = 140; // consistent px from portal toward center
+  const PORTAL_SPAWN_DISTANCE = 80; // consistent px from portal toward center
   const getPortalCharPosition = (portalOriginPct) => {
     const W = window.innerWidth;
     const H = window.innerHeight;
@@ -5304,10 +5304,10 @@ export default function Home() {
           const isCustomPos = peekPosition.side === 'custom' && dragPosition.x != null;
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
-          const pso = portalSpawnOffsetRef.current;
-          // hiddenState only used for entrance (how the character starts before animating in)
+          // hiddenState: how the character looks when not visible.
+          // Portal uses {x:0, y:0} to prevent stale offset from prior exit bleeding into next entrance.
           const hiddenState =
-            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
+            peekStyle === 'portal' ? { opacity: 0, x: 0, y: 0, scale: 0 }
             : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
@@ -5316,8 +5316,8 @@ export default function Home() {
           const peekTransition =
             // Portal exit: smooth shrink (x/y stay at 0 — NO position movement)
             portalExitAnim ? { type: 'tween', duration: 0.5, ease: [0.4, 0, 0.2, 1] }
-            // Portal entrance: bouncy spring from portal toward final position
-            : peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 10, mass: 0.8, velocity: 8 }
+            // Portal entrance: snappy scale-up at final position (no x/y animation)
+            : peekStyle === 'portal' ? { type: 'spring', stiffness: 300, damping: 14 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
             : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
             : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
