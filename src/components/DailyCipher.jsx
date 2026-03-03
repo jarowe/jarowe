@@ -38,6 +38,19 @@ const vaultPhotos = [
 
 const getDailyData = () => {
     const today = new Date();
+    const params = new URLSearchParams(window.location.search);
+    const debugBirthday = params.get('birthday') === 'true';
+    const isBday = debugBirthday || (today.getMonth() === 2 && today.getDate() === 3);
+
+    if (isBday) {
+        const bdayWords = ['PARTY', 'FORTY', 'BLAZE', 'SPARK', 'LIGHT'];
+        const yearSeed = today.getFullYear();
+        return {
+            word: bdayWords[yearSeed % bdayWords.length],
+            cardIndex: yearSeed % vaultPhotos.length
+        };
+    }
+
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
     return {
         word: WORDS[seed % WORDS.length],
@@ -56,6 +69,8 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
     const [unlockedCards, setUnlockedCards] = useState([]);
     const [showRewardSpash, setShowRewardSplash] = useState(false);
     const [selectedCard, setSelectedCard] = useState(null);
+
+    const isBirthdayMode = typeof window !== 'undefined' && window.__birthdayMode;
 
     // Bonus cipher state
     const [mode, setMode] = useState('daily'); // 'daily' | 'bonus'
@@ -275,6 +290,14 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
                         ? ['#fbbf24', '#f59e0b', '#f472b6', '#7c3aed', '#22c55e']
                         : ['#7c3aed', '#38bdf8', '#f472b6', '#fbbf24', '#22c55e']
                 });
+                if (typeof window !== 'undefined' && window.__birthdayMode) {
+                    setTimeout(() => confetti({
+                        particleCount: 200,
+                        spread: 360,
+                        origin: { y: 0.5 },
+                        colors: ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8'],
+                    }), 300);
+                }
             }, 1000);
         }
     };
@@ -448,7 +471,7 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
         <div className={`cipher-vault-wrapper ${showVault ? 'with-vault' : ''}`}>
 
             {/* LEFT: CIPHER TERMINAL */}
-            <div className={`cipher-terminal ${isBonus ? 'bonus-mode' : ''} ${gameState === 'playing' ? 'awaiting-input' : ''}`}>
+            <div className={`cipher-terminal ${isBonus ? 'bonus-mode' : ''} ${gameState === 'playing' ? 'awaiting-input' : ''}${isBirthdayMode ? ' birthday-cipher' : ''}`}>
                 <div className="terminal-header">
                     <div className="terminal-title">
                         {isBonus ? (

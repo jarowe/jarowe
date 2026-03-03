@@ -704,3 +704,18 @@
         letter-spacing: 2px;
     }
 }
+
+/* Birthday Cipher */
+.birthday-cipher .cipher-cell.correct {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
+}
+
+.birthday-cipher .cipher-cell.present {
+    background: linear-gradient(135deg, #f472b6, #ec4899);
+    box-shadow: 0 0 12px rgba(244, 114, 182, 0.4);
+}
+
+.birthday-cipher .cipher-terminal::before {
+    background: linear-gradient(90deg, transparent, #fbbf24, #f472b6, transparent);
+}

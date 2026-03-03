@@ -27,12 +27,14 @@ export default function Navbar() {
         }
     };
 
+    const isBirthdayMode = typeof window !== 'undefined' && window.__birthdayMode;
+
     return (
         <nav className="navbar glass-panel">
             <div className="nav-container">
                 <Link to="/" className="nav-brand">
-                    <span className="font-display">JAROWE</span>
-                    <span className="brand-dot">.</span>
+                    <span className={`font-display${isBirthdayMode ? ' birthday-brand' : ''}`}>JAROWE</span>
+                    <span className={`brand-dot${isBirthdayMode ? ' birthday-dot' : ''}`}>.</span>
                 </Link>
 
                 <div className="nav-links">

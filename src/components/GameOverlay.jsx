@@ -26,11 +26,14 @@ export default function GameOverlay() {
             const oldLevel = Math.floor(prev / 100) + 1;
 
             if (newLevel > oldLevel) {
+                const bdayColors = (typeof window !== 'undefined' && window.__birthdayMode)
+                    ? ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e']
+                    : ['#7c3aed', '#0ea5e9', '#f472b6'];
                 confetti({
                     particleCount: 150,
                     spread: 80,
                     origin: { y: 0.8 },
-                    colors: ['#7c3aed', '#0ea5e9', '#f472b6']
+                    colors: bdayColors
                 });
             }
 
@@ -76,6 +79,30 @@ export default function GameOverlay() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [addXp]);
+
+    // Listen for XP events from mini-games
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.detail && e.detail.amount) {
+                addXp(e.detail.amount, e.detail.reason || 'Mini-game bonus');
+            }
+        };
+        window.addEventListener('add-xp', handler);
+        return () => window.removeEventListener('add-xp', handler);
+    }, [addXp]);
+
+    // Birthday visitor XP
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.__birthdayMode) return;
+        const year = new Date().getFullYear();
+        const key = `jarowe_birthday_xp_${year}`;
+        if (localStorage.getItem(key) === 'true') return;
+        const timer = setTimeout(() => {
+            addXp(100, "Happy Birthday! \u{1F382}");
+            localStorage.setItem(key, 'true');
+        }, 2000);
+        return () => clearTimeout(timer);
     }, [addXp]);
 
     return (

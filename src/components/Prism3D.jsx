@@ -132,6 +132,76 @@ if (!window.__prismConfig) {
 }
 const cfg = window.__prismConfig;
 
+/* ═══════════ BIRTHDAY PARTY HAT ═══════════ */
+function createPartyHatTexture() {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Cone body with gradient
+    const grad = ctx.createLinearGradient(size/2, 0, size/2, size);
+    grad.addColorStop(0, '#7c3aed');
+    grad.addColorStop(0.5, '#f472b6');
+    grad.addColorStop(1, '#fbbf24');
+
+    ctx.beginPath();
+    ctx.moveTo(size/2, 8);
+    ctx.lineTo(size - 20, size - 15);
+    ctx.lineTo(20, size - 15);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Polka dots
+    const dots = [[40, 60], [75, 55], [55, 85], [45, 40], [70, 75]];
+    dots.forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fill();
+    });
+
+    // Pom-pom at tip
+    ctx.beginPath();
+    ctx.arc(size/2, 8, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff4444';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(size/2 - 3, 5, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fill();
+
+    // Elastic band at bottom
+    ctx.beginPath();
+    ctx.moveTo(20, size - 15);
+    ctx.quadraticCurveTo(size/2, size - 5, size - 20, size - 15);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    return new THREE.CanvasTexture(canvas);
+}
+
+function PartyHat() {
+    const ref = useRef();
+    const texture = useMemo(() => createPartyHatTexture(), []);
+
+    useFrame(({ clock }) => {
+        if (!ref.current) return;
+        // Subtle wobble
+        ref.current.rotation.z = Math.sin(clock.elapsedTime * 2) * 0.05;
+        ref.current.rotation.x = Math.sin(clock.elapsedTime * 1.5) * 0.03;
+    });
+
+    return (
+        <sprite ref={ref} position={[0, 1.1, 0.1]} scale={[0.7, 0.9, 1]}>
+            <spriteMaterial map={texture} transparent depthWrite={false} />
+        </sprite>
+    );
+}
+
 /* ═══════════ Mouse tracking (window-level) ═══════════ */
 const mousePos = new THREE.Vector2(0, 0);
 const mouseVel = { current: 0 };
@@ -1479,10 +1549,12 @@ function GlassOrbEye() {
     // Cycle expressions (more states, faster cycling for personality)
     if (t - expressionTimer.current > 4 + Math.random() * 3) {
       expressionTimer.current = t;
-      const states = [
+      const birthdayExpressions = ['happy', 'excited', 'happy', 'love', 'excited', 'happy', 'mischief', 'excited', 'happy', 'surprised'];
+      const defaultStates = [
         'normal', 'normal', 'curious', 'happy', 'normal', 'surprised',
         'excited', 'thinking', 'mischief', 'normal', 'love', 'normal',
       ];
+      const states = window.__birthdayMode ? birthdayExpressions : defaultStates;
       const newExpr = states[Math.floor(Math.random() * states.length)];
       expressionRef.current = newExpr;
       window.__prismExpression = newExpr;
@@ -1986,6 +2058,16 @@ const RAINBOW_BANDS = [
   { color: new THREE.Color('#aa22ff') },
 ];
 
+const BIRTHDAY_BANDS = [
+  { color: new THREE.Color('#fbbf24') },
+  { color: new THREE.Color('#ff1493') },
+  { color: new THREE.Color('#7c3aed') },
+  { color: new THREE.Color('#00e5ff') },
+  { color: new THREE.Color('#22c55e') },
+  { color: new THREE.Color('#ff6b35') },
+  { color: new THREE.Color('#c084fc') },
+];
+
 function RainbowFan() {
   const raysRef = useRef([]);
   const geo = useMemo(() => {
@@ -2027,8 +2109,13 @@ function RainbowFan() {
     // Portal exit spread boost: rays fan apart as they retract (scaled by exit excitement)
     const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5) * (isExiting ? excitement : 1.0);
 
+    const activeBands = window.__birthdayMode ? BIRTHDAY_BANDS : RAINBOW_BANDS;
+
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
+
+      // Swap beam colors based on birthday mode
+      mesh.material.uniforms.uColor.value = activeBands[i].color;
 
       // Normalized position across spectrum: -1 (red) to +1 (violet)
       const normalizedPos = (i / (bandCount - 1)) * 2 - 1;
@@ -2411,6 +2498,7 @@ export default function Prism3D() {
               </GlassErrorBoundary>
               <ScreenTracker />
               <GlassOrbEye />
+              {window.__birthdayMode && <PartyHat />}
               <InternalGlow />
               <VertexHighlights />
               <LightDirectionTracker />

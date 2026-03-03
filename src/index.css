@@ -21,6 +21,33 @@
   --font-display: 'Outfit', sans-serif;
 }
 
+/* Birthday Mode Override */
+body.birthday-mode {
+  --accent-primary: #f59e0b;
+  --accent-secondary: #ec4899;
+  --accent-glow: rgba(245, 158, 11, 0.2);
+}
+
+body.birthday-mode .brand-dot {
+  animation: birthdayDotPulse 1.5s ease-in-out infinite;
+  color: #f59e0b;
+}
+
+@keyframes birthdayDotPulse {
+  0%, 100% {
+    color: #f59e0b;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  }
+  33% {
+    color: #ec4899;
+    text-shadow: 0 0 12px rgba(236, 72, 153, 0.6);
+  }
+  66% {
+    color: #7c3aed;
+    text-shadow: 0 0 12px rgba(124, 58, 237, 0.6);
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

@@ -1633,3 +1633,175 @@
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+/* ═══════════════════════════════════════════
+   BIRTHDAY MODE
+   ═══════════════════════════════════════════ */
+
+.birthday-banner {
+    max-width: 800px;
+    margin: 0 auto 1.5rem;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    background: rgba(15, 10, 30, 0.8);
+}
+
+.birthday-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg,
+        rgba(251, 191, 36, 0.05) 0%,
+        rgba(244, 114, 182, 0.05) 50%,
+        rgba(124, 58, 237, 0.05) 100%);
+    animation: birthdayShimmer 3s ease-in-out infinite;
+}
+
+@keyframes birthdayShimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.birthday-banner-text {
+    font-size: 2rem;
+    font-weight: 900;
+    font-family: var(--font-display);
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed, #38bdf8);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: birthdayTextGradient 4s ease infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes birthdayTextGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.birthday-banner-subtitle {
+    font-size: 1rem;
+    color: #f472b6;
+    font-weight: 600;
+    margin-top: 0.3rem;
+    position: relative;
+    z-index: 1;
+}
+
+.birthday-banner-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.birthday-game-btn {
+    padding: 0.6rem 1.5rem;
+    background: linear-gradient(135deg, #fbbf24, #f472b6);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+    font-family: var(--font-body);
+}
+
+.birthday-game-btn:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 25px rgba(251, 191, 36, 0.5);
+}
+
+.birthday-wish-btn {
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.birthday-wish-btn:hover {
+    box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
+}
+
+/* Floating Birthday Balloons */
+.birthday-balloons-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.birthday-balloon {
+    position: absolute;
+    width: var(--b-size);
+    height: calc(var(--b-size) * 1.2);
+    left: var(--b-left);
+    bottom: -80px;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), var(--b-color) 60%);
+    border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%;
+    opacity: 0.4;
+    animation: birthdayBalloonFloat var(--b-speed) ease-in-out infinite;
+    animation-delay: var(--b-delay);
+}
+
+.birthday-balloon::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes birthdayBalloonFloat {
+    0% {
+        bottom: -80px;
+        transform: translateX(0);
+        opacity: 0;
+    }
+    5% {
+        opacity: 0.4;
+    }
+    25% {
+        transform: translateX(var(--b-sway));
+    }
+    50% {
+        transform: translateX(calc(var(--b-sway) * -0.6));
+    }
+    75% {
+        transform: translateX(calc(var(--b-sway) * 0.3));
+    }
+    95% {
+        opacity: 0.4;
+    }
+    100% {
+        bottom: calc(100vh + 80px);
+        transform: translateX(0);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .birthday-banner-text {
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+    }
+
+    .birthday-banner-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

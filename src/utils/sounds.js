@@ -119,3 +119,80 @@ export const playPortalSound = () => {
         noise.stop(t + 0.5);
     } catch (e) { }
 };
+
+export const playBirthdaySound = () => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') c.resume();
+        const t = c.currentTime;
+        // Happy birthday melody: C-C-D-C-F-E
+        const notes = [
+            { freq: 523.25, start: 0, dur: 0.2 },      // C5
+            { freq: 523.25, start: 0.25, dur: 0.2 },    // C5
+            { freq: 587.33, start: 0.5, dur: 0.3 },     // D5
+            { freq: 523.25, start: 0.8, dur: 0.3 },     // C5
+            { freq: 698.46, start: 1.1, dur: 0.3 },     // F5
+            { freq: 659.25, start: 1.4, dur: 0.5 },     // E5
+        ];
+        notes.forEach(({ freq, start, dur }) => {
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.12, t + start);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t + start);
+            osc.stop(t + start + dur + 0.05);
+        });
+        // Sparkle shimmer overlay
+        const shimmer = c.createOscillator();
+        const shimGain = c.createGain();
+        shimmer.type = 'triangle';
+        shimmer.frequency.setValueAtTime(2000, t);
+        shimmer.frequency.exponentialRampToValueAtTime(4000, t + 1.8);
+        shimGain.gain.setValueAtTime(0.02, t);
+        shimGain.gain.linearRampToValueAtTime(0.04, t + 0.5);
+        shimGain.gain.exponentialRampToValueAtTime(0.001, t + 1.9);
+        shimmer.connect(shimGain).connect(c.destination);
+        shimmer.start(t);
+        shimmer.stop(t + 2);
+    } catch (e) { }
+};
+
+export const playBalloonPopSound = () => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') c.resume();
+        const t = c.currentTime;
+        // White noise burst (pop)
+        const bufferSize = Math.floor(c.sampleRate * 0.08);
+        const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = c.createBufferSource();
+        noise.buffer = buffer;
+        const hpf = c.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 3000;
+        const popGain = c.createGain();
+        popGain.gain.setValueAtTime(0.3, t);
+        popGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        noise.connect(hpf).connect(popGain).connect(c.destination);
+        noise.start(t);
+        noise.stop(t + 0.08);
+        // Pitch drop thud
+        const thud = c.createOscillator();
+        const thudGain = c.createGain();
+        thud.type = 'sine';
+        thud.frequency.setValueAtTime(400, t);
+        thud.frequency.exponentialRampToValueAtTime(80, t + 0.15);
+        thudGain.gain.setValueAtTime(0.15, t);
+        thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        thud.connect(thudGain).connect(c.destination);
+        thud.start(t);
+        thud.stop(t + 0.2);
+    } catch (e) { }
+};

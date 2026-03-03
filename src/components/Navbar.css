@@ -71,3 +71,23 @@
     color: var(--accent-secondary);
     transform: translateY(-2px);
 }
+
+/* Birthday Mode */
+.birthday-brand {
+    background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.birthday-dot {
+    color: #fbbf24 !important;
+    animation: birthdayDotPulse 1.5s ease-in-out infinite;
+    -webkit-text-fill-color: initial;
+}
+
+@keyframes birthdayDotPulse {
+    0%, 100% { color: #fbbf24; text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+    33% { color: #f472b6; text-shadow: 0 0 12px rgba(244, 114, 182, 0.6); }
+    66% { color: #7c3aed; text-shadow: 0 0 12px rgba(124, 58, 237, 0.6); }
+}

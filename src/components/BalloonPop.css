@@ -1,0 +1,176 @@
+.balloon-pop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.balloon-pop-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 800px;
+  max-height: 600px;
+  overflow: hidden;
+}
+
+.balloon-pop-start,
+.balloon-pop-end {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  color: white;
+  z-index: 10;
+}
+
+.balloon-pop-start h2,
+.balloon-pop-end h2 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.balloon-pop-start p,
+.balloon-pop-end p {
+  font-size: 1.1rem;
+  color: #a1a1aa;
+  max-width: 400px;
+}
+
+.balloon-xp-award {
+  font-size: 1.5rem !important;
+  font-weight: 900;
+  color: #fbbf24 !important;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.balloon-start-btn {
+  padding: 0.8rem 2.5rem;
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+}
+
+.balloon-start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px rgba(251, 191, 36, 0.6);
+}
+
+.balloon-hud {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2rem;
+  z-index: 10;
+}
+
+.balloon-score,
+.balloon-timer {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 0.4rem 1.2rem;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.balloon-timer {
+  color: #fbbf24;
+}
+
+.balloon-field {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.balloon {
+  position: absolute;
+  width: var(--balloon-size);
+  height: calc(var(--balloon-size) * 1.2);
+  left: var(--balloon-left);
+  bottom: -100px;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.4), var(--balloon-color) 60%);
+  border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%;
+  cursor: pointer;
+  animation: balloon-float var(--balloon-speed) linear forwards;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  transition: transform 0.1s;
+}
+
+.balloon:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)) brightness(1.1);
+}
+
+.balloon::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes balloon-float {
+  0% {
+    bottom: -100px;
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(var(--balloon-sway));
+  }
+  50% {
+    transform: translateX(calc(var(--balloon-sway) * -0.5));
+  }
+  75% {
+    transform: translateX(calc(var(--balloon-sway) * 0.3));
+  }
+  100% {
+    bottom: calc(100% + 100px);
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .balloon-pop-start h2,
+  .balloon-pop-end h2 {
+    font-size: 1.8rem;
+  }
+
+  .balloon-hud {
+    gap: 1rem;
+  }
+
+  .balloon-score,
+  .balloon-timer {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.8rem;
+  }
+}
