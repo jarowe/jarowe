@@ -49,6 +49,49 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     gui.domElement.style.overflowY = 'auto';
     guiRef.current = gui;
 
+    // ── Search bar ──
+    const searchWrap = document.createElement('div');
+    searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e)';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search settings…';
+    searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(255,255,255,0.06);color:#eee;font-size:12px;outline:none';
+    searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,120,255,0.5)'; });
+    searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(255,255,255,0.15)'; });
+    searchWrap.appendChild(searchInput);
+    // Insert after the title bar
+    const titleEl = gui.domElement.querySelector('.title');
+    if (titleEl) titleEl.after(searchWrap);
+    else gui.domElement.prepend(searchWrap);
+
+    // Recursive filter logic
+    const filterGui = (query) => {
+      const q = query.toLowerCase().trim();
+      const processFolder = (folder) => {
+        let anyVisible = false;
+        // Filter controllers
+        for (const ctrl of folder.controllers) {
+          const name = (ctrl._name || ctrl.property || '').toLowerCase();
+          const match = !q || name.includes(q);
+          ctrl.domElement.parentElement.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        }
+        // Recurse subfolders
+        for (const sub of folder.folders) {
+          const subTitle = (sub._title || '').toLowerCase();
+          const titleMatch = !q || subTitle.includes(q);
+          const childVisible = processFolder(sub);
+          const show = titleMatch || childVisible;
+          sub.domElement.style.display = show ? '' : 'none';
+          if (show && q) sub.open();
+          if (show) anyVisible = true;
+        }
+        return anyVisible;
+      };
+      processFolder(gui);
+    };
+    searchInput.addEventListener('input', () => filterGui(searchInput.value));
+
     // ── Helpers ──
     const updateSurfaceUniform = (key) => (v) => {
       p[key] = v;
@@ -760,10 +803,12 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
 
     // -- Ray Motion --
     const pRayMotion = pFx.addFolder('Ray Motion');
+    if (pcfg.beamDamping === undefined) pcfg.beamDamping = 0.7;
     if (pcfg.rayJitter === undefined) pcfg.rayJitter = 1.0;
     if (pcfg.raySweep === undefined) pcfg.raySweep = 0.5;
     if (pcfg.portalExitSpread === undefined) pcfg.portalExitSpread = 1.5;
     if (pcfg.portalExitWiden === undefined) pcfg.portalExitWiden = 1.0;
+    pRayMotion.add(pcfg, 'beamDamping', 0, 1.0, 0.01).name('Beam Damping');
     pRayMotion.add(pcfg, 'rayJitter', 0, 1.0, 0.01).name('Spread Breathing');
     pRayMotion.add(pcfg, 'raySweep', 0, 1.0, 0.01).name('Rotation Sweep');
     pRayMotion.add(pcfg, 'portalExitSpread', 0, 4.0, 0.01).name('Portal Fan-Out');

@@ -1803,8 +1803,11 @@ function LightDirectionTracker() {
     lightState.beamAngle = Math.atan2(ly, lx);
 
     // 2. Smooth-read prism Y rotation for dispersion breathing
+    //    beamDamping: 0=responsive (0.08 lerp), 1=very smooth (0.004 lerp) — kills portal shake
     const rawY = window.__prismRotationY || 0;
-    lightState.prismYRot += (rawY - lightState.prismYRot) * 0.08;
+    const damping = cfg.beamDamping ?? 0.7;
+    const lerpFactor = 0.08 * (1 - damping * 0.95);
+    lightState.prismYRot += (rawY - lightState.prismYRot) * lerpFactor;
     const prismY = lightState.prismYRot;
 
     // 3. Incidence angle — how "head-on" the light hits the prism face

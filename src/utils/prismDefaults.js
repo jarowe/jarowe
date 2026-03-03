@@ -88,6 +88,7 @@ export const PRISM_DEFAULTS = {
   saberGlowOpacity: 0.3,
 
   // Ray motion control
+  beamDamping: 0.7,            // 0=responsive to rotation, 1=very smooth (kills portal shake)
   rayJitter: 1.0,              // 0=no spread breathing, 1=full widening/narrowing
   raySweep: 0.5,               // 0=no rotational sweep/shaking, 1=full rotation-driven center sweep
   portalExitSpread: 1.5,       // extra angular spread during portal exit (0=none)
