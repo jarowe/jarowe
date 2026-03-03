@@ -260,9 +260,13 @@ export default function GlintEditor() {
     if (pcfg.raySweep === undefined) pcfg.raySweep = 0.5;
     if (pcfg.portalExitSpread === undefined) pcfg.portalExitSpread = 1.5;
     if (pcfg.portalExitWiden === undefined) pcfg.portalExitWiden = 1.0;
+    if (pcfg.entranceBeamExcitement === undefined) pcfg.entranceBeamExcitement = 1.0;
+    if (pcfg.exitBeamExcitement === undefined) pcfg.exitBeamExcitement = 1.0;
     pRayMotion.add(pcfg, 'beamDamping', 0, 1.0, 0.01).name('Beam Damping');
     pRayMotion.add(pcfg, 'rayJitter', 0, 1.0, 0.01).name('Spread Breathing');
     pRayMotion.add(pcfg, 'raySweep', 0, 1.0, 0.01).name('Rotation Sweep');
+    pRayMotion.add(pcfg, 'entranceBeamExcitement', 0, 1.0, 0.01).name('Entrance Excitement');
+    pRayMotion.add(pcfg, 'exitBeamExcitement', 0, 1.0, 0.01).name('Exit Excitement');
     pRayMotion.add(pcfg, 'portalExitSpread', 0, 4.0, 0.01).name('Portal Fan-Out');
     pRayMotion.add(pcfg, 'portalExitWiden', 0, 3.0, 0.01).name('Portal Ray Widen');
     pRayMotion.close();

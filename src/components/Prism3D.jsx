@@ -146,6 +146,8 @@ const lightState = {
   mouseProximityFactor: 1.0, // multiplied into dispersionSpread
   portalSuckProgress: 0,     // 0 = normal, 1 = fully sucked (for cascading ray death)
   portalSuckStartTime: 0,    // when portal suck started
+  entranceStartTime: 0,      // when entrance bop impulse was detected
+  wasEntering: false,        // tracks entrance state for beam excitement
 };
 
 /* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
@@ -1804,8 +1806,33 @@ function LightDirectionTracker() {
 
     // 2. Smooth-read prism Y rotation for dispersion breathing
     //    beamDamping: 0=responsive (0.08 lerp), 1=very smooth (0.004 lerp) — kills portal shake
+    //    entranceBeamExcitement / exitBeamExcitement scale responsiveness during transitions
     const rawY = window.__prismRotationY || 0;
-    const damping = cfg.beamDamping ?? 0.7;
+    const baseDamping = cfg.beamDamping ?? 0.7;
+
+    // Detect entrance: bop impulse fires when prism emerges from portal
+    if (window.__prismBopImpulse && !lightState.wasEntering) {
+      lightState.entranceStartTime = performance.now();
+      lightState.wasEntering = true;
+    }
+    // Entrance window: ~1.5s after bop impulse
+    const entranceElapsed = performance.now() - lightState.entranceStartTime;
+    const isEntering = lightState.wasEntering && entranceElapsed < 1500;
+    if (!isEntering) lightState.wasEntering = false;
+
+    const suckActive = !!window.__prismPortalSuck;
+
+    // Apply excitement multipliers: 0=calm (high damping), 1=full excitement (use base damping)
+    let damping = baseDamping;
+    if (isEntering) {
+      const excitement = cfg.entranceBeamExcitement ?? 1.0;
+      // Blend toward max damping (1.0 = very smooth) when excitement is low
+      damping = baseDamping + (1.0 - baseDamping) * (1.0 - excitement);
+    } else if (suckActive) {
+      const excitement = cfg.exitBeamExcitement ?? 1.0;
+      damping = baseDamping + (1.0 - baseDamping) * (1.0 - excitement);
+    }
+
     const lerpFactor = 0.08 * (1 - damping * 0.95);
     lightState.prismYRot += (rawY - lightState.prismYRot) * lerpFactor;
     const prismY = lightState.prismYRot;
@@ -1847,8 +1874,7 @@ function LightDirectionTracker() {
       lightState.dispersionSpread *= lightState.mouseProximityFactor;
     }
 
-    // 8. Portal suck cascade tracking
-    const suckActive = !!window.__prismPortalSuck;
+    // 8. Portal suck cascade tracking (suckActive declared above in step 2)
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
     }
