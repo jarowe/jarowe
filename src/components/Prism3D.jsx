@@ -419,7 +419,7 @@ const glassFrag = `
   }
 `;
 
-/* ── CONVERGING BEAM SHADER — saber-style with WIDTH modulation for visible streaks ── */
+/* ── CONVERGING BEAM SHADER — saber-style with ALPHA modulation for visible streaks ── */
 const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
@@ -443,7 +443,7 @@ const beamFrag = `
     float narrowing = 1.0 - uIncidence * 0.2;
     float taper = (1.0 - vUv.x * vUv.x * 0.75) * narrowing;
 
-    // Traveling energy streaks (always computed, scaled by saber enable)
+    // ── Traveling energy streaks ──
     float spd = uSaberStreakSpeed;
     float sv1 = (fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0;
     float sv2 = (fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0;
@@ -453,8 +453,8 @@ const beamFrag = `
     float st3 = exp(-sv3 * sv3 * 8.0);
     float rawStreaks = (st1 + st2 * 0.7 + st3 * 0.5) / 2.2;
 
-    // Streaks physically WIDEN the beam — impossible to miss
-    float widthMod = 1.0 + (rawStreaks - 0.3) * uSaberStreakIntensity * saber;
+    // Streaks WIDEN the beam (3x multiplier — visible on narrow beams)
+    float widthMod = 1.0 + (rawStreaks - 0.3) * uSaberStreakIntensity * saber * 3.0;
     float d = abs(vUv.y - 0.5) * 2.0 / max(taper * widthMod, 0.05);
 
     // Multi-layer glow
@@ -468,28 +468,34 @@ const beamFrag = `
 
     float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
 
-    // Energy pulse — breathing brightness (scaled by saber)
+    // ── ALPHA MODULATION — the key to visible saber effects ──
+    // On additive-blended white beam, brightness modulation clips at 1.0 (invisible).
+    // Instead, modulate ALPHA so the beam dims between streaks → dark background shows through.
+
+    // Streak alpha: between streaks (rawStreaks~0) → alpha drops to ~25%, at peaks → 100%
+    float streakAlpha = mix(1.0, mix(0.25, 1.0, rawStreaks), saber * uSaberStreakIntensity);
+
+    // Pulse alpha: slow breathing between 55-100%
     float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
     float p2 = sin(vUv.x * 3.0 + uTime * uSaberPulseSpeed * 0.7) * 0.5 + 0.5;
-    float pulse = 1.0 + (p1 * p2 - 0.25) * uSaberPulseIntensity * 2.0 * saber;
+    float pulseWave = p1 * p2;
+    float pulseAlpha = mix(1.0, 0.55 + 0.45 * pulseWave, saber * uSaberPulseIntensity);
 
-    // Micro-flicker (scaled by saber)
+    // Micro-flicker — subtle organic instability on alpha
     float f1 = sin(uTime * uSaberFlickerSpeed * 17.3 + vUv.x * 50.0);
     float f2 = sin(uTime * uSaberFlickerSpeed * 31.7 + vUv.y * 80.0);
-    float flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity * saber;
-
-    intensity *= pulse * flicker;
+    float flickerAlpha = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity * saber;
 
     // Color temperature
     vec3 coolTint = vec3(0.85, 0.92, 1.15);
     vec3 warmTint = vec3(1.15, 1.0, 0.85);
     vec3 tempTint = mix(coolTint, warmTint, uSaberColorTemp * 0.5 + 0.5);
 
-    // Traveling color tint — warm at streak peaks, cool between
-    vec3 streakWarm = vec3(1.12, 0.97, 0.88);
-    vec3 streakCool = vec3(0.9, 0.97, 1.1);
+    // Traveling color tint — warm at streak peaks, cool between (full strength, no dampener)
+    vec3 streakWarm = vec3(1.15, 0.95, 0.82);
+    vec3 streakCool = vec3(0.82, 0.95, 1.15);
     vec3 travelTint = mix(streakCool, streakWarm, rawStreaks);
-    vec3 colorTint = mix(vec3(1.0), travelTint, uSaberStreakIntensity * saber * 0.6);
+    vec3 colorTint = mix(vec3(1.0), travelTint, uSaberStreakIntensity * saber);
 
     // Spectral hints near prism
     float spectralHint = vUv.x * vUv.x * (0.15 + uIncidence * 0.25);
@@ -502,14 +508,15 @@ const beamFrag = `
     float hdrBoost = mix(1.0, uSaberHDRIntensity, core * saber);
     vec3 color = vec3(1.0, 0.98, 0.93) * tempTint * hint * hdrBoost * colorTint;
 
-    // Portal cascade retraction (fix pow UB: use x*x)
+    // Portal cascade retraction
     float cascadeEdge = uCascadeFade * 1.4;
     float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.2, 1.0 - vUv.x);
     float rg = ((1.0 - vUv.x) - cascadeEdge) * 8.0;
     float retractionGlow = exp(-rg * rg) * uCascadeFade;
     color += vec3(1.0, 0.95, 0.85) * retractionGlow;
 
-    float alpha = intensity * uOpacity * (1.0 - cascadeRetract);
+    // Final alpha: intensity × opacity × cascade × streak × pulse × flicker
+    float alpha = intensity * uOpacity * (1.0 - cascadeRetract) * streakAlpha * pulseAlpha * flickerAlpha;
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -526,29 +533,33 @@ const beamGlowFrag = `
   varying vec2 vUv;
 
   void main() {
+    float saber = uSaberEnabled;
     float d = abs(vUv.y - 0.5) * 2.0;
-    // Very soft wide Gaussian — the glow halo
-    float glow = exp(-d * d * 2.0);
-    float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
+
+    // Soft wide Gaussian — decays fully within geometry (taller geo = more room)
+    float glow = exp(-d * d * 4.0);
+
+    // UV edge fade — ensures zero alpha at geometry boundary (no clipping)
+    float yEdge = smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
+    float xEdge = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
     float convergeBright = 0.5 + vUv.x * 0.5;
 
-    float brightness = glow * edgeFade * convergeBright;
+    float brightness = glow * yEdge * xEdge * convergeBright;
 
-    if (uSaberEnabled > 0.5) {
-      // Breathing
-      float breath = 0.8 + 0.2 * sin(uTime * uSaberPulseSpeed);
-      brightness *= breath;
+    // Breathing (float multiplier, no branch)
+    float breath = mix(1.0, 0.7 + 0.3 * sin(uTime * uSaberPulseSpeed), saber);
+    brightness *= breath;
 
-      // Traveling brightness bands in the halo (x*x avoids GLSL pow(negative, 2.0) UB)
-      float spd = uSaberStreakSpeed;
-      float g1 = (fract(vUv.x * 1.5 - uTime * spd * 0.6) - 0.5) * 2.5;
-      float g2 = (fract(vUv.x * 2.5 + uTime * spd * 0.4) - 0.5) * 2.5;
-      float st = exp(-g1 * g1 * 6.0);
-      float st2 = exp(-g2 * g2 * 8.0);
-      // Multiplicative modulation on the glow halo
-      float haloMod = mix(1.0 - uSaberStreakIntensity * 0.3, 1.0 + uSaberStreakIntensity * 0.4, (st + st2 * 0.5) / 1.5);
-      brightness *= haloMod;
-    }
+    // Traveling brightness bands in the halo
+    float spd = uSaberStreakSpeed;
+    float g1 = (fract(vUv.x * 1.5 - uTime * spd * 0.6) - 0.5) * 2.5;
+    float g2 = (fract(vUv.x * 2.5 + uTime * spd * 0.4) - 0.5) * 2.5;
+    float st = exp(-g1 * g1 * 6.0);
+    float st2 = exp(-g2 * g2 * 8.0);
+    float haloStreaks = (st + st2 * 0.5) / 1.5;
+    // Alpha modulation on glow: dim between streaks, bright at peaks
+    float haloAlpha = mix(1.0, mix(0.4, 1.3, haloStreaks), saber * uSaberStreakIntensity);
+    brightness *= haloAlpha;
 
     // Portal cascade
     float cascadeRetract = smoothstep(uCascadeFade * 1.4, uCascadeFade * 1.4 + 0.2, 1.0 - vUv.x);
@@ -1815,7 +1826,7 @@ function IncomingBeam() {
     return g;
   }, []);
   const glowGeo = useMemo(() => {
-    const g = new THREE.PlaneGeometry(7, 3); // 3x taller for glow halo
+    const g = new THREE.PlaneGeometry(7, 8); // 8x taller — room for full Gaussian falloff
     g.translate(-3.5, 0, 0);
     return g;
   }, []);
