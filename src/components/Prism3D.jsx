@@ -582,21 +582,22 @@ const convergenceGlowFrag = `
   varying vec2 vUv;
 
   void main() {
-    // Radial distance from center (0 at center, 1 at edge)
     vec2 c = vUv - 0.5;
     float r = length(c) * 2.0;
 
-    // Soft radial falloff — Gaussian center with gentle fade
-    float glow = exp(-r * r * 3.0);
+    // Smooth circular mask — forces alpha to zero well before square geometry edge
+    float circleMask = smoothstep(1.0, 0.5, r);
 
-    // Iridescent color cycling — shifts hue based on angle + time
+    // Soft radial Gaussian
+    float glow = exp(-r * r * 6.0);
+
+    // Iridescent color — integer angle multiplier avoids atan seam
+    // (atan jumps -π→+π; sin(angle*0.5) is discontinuous there, sin(angle*1.0) is not)
     float angle = atan(c.y, c.x);
-    float hueShift = angle * 0.5 + uTime * 0.8;
-    // Rainbow via sine offsets (120° apart)
     vec3 iridColor = vec3(
-      0.5 + 0.5 * sin(hueShift),
-      0.5 + 0.5 * sin(hueShift + 2.094),
-      0.5 + 0.5 * sin(hueShift + 4.189)
+      0.5 + 0.5 * sin(angle + uTime * 0.8),
+      0.5 + 0.5 * sin(angle + uTime * 0.8 + 2.094),
+      0.5 + 0.5 * sin(angle + uTime * 0.8 + 4.189)
     );
     // Pastel shift — push toward white for soft prismatic look
     iridColor = mix(vec3(1.0), iridColor, 0.6 * uIridescence);
@@ -604,10 +605,10 @@ const convergenceGlowFrag = `
     // Gentle radial pulse
     float pulse = 0.9 + 0.1 * sin(uTime * 2.0 + r * 4.0);
 
-    // Extra bright core hotspot
-    float hotspot = exp(-r * r * 12.0) * 0.5;
+    // Bright core hotspot
+    float hotspot = exp(-r * r * 14.0) * 0.5;
 
-    float alpha = (glow + hotspot) * uOpacity * pulse;
+    float alpha = (glow + hotspot) * uOpacity * pulse * circleMask;
     gl_FragColor = vec4(iridColor, alpha);
   }
 `;
