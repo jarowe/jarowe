@@ -1350,6 +1350,44 @@
 .brand-char:nth-child(6) { animation-delay: 0.4s; }
 .brand-char:nth-child(7) { animation-delay: 0.48s; }
 
+/* Birthday Brand Reveal */
+.brand-birthday-age {
+    font-size: 10rem;
+    font-weight: 900;
+    font-family: var(--font-display);
+    line-height: 1;
+    background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed, #38bdf8);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: birthdayAgeGlow 3s ease infinite;
+    filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.4));
+}
+
+@keyframes birthdayAgeGlow {
+    0%, 100% { background-position: 0% 50%; filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.4)); }
+    33% { background-position: 50% 100%; filter: drop-shadow(0 0 60px rgba(244, 114, 182, 0.5)); }
+    66% { background-position: 100% 50%; filter: drop-shadow(0 0 50px rgba(124, 58, 237, 0.4)); }
+}
+
+.brand-birthday-subtitle {
+    font-size: 1.3rem;
+    color: #a1a1aa;
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.brand-birthday-tagline {
+    font-size: 1.1rem;
+    color: #fbbf24;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .bento-grid {

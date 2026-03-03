@@ -102,7 +102,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
         else if (roll < 0.10) { type = 'confetti'; emoji = '\uD83C\uDF89'; basePoints = 1; }
         else if (roll < 0.13) { type = 'time'; emoji = ''; basePoints = 1; }
 
-        const size = 45 + Math.random() * 35;
+        const size = 55 + Math.random() * 40;
         const left = 3 + Math.random() * 90;
         const speed = 3 + Math.random() * 4;
         const sway = 20 + Math.random() * 40;

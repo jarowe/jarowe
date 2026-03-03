@@ -200,10 +200,10 @@
   align-items: center;
   justify-content: center;
   font-size: calc(var(--balloon-size) * 0.4);
-  /* Invisible padding expands clickable area */
+  /* Invisible padding expands clickable area well beyond the visual balloon */
   box-sizing: content-box;
-  padding: 12px;
-  margin: -12px;
+  padding: 20px;
+  margin: -20px;
 }
 
 .balloon:hover {

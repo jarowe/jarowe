@@ -137,6 +137,19 @@ export default function Home() {
   const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
   const cameFromGame = useRef(false);
 
+  // Memoize background balloon data so re-renders don't randomize new values (causes glitching)
+  const bgBalloons = useMemo(() => {
+    const colors = ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff8c42', '#a78bfa'];
+    return Array.from({ length: 12 }, (_, i) => ({
+      color: colors[i % colors.length],
+      left: `${5 + (i * 8) + (((i * 7 + 3) % 11) / 11) * 4}%`,
+      size: `${30 + (((i * 13 + 5) % 11) / 11) * 20}px`,
+      speed: `${20 + (((i * 17 + 7) % 13) / 13) * 16}s`,
+      delay: `${i * 2.5 + (((i * 11 + 1) % 7) / 7) * 4}s`,
+      sway: `${15 + (((i * 19 + 3) % 11) / 11) * 25}px`,
+    }));
+  }, []);
+
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [activeExpedition, setActiveExpedition] = useState(0);
@@ -3537,20 +3550,32 @@ export default function Home() {
   const [showBrand, setShowBrand] = useState(() => { try { return !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
 
   // Brand reveal - pure CSS animation handles visuals, this just dismisses the overlay
+  // On birthday: extended to show humorous age reveal after JAROWE. fades
+  const [brandPhase, setBrandPhase] = useState('logo'); // logo -> birthday -> done
   useEffect(() => {
     if (!showBrand) return;
-    const timer = setTimeout(() => {
-      try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
-      setShowBrand(false);
-    }, 3300);
-    return () => clearTimeout(timer);
-  }, [showBrand]);
+    if (isBirthday) {
+      // Phase 1: JAROWE. letters (2.5s), Phase 2: birthday age (3.5s)
+      const t1 = setTimeout(() => setBrandPhase('birthday'), 2500);
+      const t2 = setTimeout(() => {
+        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        setShowBrand(false);
+      }, 7500);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else {
+      const timer = setTimeout(() => {
+        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        setShowBrand(false);
+      }, 3300);
+      return () => clearTimeout(timer);
+    }
+  }, [showBrand, isBirthday]);
 
   // Birthday confetti entrance
   useEffect(() => {
     if (!isBirthday) return;
     const bdayColors = ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff6b6b'];
-    const delay = showBrand ? 3500 : 500;
+    const delay = showBrand ? (isBirthday ? 7800 : 3500) : 500;
     const t1 = setTimeout(() => {
       confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 }, colors: bdayColors });
       playBirthdaySound();
@@ -4557,13 +4582,58 @@ export default function Home() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#050510' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#050510', gap: '2rem' }}
           >
-            <div style={{ display: 'flex', gap: '8px', fontSize: '4rem', fontWeight: 'bold', fontFamily: 'var(--font-display)', color: 'white' }}>
-              {"JAROWE.".split('').map((char, i) => (
-                <span key={i} className="brand-char" style={{ display: 'inline-block' }}>{char}</span>
-              ))}
-            </div>
+            <AnimatePresence mode="wait">
+              {brandPhase === 'logo' && (
+                <motion.div
+                  key="logo"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ display: 'flex', gap: '8px', fontSize: '4rem', fontWeight: 'bold', fontFamily: 'var(--font-display)', color: 'white' }}
+                >
+                  {"JAROWE.".split('').map((char, i) => (
+                    <span key={i} className="brand-char" style={{ display: 'inline-block' }}>{char}</span>
+                  ))}
+                </motion.div>
+              )}
+              {brandPhase === 'birthday' && (
+                <motion.div
+                  key="birthday"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
+                >
+                  <motion.div
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 12, delay: 0.1 }}
+                    className="brand-birthday-age"
+                  >
+                    {age}
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6, duration: 0.5 }}
+                    className="brand-birthday-subtitle"
+                  >
+                    Halfway to {age * 2}. Still mass-producing children.
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.4, duration: 0.5 }}
+                    className="brand-birthday-tagline"
+                  >
+                    Let's celebrate.
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -4574,7 +4644,7 @@ export default function Home() {
           className="birthday-banner glass-panel"
           initial={{ opacity: 0, y: -30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: showBrand ? 3.5 : 0.3 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: showBrand ? (isBirthday ? 8.0 : 3.5) : 0.3 }}
         >
           <div className="birthday-banner-text">
             HAPPY {age}{(age % 100 >= 11 && age % 100 <= 13) ? 'TH' : age % 10 === 1 ? 'ST' : age % 10 === 2 ? 'ND' : age % 10 === 3 ? 'RD' : 'TH'} BIRTHDAY JARED!
@@ -4594,23 +4664,20 @@ export default function Home() {
       {/* FLOATING BIRTHDAY BALLOONS */}
       {isBirthday && (
         <div className="birthday-balloons-container">
-          {Array.from({ length: 12 }).map((_, i) => {
-            const colors = ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff8c42', '#a78bfa'];
-            return (
-              <div
-                key={i}
-                className="birthday-balloon"
-                style={{
-                  '--b-color': colors[i % colors.length],
-                  '--b-left': `${5 + (i * 8) + Math.random() * 4}%`,
-                  '--b-size': `${30 + Math.random() * 20}px`,
-                  '--b-speed': `${18 + Math.random() * 14}s`,
-                  '--b-delay': `${i * 1.5 + Math.random() * 3}s`,
-                  '--b-sway': `${15 + Math.random() * 25}px`,
-                }}
-              />
-            );
-          })}
+          {bgBalloons.map((b, i) => (
+            <div
+              key={i}
+              className="birthday-balloon"
+              style={{
+                '--b-color': b.color,
+                '--b-left': b.left,
+                '--b-size': b.size,
+                '--b-speed': b.speed,
+                '--b-delay': b.delay,
+                '--b-sway': b.sway,
+              }}
+            />
+          ))}
         </div>
       )}
 
