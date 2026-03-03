@@ -187,8 +187,96 @@ export default function Home() {
     let debugInst = null;
 
     const containerEl = document.createElement('div');
-    containerEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;max-height:92vh;overflow-y:auto;width:320px;';
+    containerEl.className = 'jarowe-editor-panels';
+    containerEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;max-height:92vh;overflow-y:auto;overflow-x:hidden;width:320px;';
     document.body.appendChild(containerEl);
+
+    // Inject custom theme + scrollbar styles
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      /* ── Sleek thin scrollbar ── */
+      .jarowe-editor-panels::-webkit-scrollbar { width: 5px; }
+      .jarowe-editor-panels::-webkit-scrollbar-track { background: transparent; }
+      .jarowe-editor-panels::-webkit-scrollbar-thumb {
+        background: rgba(140, 100, 255, 0.35);
+        border-radius: 4px;
+      }
+      .jarowe-editor-panels::-webkit-scrollbar-thumb:hover {
+        background: rgba(140, 100, 255, 0.6);
+      }
+      /* Firefox */
+      .jarowe-editor-panels {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(140,100,255,0.35) transparent;
+      }
+
+      /* ── lil-gui theme ── */
+      .jarowe-editor-panels .lil-gui {
+        --background-color: rgba(12, 10, 28, 0.92);
+        --title-background-color: rgba(60, 40, 120, 0.55);
+        --title-text-color: #c8b8ff;
+        --text-color: #c0bcd8;
+        --widget-color: rgba(80, 60, 160, 0.3);
+        --hover-color: rgba(100, 70, 200, 0.25);
+        --focus-color: rgba(140, 100, 255, 0.45);
+        --number-color: #a78bfa;
+        --string-color: #7dd3fc;
+        --font-size: 11px;
+        --widget-border-radius: 3px;
+        --name-width: 46%;
+        --scrollbar-width: 5px;
+      }
+      .jarowe-editor-panels .lil-gui { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+      .jarowe-editor-panels .lil-gui .title {
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        border-bottom: 1px solid rgba(140, 100, 255, 0.15);
+      }
+      /* Root-level GUI titles get a stronger look */
+      .jarowe-editor-panels > .lil-gui > .title {
+        background: linear-gradient(135deg, rgba(80, 50, 160, 0.6), rgba(40, 20, 100, 0.6));
+        font-size: 13px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+      }
+      /* Slider fill */
+      .jarowe-editor-panels .lil-gui .slider .fill {
+        background: linear-gradient(90deg, #7c3aed, #a78bfa);
+      }
+      /* Function buttons */
+      .jarowe-editor-panels .lil-gui .controller.function .widget {
+        background: rgba(100, 70, 200, 0.25);
+        border: 1px solid rgba(140, 100, 255, 0.2);
+        border-radius: 3px;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .jarowe-editor-panels .lil-gui .controller.function .widget:hover {
+        background: rgba(120, 80, 220, 0.4);
+        border-color: rgba(140, 100, 255, 0.45);
+      }
+      /* Boolean checkboxes */
+      .jarowe-editor-panels .lil-gui input[type="checkbox"] {
+        accent-color: #7c3aed;
+      }
+      /* Dropdown selects */
+      .jarowe-editor-panels .lil-gui select {
+        background: rgba(40, 25, 80, 0.7);
+        border-color: rgba(140, 100, 255, 0.2);
+      }
+      /* Color display */
+      .jarowe-editor-panels .lil-gui .controller.color .display {
+        border-radius: 3px;
+        border: 1px solid rgba(140, 100, 255, 0.2);
+      }
+      /* Inner scrollbars (nested folder overflow) */
+      .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar { width: 4px; }
+      .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-track { background: transparent; }
+      .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-thumb {
+        background: rgba(140, 100, 255, 0.25);
+        border-radius: 3px;
+      }
+    `;
+    document.head.appendChild(styleEl);
 
     import('lil-gui').then(({ default: GUI }) => {
       if (cancelled) { containerEl.remove(); return; }
@@ -202,9 +290,9 @@ export default function Home() {
       const searchInput = document.createElement('input');
       searchInput.type = 'text';
       searchInput.placeholder = 'Search settings\u2026';
-      searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(255,255,255,0.06);color:#eee;font-size:12px;outline:none';
-      searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,120,255,0.5)'; });
-      searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(255,255,255,0.15)'; });
+      searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(140,100,255,0.2);border-radius:4px;background:rgba(40,25,80,0.5);color:#c8b8ff;font-size:11px;outline:none;font-family:inherit';
+      searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,100,255,0.5)'; searchInput.style.boxShadow = '0 0 6px rgba(140,100,255,0.15)'; });
+      searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(140,100,255,0.2)'; searchInput.style.boxShadow = 'none'; });
       searchWrap.appendChild(searchInput);
       const edTitleEl = editorInst.domElement.querySelector('.title');
       if (edTitleEl) edTitleEl.after(searchWrap);
@@ -325,6 +413,7 @@ export default function Home() {
       if (editorInst) editorInst.destroy();
       if (debugInst) debugInst.destroy();
       containerEl.remove();
+      styleEl.remove();
       setEditorGui(null);
       setDebugGamesFolder(null);
     };
