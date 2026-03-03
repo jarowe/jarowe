@@ -366,6 +366,22 @@
   cursor: default;
 }
 
+/* Skip initials link */
+.balloon-skip-btn {
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 0.2rem;
+  transition: color 0.2s;
+}
+
+.balloon-skip-btn:hover {
+  color: #a1a1aa;
+}
+
 /* Next round button */
 .balloon-next-round-btn {
   background: linear-gradient(135deg, #7c3aed, #38bdf8) !important;

@@ -15,6 +15,7 @@ import { useBirthday } from '../context/BirthdayContext';
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
+const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -4676,21 +4677,37 @@ export default function Home() {
             <button className="birthday-game-btn" onClick={() => setBirthdayFlow('balloon-game')}>
               Pop Balloons!
             </button>
+            <button className="birthday-game-btn birthday-sling-btn" onClick={() => setBirthdayFlow('slingshot')}>
+              Birthday Card Launcher!
+            </button>
             <button className="birthday-game-btn birthday-wish-btn" onClick={() => setBirthdayFlow('make-wish')}>
               Make a Wish
             </button>
           </div>
-          {/* Scrolling leaderboard ticker */}
+          {/* Leaderboard panel + ticker */}
           {tickerScores.length > 0 && (
-            <div className="birthday-ticker">
-              <div className="birthday-ticker-track">
-                {[...tickerScores.slice(0, 10), ...tickerScores.slice(0, 10)].map((s, i) => (
-                  <span key={i} className="birthday-ticker-entry">
-                    <span className="ticker-rank">#{(i % tickerScores.slice(0, 10).length) + 1}</span>
-                    <span className="ticker-initials">{s.initials}</span>
-                    <span className="ticker-score">{s.score}</span>
-                  </span>
+            <div className="birthday-leaderboard-section">
+              <div className="birthday-leaderboard-panel">
+                <div className="birthday-lb-title">Balloon Pop Leaderboard</div>
+                {tickerScores.slice(0, 5).map((s, i) => (
+                  <div key={i} className="birthday-lb-row">
+                    <span className="birthday-lb-rank">{i === 0 ? '\uD83E\uDD47' : i === 1 ? '\uD83E\uDD48' : i === 2 ? '\uD83E\uDD49' : `#${i + 1}`}</span>
+                    <span className="birthday-lb-name">{s.initials || '???'}</span>
+                    <span className="birthday-lb-score">{s.score}</span>
+                    <span className="birthday-lb-round">R{s.round}</span>
+                  </div>
                 ))}
+              </div>
+              <div className="birthday-ticker">
+                <div className="birthday-ticker-track">
+                  {[...tickerScores.slice(0, 10), ...tickerScores.slice(0, 10)].map((s, i) => (
+                    <span key={i} className="birthday-ticker-entry">
+                      <span className="ticker-rank">#{(i % tickerScores.slice(0, 10).length) + 1}</span>
+                      <span className="ticker-initials">{s.initials}</span>
+                      <span className="ticker-score">{s.score}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -5537,6 +5554,14 @@ export default function Home() {
           {birthdayFlow === 'birthday-unlock' && (
             <Suspense fallback={null}>
               <BirthdayUnlock age={age} onClose={() => setBirthdayFlow('idle')} />
+            </Suspense>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {birthdayFlow === 'slingshot' && (
+            <Suspense fallback={null}>
+              <BirthdaySlingshot onClose={() => setBirthdayFlow('idle')} />
             </Suspense>
           )}
         </AnimatePresence>

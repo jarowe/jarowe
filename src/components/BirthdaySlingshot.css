@@ -1,0 +1,222 @@
+.slingshot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: linear-gradient(180deg, rgba(15, 10, 30, 0.97) 0%, rgba(0, 0, 0, 0.99) 100%);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slingshot-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.slingshot-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Close button - matches balloon-close-btn */
+.slingshot-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  line-height: 1;
+}
+
+.slingshot-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* HUD */
+.slingshot-hud {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.slingshot-shots {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 0.4rem 1.2rem;
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.slingshot-score {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 20px;
+  padding: 0.4rem 1.2rem;
+  color: #fbbf24;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Intro / Win overlays */
+.slingshot-intro,
+.slingshot-win,
+.slingshot-lose {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+  color: white;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.slingshot-intro h2,
+.slingshot-win h2,
+.slingshot-lose h2 {
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.slingshot-intro p,
+.slingshot-win p,
+.slingshot-lose p {
+  font-size: 1.1rem;
+  color: #a1a1aa;
+  max-width: 460px;
+  line-height: 1.6;
+}
+
+.slingshot-launch-btn,
+.slingshot-send-btn,
+.slingshot-retry-btn {
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+}
+
+.slingshot-launch-btn:hover,
+.slingshot-send-btn:hover,
+.slingshot-retry-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px rgba(251, 191, 36, 0.6);
+}
+
+.slingshot-retry-btn {
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+}
+
+/* Message card */
+.slingshot-card-preview {
+  background: rgba(15, 10, 30, 0.8);
+  border: 2px solid rgba(251, 191, 36, 0.4);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  max-width: 400px;
+  width: 90%;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.15);
+}
+
+.slingshot-message-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.slingshot-message-input:focus {
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.slingshot-message-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.slingshot-sent-msg {
+  color: #22c55e;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+/* Shake animation for impact */
+.slingshot-shake {
+  animation: slingshotShake 0.3s ease-out;
+}
+
+@keyframes slingshotShake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-2px, 3px); }
+  80% { transform: translate(2px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (max-width: 640px) {
+  .slingshot-intro h2,
+  .slingshot-win h2,
+  .slingshot-lose h2 {
+    font-size: 2rem;
+  }
+
+  .slingshot-hud {
+    gap: 0.8rem;
+  }
+
+  .slingshot-shots,
+  .slingshot-score {
+    font-size: 1rem;
+    padding: 0.3rem 0.8rem;
+  }
+}

@@ -22,15 +22,14 @@ function getComboTier(combo) {
   return { multiplier: 1, label: '' };
 }
 
-// Difficulty scaling: each round balloons are faster, spawn less, but score multiplied
 function getDifficulty(round) {
   const r = Math.min(round, 10);
   return {
-    spawnInterval: Math.max(300, 600 - r * 30),   // faster spawns
-    balloonSpeed: Math.max(1.8, 3 - r * 0.12),     // faster float
+    spawnInterval: Math.max(300, 600 - r * 30),
+    balloonSpeed: Math.max(1.8, 3 - r * 0.12),
     balloonSpeedRange: Math.max(1.5, 4 - r * 0.2),
     maxBalloons: Math.min(20, 15 + r),
-    roundMultiplier: 1 + r * 0.25,                  // 1x, 1.25x, 1.5x...
+    roundMultiplier: 1 + r * 0.25,
     balloonSize: Math.max(40, 55 - r * 1.5),
     balloonSizeRange: Math.max(25, 40 - r),
   };
@@ -51,7 +50,9 @@ function saveScore(initials, score, round, bestCombo) {
 }
 
 export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
+  // complete-screen sub-state: 'score' -> 'leaderboard' -> 'next-or-done'
   const [gameState, setGameState] = useState('ready');
+  const [completeStep, setCompleteStep] = useState('score');
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(BASE_DURATION);
   const [balloons, setBalloons] = useState([]);
@@ -83,7 +84,8 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
 
   const startGame = useCallback(() => {
     setGameState('playing');
-    setScore(prev => gameState === 'ready' ? 0 : prev); // Keep cumulative score on next round
+    setCompleteStep('score');
+    setScore(prev => gameState === 'ready' ? 0 : prev);
     if (gameState === 'ready') roundScore.current = 0;
     setTimeLeft(BASE_DURATION);
     setBalloons([]);
@@ -99,7 +101,6 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     if (feverTimer.current) clearTimeout(feverTimer.current);
   }, [gameState]);
 
-  // Spawn balloons with difficulty scaling
   useEffect(() => {
     if (gameState !== 'playing') return;
     const d = getDifficulty(round);
@@ -154,7 +155,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     }
   }, [score, targetCount, gameState]);
 
-  // Complete effect
+  // Confetti + XP on first win — does NOT auto-close
   useEffect(() => {
     if (gameState !== 'complete') return;
     if (hasCompleted.current) return;
@@ -168,6 +169,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
         confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors });
         if (Date.now() < end) requestAnimationFrame(frame);
       })();
+      // Award XP but do NOT auto-transition — let user interact with leaderboard first
       if (onComplete) onComplete();
     }
   }, [gameState]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -244,7 +246,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     if (initials.trim().length < 1) return;
     const scores = saveScore(initials.trim(), score, round, bestCombo);
     setTopScores(scores);
-    setInitials('__saved__');
+    setCompleteStep('leaderboard');
   };
 
   const won = roundScore.current >= targetCount;
@@ -255,7 +257,6 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={gameState === 'complete' ? onClose : undefined}
     >
       <div className="balloon-pop-container" onClick={e => e.stopPropagation()}>
         <button className="balloon-close-btn" onClick={onClose} title="Close (ESC)">&times;</button>
@@ -328,73 +329,79 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', bounce: 0.5 }}
           >
-            {won ? (
-              <>
-                <h2>{round > 1 ? `Round ${round} Clear!` : 'Party Animal!'}</h2>
-                <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> {round > 1 && <span style={{ color: '#a78bfa' }}>(x{diff.roundMultiplier.toFixed(2)} difficulty bonus)</span>}</p>
-                {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
-                {round === 1 && <p className="balloon-xp-award">+200 XP</p>}
-              </>
-            ) : (
-              <>
-                <h2>Time's Up!</h2>
-                <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> ({roundScore.current} / {targetCount})</p>
-                {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
-              </>
-            )}
-
-            {/* Initials entry */}
-            {initials !== '__saved__' ? (
-              <div className="balloon-initials-form">
-                <input
-                  className="balloon-initials-input"
-                  type="text"
-                  maxLength={4}
-                  value={initials}
-                  onChange={e => setInitials(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                  placeholder="ABCD"
-                  autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter') handleSaveScore(); }}
-                />
-                <button
-                  className="balloon-initials-save"
-                  onClick={handleSaveScore}
-                  disabled={initials.trim().length < 1}
-                >
-                  Save Score
-                </button>
-              </div>
-            ) : (
-              <p style={{ color: '#22c55e', fontSize: '0.9rem', fontWeight: 700 }}>Score saved!</p>
-            )}
-
-            {/* Leaderboard */}
-            {topScores.length > 0 && (
-              <div className="balloon-leaderboard">
-                <h3>Top Scores</h3>
-                {topScores.slice(0, 5).map((s, i) => (
-                  <div key={i} className="balloon-leaderboard-row">
-                    <span className="balloon-leaderboard-label" style={i === 0 ? { color: '#fbbf24' } : undefined}>
-                      {i + 1}. {s.initials}
-                    </span>
-                    <span className="balloon-leaderboard-value" style={i === 0 ? { color: '#fbbf24' } : undefined}>
-                      {s.score} <span style={{ color: '#71717a', fontSize: '0.65rem' }}>R{s.round}</span>
-                    </span>
+            <AnimatePresence mode="wait">
+              {/* Step 1: Score + Initials */}
+              {completeStep === 'score' && (
+                <motion.div key="score-step" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                  {won ? (
+                    <>
+                      <h2>{round > 1 ? `Round ${round} Clear!` : 'Party Animal!'}</h2>
+                      <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> {round > 1 && <span style={{ color: '#a78bfa' }}>(x{diff.roundMultiplier.toFixed(2)} bonus)</span>}</p>
+                      {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
+                      {round === 1 && <p className="balloon-xp-award">+200 XP</p>}
+                    </>
+                  ) : (
+                    <>
+                      <h2>Time's Up!</h2>
+                      <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> ({roundScore.current} / {targetCount})</p>
+                      {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
+                    </>
+                  )}
+                  <p style={{ color: '#a1a1aa', fontSize: '0.85rem', margin: '0.5rem 0 0' }}>Enter your initials for the leaderboard:</p>
+                  <div className="balloon-initials-form">
+                    <input
+                      className="balloon-initials-input"
+                      type="text"
+                      maxLength={4}
+                      value={initials}
+                      onChange={e => setInitials(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                      placeholder="ABCD"
+                      autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveScore(); }}
+                    />
+                    <button className="balloon-initials-save" onClick={handleSaveScore} disabled={initials.trim().length < 1}>
+                      Save
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {won && (
-                <button className="balloon-start-btn balloon-next-round-btn" onClick={handleNextRound}>
-                  Round {round + 1} (Harder!)
-                </button>
+                  <button className="balloon-skip-btn" onClick={() => setCompleteStep('leaderboard')}>
+                    Skip
+                  </button>
+                </motion.div>
               )}
-              <button className="balloon-start-btn" onClick={onClose} style={won ? { background: 'rgba(255,255,255,0.1)', boxShadow: 'none' } : undefined}>
-                {won ? 'Done' : 'Close'}
-              </button>
-            </div>
+
+              {/* Step 2: Leaderboard + Next Round / Done */}
+              {completeStep === 'leaderboard' && (
+                <motion.div key="lb-step" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                  <h2 style={{ fontSize: '2rem' }}>{won ? 'Nice One!' : 'Good Try!'}</h2>
+                  <p style={{ color: '#fbbf24', fontWeight: 800, fontSize: '1.5rem' }}>{score} pts</p>
+                  {topScores.length > 0 && (
+                    <div className="balloon-leaderboard">
+                      <h3>Top Scores</h3>
+                      {topScores.slice(0, 5).map((s, i) => (
+                        <div key={i} className="balloon-leaderboard-row">
+                          <span className="balloon-leaderboard-label" style={i === 0 ? { color: '#fbbf24' } : undefined}>
+                            {i + 1}. {s.initials || '???'}
+                          </span>
+                          <span className="balloon-leaderboard-value" style={i === 0 ? { color: '#fbbf24' } : undefined}>
+                            {s.score} <span style={{ color: '#71717a', fontSize: '0.65rem' }}>R{s.round}</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {won && (
+                      <button className="balloon-start-btn balloon-next-round-btn" onClick={handleNextRound}>
+                        Round {round + 1} (Harder!)
+                      </button>
+                    )}
+                    <button className="balloon-start-btn" onClick={onClose} style={won ? { background: 'rgba(255,255,255,0.15)', boxShadow: 'none' } : undefined}>
+                      {won ? 'Continue' : 'Close'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </div>

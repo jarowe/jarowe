@@ -1735,8 +1735,9 @@
 
 .birthday-banner-actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.8rem;
     justify-content: center;
+    flex-wrap: wrap;
     margin-top: 1rem;
     position: relative;
     z-index: 1;
@@ -1773,9 +1774,82 @@
     box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
 }
 
+/* Birthday Slingshot Button */
+.birthday-sling-btn {
+    background: linear-gradient(135deg, #f97316, #fbbf24) !important;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3) !important;
+}
+
+.birthday-sling-btn:hover {
+    box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5) !important;
+}
+
+/* Leaderboard Section (panel + ticker) */
+.birthday-leaderboard-section {
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.birthday-leaderboard-panel {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: 12px;
+    padding: 0.8rem 1.2rem;
+    margin-bottom: 0.6rem;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.birthday-lb-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fbbf24;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.birthday-lb-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+}
+
+.birthday-lb-row:last-child {
+    border-bottom: none;
+}
+
+.birthday-lb-rank {
+    width: 1.8rem;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.birthday-lb-name {
+    color: #fbbf24;
+    font-weight: 800;
+    flex: 1;
+}
+
+.birthday-lb-score {
+    color: white;
+    font-weight: 700;
+}
+
+.birthday-lb-round {
+    color: #71717a;
+    font-size: 0.65rem;
+}
+
 /* Scrolling Leaderboard Ticker */
 .birthday-ticker {
-    margin-top: 0.8rem;
     overflow: hidden;
     position: relative;
     z-index: 1;
