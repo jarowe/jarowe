@@ -223,7 +223,7 @@ export default function Home() {
             const propName = (ctrl.property || '').toLowerCase();
             const searchable = fullPath + ' ' + displayName + ' ' + propName;
             const match = !q || words.every(w => searchable.includes(w));
-            ctrl.domElement.parentElement.style.display = match ? '' : 'none';
+            ctrl.domElement.style.display = match ? '' : 'none';
             if (match) anyVisible = true;
           }
           for (const sub of folder.folders) {
