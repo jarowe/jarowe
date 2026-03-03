@@ -419,7 +419,7 @@ const glassFrag = `
   }
 `;
 
-/* ── CONVERGING BEAM SHADER — saber-style multi-layer glow + traveling energy streaks ── */
+/* ── CONVERGING BEAM SHADER — saber-style with WIDTH modulation for visible streaks ── */
 const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
@@ -439,18 +439,28 @@ const beamFrag = `
   varying vec2 vUv;
 
   void main() {
+    float saber = uSaberEnabled;
     float narrowing = 1.0 - uIncidence * 0.2;
     float taper = (1.0 - vUv.x * vUv.x * 0.75) * narrowing;
-    float d = abs(vUv.y - 0.5) * 2.0 / max(taper, 0.05);
 
-    // Layer 1: Ultra-sharp inner core
+    // Traveling energy streaks (always computed, scaled by saber enable)
+    float spd = uSaberStreakSpeed;
+    float sv1 = (fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0;
+    float sv2 = (fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0;
+    float sv3 = (fract(vUv.x * 1.2 + uTime * spd * 0.5) - 0.5) * 3.0;
+    float st1 = exp(-sv1 * sv1 * 10.0);
+    float st2 = exp(-sv2 * sv2 * 12.0);
+    float st3 = exp(-sv3 * sv3 * 8.0);
+    float rawStreaks = (st1 + st2 * 0.7 + st3 * 0.5) / 2.2;
+
+    // Streaks physically WIDEN the beam — impossible to miss
+    float widthMod = 1.0 + (rawStreaks - 0.3) * uSaberStreakIntensity * saber;
+    float d = abs(vUv.y - 0.5) * 2.0 / max(taper * widthMod, 0.05);
+
+    // Multi-layer glow
     float coreSharp = uSaberCoreWidth * 30.0;
     float core = exp(-d * d * coreSharp);
-
-    // Layer 2: Medium glow (main body)
     float midGlow = exp(-d * d * 8.0) * taper;
-
-    // Layer 3: Wide atmospheric scatter
     float scatter = exp(-d * d * (1.5 / max(uSaberGlowWidth, 0.1))) * taper * 0.3;
 
     float convergeBright = 0.4 + vUv.x * 0.6;
@@ -458,39 +468,28 @@ const beamFrag = `
 
     float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
 
-    // Saber effects: pulse, flicker, and traveling energy streaks
-    if (uSaberEnabled > 0.5) {
-      // Slow energy pulse — visible breathing along beam
-      float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
-      float p2 = sin(vUv.x * 3.0 + uTime * uSaberPulseSpeed * 0.7) * 0.5 + 0.5;
-      float pulse = 1.0 + (p1 * p2 - 0.25) * uSaberPulseIntensity * 2.0;
+    // Energy pulse — breathing brightness (scaled by saber)
+    float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
+    float p2 = sin(vUv.x * 3.0 + uTime * uSaberPulseSpeed * 0.7) * 0.5 + 0.5;
+    float pulse = 1.0 + (p1 * p2 - 0.25) * uSaberPulseIntensity * 2.0 * saber;
 
-      // Fast micro-flicker (organic instability)
-      float f1 = sin(uTime * uSaberFlickerSpeed * 17.3 + vUv.x * 50.0);
-      float f2 = sin(uTime * uSaberFlickerSpeed * 31.7 + vUv.y * 80.0);
-      float flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity;
+    // Micro-flicker (scaled by saber)
+    float f1 = sin(uTime * uSaberFlickerSpeed * 17.3 + vUv.x * 50.0);
+    float f2 = sin(uTime * uSaberFlickerSpeed * 31.7 + vUv.y * 80.0);
+    float flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity * saber;
 
-      intensity *= pulse * flicker;
+    intensity *= pulse * flicker;
 
-      // Traveling energy streaks — MULTIPLICATIVE modulation (dims between, brightens at peaks)
-      // Using x*x instead of pow(x, 2.0) to avoid GLSL undefined behavior with negative args
-      float spd = uSaberStreakSpeed;
-      float v1 = (fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0;
-      float v2 = (fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0;
-      float v3 = (fract(vUv.x * 1.2 + uTime * spd * 0.5) - 0.5) * 3.0;
-      float st1 = exp(-v1 * v1 * 10.0);
-      float st2 = exp(-v2 * v2 * 12.0);
-      float st3 = exp(-v3 * v3 * 8.0);
-      float rawStreaks = st1 + st2 * 0.7 + st3 * 0.5;
-      // Modulate: dims to ~(1-intensity*0.4) between streaks, brightens to ~(1+intensity*0.3) at peaks
-      float streakMod = mix(1.0 - uSaberStreakIntensity * 0.4, 1.0 + uSaberStreakIntensity * 0.3, rawStreaks / 2.2);
-      intensity *= streakMod;
-    }
-
-    // Color temperature: cool blue <-> neutral white <-> warm gold
+    // Color temperature
     vec3 coolTint = vec3(0.85, 0.92, 1.15);
     vec3 warmTint = vec3(1.15, 1.0, 0.85);
     vec3 tempTint = mix(coolTint, warmTint, uSaberColorTemp * 0.5 + 0.5);
+
+    // Traveling color tint — warm at streak peaks, cool between
+    vec3 streakWarm = vec3(1.12, 0.97, 0.88);
+    vec3 streakCool = vec3(0.9, 0.97, 1.1);
+    vec3 travelTint = mix(streakCool, streakWarm, rawStreaks);
+    vec3 colorTint = mix(vec3(1.0), travelTint, uSaberStreakIntensity * saber * 0.6);
 
     // Spectral hints near prism
     float spectralHint = vUv.x * vUv.x * (0.15 + uIncidence * 0.25);
@@ -500,14 +499,14 @@ const beamFrag = `
       1.0 - spectralHint * 0.3
     );
 
-    // HDR core overdrive for natural bloom
-    float hdrBoost = mix(1.0, uSaberHDRIntensity, core);
-    vec3 color = vec3(1.0, 0.98, 0.93) * tempTint * hint * hdrBoost;
+    float hdrBoost = mix(1.0, uSaberHDRIntensity, core * saber);
+    vec3 color = vec3(1.0, 0.98, 0.93) * tempTint * hint * hdrBoost * colorTint;
 
-    // Portal cascade retraction
+    // Portal cascade retraction (fix pow UB: use x*x)
     float cascadeEdge = uCascadeFade * 1.4;
     float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.2, 1.0 - vUv.x);
-    float retractionGlow = exp(-pow(((1.0 - vUv.x) - cascadeEdge) * 8.0, 2.0)) * uCascadeFade;
+    float rg = ((1.0 - vUv.x) - cascadeEdge) * 8.0;
+    float retractionGlow = exp(-rg * rg) * uCascadeFade;
     color += vec3(1.0, 0.95, 0.85) * retractionGlow;
 
     float alpha = intensity * uOpacity * (1.0 - cascadeRetract);
@@ -566,11 +565,14 @@ const rayFrag = `
   uniform float uTime;
   uniform float uDispersionWidth;  // 0-1+ : how wide dispersion is right now
   uniform float uCascadeFade;      // 0 = visible, 1 = fully faded (portal exit cascade)
+  uniform float uPortalWiden;      // individual ray width boost during portal exit
   varying vec2 vUv;
   void main() {
     // Ray widens more dramatically when dispersion is wide
     float dispersionInfluence = 0.6 + uDispersionWidth * 0.8;
-    float spread = (0.15 + vUv.x * 0.85) * dispersionInfluence;
+    // Portal exit: each ray physically widens as it retracts
+    float cascadeWiden = 1.0 + uCascadeFade * uPortalWiden;
+    float spread = (0.15 + vUv.x * 0.85) * dispersionInfluence * cascadeWiden;
     float d = abs(vUv.y - 0.5) * 2.0 / max(spread, 0.05);
 
     float fade = pow(1.0 - vUv.x, 0.6);
@@ -605,7 +607,8 @@ const rayFrag = `
     // Portal cascade
     float cascadeEdge = 1.0 - uCascadeFade * 1.3;
     float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.15, vUv.x);
-    float retractionGlow = exp(-pow((vUv.x - cascadeEdge) * 8.0, 2.0)) * uCascadeFade * 2.0;
+    float rgv = (vUv.x - cascadeEdge) * 8.0;
+    float retractionGlow = exp(-rgv * rgv) * uCascadeFade * 2.0;
     color += uColor * retractionGlow;
 
     float alpha = intensity * uOpacity * shimmer * breath * (1.0 - cascadeRetract);
@@ -1949,17 +1952,24 @@ function RainbowFan() {
     // Configurable ray length via scale (base geo is 7 wide)
     const rayScale = (cfg.rayLength ?? 14) / 7;
 
+    // Jitter control: 0=rays stay at base angle, 1=full rotation-driven motion
+    const jitter = cfg.rayJitter ?? 1.0;
+    const jitteredCenter = lightState.dispersionCenter * jitter;
+    const jitteredSpread = baseDisp + (lightState.dispersionSpread - baseDisp) * jitter;
+
+    // Portal exit spread boost: rays fan apart as they retract
+    const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5);
+
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;
 
       // Normalized position across spectrum: -1 (red) to +1 (violet)
       const normalizedPos = (i / (bandCount - 1)) * 2 - 1;
 
-      // Fixed angle: exitBase + dispersion center + spread per band
-      // No wave oscillation, no vertical bend — light rays are perfectly stable
+      // Ray angle: base + jittered motion + portal exit fan-out
       mesh.rotation.z = exitBase
-        + lightState.dispersionCenter
-        + normalizedPos * lightState.dispersionSpread;
+        + jitteredCenter
+        + normalizedPos * (jitteredSpread + portalSpread);
 
       // Ray length scaling
       mesh.scale.x = rayScale;
@@ -1970,6 +1980,7 @@ function RainbowFan() {
       mesh.material.uniforms.uOpacity.value = (cfg.rayOpacity + audioBoost) * bandIntensity;
       mesh.material.uniforms.uTime.value = t;
       mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
+      mesh.material.uniforms.uPortalWiden.value = cfg.portalExitWiden ?? 1.0;
 
       // Cascading portal exit: rays smoothly retract violet-first → red-last
       const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5;
@@ -1995,6 +2006,7 @@ function RainbowFan() {
               uTime: { value: 0 },
               uDispersionWidth: { value: 1.0 },
               uCascadeFade: { value: 0 },
+              uPortalWiden: { value: cfg.portalExitWiden ?? 1.0 },
             }}
             transparent
             blending={THREE.AdditiveBlending}

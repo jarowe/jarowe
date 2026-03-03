@@ -87,6 +87,11 @@ export const PRISM_DEFAULTS = {
   saberGlowRadius: 2.5,
   saberGlowOpacity: 0.3,
 
+  // Ray motion control
+  rayJitter: 1.0,              // 0=rays perfectly still, 1=full rotation-driven motion
+  portalExitSpread: 1.5,       // extra angular spread during portal exit (0=none)
+  portalExitWiden: 1.0,        // individual ray width boost during portal exit
+
   // Edge glow
   edgeGlowOpacity: 0.7,
 
