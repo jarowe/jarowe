@@ -1921,6 +1921,11 @@ function LightDirectionTracker() {
 
     // 8. Portal suck cascade tracking
     const suckActive = !!window.__prismPortalSuck;
+    const isEnteringNow = !!window.__prismEntering;
+    // Hard reset when entering — prevents stale exit progress from bleeding into entrance
+    if (isEnteringNow && !suckActive) {
+      lightState.portalSuckProgress = 0;
+    }
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
     }
@@ -1928,7 +1933,8 @@ function LightDirectionTracker() {
       const elapsed = (performance.now() - lightState.portalSuckStartTime) / 600;
       lightState.portalSuckProgress = Math.min(elapsed, 1);
     } else {
-      lightState.portalSuckProgress = Math.max(0, lightState.portalSuckProgress - 0.05);
+      // Fast decay so beams settle quickly after exit
+      lightState.portalSuckProgress = Math.max(0, lightState.portalSuckProgress - 0.08);
     }
   });
 

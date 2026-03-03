@@ -4091,9 +4091,11 @@ export default function Home() {
     if (portalExitingRef.current) return; // already exiting
     portalExitingRef.current = true;
 
+    // Reset any stale beam state before starting exit
+    window.__prismEntering = false;
+
     // Activate portal-suck vortex spin in Prism3D
     window.__prismPortalSuck = true;
-    setTimeout(() => { window.__prismPortalSuck = false; }, 800);
 
     const cfg = window.__prismConfig || {};
     const residualMs = cfg.portalResidualMs ?? 1800;
@@ -4115,15 +4117,21 @@ export default function Home() {
     const cOy = parseFloat(oy) / 100;
     confetti({ particleCount: 30, spread: 360, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], startVelocity: 12, gravity: 0.1, scalar: 0.4, ticks: 120, shapes: ['circle'] });
 
-    // After 300ms, suck character in (hide via framer-motion)
+    // Add portal-suck CSS class — triggers spin+shrink keyframe animation
+    if (peekCharRef.current) {
+      peekCharRef.current.classList.add('portal-suck');
+    }
+
+    // After 300ms (matching CSS animation duration), hide character
     setTimeout(() => {
       setPeekVisible(false);
       clearBubble();
       peekCharRef.current?.classList.remove('portal-suck');
     }, 300);
 
-    // After 800ms, begin fading the portal
+    // After 800ms, stop portal suck + begin fading the portal
     setTimeout(() => {
+      window.__prismPortalSuck = false;
       setPortalPhase('residual');
     }, 800);
 
@@ -5248,15 +5256,22 @@ export default function Home() {
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
           const pso = portalSpawnOffsetRef.current;
+          const isPortalExiting = portalExitingRef.current;
           const hiddenState =
-            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
+            // Portal exit: shrink in-place (CSS portal-suck handles the visual)
+            // Portal entrance: animate from entrance offset toward final position
+            peekStyle === 'portal' && isPortalExiting ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
+            : peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
             : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 10, mass: 0.8, velocity: 8 }
+            // Portal exit: fast tween matching CSS portal-suck (300ms)
+            peekStyle === 'portal' && isPortalExiting ? { type: 'tween', duration: 0.3, ease: 'easeIn' }
+            // Portal entrance: bouncy spring from portal toward final position
+            : peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 10, mass: 0.8, velocity: 8 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
             : peekStyle === 'swing' ? { type: 'spring', stiffness: 200, damping: 15 }
             : peekStyle === 'pop' ? { type: 'spring', stiffness: 400, damping: 15 }
