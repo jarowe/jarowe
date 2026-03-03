@@ -2,11 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: linear-gradient(180deg, rgba(15, 10, 30, 0.97) 0%, rgba(0, 0, 0, 0.99) 100%);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: #0a0618;
 }
 
 .slingshot-container {
@@ -22,7 +18,7 @@
   height: 100%;
 }
 
-/* Close button - matches balloon-close-btn */
+/* Close button */
 .slingshot-close-btn {
   position: absolute;
   top: 1rem;
@@ -31,13 +27,13 @@
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   line-height: 1;
@@ -51,25 +47,36 @@
 /* HUD */
 .slingshot-hud {
   position: absolute;
-  top: 1rem;
+  top: 1.2rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
   z-index: 10;
   pointer-events: none;
+}
+
+.slingshot-level-badge {
+  background: rgba(124, 58, 237, 0.5);
+  border: 1px solid rgba(124, 58, 237, 0.6);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  color: #a78bfa;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .slingshot-shots {
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
-  padding: 0.4rem 1.2rem;
+  padding: 0.4rem 1rem;
   color: white;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 4px;
 }
 
 .slingshot-score {
@@ -78,13 +85,33 @@
   border-radius: 20px;
   padding: 0.4rem 1.2rem;
   color: #fbbf24;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Intro / Win overlays */
+/* Hint text */
+.slingshot-hint {
+  position: absolute;
+  bottom: 15%;
+  left: 5%;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.85rem;
+  font-style: italic;
+  pointer-events: none;
+  z-index: 5;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Screen overlays */
 .slingshot-intro,
+.slingshot-level-intro,
+.slingshot-level-clear,
 .slingshot-win,
 .slingshot-lose {
   position: absolute;
@@ -93,14 +120,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.8rem;
   text-align: center;
   color: white;
   z-index: 15;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(10, 6, 24, 0.85);
+  padding: 2rem;
+}
+
+.slingshot-logo {
+  font-size: 5rem;
+  margin-bottom: 0.5rem;
 }
 
 .slingshot-intro h2,
+.slingshot-level-intro h2,
+.slingshot-level-clear h2,
 .slingshot-win h2,
 .slingshot-lose h2 {
   font-size: 3rem;
@@ -109,17 +144,84 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  margin: 0;
 }
 
 .slingshot-intro p,
+.slingshot-level-intro p,
+.slingshot-level-clear p,
 .slingshot-win p,
 .slingshot-lose p {
   font-size: 1.1rem;
   color: #a1a1aa;
-  max-width: 460px;
+  max-width: 500px;
   line-height: 1.6;
+  margin: 0;
 }
 
+/* Level preview pips */
+.slingshot-level-preview {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.slingshot-level-pip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.pip-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.pip-name {
+  font-size: 0.65rem;
+  color: #71717a;
+  max-width: 70px;
+  text-align: center;
+}
+
+/* Level intro */
+.slingshot-level-num {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #7c3aed;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Stars */
+.slingshot-stars {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 3rem;
+}
+
+.slingshot-star {
+  display: inline-block;
+  filter: grayscale(1) opacity(0.3);
+  transition: filter 0.3s;
+}
+
+.slingshot-star.earned {
+  filter: none;
+}
+
+/* Buttons */
 .slingshot-launch-btn,
 .slingshot-send-btn,
 .slingshot-retry-btn {
@@ -133,36 +235,69 @@
   letter-spacing: 2px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 25px rgba(251, 191, 36, 0.4);
+  margin-top: 0.5rem;
 }
 
 .slingshot-launch-btn:hover,
 .slingshot-send-btn:hover,
 .slingshot-retry-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 30px rgba(251, 191, 36, 0.6);
+  transform: scale(1.06);
+  box-shadow: 0 6px 35px rgba(251, 191, 36, 0.6);
+}
+
+.slingshot-send-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  transform: none;
 }
 
 .slingshot-retry-btn {
   background: linear-gradient(135deg, #7c3aed, #38bdf8);
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 25px rgba(124, 58, 237, 0.4);
 }
 
-/* Message card */
+.slingshot-close-btn-text {
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
+  color: #a1a1aa;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-top: 0.5rem;
+}
+
+.slingshot-close-btn-text:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* Card */
 .slingshot-card-preview {
   background: rgba(15, 10, 30, 0.8);
   border: 2px solid rgba(251, 191, 36, 0.4);
   border-radius: 16px;
   padding: 1.5rem 2rem;
-  max-width: 400px;
+  max-width: 420px;
   width: 90%;
   backdrop-filter: blur(12px);
-  box-shadow: 0 0 30px rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.15);
+}
+
+.slingshot-card-header {
+  color: #fbbf24;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.8rem;
 }
 
 .slingshot-message-input {
   width: 100%;
-  min-height: 80px;
+  min-height: 90px;
   padding: 0.8rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(251, 191, 36, 0.3);
@@ -184,39 +319,44 @@
 }
 
 .slingshot-sent-msg {
-  color: #22c55e;
-  font-size: 1.4rem;
-  font-weight: 800;
-}
-
-/* Shake animation for impact */
-.slingshot-shake {
-  animation: slingshotShake 0.3s ease-out;
-}
-
-@keyframes slingshotShake {
-  0% { transform: translate(0, 0); }
-  20% { transform: translate(-4px, 2px); }
-  40% { transform: translate(4px, -2px); }
-  60% { transform: translate(-2px, 3px); }
-  80% { transform: translate(2px, -1px); }
-  100% { transform: translate(0, 0); }
+  color: #22c55e !important;
+  font-size: 2rem !important;
+  font-weight: 900 !important;
 }
 
 @media (max-width: 640px) {
   .slingshot-intro h2,
+  .slingshot-level-intro h2,
+  .slingshot-level-clear h2,
   .slingshot-win h2,
   .slingshot-lose h2 {
     font-size: 2rem;
   }
 
   .slingshot-hud {
-    gap: 0.8rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .slingshot-shots,
-  .slingshot-score {
-    font-size: 1rem;
-    padding: 0.3rem 0.8rem;
+  .slingshot-score,
+  .slingshot-level-badge {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .slingshot-stars {
+    font-size: 2rem;
+  }
+
+  .slingshot-level-preview {
+    gap: 0.5rem;
+  }
+
+  .pip-num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
 }
