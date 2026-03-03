@@ -161,6 +161,36 @@ export const playBirthdaySound = () => {
     } catch (e) { }
 };
 
+export const playComboSound = (comboLevel = 1) => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') c.resume();
+        const t = c.currentTime;
+        const freq = 400 + Math.min(comboLevel, 20) * 80;
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.12);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t);
+        osc.stop(t + 0.25);
+        // Shimmer overtone
+        const osc2 = c.createOscillator();
+        const gain2 = c.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.value = freq * 2;
+        gain2.gain.setValueAtTime(0.04, t);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc2.connect(gain2).connect(c.destination);
+        osc2.start(t);
+        osc2.stop(t + 0.2);
+    } catch (e) { }
+};
+
 export const playBalloonPopSound = () => {
     if (isMuted) return;
     try {

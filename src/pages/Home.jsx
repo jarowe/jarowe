@@ -14,6 +14,7 @@ import PortalVFX from '../components/PortalVFX';
 import { useBirthday } from '../context/BirthdayContext';
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
+const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -131,9 +132,9 @@ export default function Home() {
   const navigate = useNavigate();
   const { isBirthday, age, isMilestone } = useBirthday();
 
-  // Birthday mode state
-  const [showBalloonGame, setShowBalloonGame] = useState(false);
-  const [showMakeAWish, setShowMakeAWish] = useState(false);
+  // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
+  const [birthdayFlow, setBirthdayFlow] = useState('idle');
+  const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
@@ -2429,6 +2430,76 @@ export default function Home() {
             };
             globe.satellitesGroup.add(wisp);
           }
+
+          // Birthday "Find the 40" sprites at famous cities
+          if (isBirthday && !globe._birthdaySprites) {
+            globe._birthdaySprites = [];
+            const bdayCities = [
+              { lat: 40.71, lng: -74.01, name: 'NYC' },
+              { lat: 48.86, lng: 2.35, name: 'Paris' },
+              { lat: 35.68, lng: 139.69, name: 'Tokyo' },
+              { lat: -33.87, lng: 151.21, name: 'Sydney' },
+              { lat: 51.51, lng: -0.13, name: 'London' },
+              { lat: -22.91, lng: -43.17, name: 'Rio' },
+              { lat: 28.61, lng: 77.21, name: 'Delhi' },
+              { lat: 30.04, lng: 31.24, name: 'Cairo' },
+            ];
+            const bdayAge = new Date().getFullYear() - 1986;
+            bdayCities.forEach((city, i) => {
+              // Canvas texture with glow + number
+              const canvas = document.createElement('canvas');
+              canvas.width = 128;
+              canvas.height = 128;
+              const cx = canvas.getContext('2d');
+              // Radial glow
+              const grad = cx.createRadialGradient(64, 64, 10, 64, 64, 60);
+              grad.addColorStop(0, 'rgba(251, 191, 36, 0.9)');
+              grad.addColorStop(0.5, 'rgba(244, 114, 182, 0.4)');
+              grad.addColorStop(1, 'rgba(124, 58, 237, 0)');
+              cx.fillStyle = grad;
+              cx.fillRect(0, 0, 128, 128);
+              // Number
+              cx.font = 'bold 48px sans-serif';
+              cx.textAlign = 'center';
+              cx.textBaseline = 'middle';
+              cx.fillStyle = '#fbbf24';
+              cx.strokeStyle = 'rgba(0,0,0,0.5)';
+              cx.lineWidth = 3;
+              cx.strokeText(String(bdayAge), 64, 64);
+              cx.fillText(String(bdayAge), 64, 64);
+
+              const tex = new THREE.CanvasTexture(canvas);
+              const spriteMat = new THREE.SpriteMaterial({
+                map: tex,
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+              });
+              const sprite = new THREE.Sprite(spriteMat);
+              sprite.scale.set(4, 4, 1);
+              // Convert lat/lng to position
+              const latRad = city.lat * Math.PI / 180;
+              const lngRad = city.lng * Math.PI / 180;
+              const r = 103;
+              sprite.position.set(
+                r * Math.cos(latRad) * Math.sin(lngRad),
+                r * Math.sin(latRad),
+                r * Math.cos(latRad) * Math.cos(lngRad)
+              );
+              sprite.userData = {
+                type: 'birthday-number',
+                lat: city.lat,
+                lng: city.lng,
+                name: city.name,
+                found: false,
+                bobPhase: Math.random() * Math.PI * 2,
+                bobSpeed: 1.5 + Math.random(),
+                baseR: r,
+              };
+              globe.satellitesGroup.add(sprite);
+              globe._birthdaySprites.push(sprite);
+            });
+          }
         }
 
         // ------------------------------------------------------------------
@@ -3096,6 +3167,22 @@ export default function Home() {
                   } else if (ud.type === 'wisp') {
                     // Wisps pulse opacity
                     m.material.opacity = 0.3 + Math.sin(elTs * ud.bobSpeed + ud.bobPhase) * 0.2;
+                  } else if (ud.type === 'birthday-number') {
+                    // Birthday sprites bob + pulse, fade out when found
+                    if (ud.found) {
+                      m.material.opacity = Math.max(0, m.material.opacity - dt * 2);
+                      return;
+                    }
+                    const bob = Math.sin(elTs * ud.bobSpeed + ud.bobPhase) * 1.5;
+                    const latRad = ud.lat * Math.PI / 180;
+                    const lngRad = ud.lng * Math.PI / 180;
+                    const bR = ud.baseR + bob;
+                    m.position.set(
+                      bR * Math.cos(latRad) * Math.sin(lngRad),
+                      bR * Math.sin(latRad),
+                      bR * Math.cos(latRad) * Math.cos(lngRad)
+                    );
+                    m.material.opacity = 0.6 + Math.sin(elTs * 2 + ud.bobPhase) * 0.3;
                   } else {
                     m.lookAt(0, 0, 0);
                   }
@@ -4493,11 +4580,8 @@ export default function Home() {
           </div>
           {isMilestone && <div className="birthday-banner-subtitle">The big {age}! Let's go!</div>}
           <div className="birthday-banner-actions">
-            <button className="birthday-game-btn" onClick={() => setShowBalloonGame(true)}>
+            <button className="birthday-game-btn" onClick={() => setBirthdayFlow('balloon-game')}>
               Pop Balloons!
-            </button>
-            <button className="birthday-game-btn birthday-wish-btn" onClick={() => setShowMakeAWish(true)}>
-              Make a Wish
             </button>
           </div>
         </motion.div>
@@ -4533,7 +4617,7 @@ export default function Home() {
             <div className="bento-content">
               <div className="hero-header">
                 <div
-                  className={`hero-avatar ${avatarEffect ? `avatar-${avatarEffect}` : ''}`}
+                  className={`hero-avatar ${avatarEffect ? `avatar-${avatarEffect}` : ''}${isBirthday ? ' birthday-avatar' : ''}`}
                   onClick={handleAvatarClick}
                   role="button"
                   tabIndex={0}
@@ -4552,7 +4636,7 @@ export default function Home() {
                 </div>
                 <div className="hero-titles">
                   <h1>Jared Rowe</h1>
-                  <h2>Dad. Builder. Noise Maker.</h2>
+                  <h2 className={isBirthday ? 'birthday-prismatic' : ''}>Dad. Builder. Noise Maker.</h2>
                 </div>
               </div>
               <p className="hero-bio">
@@ -4577,7 +4661,35 @@ export default function Home() {
               '--badge-bottom': `${editorParams.current.badgeBottom}rem`,
               '--badge-inset': `${editorParams.current.badgeInset}rem`,
             }}>
-            <div className="map-container" ref={mapContainerRef} style={{ opacity: globeReady ? 1 : 0, transition: 'opacity 1.5s ease-in' }}>
+            <div className="map-container" ref={mapContainerRef} style={{ opacity: globeReady ? 1 : 0, transition: 'opacity 1.5s ease-in' }}
+              onClick={(e) => {
+                if (!isBirthday || !globeRef.current) return;
+                const globe = globeRef.current;
+                const renderer = globe.renderer();
+                const camera = globe.camera();
+                if (!renderer || !camera || !globe._birthdaySprites) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const mouse = new THREE.Vector2(
+                  ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                  -((e.clientY - rect.top) / rect.height) * 2 + 1
+                );
+                const rc = new THREE.Raycaster();
+                rc.params.Points = { threshold: 5 };
+                rc.setFromCamera(mouse, camera);
+                const hits = rc.intersectObjects(globe._birthdaySprites, false);
+                if (hits.length > 0) {
+                  const sprite = hits[0].object;
+                  if (!sprite.userData.found) {
+                    sprite.userData.found = true;
+                    playBalloonPopSound();
+                    const cx = e.clientX / window.innerWidth;
+                    const cy = e.clientY / window.innerHeight;
+                    confetti({ particleCount: 30, spread: 60, origin: { x: cx, y: cy }, colors: ['#fbbf24', '#f472b6', '#7c3aed'] });
+                    window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 25, reason: `Found ${sprite.userData.name}!` } }));
+                    setBirthdayNumbersFound(prev => prev + 1);
+                  }
+                }
+              }}>
               <Suspense fallback={<div style={{ color: '#fff', padding: '2rem' }}>Loading globe...</div>}>
                 {globeSize.width > 0 && (
                   <Globe
@@ -4658,6 +4770,10 @@ export default function Home() {
             {/* Fog / particle overlay (controllable via editor) */}
             {editorParams.current.fogLayerEnabled && <div className="globe-fog-layer" />}
             {editorParams.current.particlesLayerEnabled && <div className="globe-particles-layer" />}
+            {/* Birthday "Find the 40" counter */}
+            {isBirthday && birthdayNumbersFound > 0 && (
+              <div className="globe-birthday-counter">{birthdayNumbersFound} / 8 found</div>
+            )}
             {/* WORLDSCHOOLING FAMILY badge */}
             <div className="worldschool-badge">
               <span className="ws-dot" />
@@ -5243,27 +5359,34 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* BIRTHDAY BALLOON POP GAME */}
+        {/* BIRTHDAY FLOW: balloon-game -> make-wish -> birthday-unlock */}
         <AnimatePresence>
-          {showBalloonGame && (
+          {birthdayFlow === 'balloon-game' && (
             <Suspense fallback={null}>
               <BalloonPop
                 targetCount={age}
-                onClose={() => setShowBalloonGame(false)}
+                onClose={() => setBirthdayFlow('idle')}
                 onComplete={() => {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
-                  setTimeout(() => setShowMakeAWish(true), 2500);
+                  setTimeout(() => setBirthdayFlow('make-wish'), 2500);
                 }}
               />
             </Suspense>
           )}
         </AnimatePresence>
 
-        {/* MAKE A WISH */}
         <AnimatePresence>
-          {showMakeAWish && (
+          {birthdayFlow === 'make-wish' && (
             <Suspense fallback={null}>
-              <MakeAWish onClose={() => setShowMakeAWish(false)} />
+              <MakeAWish onClose={() => setBirthdayFlow('birthday-unlock')} />
+            </Suspense>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {birthdayFlow === 'birthday-unlock' && (
+            <Suspense fallback={null}>
+              <BirthdayUnlock age={age} onClose={() => setBirthdayFlow('idle')} />
             </Suspense>
           )}
         </AnimatePresence>

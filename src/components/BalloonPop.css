@@ -2,19 +2,26 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.85);
+  background: radial-gradient(ellipse at center, rgba(30, 10, 60, 0.95) 0%, rgba(0, 0, 0, 0.98) 70%);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.balloon-pop-overlay.fever-active {
+  animation: feverPulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes feverPulse {
+  from { background: radial-gradient(ellipse at center, rgba(60, 10, 80, 0.95) 0%, rgba(0, 0, 0, 0.98) 70%); }
+  to { background: radial-gradient(ellipse at center, rgba(80, 20, 120, 0.95) 0%, rgba(10, 0, 20, 0.98) 70%); }
+}
+
 .balloon-pop-container {
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 800px;
-  max-height: 600px;
   overflow: hidden;
 }
 
@@ -34,7 +41,7 @@
 
 .balloon-pop-start h2,
 .balloon-pop-end h2 {
-  font-size: 2.5rem;
+  font-size: 3.5rem;
   font-weight: 900;
   background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);
   -webkit-background-clip: text;
@@ -44,25 +51,25 @@
 
 .balloon-pop-start p,
 .balloon-pop-end p {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: #a1a1aa;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .balloon-xp-award {
-  font-size: 1.5rem !important;
+  font-size: 1.8rem !important;
   font-weight: 900;
   color: #fbbf24 !important;
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
 }
 
 .balloon-start-btn {
-  padding: 0.8rem 2.5rem;
+  padding: 1rem 3rem;
   background: linear-gradient(135deg, #fbbf24, #f472b6);
   border: none;
   border-radius: 50px;
   color: white;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: 2px;
   cursor: pointer;
@@ -75,13 +82,15 @@
   box-shadow: 0 6px 30px rgba(251, 191, 36, 0.6);
 }
 
+/* HUD */
 .balloon-hud {
   position: absolute;
-  top: 1rem;
+  top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
+  align-items: center;
   z-index: 10;
 }
 
@@ -90,15 +99,55 @@
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 20px;
-  padding: 0.4rem 1.2rem;
+  padding: 0.5rem 1.5rem;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
 }
 
 .balloon-timer {
   color: #fbbf24;
+}
+
+/* Multiplier badge */
+.balloon-multiplier {
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  animation: multiBounce 0.3s ease;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+@keyframes multiBounce {
+  0% { transform: scale(1.4); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Combo label */
+.balloon-combo-label {
+  position: absolute;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fbbf24;
+  text-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+  z-index: 10;
+  animation: comboAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+@keyframes comboAppear {
+  0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+  50% { transform: translateX(-50%) scale(1.2); }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
 .balloon-field {
@@ -108,6 +157,7 @@
   overflow: hidden;
 }
 
+/* Base balloon */
 .balloon {
   position: absolute;
   width: var(--balloon-size);
@@ -120,6 +170,10 @@
   animation: balloon-float var(--balloon-speed) linear forwards;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
   transition: transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--balloon-size) * 0.4);
 }
 
 .balloon:hover {
@@ -136,6 +190,87 @@
   width: 1px;
   height: 20px;
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* Special balloon types */
+.balloon-golden {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), #fbbf24 40%, #f59e0b 80%);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
+  animation: balloon-float var(--balloon-speed) linear forwards, goldenPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes goldenPulse {
+  from { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3); }
+  to { box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.5); }
+}
+
+.balloon-bomb {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.3), #1f1f1f 50%, #000 80%);
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.balloon-confetti {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.5), #f472b6 50%, #ec4899 80%);
+  box-shadow: 0 0 15px rgba(244, 114, 182, 0.5);
+}
+
+.balloon-time {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.5), #22c55e 50%, #16a34a 80%);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+
+.balloon-time-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
+/* Leaderboard panel */
+.balloon-leaderboard {
+  background: rgba(15, 10, 30, 0.8);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 16px;
+  padding: 1.2rem 1.8rem;
+  margin-top: 1rem;
+  max-width: 320px;
+  width: 90%;
+  backdrop-filter: blur(12px);
+}
+
+.balloon-leaderboard h3 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 0.8rem;
+  text-align: center;
+}
+
+.balloon-leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.balloon-leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.balloon-leaderboard-label {
+  color: #a1a1aa;
+  font-size: 0.8rem;
+}
+
+.balloon-leaderboard-value {
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 @keyframes balloon-float {
@@ -161,16 +296,26 @@
 @media (max-width: 640px) {
   .balloon-pop-start h2,
   .balloon-pop-end h2 {
-    font-size: 1.8rem;
+    font-size: 2rem;
   }
 
   .balloon-hud {
-    gap: 1rem;
+    gap: 0.8rem;
   }
 
   .balloon-score,
   .balloon-timer {
-    font-size: 0.9rem;
+    font-size: 1rem;
     padding: 0.3rem 0.8rem;
+  }
+
+  .balloon-multiplier {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .balloon-combo-label {
+    font-size: 1.4rem;
+    top: 4rem;
   }
 }

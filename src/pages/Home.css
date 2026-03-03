@@ -1724,15 +1724,6 @@
     box-shadow: 0 6px 25px rgba(251, 191, 36, 0.5);
 }
 
-.birthday-wish-btn {
-    background: linear-gradient(135deg, #7c3aed, #38bdf8);
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
-}
-
-.birthday-wish-btn:hover {
-    box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
-}
-
 /* Floating Birthday Balloons */
 .birthday-balloons-container {
     position: fixed;
@@ -1750,7 +1741,7 @@
     bottom: -80px;
     background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), var(--b-color) 60%);
     border-radius: 50% 50% 50% 50% / 55% 55% 45% 45%;
-    opacity: 0.4;
+    opacity: 0;
     animation: birthdayBalloonFloat var(--b-speed) ease-in-out infinite;
     animation-delay: var(--b-delay);
 }
@@ -1772,7 +1763,7 @@
         transform: translateX(0);
         opacity: 0;
     }
-    5% {
+    15% {
         opacity: 0.4;
     }
     25% {
@@ -1784,7 +1775,7 @@
     75% {
         transform: translateX(calc(var(--b-sway) * 0.3));
     }
-    95% {
+    85% {
         opacity: 0.4;
     }
     100% {
@@ -1804,4 +1795,158 @@
         flex-direction: column;
         gap: 0.5rem;
     }
+}
+
+/* Party Hat on Avatar */
+.birthday-avatar {
+    overflow: visible !important;
+    position: relative;
+}
+
+.birthday-avatar::before {
+    content: '';
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%) rotate(15deg);
+    width: 32px;
+    height: 38px;
+    background: conic-gradient(from 200deg, #fbbf24, #f472b6, #7c3aed, #fbbf24);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    z-index: 10;
+    animation: hatWobble 3s ease-in-out infinite;
+    filter: drop-shadow(0 2px 6px rgba(251, 191, 36, 0.4));
+}
+
+.birthday-avatar::after {
+    content: '';
+    position: absolute;
+    top: -34px;
+    left: 50%;
+    transform: translateX(calc(-50% + 5px));
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6), 0 0 16px rgba(239, 68, 68, 0.3);
+    z-index: 11;
+    animation: hatWobble 3s ease-in-out infinite;
+}
+
+@keyframes hatWobble {
+    0%, 100% { transform: translateX(-50%) rotate(15deg); }
+    25% { transform: translateX(-50%) rotate(18deg); }
+    75% { transform: translateX(-50%) rotate(12deg); }
+}
+
+/* Prismatic Subtitle Text */
+.birthday-prismatic {
+    background: linear-gradient(90deg, #ff6b6b, #fbbf24, #22c55e, #38bdf8, #7c3aed, #f472b6, #ff6b6b) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    animation: prismaticShimmer 4s linear infinite !important;
+}
+
+@keyframes prismaticShimmer {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+}
+
+/* Birthday Unlock Overlay */
+.birthday-unlock-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.birthday-unlock-card {
+    background: rgba(15, 10, 30, 0.9);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 24px;
+    padding: 3rem;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(251, 191, 36, 0.1);
+    backdrop-filter: blur(20px);
+}
+
+.birthday-unlock-age {
+    font-size: 5rem;
+    font-weight: 900;
+    font-family: var(--font-display);
+    background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+}
+
+.birthday-unlock-quote {
+    border-left: 3px solid #fbbf24;
+    padding-left: 1.2rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.birthday-unlock-quote p {
+    font-size: 1rem;
+    color: #d4d4d8;
+    font-style: italic;
+    line-height: 1.7;
+    margin: 0 0 0.5rem;
+}
+
+.birthday-unlock-quote cite {
+    color: #fbbf24;
+    font-size: 0.85rem;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.birthday-unlock-btn {
+    margin-top: 2rem;
+    padding: 0.8rem 2.5rem;
+    background: linear-gradient(135deg, #fbbf24, #f472b6);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+}
+
+.birthday-unlock-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(251, 191, 36, 0.6);
+}
+
+/* Globe Birthday Counter Badge */
+.globe-birthday-counter {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 20px;
+    padding: 0.3rem 0.8rem;
+    color: #fbbf24;
+    font-size: 0.75rem;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    pointer-events: none;
+    z-index: 6;
+    backdrop-filter: blur(8px);
 }
