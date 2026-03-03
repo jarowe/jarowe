@@ -768,6 +768,16 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pRayMotion.add(pcfg, 'portalExitWiden', 0, 3.0, 0.01).name('Portal Ray Widen');
     pRayMotion.close();
 
+    // -- Convergence Glow --
+    const pConv = pFx.addFolder('Convergence Glow');
+    if (pcfg.convergenceGlowSize === undefined) pcfg.convergenceGlowSize = 1.5;
+    if (pcfg.convergenceGlowOpacity === undefined) pcfg.convergenceGlowOpacity = 0.6;
+    if (pcfg.convergenceGlowIridescence === undefined) pcfg.convergenceGlowIridescence = 1.0;
+    pConv.add(pcfg, 'convergenceGlowSize', 0.3, 5.0, 0.01).name('Size');
+    pConv.add(pcfg, 'convergenceGlowOpacity', 0, 1.5, 0.01).name('Opacity');
+    pConv.add(pcfg, 'convergenceGlowIridescence', 0, 2.0, 0.01).name('Iridescence');
+    pConv.close();
+
     pFx.close();
 
     // -- Music Reactivity --

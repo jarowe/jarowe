@@ -464,7 +464,8 @@ const beamFrag = `
     float scatter = exp(-d * d * (1.5 / max(uSaberGlowWidth, 0.1))) * taper * 0.3;
 
     float convergeBright = 0.4 + vUv.x * 0.6;
-    float edgeFade = smoothstep(0.0, 0.15, vUv.x);
+    // Fade both ends: left (far) and right (prism center) — soft convergence at prism
+    float edgeFade = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
 
     float rawIntensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
 
@@ -573,6 +574,44 @@ const beamGlowFrag = `
   }
 `;
 
+/* ── CONVERGENCE GLOW — iridescent sparkle where beam meets prism ── */
+const convergenceGlowFrag = `
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform float uIridescence;
+  varying vec2 vUv;
+
+  void main() {
+    // Radial distance from center (0 at center, 1 at edge)
+    vec2 c = vUv - 0.5;
+    float r = length(c) * 2.0;
+
+    // Soft radial falloff — Gaussian center with gentle fade
+    float glow = exp(-r * r * 3.0);
+
+    // Iridescent color cycling — shifts hue based on angle + time
+    float angle = atan(c.y, c.x);
+    float hueShift = angle * 0.5 + uTime * 0.8;
+    // Rainbow via sine offsets (120° apart)
+    vec3 iridColor = vec3(
+      0.5 + 0.5 * sin(hueShift),
+      0.5 + 0.5 * sin(hueShift + 2.094),
+      0.5 + 0.5 * sin(hueShift + 4.189)
+    );
+    // Pastel shift — push toward white for soft prismatic look
+    iridColor = mix(vec3(1.0), iridColor, 0.6 * uIridescence);
+
+    // Gentle radial pulse
+    float pulse = 0.9 + 0.1 * sin(uTime * 2.0 + r * 4.0);
+
+    // Extra bright core hotspot
+    float hotspot = exp(-r * r * 12.0) * 0.5;
+
+    float alpha = (glow + hotspot) * uOpacity * pulse;
+    gl_FragColor = vec4(iridColor, alpha);
+  }
+`;
+
 /* ── SPREADING RAY SHADER (widens from prism, dispersion-reactive, energy streaks) ── */
 const rayFrag = `
   uniform vec3 uColor;
@@ -591,7 +630,8 @@ const rayFrag = `
     float d = abs(vUv.y - 0.5) * 2.0 / max(spread, 0.05);
 
     float fade = pow(1.0 - vUv.x, 0.6);
-    float edgeFade = smoothstep(1.0, 0.75, vUv.x);
+    // Fade both ends: prism origin (soft start) and far tip
+    float edgeFade = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.75, vUv.x);
 
     // Core + glow layers
     float coreTight = 25.0 + (1.0 - uDispersionWidth) * 20.0;
@@ -2034,6 +2074,43 @@ function RainbowFan() {
   );
 }
 
+/* ═══════════ CONVERGENCE GLOW — iridescent cover at beam junction ═══════════ */
+function ConvergenceGlow() {
+  const matRef = useRef();
+  const meshRef = useRef();
+  const geo = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+
+  useFrame((state) => {
+    if (!matRef.current || !meshRef.current) return;
+    const u = matRef.current.uniforms;
+    u.uTime.value = state.clock.elapsedTime;
+    u.uOpacity.value = cfg.convergenceGlowOpacity ?? 0.6;
+    u.uIridescence.value = cfg.convergenceGlowIridescence ?? 1.0;
+    // Live size from editor
+    const s = cfg.convergenceGlowSize ?? 1.5;
+    meshRef.current.scale.set(s, s, 1);
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, 0.06]} geometry={geo}>
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={simpleVert}
+        fragmentShader={convergenceGlowFrag}
+        uniforms={{
+          uTime: { value: 0 },
+          uOpacity: { value: cfg.convergenceGlowOpacity ?? 0.6 },
+          uIridescence: { value: cfg.convergenceGlowIridescence ?? 1.0 },
+        }}
+        transparent
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
 /* ═══════════ WORLD-SPACE BEAMS (no rotation inheritance) ═══════════ */
 // Light beams must NOT rotate with the prism — light travels in a fixed direction.
 // This wrapper tracks the prism's world POSITION (so beams connect to the prism)
@@ -2051,6 +2128,7 @@ function WorldSpaceBeams() {
     <group ref={groupRef}>
       <IncomingBeam />
       <RainbowFan />
+      <ConvergenceGlow />
     </group>
   );
 }

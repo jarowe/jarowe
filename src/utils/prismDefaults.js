@@ -92,6 +92,11 @@ export const PRISM_DEFAULTS = {
   portalExitSpread: 1.5,       // extra angular spread during portal exit (0=none)
   portalExitWiden: 1.0,        // individual ray width boost during portal exit
 
+  // Convergence glow (iridescent cover where beam meets prism)
+  convergenceGlowSize: 1.5,
+  convergenceGlowOpacity: 0.6,
+  convergenceGlowIridescence: 1.0,
+
   // Edge glow
   edgeGlowOpacity: 0.7,
 
