@@ -466,14 +466,18 @@ const beamFrag = `
     float convergeBright = 0.4 + vUv.x * 0.6;
     float edgeFade = smoothstep(0.0, 0.15, vUv.x);
 
-    float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
+    float rawIntensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
+
+    // ── CAP INTENSITY — critical for visible saber effects ──
+    // With AdditiveBlending, any color*alpha > 1.0 clips to white in the framebuffer.
+    // The uncapped center intensity is ~1.9, so saber alpha modulation (e.g. 0.5×)
+    // still produces 0.95 contribution = indistinguishable from 1.0 = invisible.
+    // Capping at 1.0 means saber alpha 0.15 → contribution 0.15, clearly visible.
+    float intensity = min(rawIntensity, 1.0);
 
     // ── ALPHA MODULATION — the key to visible saber effects ──
-    // On additive-blended white beam, brightness modulation clips at 1.0 (invisible).
-    // Instead, modulate ALPHA so the beam dims between streaks → dark background shows through.
-
-    // Streak alpha: between streaks (rawStreaks~0) → alpha drops to ~25%, at peaks → 100%
-    float streakAlpha = mix(1.0, mix(0.25, 1.0, rawStreaks), saber * uSaberStreakIntensity);
+    // Streak alpha: between streaks (rawStreaks~0) → alpha drops to ~15%, at peaks → 100%
+    float streakAlpha = mix(1.0, mix(0.15, 1.0, rawStreaks), saber * uSaberStreakIntensity);
 
     // Pulse alpha: slow breathing between 55-100%
     float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
@@ -1744,8 +1748,8 @@ function MouthExpression() {
 
 /* ═══════════ DISPERSION PHYSICS TRACKER ═══════════ */
 // Computes beam angle from config + dispersion breathing from prism rotation.
-// No matrix transforms — beams live in the same local space as PrismBody siblings
-// and naturally float with the character. Only the prism's Y-spin affects dispersion.
+// Beams live in world space (WorldSpaceBeams) — they follow prism position but
+// NOT rotation, because light travels in a fixed direction regardless of prism spin.
 function LightDirectionTracker() {
   useFrame(() => {
     sampleAudio();
@@ -2030,6 +2034,27 @@ function RainbowFan() {
   );
 }
 
+/* ═══════════ WORLD-SPACE BEAMS (no rotation inheritance) ═══════════ */
+// Light beams must NOT rotate with the prism — light travels in a fixed direction.
+// This wrapper tracks the prism's world POSITION (so beams connect to the prism)
+// but ignores rotation, Float bob-spin, MouseDrift tilt, and hover tremble.
+function WorldSpaceBeams() {
+  const groupRef = useRef();
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const wp = window.__prismWorldPos;
+    if (wp) {
+      groupRef.current.position.set(wp.x, wp.y, wp.z);
+    }
+  });
+  return (
+    <group ref={groupRef}>
+      <IncomingBeam />
+      <RainbowFan />
+    </group>
+  );
+}
+
 /* ═══════════ VERTEX STAR-BURSTS ═══════════ */
 function VertexHighlights() {
   const starTex = useMemo(() => createStarTexture(), []);
@@ -2170,6 +2195,8 @@ function ScreenTracker() {
   useFrame(({ camera, gl }) => {
     if (!ref.current) return;
     ref.current.getWorldPosition(_projVec);
+    // Expose 3D world position for world-space beams (before projection overwrites it)
+    window.__prismWorldPos = { x: _projVec.x, y: _projVec.y, z: _projVec.z };
     _projVec.project(camera);
     window.__prismNDC = { x: _projVec.x, y: _projVec.y };
     const rect = gl.domElement.getBoundingClientRect();
@@ -2283,6 +2310,9 @@ export default function Prism3D() {
         <NebulaBackdrop texture={nebulaTex} />
         {(glassMode === 'mtm' || glassMode === 'hybrid') && <MTMSceneContent />}
 
+        {/* Beams in world space — follow prism position but NOT rotation (light is fixed) */}
+        <WorldSpaceBeams />
+
         <MouseDriftGroup>
           <Float speed={cfg.floatSpeed} rotationIntensity={cfg.rotationIntensity} floatIntensity={cfg.floatIntensity}>
             <CharacterScaleGroup groupRef={charGroupRef}>
@@ -2294,8 +2324,6 @@ export default function Prism3D() {
               <InternalGlow />
               <VertexHighlights />
               <LightDirectionTracker />
-              <IncomingBeam />
-              <RainbowFan />
 
               <Sparkles
                 count={cfg.sparkleCount}
