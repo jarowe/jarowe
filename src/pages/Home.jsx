@@ -137,6 +137,9 @@ export default function Home() {
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
   const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
   const cameFromGame = useRef(false);
+  const [cardToastVisible, setCardToastVisible] = useState(false);
+  const cardToastDismissCount = useRef(0);
+  const cardToastLaunched = useRef(false);
 
   // Memoize background balloon data - deterministic values prevent re-render glitching
   // First 4 have negative delays so they're already mid-float on page load
@@ -3601,6 +3604,44 @@ export default function Home() {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [isBirthday, isMilestone, showBrand]);
 
+  // Birthday card toast - nudge users to discover the card launcher
+  useEffect(() => {
+    if (!isBirthday) return;
+    const scheduleToast = (delay) => {
+      return setTimeout(() => {
+        if (cardToastLaunched.current) return;
+        if (cardToastDismissCount.current >= 2) return;
+        setCardToastVisible(true);
+      }, delay);
+    };
+    // First appearance after 25s, let them explore first
+    const t = scheduleToast(25000);
+    return () => clearTimeout(t);
+  }, [isBirthday]);
+
+  // Hide toast when any birthday flow is active
+  useEffect(() => {
+    if (birthdayFlow !== 'idle') setCardToastVisible(false);
+    if (birthdayFlow === 'slingshot') cardToastLaunched.current = true;
+  }, [birthdayFlow]);
+
+  const dismissCardToast = useCallback(() => {
+    setCardToastVisible(false);
+    cardToastDismissCount.current += 1;
+    // Reappear once more after 60s if only dismissed once
+    if (cardToastDismissCount.current < 2 && !cardToastLaunched.current) {
+      setTimeout(() => {
+        if (!cardToastLaunched.current) setCardToastVisible(true);
+      }, 60000);
+    }
+  }, []);
+
+  const launchCardFromToast = useCallback(() => {
+    setCardToastVisible(false);
+    cardToastLaunched.current = true;
+    setBirthdayFlow('slingshot');
+  }, []);
+
   // 3D cell tracking
   useEffect(() => {
     const cells = document.querySelectorAll('.bento-cell.tilt-enabled');
@@ -5516,6 +5557,27 @@ export default function Home() {
         <AnimatePresence>
           {showSpeedGame && (
             <SpeedPuzzle onClose={() => setShowSpeedGame(false)} />
+          )}
+        </AnimatePresence>
+
+        {/* Birthday card toast nudge */}
+        <AnimatePresence>
+          {isBirthday && cardToastVisible && birthdayFlow === 'idle' && (
+            <motion.div
+              className="birthday-card-toast"
+              initial={{ y: 120, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 120, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+            >
+              <button className="card-toast-close" onClick={dismissCardToast}>&times;</button>
+              <div className="card-toast-icon">{'\uD83C\uDF82'}</div>
+              <div className="card-toast-body">
+                <div className="card-toast-title">Send Jared a Birthday Card!</div>
+                <div className="card-toast-desc">Launch cupcakes through 5 levels to deliver your message</div>
+              </div>
+              <button className="card-toast-btn" onClick={launchCardFromToast}>Play!</button>
+            </motion.div>
           )}
         </AnimatePresence>
 
