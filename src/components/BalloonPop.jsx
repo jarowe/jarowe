@@ -58,6 +58,15 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
   const hasCompleted = useRef(false);
   const feverTimer = useRef(null);
 
+  // ESC key to close
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape' && onClose) onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const startGame = useCallback(() => {
     setGameState('playing');
     setScore(0);
@@ -248,6 +257,7 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
       onClick={gameState === 'complete' ? onClose : undefined}
     >
       <div className="balloon-pop-container" onClick={e => e.stopPropagation()}>
+        <button className="balloon-close-btn" onClick={onClose} title="Close (ESC)">&times;</button>
         {gameState === 'ready' && (
           <motion.div
             className="balloon-pop-start"

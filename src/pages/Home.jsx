@@ -135,6 +135,7 @@ export default function Home() {
   // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
   const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
+  const cameFromGame = useRef(false);
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
@@ -4583,6 +4584,9 @@ export default function Home() {
             <button className="birthday-game-btn" onClick={() => setBirthdayFlow('balloon-game')}>
               Pop Balloons!
             </button>
+            <button className="birthday-game-btn birthday-wish-btn" onClick={() => setBirthdayFlow('make-wish')}>
+              Make a Wish
+            </button>
           </div>
         </motion.div>
       )}
@@ -4600,7 +4604,7 @@ export default function Home() {
                   '--b-color': colors[i % colors.length],
                   '--b-left': `${5 + (i * 8) + Math.random() * 4}%`,
                   '--b-size': `${30 + Math.random() * 20}px`,
-                  '--b-speed': `${12 + Math.random() * 10}s`,
+                  '--b-speed': `${18 + Math.random() * 14}s`,
                   '--b-delay': `${i * 1.5 + Math.random() * 3}s`,
                   '--b-sway': `${15 + Math.random() * 25}px`,
                 }}
@@ -5368,6 +5372,7 @@ export default function Home() {
                 onClose={() => setBirthdayFlow('idle')}
                 onComplete={() => {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
+                  cameFromGame.current = true;
                   setTimeout(() => setBirthdayFlow('make-wish'), 2500);
                 }}
               />
@@ -5378,7 +5383,14 @@ export default function Home() {
         <AnimatePresence>
           {birthdayFlow === 'make-wish' && (
             <Suspense fallback={null}>
-              <MakeAWish onClose={() => setBirthdayFlow('birthday-unlock')} />
+              <MakeAWish onClose={() => {
+                if (cameFromGame.current) {
+                  cameFromGame.current = false;
+                  setBirthdayFlow('birthday-unlock');
+                } else {
+                  setBirthdayFlow('idle');
+                }
+              }} />
             </Suspense>
           )}
         </AnimatePresence>

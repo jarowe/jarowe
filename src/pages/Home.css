@@ -1705,23 +1705,34 @@
 }
 
 .birthday-game-btn {
-    padding: 0.6rem 1.5rem;
+    padding: 0.75rem 2rem;
     background: linear-gradient(135deg, #fbbf24, #f472b6);
     border: none;
     border-radius: 50px;
     color: white;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 800;
     letter-spacing: 1px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
     font-family: var(--font-body);
+    min-height: 44px;
+    min-width: 140px;
 }
 
 .birthday-game-btn:hover {
     transform: scale(1.05) translateY(-2px);
     box-shadow: 0 6px 25px rgba(251, 191, 36, 0.5);
+}
+
+.birthday-wish-btn {
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+}
+
+.birthday-wish-btn:hover {
+    box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
 }
 
 /* Floating Birthday Balloons */
@@ -1763,20 +1774,29 @@
         transform: translateX(0);
         opacity: 0;
     }
-    15% {
-        opacity: 0.4;
+    8% {
+        opacity: 0;
     }
-    25% {
+    20% {
+        opacity: 0.35;
+    }
+    35% {
         transform: translateX(var(--b-sway));
+        opacity: 0.4;
     }
     50% {
         transform: translateX(calc(var(--b-sway) * -0.6));
-    }
-    75% {
-        transform: translateX(calc(var(--b-sway) * 0.3));
-    }
-    85% {
         opacity: 0.4;
+    }
+    65% {
+        transform: translateX(calc(var(--b-sway) * 0.3));
+        opacity: 0.4;
+    }
+    78% {
+        opacity: 0.35;
+    }
+    90% {
+        opacity: 0;
     }
     100% {
         bottom: calc(100vh + 80px);
