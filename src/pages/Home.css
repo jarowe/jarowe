@@ -692,16 +692,17 @@
     letter-spacing: 0.5px;
 }
 
-/* Screen shake on bop */
+/* Screen shake on bop — uses margin-left (NOT transform) to avoid creating
+   a containing block that breaks position:fixed on peek-character inside */
 .screen-shake {
     animation: shake 0.3s ease-out;
 }
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-3px); }
-    40% { transform: translateX(3px); }
-    60% { transform: translateX(-2px); }
-    80% { transform: translateX(1px); }
+    0%, 100% { margin-left: 0; }
+    20% { margin-left: -3px; }
+    40% { margin-left: 3px; }
+    60% { margin-left: -2px; }
+    80% { margin-left: 1px; }
 }
 
 /* Bop impact ripple — fixed-position overlay at character center (set via JS) */
