@@ -17,6 +17,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
+const GlintEditor = lazy(() => import('../components/GlintEditor'));
 const Prism3D = lazy(() => import('../components/Prism3D'));
 
 // Real-time sun position based on UTC time (solar declination + hour angle)
@@ -4899,6 +4900,7 @@ export default function Home() {
             globeShaderMaterial={globeShaderMaterial}
             setOverlayParams={setOverlayParams}
           />
+          <GlintEditor />
         </Suspense>
       )}
     </div>
