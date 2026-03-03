@@ -64,15 +64,19 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     if (titleEl) titleEl.after(searchWrap);
     else gui.domElement.prepend(searchWrap);
 
-    // Recursive filter logic
+    // Recursive filter logic — searches display name, property key, AND folder path
     const filterGui = (query) => {
       const q = query.toLowerCase().trim();
-      const processFolder = (folder) => {
+      const processFolder = (folder, parentPath) => {
         let anyVisible = false;
-        // Filter controllers
+        const folderName = (folder._title || '').toLowerCase();
+        const fullPath = parentPath ? parentPath + ' ' + folderName : folderName;
+        // Filter controllers — match against display name, property key, and folder path
         for (const ctrl of folder.controllers) {
-          const name = (ctrl._name || ctrl.property || '').toLowerCase();
-          const match = !q || name.includes(q);
+          const displayName = (ctrl._name || '').toLowerCase();
+          const propName = (ctrl.property || '').toLowerCase();
+          const searchable = fullPath + ' ' + displayName + ' ' + propName;
+          const match = !q || searchable.includes(q);
           ctrl.domElement.parentElement.style.display = match ? '' : 'none';
           if (match) anyVisible = true;
         }
@@ -80,7 +84,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         for (const sub of folder.folders) {
           const subTitle = (sub._title || '').toLowerCase();
           const titleMatch = !q || subTitle.includes(q);
-          const childVisible = processFolder(sub);
+          const childVisible = processFolder(sub, fullPath);
           const show = titleMatch || childVisible;
           sub.domElement.style.display = show ? '' : 'none';
           if (show && q) sub.open();
@@ -88,7 +92,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
         }
         return anyVisible;
       };
-      processFolder(gui);
+      processFolder(gui, '');
     };
     searchInput.addEventListener('input', () => filterGui(searchInput.value));
 
@@ -632,7 +636,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     // -- Visibility / Positioning --
     const peekFolder = prismBopFolder.addFolder('Peek Control');
     const peekStyles = ['portal', 'slide', 'bounce', 'swing', 'pop', 'roll'];
-    const peekProxy = { side: 'right', cell: 0, duration: 8, pinned: false, style: 'portal', dragMode: false };
+    const peekProxy = { side: 'left', cell: 0, duration: 8, pinned: false, style: 'portal', dragMode: false };
     peekFolder.add(peekProxy, 'side', ['right', 'left', 'top']).name('Side');
     peekFolder.add(peekProxy, 'cell', 0, 3, 1).name('Cell Index');
     peekFolder.add(peekProxy, 'duration', 1, 30, 1).name('Duration (s)');
