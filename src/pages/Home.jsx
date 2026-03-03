@@ -7,10 +7,13 @@ import { photos } from '../data/photos';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
+import { useBirthday } from '../context/BirthdayContext';
+const BalloonPop = lazy(() => import('../components/BalloonPop'));
+const MakeAWish = lazy(() => import('../components/MakeAWish'));
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -126,6 +129,11 @@ const arcsData = [
 export default function Home() {
   const BASE = import.meta.env.BASE_URL;
   const navigate = useNavigate();
+  const { isBirthday, age, isMilestone } = useBirthday();
+
+  // Birthday mode state
+  const [showBalloonGame, setShowBalloonGame] = useState(false);
+  const [showMakeAWish, setShowMakeAWish] = useState(false);
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
@@ -186,39 +194,83 @@ export default function Home() {
     let editorInst = null;
     let debugInst = null;
 
+    // ── Toggle button (always visible, top-right corner) ──
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'jarowe-editor-toggle';
+    toggleBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h8M2 8h12M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="13" cy="4" r="1.5" fill="currentColor"/></svg>`;
+    toggleBtn.title = 'Toggle Editor';
+    document.body.appendChild(toggleBtn);
+
     const containerEl = document.createElement('div');
-    containerEl.className = 'jarowe-editor-panels';
-    containerEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;max-height:92vh;overflow-y:auto;overflow-x:hidden;width:320px;';
+    containerEl.className = 'jarowe-editor-panels collapsed';
     document.body.appendChild(containerEl);
 
-    // Inject custom theme + scrollbar styles
+    let panelsVisible = false;
+    toggleBtn.addEventListener('click', () => {
+      panelsVisible = !panelsVisible;
+      containerEl.classList.toggle('collapsed', !panelsVisible);
+      toggleBtn.classList.toggle('active', panelsVisible);
+    });
+
+    // Inject theme + scrollbar + toggle styles
     const styleEl = document.createElement('style');
     styleEl.textContent = `
-      /* ── Sleek thin scrollbar ── */
-      .jarowe-editor-panels::-webkit-scrollbar { width: 5px; }
-      .jarowe-editor-panels::-webkit-scrollbar-track { background: transparent; }
-      .jarowe-editor-panels::-webkit-scrollbar-thumb {
-        background: rgba(140, 100, 255, 0.35);
-        border-radius: 4px;
+      /* ── Toggle button ── */
+      .jarowe-editor-toggle {
+        position: fixed; top: 12px; right: 12px; z-index: 10001;
+        width: 32px; height: 32px; padding: 0;
+        border: 1px solid rgba(140,100,255,0.12);
+        border-radius: 8px;
+        background: rgba(12,10,28,0.6);
+        color: rgba(180,160,255,0.4);
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        transition: all 0.25s ease;
       }
-      .jarowe-editor-panels::-webkit-scrollbar-thumb:hover {
-        background: rgba(140, 100, 255, 0.6);
+      .jarowe-editor-toggle:hover {
+        color: rgba(180,160,255,0.9);
+        border-color: rgba(140,100,255,0.4);
+        background: rgba(20,15,45,0.85);
+        box-shadow: 0 0 12px rgba(140,100,255,0.15);
       }
-      /* Firefox */
+      .jarowe-editor-toggle.active {
+        color: #a78bfa;
+        border-color: rgba(140,100,255,0.5);
+        background: rgba(30,20,60,0.9);
+        box-shadow: 0 0 16px rgba(140,100,255,0.2);
+      }
+
+      /* ── Panel container ── */
       .jarowe-editor-panels {
+        position: fixed; top: 52px; right: 12px; z-index: 10000;
+        max-height: calc(92vh - 52px);
+        overflow-y: auto; overflow-x: hidden; width: 320px;
+        opacity: 1; transform: translateY(0);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        pointer-events: auto;
         scrollbar-width: thin;
         scrollbar-color: rgba(140,100,255,0.35) transparent;
       }
+      .jarowe-editor-panels.collapsed {
+        opacity: 0; transform: translateY(-8px); pointer-events: none;
+      }
+
+      /* ── Sleek thin scrollbar ── */
+      .jarowe-editor-panels::-webkit-scrollbar { width: 5px; }
+      .jarowe-editor-panels::-webkit-scrollbar-track { background: transparent; }
+      .jarowe-editor-panels::-webkit-scrollbar-thumb { background: rgba(140,100,255,0.35); border-radius: 4px; }
+      .jarowe-editor-panels::-webkit-scrollbar-thumb:hover { background: rgba(140,100,255,0.6); }
 
       /* ── lil-gui theme ── */
       .jarowe-editor-panels .lil-gui {
-        --background-color: rgba(12, 10, 28, 0.92);
-        --title-background-color: rgba(60, 40, 120, 0.55);
+        --background-color: rgba(12,10,28,0.92);
+        --title-background-color: rgba(60,40,120,0.55);
         --title-text-color: #c8b8ff;
         --text-color: #c0bcd8;
-        --widget-color: rgba(80, 60, 160, 0.3);
-        --hover-color: rgba(100, 70, 200, 0.25);
-        --focus-color: rgba(140, 100, 255, 0.45);
+        --widget-color: rgba(80,60,160,0.3);
+        --hover-color: rgba(100,70,200,0.25);
+        --focus-color: rgba(140,100,255,0.45);
         --number-color: #a78bfa;
         --string-color: #7dd3fc;
         --font-size: 11px;
@@ -226,55 +278,29 @@ export default function Home() {
         --name-width: 46%;
         --scrollbar-width: 5px;
       }
-      .jarowe-editor-panels .lil-gui { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+      .jarowe-editor-panels .lil-gui { font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
       .jarowe-editor-panels .lil-gui .title {
-        font-weight: 600;
-        letter-spacing: 0.3px;
-        border-bottom: 1px solid rgba(140, 100, 255, 0.15);
+        font-weight: 600; letter-spacing: 0.3px;
+        border-bottom: 1px solid rgba(140,100,255,0.15);
       }
-      /* Root-level GUI titles get a stronger look */
       .jarowe-editor-panels > .lil-gui > .title {
-        background: linear-gradient(135deg, rgba(80, 50, 160, 0.6), rgba(40, 20, 100, 0.6));
-        font-size: 13px;
-        letter-spacing: 0.6px;
-        text-transform: uppercase;
+        background: linear-gradient(135deg, rgba(80,50,160,0.6), rgba(40,20,100,0.6));
+        font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase;
       }
-      /* Slider fill */
-      .jarowe-editor-panels .lil-gui .slider .fill {
-        background: linear-gradient(90deg, #7c3aed, #a78bfa);
-      }
-      /* Function buttons */
+      .jarowe-editor-panels .lil-gui .slider .fill { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
       .jarowe-editor-panels .lil-gui .controller.function .widget {
-        background: rgba(100, 70, 200, 0.25);
-        border: 1px solid rgba(140, 100, 255, 0.2);
-        border-radius: 3px;
-        transition: background 0.15s, border-color 0.15s;
+        background: rgba(100,70,200,0.25); border: 1px solid rgba(140,100,255,0.2);
+        border-radius: 3px; transition: background 0.15s, border-color 0.15s;
       }
       .jarowe-editor-panels .lil-gui .controller.function .widget:hover {
-        background: rgba(120, 80, 220, 0.4);
-        border-color: rgba(140, 100, 255, 0.45);
+        background: rgba(120,80,220,0.4); border-color: rgba(140,100,255,0.45);
       }
-      /* Boolean checkboxes */
-      .jarowe-editor-panels .lil-gui input[type="checkbox"] {
-        accent-color: #7c3aed;
-      }
-      /* Dropdown selects */
-      .jarowe-editor-panels .lil-gui select {
-        background: rgba(40, 25, 80, 0.7);
-        border-color: rgba(140, 100, 255, 0.2);
-      }
-      /* Color display */
-      .jarowe-editor-panels .lil-gui .controller.color .display {
-        border-radius: 3px;
-        border: 1px solid rgba(140, 100, 255, 0.2);
-      }
-      /* Inner scrollbars (nested folder overflow) */
+      .jarowe-editor-panels .lil-gui input[type="checkbox"] { accent-color: #7c3aed; }
+      .jarowe-editor-panels .lil-gui select { background: rgba(40,25,80,0.7); border-color: rgba(140,100,255,0.2); }
+      .jarowe-editor-panels .lil-gui .controller.color .display { border-radius: 3px; border: 1px solid rgba(140,100,255,0.2); }
       .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar { width: 4px; }
       .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-track { background: transparent; }
-      .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-thumb {
-        background: rgba(140, 100, 255, 0.25);
-        border-radius: 3px;
-      }
+      .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-thumb { background: rgba(140,100,255,0.25); border-radius: 3px; }
     `;
     document.head.appendChild(styleEl);
 
@@ -413,6 +439,7 @@ export default function Home() {
       if (editorInst) editorInst.destroy();
       if (debugInst) debugInst.destroy();
       containerEl.remove();
+      toggleBtn.remove();
       styleEl.remove();
       setEditorGui(null);
       setDebugGamesFolder(null);
@@ -3431,6 +3458,24 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [showBrand]);
 
+  // Birthday confetti entrance
+  useEffect(() => {
+    if (!isBirthday) return;
+    const bdayColors = ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff6b6b'];
+    const delay = showBrand ? 3500 : 500;
+    const t1 = setTimeout(() => {
+      confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 }, colors: bdayColors });
+      playBirthdaySound();
+    }, delay);
+    const t2 = setTimeout(() => {
+      confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 }, colors: bdayColors });
+    }, delay + 400);
+    const t3 = setTimeout(() => {
+      confetti({ particleCount: isMilestone ? 200 : 100, spread: 100, origin: { y: 0.6 }, colors: bdayColors, scalar: 1.2 });
+    }, delay + 800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [isBirthday, isMilestone, showBrand]);
+
   // 3D cell tracking
   useEffect(() => {
     const cells = document.querySelectorAll('.bento-cell.tilt-enabled');
@@ -3681,6 +3726,20 @@ export default function Home() {
     "Type 'vault' for a surprise!",
     "Your vibes are immaculate",
     "I'm basically a disco ball",
+  ];
+
+  // Birthday Glint ideas
+  const birthdayGlintIdeas = [
+    "It's my BIRTHDAY! I'm basically a party in prism form!",
+    "40 years of refracting pure genius. You're welcome, world.",
+    "Did someone say cake? I don't eat but I LOVE the energy!",
+    "Birthday wish: unlimited refraction angles. And cake. Mostly cake.",
+    "Fun fact: prisms age like fine wine. I am exquisite.",
+    "The big 4-0! That's like... 280 in prism years!",
+    "My birthday resolution: more sparkle, less normal.",
+    "Age is just a number. Refraction is forever.",
+    "I'm 40% more fabulous than yesterday. Math checks out.",
+    "Best birthday gift? Someone finally built me a party hat!",
   ];
 
   // Glint — the spark of an idea, the vessel for creativity
@@ -3989,7 +4048,8 @@ export default function Home() {
 
         // Show a Glint idea after character settles
         const ideaDelay = setTimeout(() => {
-          const idea = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
+          const ideaPool = isBirthday ? birthdayGlintIdeas : glintIdeas;
+          const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)];
           window.__prismTalking = true;
           showBubbleWithThinking(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
@@ -4419,6 +4479,52 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* BIRTHDAY BANNER */}
+      {isBirthday && (
+        <motion.div
+          className="birthday-banner glass-panel"
+          initial={{ opacity: 0, y: -30, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: showBrand ? 3.5 : 0.3 }}
+        >
+          <div className="birthday-banner-text">
+            HAPPY {age}{(age % 100 >= 11 && age % 100 <= 13) ? 'TH' : age % 10 === 1 ? 'ST' : age % 10 === 2 ? 'ND' : age % 10 === 3 ? 'RD' : 'TH'} BIRTHDAY JARED!
+          </div>
+          {isMilestone && <div className="birthday-banner-subtitle">The big {age}! Let's go!</div>}
+          <div className="birthday-banner-actions">
+            <button className="birthday-game-btn" onClick={() => setShowBalloonGame(true)}>
+              Pop Balloons!
+            </button>
+            <button className="birthday-game-btn birthday-wish-btn" onClick={() => setShowMakeAWish(true)}>
+              Make a Wish
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* FLOATING BIRTHDAY BALLOONS */}
+      {isBirthday && (
+        <div className="birthday-balloons-container">
+          {Array.from({ length: 12 }).map((_, i) => {
+            const colors = ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff8c42', '#a78bfa'];
+            return (
+              <div
+                key={i}
+                className="birthday-balloon"
+                style={{
+                  '--b-color': colors[i % colors.length],
+                  '--b-left': `${5 + (i * 8) + Math.random() * 4}%`,
+                  '--b-size': `${30 + Math.random() * 20}px`,
+                  '--b-speed': `${12 + Math.random() * 10}s`,
+                  '--b-delay': `${i * 1.5 + Math.random() * 3}s`,
+                  '--b-sway': `${15 + Math.random() * 25}px`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
 
       <section className="bento-container">
         <div className="bento-grid">
@@ -5134,6 +5240,31 @@ export default function Home() {
         <AnimatePresence>
           {showSpeedGame && (
             <SpeedPuzzle onClose={() => setShowSpeedGame(false)} />
+          )}
+        </AnimatePresence>
+
+        {/* BIRTHDAY BALLOON POP GAME */}
+        <AnimatePresence>
+          {showBalloonGame && (
+            <Suspense fallback={null}>
+              <BalloonPop
+                targetCount={age}
+                onClose={() => setShowBalloonGame(false)}
+                onComplete={() => {
+                  window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
+                  setTimeout(() => setShowMakeAWish(true), 2500);
+                }}
+              />
+            </Suspense>
+          )}
+        </AnimatePresence>
+
+        {/* MAKE A WISH */}
+        <AnimatePresence>
+          {showMakeAWish && (
+            <Suspense fallback={null}>
+              <MakeAWish onClose={() => setShowMakeAWish(false)} />
+            </Suspense>
           )}
         </AnimatePresence>
       </section>
