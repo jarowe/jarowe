@@ -77,11 +77,15 @@ export const PRISM_DEFAULTS = {
   saberCoreWidth: 1.0,
   saberGlowWidth: 1.0,
   saberPulseSpeed: 2.0,
-  saberPulseIntensity: 0.25,
+  saberPulseIntensity: 0.5,
   saberFlickerSpeed: 8.0,
-  saberFlickerIntensity: 0.08,
+  saberFlickerIntensity: 0.15,
   saberColorTemp: 0.0,
   saberHDRIntensity: 2.0,
+  saberStreakSpeed: 1.0,
+  saberStreakIntensity: 0.6,
+  saberGlowRadius: 2.5,
+  saberGlowOpacity: 0.3,
 
   // Edge glow
   edgeGlowOpacity: 0.7,

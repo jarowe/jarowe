@@ -735,11 +735,15 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     if (pcfg.saberCoreWidth === undefined) pcfg.saberCoreWidth = 1.0;
     if (pcfg.saberGlowWidth === undefined) pcfg.saberGlowWidth = 1.0;
     if (pcfg.saberPulseSpeed === undefined) pcfg.saberPulseSpeed = 2.0;
-    if (pcfg.saberPulseIntensity === undefined) pcfg.saberPulseIntensity = 0.25;
+    if (pcfg.saberPulseIntensity === undefined) pcfg.saberPulseIntensity = 0.5;
     if (pcfg.saberFlickerSpeed === undefined) pcfg.saberFlickerSpeed = 8.0;
-    if (pcfg.saberFlickerIntensity === undefined) pcfg.saberFlickerIntensity = 0.08;
+    if (pcfg.saberFlickerIntensity === undefined) pcfg.saberFlickerIntensity = 0.15;
     if (pcfg.saberColorTemp === undefined) pcfg.saberColorTemp = 0.0;
     if (pcfg.saberHDRIntensity === undefined) pcfg.saberHDRIntensity = 2.0;
+    if (pcfg.saberStreakSpeed === undefined) pcfg.saberStreakSpeed = 1.0;
+    if (pcfg.saberStreakIntensity === undefined) pcfg.saberStreakIntensity = 0.6;
+    if (pcfg.saberGlowRadius === undefined) pcfg.saberGlowRadius = 2.5;
+    if (pcfg.saberGlowOpacity === undefined) pcfg.saberGlowOpacity = 0.3;
     pSaber.add(pcfg, 'saberEnabled').name('Enabled');
     pSaber.add(pcfg, 'saberCoreWidth', 0.1, 3.0, 0.01).name('Core Width');
     pSaber.add(pcfg, 'saberGlowWidth', 0.1, 3.0, 0.01).name('Glow Width');
@@ -749,6 +753,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     pSaber.add(pcfg, 'saberFlickerIntensity', 0, 0.5, 0.01).name('Flicker Intensity');
     pSaber.add(pcfg, 'saberColorTemp', -1, 1, 0.01).name('Color Temp');
     pSaber.add(pcfg, 'saberHDRIntensity', 0.5, 5.0, 0.01).name('HDR Intensity');
+    pSaber.add(pcfg, 'saberStreakSpeed', 0, 4.0, 0.01).name('Streak Speed');
+    pSaber.add(pcfg, 'saberStreakIntensity', 0, 2.0, 0.01).name('Streak Intensity');
+    pSaber.add(pcfg, 'saberGlowOpacity', 0, 1.0, 0.01).name('Glow Halo Opacity');
     pSaber.close();
 
     pFx.close();

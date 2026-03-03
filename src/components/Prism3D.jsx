@@ -419,7 +419,7 @@ const glassFrag = `
   }
 `;
 
-/* ── CONVERGING BEAM SHADER — saber-style multi-layer glow ── */
+/* ── CONVERGING BEAM SHADER — saber-style multi-layer glow + traveling energy streaks ── */
 const beamFrag = `
   uniform float uTime;
   uniform float uOpacity;
@@ -434,6 +434,8 @@ const beamFrag = `
   uniform float uSaberFlickerIntensity;
   uniform float uSaberColorTemp;
   uniform float uSaberHDRIntensity;
+  uniform float uSaberStreakSpeed;
+  uniform float uSaberStreakIntensity;
   varying vec2 vUv;
 
   void main() {
@@ -454,21 +456,32 @@ const beamFrag = `
     float convergeBright = 0.4 + vUv.x * 0.6;
     float edgeFade = smoothstep(0.0, 0.15, vUv.x);
 
-    // Saber pulsing + flicker
-    float pulse = 1.0;
-    float flicker = 1.0;
+    float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
+
+    // Saber effects: pulse, flicker, and traveling energy streaks
     if (uSaberEnabled > 0.5) {
+      // Slow energy pulse — visible breathing along beam
       float p1 = sin(vUv.x * 6.0 - uTime * uSaberPulseSpeed) * 0.5 + 0.5;
       float p2 = sin(vUv.x * 3.0 + uTime * uSaberPulseSpeed * 0.7) * 0.5 + 0.5;
-      pulse = 1.0 + tanh((p1 * p2 - 0.25) * 3.0) * uSaberPulseIntensity;
+      float pulse = 1.0 + (p1 * p2 - 0.25) * uSaberPulseIntensity * 2.0;
 
+      // Fast micro-flicker (organic instability)
       float f1 = sin(uTime * uSaberFlickerSpeed * 17.3 + vUv.x * 50.0);
       float f2 = sin(uTime * uSaberFlickerSpeed * 31.7 + vUv.y * 80.0);
-      flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity;
-    }
+      float flicker = 1.0 - abs(f1 * f2) * uSaberFlickerIntensity;
 
-    float intensity = (core * 2.0 + midGlow * 0.6 + scatter) * convergeBright * edgeFade;
-    intensity *= pulse * flicker;
+      intensity *= pulse * flicker;
+
+      // Traveling energy streaks — bright additive bands flowing toward prism
+      float spd = uSaberStreakSpeed;
+      float st1 = exp(-pow((fract(vUv.x * 2.0 - uTime * spd * 0.8) - 0.5) * 3.0, 2.0) * 10.0);
+      float st2 = exp(-pow((fract(vUv.x * 3.5 - uTime * spd * 1.3) - 0.5) * 3.0, 2.0) * 12.0);
+      float st3 = exp(-pow((fract(vUv.x * 1.2 + uTime * spd * 0.5) - 0.5) * 3.0, 2.0) * 8.0);
+      float streaks = (st1 + st2 * 0.7 + st3 * 0.5) * uSaberStreakIntensity;
+      // Streaks brightest near beam center, taper at edges
+      streaks *= exp(-d * d * 4.0) * taper * edgeFade;
+      intensity += streaks;
+    }
 
     // Color temperature: cool blue <-> neutral white <-> warm gold
     vec3 coolTint = vec3(0.85, 0.92, 1.15);
@@ -498,7 +511,47 @@ const beamFrag = `
   }
 `;
 
-/* ── SPREADING RAY SHADER (widens from prism, dispersion-reactive) ── */
+/* ── BEAM GLOW HALO — soft wide layer behind beam for fake bloom ── */
+const beamGlowFrag = `
+  uniform float uTime;
+  uniform float uOpacity;
+  uniform float uSaberEnabled;
+  uniform float uSaberPulseSpeed;
+  uniform float uSaberStreakSpeed;
+  uniform float uSaberStreakIntensity;
+  uniform float uCascadeFade;
+  varying vec2 vUv;
+
+  void main() {
+    float d = abs(vUv.y - 0.5) * 2.0;
+    // Very soft wide Gaussian — the glow halo
+    float glow = exp(-d * d * 2.0);
+    float edgeFade = smoothstep(0.0, 0.2, vUv.x) * smoothstep(1.0, 0.8, vUv.x);
+    float convergeBright = 0.5 + vUv.x * 0.5;
+
+    float brightness = glow * edgeFade * convergeBright;
+
+    if (uSaberEnabled > 0.5) {
+      // Breathing
+      float breath = 0.8 + 0.2 * sin(uTime * uSaberPulseSpeed);
+      brightness *= breath;
+
+      // Traveling brightness bands in the halo
+      float spd = uSaberStreakSpeed;
+      float st = exp(-pow((fract(vUv.x * 1.5 - uTime * spd * 0.6) - 0.5) * 2.5, 2.0) * 6.0);
+      float st2 = exp(-pow((fract(vUv.x * 2.5 + uTime * spd * 0.4) - 0.5) * 2.5, 2.0) * 8.0);
+      brightness += (st + st2 * 0.5) * uSaberStreakIntensity * 0.3 * glow * edgeFade;
+    }
+
+    // Portal cascade
+    float cascadeRetract = smoothstep(uCascadeFade * 1.4, uCascadeFade * 1.4 + 0.2, 1.0 - vUv.x);
+
+    float alpha = brightness * uOpacity * (1.0 - cascadeRetract);
+    gl_FragColor = vec4(vec3(1.0, 0.97, 0.9), alpha);
+  }
+`;
+
+/* ── SPREADING RAY SHADER (widens from prism, dispersion-reactive, energy streaks) ── */
 const rayFrag = `
   uniform vec3 uColor;
   uniform float uOpacity;
@@ -513,30 +566,36 @@ const rayFrag = `
     float d = abs(vUv.y - 0.5) * 2.0 / max(spread, 0.05);
 
     float fade = pow(1.0 - vUv.x, 0.6);
-    // Smooth fade at far end so rays never hit canvas edge
     float edgeFade = smoothstep(1.0, 0.75, vUv.x);
 
-    // Core gets tighter when dispersion is narrow (focused beam), looser when wide
+    // Core + glow layers
     float coreTight = 25.0 + (1.0 - uDispersionWidth) * 20.0;
     float core = exp(-d * d * coreTight);
     float glow = exp(-d * d * 3.5);
 
     float intensity = (core * 1.4 + glow * 0.45) * fade * edgeFade;
 
-    // Shimmer + travelling sparkle pulse along the ray
+    // Shimmer
     float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
-    float travelPulse = exp(-pow(fract(vUv.x - uTime * 0.4) * 4.0 - 1.0, 2.0) * 8.0) * 0.2;
 
-    vec3 color = uColor * (1.6 + core * 0.8 + travelPulse);
+    // Traveling energy streaks — bright bands flowing away from prism
+    float st1 = exp(-pow(fract(vUv.x - uTime * 0.5) * 4.0 - 1.0, 2.0) * 6.0) * 0.5;
+    float st2 = exp(-pow(fract(vUv.x * 1.8 - uTime * 0.8) * 3.0 - 1.0, 2.0) * 8.0) * 0.35;
+    float st3 = exp(-pow(fract(vUv.x * 0.7 + uTime * 0.3) * 3.5 - 1.0, 2.0) * 5.0) * 0.25;
+    float streaks = (st1 + st2 + st3) * exp(-d * d * 5.0) * fade * edgeFade;
 
-    // Portal cascade: ray smoothly retracts from tip toward prism
+    // Breathing pulse
+    float breath = 0.85 + 0.15 * sin(uTime * 1.8 + vUv.x * 2.0);
+
+    vec3 color = uColor * (1.6 + core * 0.8 + streaks);
+
+    // Portal cascade
     float cascadeEdge = 1.0 - uCascadeFade * 1.3;
     float cascadeRetract = smoothstep(cascadeEdge, cascadeEdge + 0.15, vUv.x);
-    // Bright glow at retraction edge (light concentrating as it pulls back)
     float retractionGlow = exp(-pow((vUv.x - cascadeEdge) * 8.0, 2.0)) * uCascadeFade * 2.0;
     color += uColor * retractionGlow;
 
-    float alpha = intensity * uOpacity * shimmer * (1.0 - cascadeRetract);
+    float alpha = intensity * uOpacity * shimmer * breath * (1.0 - cascadeRetract);
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -1724,71 +1783,112 @@ function LightDirectionTracker() {
 /* ═══════════ CONVERGING WHITE BEAM (Pink Floyd style — from the left) ═══════════ */
 function IncomingBeam() {
   const matRef = useRef();
-  const meshRef = useRef();
+  const glowMatRef = useRef();
+  const groupRef = useRef();
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(7, 1);
-    g.translate(-3.5, 0, 0); // extends from x=-7 to x=0 (long beam to the left)
+    g.translate(-3.5, 0, 0);
+    return g;
+  }, []);
+  const glowGeo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(7, 3); // 3x taller for glow halo
+    g.translate(-3.5, 0, 0);
     return g;
   }, []);
 
   useFrame((state) => {
-    if (!matRef.current || !meshRef.current) return;
+    if (!matRef.current || !groupRef.current) return;
     const t = state.clock.elapsedTime;
+
+    // Group-level transforms
+    groupRef.current.rotation.z = lightState.beamAngle - Math.PI;
+    groupRef.current.scale.x = (cfg.beamLength ?? 14) / 7;
+
+    // Beam material uniforms
     const u = matRef.current.uniforms;
     u.uTime.value = t;
-    // Audio-modulated opacity — bass brightens the beam
     const audioBoost = audioBass * (cfg.beamAudioPulse ?? 0.3);
     u.uOpacity.value = cfg.beamOpacity + audioBoost;
     u.uIncidence.value = lightState.incidenceAngle;
     u.uCascadeFade.value = lightState.portalSuckProgress;
-
-    // Saber uniforms — live from cfg for editor tweaking
-    u.uSaberEnabled.value = cfg.saberEnabled ? 1.0 : 0.0;
+    u.uSaberEnabled.value = (cfg.saberEnabled ?? true) ? 1.0 : 0.0;
     u.uSaberCoreWidth.value = cfg.saberCoreWidth ?? 1.0;
     u.uSaberGlowWidth.value = cfg.saberGlowWidth ?? 1.0;
     u.uSaberPulseSpeed.value = cfg.saberPulseSpeed ?? 2.0;
-    u.uSaberPulseIntensity.value = cfg.saberPulseIntensity ?? 0.25;
+    u.uSaberPulseIntensity.value = cfg.saberPulseIntensity ?? 0.5;
     u.uSaberFlickerSpeed.value = cfg.saberFlickerSpeed ?? 8.0;
-    u.uSaberFlickerIntensity.value = cfg.saberFlickerIntensity ?? 0.08;
+    u.uSaberFlickerIntensity.value = cfg.saberFlickerIntensity ?? 0.15;
     u.uSaberColorTemp.value = cfg.saberColorTemp ?? 0.0;
     u.uSaberHDRIntensity.value = cfg.saberHDRIntensity ?? 2.0;
+    u.uSaberStreakSpeed.value = cfg.saberStreakSpeed ?? 1.0;
+    u.uSaberStreakIntensity.value = cfg.saberStreakIntensity ?? 0.6;
 
-    // Configurable beam length via scale (base geo is 7 wide)
-    meshRef.current.scale.x = (cfg.beamLength ?? 14) / 7;
-
-    // Fixed beam angle: beamAngle points toward light source (~174° for upper-left).
-    // Geometry extends in -X direction (180°), so offset = beamAngle - π.
-    // This gives a slight upward tilt (~-6°) matching a real stage light.
-    meshRef.current.rotation.z = lightState.beamAngle - Math.PI;
+    // Glow halo uniforms
+    if (glowMatRef.current) {
+      const gu = glowMatRef.current.uniforms;
+      gu.uTime.value = t;
+      gu.uOpacity.value = cfg.saberGlowOpacity ?? 0.3;
+      gu.uSaberEnabled.value = (cfg.saberEnabled ?? true) ? 1.0 : 0.0;
+      gu.uSaberPulseSpeed.value = cfg.saberPulseSpeed ?? 2.0;
+      gu.uSaberStreakSpeed.value = cfg.saberStreakSpeed ?? 1.0;
+      gu.uSaberStreakIntensity.value = cfg.saberStreakIntensity ?? 0.6;
+      gu.uCascadeFade.value = lightState.portalSuckProgress;
+    }
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0.04]} rotation={[0, 0, 0.05]} geometry={geo}>
-      <shaderMaterial
-        ref={matRef}
-        vertexShader={simpleVert}
-        fragmentShader={beamFrag}
-        uniforms={{
-          uTime: { value: 0 },
-          uOpacity: { value: cfg.beamOpacity },
-          uIncidence: { value: 0 },
-          uCascadeFade: { value: 0 },
-          uSaberEnabled: { value: cfg.saberEnabled ? 1.0 : 0.0 },
-          uSaberCoreWidth: { value: cfg.saberCoreWidth ?? 1.0 },
-          uSaberGlowWidth: { value: cfg.saberGlowWidth ?? 1.0 },
-          uSaberPulseSpeed: { value: cfg.saberPulseSpeed ?? 2.0 },
-          uSaberPulseIntensity: { value: cfg.saberPulseIntensity ?? 0.25 },
-          uSaberFlickerSpeed: { value: cfg.saberFlickerSpeed ?? 8.0 },
-          uSaberFlickerIntensity: { value: cfg.saberFlickerIntensity ?? 0.08 },
-          uSaberColorTemp: { value: cfg.saberColorTemp ?? 0.0 },
-          uSaberHDRIntensity: { value: cfg.saberHDRIntensity ?? 2.0 },
-        }}
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
+    <group ref={groupRef} position={[0, 0, 0.04]}>
+      {/* Glow halo — wider, behind the beam */}
+      <mesh position={[0, 0, -0.01]} geometry={glowGeo}>
+        <shaderMaterial
+          ref={glowMatRef}
+          vertexShader={simpleVert}
+          fragmentShader={beamGlowFrag}
+          uniforms={{
+            uTime: { value: 0 },
+            uOpacity: { value: cfg.saberGlowOpacity ?? 0.3 },
+            uSaberEnabled: { value: (cfg.saberEnabled ?? true) ? 1.0 : 0.0 },
+            uSaberPulseSpeed: { value: cfg.saberPulseSpeed ?? 2.0 },
+            uSaberStreakSpeed: { value: cfg.saberStreakSpeed ?? 1.0 },
+            uSaberStreakIntensity: { value: cfg.saberStreakIntensity ?? 0.6 },
+            uCascadeFade: { value: 0 },
+          }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Main beam */}
+      <mesh geometry={geo}>
+        <shaderMaterial
+          ref={matRef}
+          vertexShader={simpleVert}
+          fragmentShader={beamFrag}
+          uniforms={{
+            uTime: { value: 0 },
+            uOpacity: { value: cfg.beamOpacity },
+            uIncidence: { value: 0 },
+            uCascadeFade: { value: 0 },
+            uSaberEnabled: { value: (cfg.saberEnabled ?? true) ? 1.0 : 0.0 },
+            uSaberCoreWidth: { value: cfg.saberCoreWidth ?? 1.0 },
+            uSaberGlowWidth: { value: cfg.saberGlowWidth ?? 1.0 },
+            uSaberPulseSpeed: { value: cfg.saberPulseSpeed ?? 2.0 },
+            uSaberPulseIntensity: { value: cfg.saberPulseIntensity ?? 0.5 },
+            uSaberFlickerSpeed: { value: cfg.saberFlickerSpeed ?? 8.0 },
+            uSaberFlickerIntensity: { value: cfg.saberFlickerIntensity ?? 0.15 },
+            uSaberColorTemp: { value: cfg.saberColorTemp ?? 0.0 },
+            uSaberHDRIntensity: { value: cfg.saberHDRIntensity ?? 2.0 },
+            uSaberStreakSpeed: { value: cfg.saberStreakSpeed ?? 1.0 },
+            uSaberStreakIntensity: { value: cfg.saberStreakIntensity ?? 0.6 },
+          }}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
   );
 }
 
