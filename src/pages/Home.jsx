@@ -4520,7 +4520,7 @@ export default function Home() {
 
           {/* DAILY CIPHER + VAULT CELL */}
           <div className="bento-cell cell-game-vault">
-            <DailyCipher showVault={true} />
+            <DailyCipher showVault={true} editorContainer={editorContainer} />
           </div>
 
         </div>

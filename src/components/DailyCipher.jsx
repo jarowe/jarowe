@@ -45,7 +45,7 @@ const getDailyData = () => {
     };
 };
 
-export default function DailyCipher({ showVault = false }) {
+export default function DailyCipher({ showVault = false, editorContainer }) {
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState('playing'); // playing, won, lost
@@ -343,14 +343,19 @@ export default function DailyCipher({ showVault = false }) {
 
         let gui;
         import('lil-gui').then(({ default: GUI }) => {
-            gui = new GUI({ title: 'Cipher Debug', width: 280 });
-            gui.domElement.style.position = 'fixed';
-            gui.domElement.style.bottom = '10px';
-            gui.domElement.style.left = '10px';
-            gui.domElement.style.top = 'auto';
-            gui.domElement.style.zIndex = '10001';
-            gui.domElement.style.maxHeight = '80vh';
-            gui.domElement.style.overflowY = 'auto';
+            const guiOpts = { title: 'Cipher', width: 320 };
+            if (editorContainer) guiOpts.container = editorContainer;
+            gui = new GUI(guiOpts);
+            if (!editorContainer) {
+                gui.domElement.style.position = 'fixed';
+                gui.domElement.style.bottom = '10px';
+                gui.domElement.style.left = '10px';
+                gui.domElement.style.top = 'auto';
+                gui.domElement.style.zIndex = '10001';
+                gui.domElement.style.maxHeight = '80vh';
+                gui.domElement.style.overflowY = 'auto';
+            }
+            gui.close();
             debugGuiRef.current = gui;
 
             // === Bonus Ciphers ===
@@ -466,7 +471,7 @@ export default function DailyCipher({ showVault = false }) {
         });
 
         return () => { if (gui) { gui.destroy(); debugGuiRef.current = null; } };
-    }, []);
+    }, [editorContainer]);
 
     return (
         <div className={`cipher-vault-wrapper ${showVault ? 'with-vault' : ''}`}>

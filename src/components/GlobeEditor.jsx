@@ -50,9 +50,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     gui.close();
     guiRef.current = gui;
 
-    // ── Search bar ──
+    // ── Search bar (hidden when section is collapsed) ──
     const searchWrap = document.createElement('div');
-    searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e)';
+    searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e);display:none';
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search settings…';
@@ -64,6 +64,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     const titleEl = gui.domElement.querySelector('.title');
     if (titleEl) titleEl.after(searchWrap);
     else gui.domElement.prepend(searchWrap);
+    gui.onOpenClose((g) => { searchWrap.style.display = g._closed ? 'none' : ''; });
 
     // Recursive filter logic — searches display name, property key, AND folder path
     const filterGui = (query) => {
