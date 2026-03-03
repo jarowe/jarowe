@@ -1773,6 +1773,52 @@
     box-shadow: 0 6px 25px rgba(124, 58, 237, 0.5);
 }
 
+/* Scrolling Leaderboard Ticker */
+.birthday-ticker {
+    margin-top: 0.8rem;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.birthday-ticker-track {
+    display: flex;
+    gap: 2rem;
+    white-space: nowrap;
+    animation: tickerScroll 20s linear infinite;
+    width: max-content;
+}
+
+.birthday-ticker-entry {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.ticker-rank {
+    color: #71717a;
+    font-weight: 600;
+}
+
+.ticker-initials {
+    color: #fbbf24;
+    font-weight: 800;
+}
+
+.ticker-score {
+    color: #a1a1aa;
+    font-weight: 600;
+}
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
 /* Floating Birthday Balloons */
 .birthday-balloons-container {
     position: fixed;
@@ -1780,6 +1826,17 @@
     pointer-events: none;
     z-index: 1;
     overflow: hidden;
+}
+
+.birthday-balloon-poppable {
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.birthday-balloon-poppable:hover {
+    transform: scale(1.15);
+    filter: brightness(1.2);
 }
 
 .birthday-balloon {

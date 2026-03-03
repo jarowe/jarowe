@@ -137,18 +137,29 @@ export default function Home() {
   const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
   const cameFromGame = useRef(false);
 
-  // Memoize background balloon data so re-renders don't randomize new values (causes glitching)
-  const bgBalloons = useMemo(() => {
+  // Memoize background balloon data - deterministic values prevent re-render glitching
+  // First 4 have negative delays so they're already mid-float on page load
+  const bgBalloonData = useMemo(() => {
     const colors = ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff8c42', '#a78bfa'];
-    return Array.from({ length: 12 }, (_, i) => ({
-      color: colors[i % colors.length],
-      left: `${5 + (i * 8) + (((i * 7 + 3) % 11) / 11) * 4}%`,
-      size: `${30 + (((i * 13 + 5) % 11) / 11) * 20}px`,
-      speed: `${20 + (((i * 17 + 7) % 13) / 13) * 16}s`,
-      delay: `${i * 2.5 + (((i * 11 + 1) % 7) / 7) * 4}s`,
-      sway: `${15 + (((i * 19 + 3) % 11) / 11) * 25}px`,
-    }));
+    return Array.from({ length: 14 }, (_, i) => {
+      const speed = 22 + (((i * 17 + 7) % 13) / 13) * 16; // 22-38s
+      return {
+        id: i,
+        color: colors[i % colors.length],
+        left: `${4 + (i * 7) + (((i * 7 + 3) % 11) / 11) * 3}%`,
+        size: `${28 + (((i * 13 + 5) % 11) / 11) * 18}px`,
+        speed: `${speed}s`,
+        // First 4 balloons start mid-animation (negative delay = already on screen)
+        delay: i < 4 ? `${-(speed * 0.2) - i * 3}s` : `${(i - 4) * 2.5 + (((i * 11 + 1) % 7) / 7) * 4}s`,
+        sway: `${15 + (((i * 19 + 3) % 11) / 11) * 25}px`,
+      };
+    });
   }, []);
+  const [poppedBgBalloons, setPoppedBgBalloons] = useState(new Set());
+  // Leaderboard ticker data
+  const [tickerScores, setTickerScores] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('jarowe_balloon_scores') || '[]'); } catch { return []; }
+  });
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
@@ -4658,16 +4669,30 @@ export default function Home() {
               Make a Wish
             </button>
           </div>
+          {/* Scrolling leaderboard ticker */}
+          {tickerScores.length > 0 && (
+            <div className="birthday-ticker">
+              <div className="birthday-ticker-track">
+                {[...tickerScores.slice(0, 10), ...tickerScores.slice(0, 10)].map((s, i) => (
+                  <span key={i} className="birthday-ticker-entry">
+                    <span className="ticker-rank">#{(i % tickerScores.slice(0, 10).length) + 1}</span>
+                    <span className="ticker-initials">{s.initials}</span>
+                    <span className="ticker-score">{s.score}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 
-      {/* FLOATING BIRTHDAY BALLOONS */}
+      {/* FLOATING BIRTHDAY BALLOONS - poppable! */}
       {isBirthday && (
         <div className="birthday-balloons-container">
-          {bgBalloons.map((b, i) => (
+          {bgBalloonData.map((b) => !poppedBgBalloons.has(b.id) && (
             <div
-              key={i}
-              className="birthday-balloon"
+              key={b.id}
+              className="birthday-balloon birthday-balloon-poppable"
               style={{
                 '--b-color': b.color,
                 '--b-left': b.left,
@@ -4675,6 +4700,25 @@ export default function Home() {
                 '--b-speed': b.speed,
                 '--b-delay': b.delay,
                 '--b-sway': b.sway,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = (rect.left + rect.width / 2) / window.innerWidth;
+                const y = (rect.top + rect.height / 2) / window.innerHeight;
+                playBalloonPopSound();
+                confetti({
+                  particleCount: 6, spread: 30, origin: { x, y },
+                  colors: [b.color, '#fbbf24', '#fff'],
+                  startVelocity: 10, gravity: 1.5, scalar: 0.5, ticks: 80,
+                });
+                setPoppedBgBalloons(prev => new Set([...prev, b.id]));
+                // Respawn after a while
+                setTimeout(() => setPoppedBgBalloons(prev => {
+                  const next = new Set(prev);
+                  next.delete(b.id);
+                  return next;
+                }), 15000);
               }}
             />
           ))}
@@ -5436,7 +5480,10 @@ export default function Home() {
             <Suspense fallback={null}>
               <BalloonPop
                 targetCount={age}
-                onClose={() => setBirthdayFlow('idle')}
+                onClose={() => {
+                  setBirthdayFlow('idle');
+                  try { setTickerScores(JSON.parse(localStorage.getItem('jarowe_balloon_scores') || '[]')); } catch {}
+                }}
                 onComplete={() => {
                   window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 200, reason: 'Party Animal! Balloon Pop Champion' } }));
                   cameFromGame.current = true;

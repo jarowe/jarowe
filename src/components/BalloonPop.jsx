@@ -5,10 +5,9 @@ import { playBalloonPopSound, playComboSound } from '../utils/sounds';
 import './BalloonPop.css';
 
 const BALLOON_COLORS = ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e', '#ff8c42', '#a78bfa'];
-const GAME_DURATION = 60;
-const COMBO_WINDOW = 1200; // ms
+const BASE_DURATION = 60;
+const COMBO_WINDOW = 1200;
 
-// Combo tiers: [minCombo, multiplier, label]
 const COMBO_TIERS = [
   [20, 5, 'FEVER MODE!'],
   [12, 3, 'ON FIRE!'],
@@ -23,42 +22,55 @@ function getComboTier(combo) {
   return { multiplier: 1, label: '' };
 }
 
-function getLeaderboard() {
-  try {
-    return JSON.parse(localStorage.getItem('jarowe_balloon_leaderboard') || '{}');
-  } catch { return {}; }
+// Difficulty scaling: each round balloons are faster, spawn less, but score multiplied
+function getDifficulty(round) {
+  const r = Math.min(round, 10);
+  return {
+    spawnInterval: Math.max(300, 600 - r * 30),   // faster spawns
+    balloonSpeed: Math.max(1.8, 3 - r * 0.12),     // faster float
+    balloonSpeedRange: Math.max(1.5, 4 - r * 0.2),
+    maxBalloons: Math.min(20, 15 + r),
+    roundMultiplier: 1 + r * 0.25,                  // 1x, 1.25x, 1.5x...
+    balloonSize: Math.max(40, 55 - r * 1.5),
+    balloonSizeRange: Math.max(25, 40 - r),
+  };
 }
 
-function updateLeaderboard(score, timeLeft, gameDuration, bestCombo) {
-  const lb = getLeaderboard();
-  const timeUsed = gameDuration - timeLeft;
-  lb.bestScore = Math.max(lb.bestScore || 0, score);
-  lb.bestTime = lb.bestTime ? Math.min(lb.bestTime, timeUsed) : timeUsed;
-  lb.bestCombo = Math.max(lb.bestCombo || 0, bestCombo);
-  lb.totalGames = (lb.totalGames || 0) + 1;
-  try { localStorage.setItem('jarowe_balloon_leaderboard', JSON.stringify(lb)); } catch {}
-  return lb;
+function getScores() {
+  try { return JSON.parse(localStorage.getItem('jarowe_balloon_scores') || '[]'); }
+  catch { return []; }
+}
+
+function saveScore(initials, score, round, bestCombo) {
+  const scores = getScores();
+  scores.push({ initials: initials.toUpperCase(), score, round, bestCombo, date: Date.now() });
+  scores.sort((a, b) => b.score - a.score);
+  const top = scores.slice(0, 20);
+  try { localStorage.setItem('jarowe_balloon_scores', JSON.stringify(top)); } catch {}
+  return top;
 }
 
 export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
-  const [gameState, setGameState] = useState('ready'); // ready, playing, complete
+  const [gameState, setGameState] = useState('ready');
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
+  const [timeLeft, setTimeLeft] = useState(BASE_DURATION);
   const [balloons, setBalloons] = useState([]);
   const [combo, setCombo] = useState(0);
   const [multiplier, setMultiplier] = useState(1);
   const [comboLabel, setComboLabel] = useState('');
   const [bestCombo, setBestCombo] = useState(0);
   const [feverMode, setFeverMode] = useState(false);
-  const [leaderboard, setLeaderboard] = useState(null);
+  const [round, setRound] = useState(1);
+  const [initials, setInitials] = useState('');
+  const [topScores, setTopScores] = useState(() => getScores());
   const nextId = useRef(0);
   const spawnTimer = useRef(null);
   const gameTimer = useRef(null);
   const lastPopTime = useRef(0);
   const hasCompleted = useRef(false);
   const feverTimer = useRef(null);
+  const roundScore = useRef(0);
 
-  // ESC key to close
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape' && onClose) onClose();
@@ -67,29 +79,33 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  const diff = getDifficulty(round);
+
   const startGame = useCallback(() => {
     setGameState('playing');
-    setScore(0);
-    setTimeLeft(GAME_DURATION);
+    setScore(prev => gameState === 'ready' ? 0 : prev); // Keep cumulative score on next round
+    if (gameState === 'ready') roundScore.current = 0;
+    setTimeLeft(BASE_DURATION);
     setBalloons([]);
     setCombo(0);
     setMultiplier(1);
     setComboLabel('');
-    setBestCombo(0);
+    setBestCombo(prev => gameState === 'ready' ? 0 : prev);
     setFeverMode(false);
-    setLeaderboard(null);
+    setInitials('');
     nextId.current = 0;
     lastPopTime.current = 0;
     hasCompleted.current = false;
     if (feverTimer.current) clearTimeout(feverTimer.current);
-  }, []);
+  }, [gameState]);
 
-  // Spawn balloons with special types
+  // Spawn balloons with difficulty scaling
   useEffect(() => {
     if (gameState !== 'playing') return;
+    const d = getDifficulty(round);
     const spawn = () => {
       setBalloons(prev => {
-        if (prev.length >= 15) return prev;
+        if (prev.length >= d.maxBalloons) return prev;
         const id = nextId.current++;
         const roll = Math.random();
         let type = 'normal';
@@ -102,19 +118,18 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
         else if (roll < 0.10) { type = 'confetti'; emoji = '\uD83C\uDF89'; basePoints = 1; }
         else if (roll < 0.13) { type = 'time'; emoji = ''; basePoints = 1; }
 
-        const size = 55 + Math.random() * 40;
+        const size = d.balloonSize + Math.random() * d.balloonSizeRange;
         const left = 3 + Math.random() * 90;
-        const speed = 3 + Math.random() * 4;
+        const speed = d.balloonSpeed + Math.random() * d.balloonSpeedRange;
         const sway = 20 + Math.random() * 40;
         return [...prev, { id, color, size, left, speed, sway, type, emoji, basePoints }];
       });
     };
     spawn();
-    spawnTimer.current = setInterval(spawn, 600);
+    spawnTimer.current = setInterval(spawn, d.spawnInterval);
     return () => clearInterval(spawnTimer.current);
-  }, [gameState]);
+  }, [gameState, round]);
 
-  // Game timer
   useEffect(() => {
     if (gameState !== 'playing') return;
     gameTimer.current = setInterval(() => {
@@ -131,26 +146,21 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     return () => clearInterval(gameTimer.current);
   }, [gameState]);
 
-  // Check win condition
   useEffect(() => {
-    if (gameState === 'playing' && score >= targetCount) {
+    if (gameState === 'playing' && roundScore.current >= targetCount) {
       clearInterval(gameTimer.current);
       clearInterval(spawnTimer.current);
       setGameState('complete');
     }
   }, [score, targetCount, gameState]);
 
-  // Complete effect - fires once
+  // Complete effect
   useEffect(() => {
     if (gameState !== 'complete') return;
     if (hasCompleted.current) return;
 
-    const lb = updateLeaderboard(score, timeLeft, GAME_DURATION, bestCombo);
-    setLeaderboard(lb);
-
-    if (score >= targetCount) {
+    if (roundScore.current >= targetCount) {
       hasCompleted.current = true;
-      // Big win confetti
       const end = Date.now() + 2000;
       const colors = ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'];
       (function frame() {
@@ -176,77 +186,68 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
     lastPopTime.current = now;
 
     const tier = getComboTier(newCombo);
+    const d = getDifficulty(round);
     setCombo(newCombo);
     setMultiplier(tier.multiplier);
     setComboLabel(tier.label);
     setBestCombo(prev => Math.max(prev, newCombo));
 
-    if (newCombo >= 3) {
-      playComboSound(newCombo);
-    } else {
-      playBalloonPopSound();
-    }
+    if (newCombo >= 3) playComboSound(newCombo);
+    else playBalloonPopSound();
 
-    // Fever mode at 20+ combo
     if (newCombo >= 20 && !feverMode) {
       setFeverMode(true);
       if (feverTimer.current) clearTimeout(feverTimer.current);
       feverTimer.current = setTimeout(() => setFeverMode(false), 5000);
     }
 
-    // Handle special types
     if (balloon.type === 'bomb') {
-      // Pop ALL on-screen balloons
       const currentBalloons = [...balloons];
       setBalloons([]);
-      const bombPoints = currentBalloons.length;
-      setScore(prev => prev + Math.round(bombPoints * tier.multiplier));
-      confetti({
-        particleCount: 60,
-        spread: 100,
-        origin: { x, y },
-        colors: ['#ef4444', '#fbbf24', '#ff6b6b'],
-        startVelocity: 25,
-        gravity: 1.2,
-      });
+      const bombPoints = Math.round(currentBalloons.length * tier.multiplier * d.roundMultiplier);
+      setScore(prev => prev + bombPoints);
+      roundScore.current += currentBalloons.length;
+      confetti({ particleCount: 60, spread: 100, origin: { x, y }, colors: ['#ef4444', '#fbbf24', '#ff6b6b'], startVelocity: 25, gravity: 1.2 });
       return;
     }
 
     if (balloon.type === 'confetti') {
-      confetti({
-        particleCount: 50,
-        spread: 80,
-        origin: { x, y },
-        colors: ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'],
-        startVelocity: 20,
-        gravity: 0.8,
-        scalar: 1.2,
-      });
+      confetti({ particleCount: 50, spread: 80, origin: { x, y }, colors: ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'], startVelocity: 20, gravity: 0.8, scalar: 1.2 });
     }
 
-    if (balloon.type === 'time') {
-      setTimeLeft(prev => prev + 5);
-    }
+    if (balloon.type === 'time') setTimeLeft(prev => prev + 5);
 
-    const points = Math.round(balloon.basePoints * tier.multiplier);
+    const points = Math.round(balloon.basePoints * tier.multiplier * d.roundMultiplier);
 
     confetti({
-      particleCount: 8,
-      spread: 40,
-      origin: { x, y },
+      particleCount: 8, spread: 40, origin: { x, y },
       colors: balloon.type === 'golden' ? ['#fbbf24', '#f59e0b', '#fde68a'] : ['#fbbf24', '#f472b6', '#7c3aed'],
-      startVelocity: 15,
-      gravity: 1.5,
-      scalar: 0.6,
+      startVelocity: 15, gravity: 1.5, scalar: 0.6,
     });
 
     setBalloons(prev => prev.filter(b => b.id !== balloon.id));
     setScore(prev => prev + points);
-  }, [combo, feverMode, balloons]);
+    roundScore.current += 1;
+  }, [combo, feverMode, balloons, round]);
 
   const handleAnimationEnd = useCallback((id) => {
     setBalloons(prev => prev.filter(b => b.id !== id));
   }, []);
+
+  const handleNextRound = () => {
+    setRound(prev => prev + 1);
+    roundScore.current = 0;
+    startGame();
+  };
+
+  const handleSaveScore = () => {
+    if (initials.trim().length < 1) return;
+    const scores = saveScore(initials.trim(), score, round, bestCombo);
+    setTopScores(scores);
+    setInitials('__saved__');
+  };
+
+  const won = roundScore.current >= targetCount;
 
   return (
     <motion.div
@@ -265,10 +266,21 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
             animate={{ scale: 1, opacity: 1 }}
           >
             <h2>Pop {targetCount} Balloons!</h2>
-            <p>You have {GAME_DURATION} seconds. Click balloons before they float away!</p>
+            <p>You have {BASE_DURATION} seconds. Click balloons before they float away!</p>
             <p style={{ color: '#fbbf24', fontSize: '0.9rem' }}>
-              Pop fast for combos! Look for special balloons!
+              Pop fast for combos! Each round gets harder but scores higher!
             </p>
+            {topScores.length > 0 && (
+              <div className="balloon-leaderboard" style={{ marginBottom: '0.5rem' }}>
+                <h3>Leaderboard</h3>
+                {topScores.slice(0, 5).map((s, i) => (
+                  <div key={i} className="balloon-leaderboard-row">
+                    <span className="balloon-leaderboard-label">{i + 1}. {s.initials}</span>
+                    <span className="balloon-leaderboard-value">{s.score} <span style={{ color: '#71717a', fontSize: '0.65rem' }}>R{s.round}</span></span>
+                  </div>
+                ))}
+              </div>
+            )}
             <button className="balloon-start-btn" onClick={startGame}>LET'S GO!</button>
           </motion.div>
         )}
@@ -276,11 +288,12 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
         {gameState === 'playing' && (
           <>
             <div className="balloon-hud">
-              <div className="balloon-score">{score} / {targetCount}</div>
+              <div className="balloon-score">{score} <span style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>({roundScore.current}/{targetCount})</span></div>
               {multiplier > 1 && (
                 <div className="balloon-multiplier" key={multiplier}>x{multiplier}</div>
               )}
               <div className="balloon-timer">{timeLeft}s</div>
+              {round > 1 && <div className="balloon-round-badge">R{round}</div>}
             </div>
             {comboLabel && (
               <div className="balloon-combo-label" key={`${combo}-${comboLabel}`}>{comboLabel}</div>
@@ -315,45 +328,73 @@ export default function BalloonPop({ targetCount = 40, onClose, onComplete }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', bounce: 0.5 }}
           >
-            {score >= targetCount ? (
+            {won ? (
               <>
-                <h2>Party Animal!</h2>
-                <p>You popped {score} balloons!</p>
+                <h2>{round > 1 ? `Round ${round} Clear!` : 'Party Animal!'}</h2>
+                <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> {round > 1 && <span style={{ color: '#a78bfa' }}>(x{diff.roundMultiplier.toFixed(2)} difficulty bonus)</span>}</p>
                 {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
-                <p className="balloon-xp-award">+200 XP</p>
+                {round === 1 && <p className="balloon-xp-award">+200 XP</p>}
               </>
             ) : (
               <>
                 <h2>Time's Up!</h2>
-                <p>You popped {score} / {targetCount} balloons</p>
+                <p>Score: <strong style={{ color: '#fbbf24' }}>{score}</strong> ({roundScore.current} / {targetCount})</p>
                 {bestCombo >= 3 && <p style={{ color: '#f472b6' }}>Best combo: {bestCombo}x</p>}
-                <p>So close! Try again?</p>
               </>
             )}
-            {leaderboard && (
+
+            {/* Initials entry */}
+            {initials !== '__saved__' ? (
+              <div className="balloon-initials-form">
+                <input
+                  className="balloon-initials-input"
+                  type="text"
+                  maxLength={4}
+                  value={initials}
+                  onChange={e => setInitials(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  placeholder="ABCD"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveScore(); }}
+                />
+                <button
+                  className="balloon-initials-save"
+                  onClick={handleSaveScore}
+                  disabled={initials.trim().length < 1}
+                >
+                  Save Score
+                </button>
+              </div>
+            ) : (
+              <p style={{ color: '#22c55e', fontSize: '0.9rem', fontWeight: 700 }}>Score saved!</p>
+            )}
+
+            {/* Leaderboard */}
+            {topScores.length > 0 && (
               <div className="balloon-leaderboard">
-                <h3>Personal Best</h3>
-                <div className="balloon-leaderboard-row">
-                  <span className="balloon-leaderboard-label">Best Score</span>
-                  <span className="balloon-leaderboard-value">{leaderboard.bestScore}</span>
-                </div>
-                <div className="balloon-leaderboard-row">
-                  <span className="balloon-leaderboard-label">Fastest Win</span>
-                  <span className="balloon-leaderboard-value">{leaderboard.bestTime ? `${leaderboard.bestTime}s` : '--'}</span>
-                </div>
-                <div className="balloon-leaderboard-row">
-                  <span className="balloon-leaderboard-label">Best Combo</span>
-                  <span className="balloon-leaderboard-value">{leaderboard.bestCombo || 0}x</span>
-                </div>
-                <div className="balloon-leaderboard-row">
-                  <span className="balloon-leaderboard-label">Games Played</span>
-                  <span className="balloon-leaderboard-value">{leaderboard.totalGames}</span>
-                </div>
+                <h3>Top Scores</h3>
+                {topScores.slice(0, 5).map((s, i) => (
+                  <div key={i} className="balloon-leaderboard-row">
+                    <span className="balloon-leaderboard-label" style={i === 0 ? { color: '#fbbf24' } : undefined}>
+                      {i + 1}. {s.initials}
+                    </span>
+                    <span className="balloon-leaderboard-value" style={i === 0 ? { color: '#fbbf24' } : undefined}>
+                      {s.score} <span style={{ color: '#71717a', fontSize: '0.65rem' }}>R{s.round}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
-            <button className="balloon-start-btn" onClick={onClose} style={{ marginTop: '1rem' }}>
-              {score >= targetCount ? 'Awesome!' : 'Close'}
-            </button>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {won && (
+                <button className="balloon-start-btn balloon-next-round-btn" onClick={handleNextRound}>
+                  Round {round + 1} (Harder!)
+                </button>
+              )}
+              <button className="balloon-start-btn" onClick={onClose} style={won ? { background: 'rgba(255,255,255,0.1)', boxShadow: 'none' } : undefined}>
+                {won ? 'Done' : 'Close'}
+              </button>
+            </div>
           </motion.div>
         )}
       </div>

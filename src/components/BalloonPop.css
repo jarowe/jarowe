@@ -303,6 +303,75 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Round badge */
+.balloon-round-badge {
+  background: rgba(124, 58, 237, 0.4);
+  border: 1px solid rgba(124, 58, 237, 0.5);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  color: #a78bfa;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Initials entry */
+.balloon-initials-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.balloon-initials-input {
+  width: 80px;
+  padding: 0.5rem 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  color: #fbbf24;
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-family: 'JetBrains Mono', monospace;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  letter-spacing: 3px;
+}
+
+.balloon-initials-input::placeholder {
+  color: rgba(251, 191, 36, 0.3);
+  letter-spacing: 3px;
+}
+
+.balloon-initials-save {
+  padding: 0.5rem 1.2rem;
+  background: linear-gradient(135deg, #fbbf24, #f472b6);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.balloon-initials-save:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.balloon-initials-save:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Next round button */
+.balloon-next-round-btn {
+  background: linear-gradient(135deg, #7c3aed, #38bdf8) !important;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4) !important;
+}
+
 @keyframes balloon-float {
   0% {
     bottom: -100px;
