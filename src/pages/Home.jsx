@@ -175,9 +175,160 @@ export default function Home() {
     return new URLSearchParams(window.location.search).get('editor') === 'jarowe';
   }, []);
 
-  // Shared container for all editor panels (Globe, Glint, Cipher)
-  const [editorContainer, setEditorContainer] = useState(null);
-  const editorContainerRef = useCallback((el) => { setEditorContainer(el); }, []);
+  // Master editor GUI panels (created via lil-gui dynamic import)
+  const [editorGui, setEditorGui] = useState(null);
+  const [debugGamesFolder, setDebugGamesFolder] = useState(null);
+
+  // Create master Editor + Debug panels when editor mode is active
+  useEffect(() => {
+    if (!showEditor) return;
+    let cancelled = false;
+    let editorInst = null;
+    let debugInst = null;
+
+    const containerEl = document.createElement('div');
+    containerEl.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;max-height:92vh;overflow-y:auto;width:320px;';
+    document.body.appendChild(containerEl);
+
+    import('lil-gui').then(({ default: GUI }) => {
+      if (cancelled) { containerEl.remove(); return; }
+
+      // ── EDITOR panel ──
+      editorInst = new GUI({ title: 'Editor', container: containerEl, width: 320 });
+
+      // Search bar (searches across Globe + Glint)
+      const searchWrap = document.createElement('div');
+      searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e);display:none';
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search settings\u2026';
+      searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(255,255,255,0.06);color:#eee;font-size:12px;outline:none';
+      searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,120,255,0.5)'; });
+      searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(255,255,255,0.15)'; });
+      searchWrap.appendChild(searchInput);
+      const edTitleEl = editorInst.domElement.querySelector('.title');
+      if (edTitleEl) edTitleEl.after(searchWrap);
+      else editorInst.domElement.prepend(searchWrap);
+      editorInst.onOpenClose((g) => { searchWrap.style.display = g._closed ? 'none' : ''; });
+
+      const filterEditor = (query) => {
+        const q = query.toLowerCase().trim();
+        const words = q.split(/\s+/).filter(Boolean);
+        const processFolder = (folder, parentPath) => {
+          let anyVisible = false;
+          const folderName = (folder._title || '').toLowerCase();
+          const fullPath = parentPath ? parentPath + ' ' + folderName : folderName;
+          for (const ctrl of folder.controllers) {
+            const displayName = (ctrl._name || '').toLowerCase();
+            const propName = (ctrl.property || '').toLowerCase();
+            const searchable = fullPath + ' ' + displayName + ' ' + propName;
+            const match = !q || words.every(w => searchable.includes(w));
+            ctrl.domElement.parentElement.style.display = match ? '' : 'none';
+            if (match) anyVisible = true;
+          }
+          for (const sub of folder.folders) {
+            const subTitle = (sub._title || '').toLowerCase();
+            const titleMatch = !q || words.every(w => subTitle.includes(w));
+            const childVisible = processFolder(sub, fullPath);
+            const show = titleMatch || childVisible;
+            sub.domElement.style.display = show ? '' : 'none';
+            if (show && q) sub.open();
+            if (show) anyVisible = true;
+          }
+          return anyVisible;
+        };
+        processFolder(editorInst, '');
+      };
+      searchInput.addEventListener('input', () => filterEditor(searchInput.value));
+
+      // ── DEBUG panel ──
+      debugInst = new GUI({ title: 'Debug', container: containerEl, width: 320 });
+      debugInst.close();
+
+      // Debug > Games
+      const gamesFolder = debugInst.addFolder('Games');
+
+      // Debug > Games > Prism Dash
+      const prismDash = gamesFolder.addFolder('Prism Dash');
+      prismDash.add({ launch: () => setShowSpeedGame(true) }, 'launch').name('Launch Prism Dash');
+      const pdProxy = { highScore: parseInt(localStorage.getItem('jarowe_speed_highscore') || '0', 10) };
+      prismDash.add(pdProxy, 'highScore', 0, 999, 1).name('High Score').onChange(v => {
+        localStorage.setItem('jarowe_speed_highscore', String(v));
+      });
+      prismDash.add({ reset: () => {
+        localStorage.setItem('jarowe_speed_highscore', '0');
+        pdProxy.highScore = 0;
+        debugInst.controllersRecursive().forEach(c => c.updateDisplay());
+      }}, 'reset').name('Reset High Score');
+      prismDash.close();
+
+      // Debug > XP & Level
+      const xpFolder = debugInst.addFolder('XP & Level');
+      const xpProxy = { xp: parseInt(localStorage.getItem('jarowe_xp') || '0', 10) };
+      const levelDisplay = { level: Math.floor(xpProxy.xp / 100) + 1 };
+      xpFolder.add(xpProxy, 'xp', 0, 10000, 10).name('Total XP').onChange(v => {
+        localStorage.setItem('jarowe_xp', String(v));
+        levelDisplay.level = Math.floor(v / 100) + 1;
+        debugInst.controllersRecursive().forEach(c => c.updateDisplay());
+      });
+      xpFolder.add(levelDisplay, 'level').name('Level').disable();
+      xpFolder.add({ add100: () => {
+        xpProxy.xp += 100;
+        localStorage.setItem('jarowe_xp', String(xpProxy.xp));
+        levelDisplay.level = Math.floor(xpProxy.xp / 100) + 1;
+        debugInst.controllersRecursive().forEach(c => c.updateDisplay());
+      }}, 'add100').name('+100 XP');
+      xpFolder.add({ reset: () => {
+        xpProxy.xp = 0;
+        localStorage.setItem('jarowe_xp', '0');
+        levelDisplay.level = 1;
+        debugInst.controllersRecursive().forEach(c => c.updateDisplay());
+      }}, 'reset').name('Reset XP');
+      xpFolder.close();
+
+      // Debug > Storage
+      const storageFolder = debugInst.addFolder('Storage');
+      storageFolder.add({ fn: () => {
+        if (!confirm('Clear all saved editor presets from localStorage?')) return;
+        localStorage.removeItem('jarowe_globe_editor_preset');
+        localStorage.removeItem('jarowe_prism_editor_preset');
+        localStorage.removeItem('jarowe_glass_presets');
+        alert('Editor presets cleared');
+      }}, 'fn').name('Clear Editor Presets');
+      storageFolder.add({ fn: () => {
+        localStorage.removeItem('jarowe_visited_paths');
+        alert('Visited paths cleared');
+      }}, 'fn').name('Clear Visited Paths');
+      storageFolder.add({ fn: () => {
+        localStorage.removeItem('jarowe_discovered_nodes');
+        alert('Discovery state cleared');
+      }}, 'fn').name('Clear Universe Discovery');
+      storageFolder.add({ fn: () => {
+        if (!confirm('NUCLEAR RESET: Clear ALL jarowe localStorage data?\n\nThis removes XP, collection, visited paths, editor presets, and all game state.')) return;
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('jarowe_') || key === 'dailyCipher' || key === 'prism_spawn_points') keys.push(key);
+        }
+        keys.forEach(k => localStorage.removeItem(k));
+        alert(`Removed ${keys.length} keys. Reloading...`);
+        window.location.reload();
+      }}, 'fn').name('NUCLEAR RESET');
+      storageFolder.close();
+
+      setEditorGui(editorInst);
+      setDebugGamesFolder(gamesFolder);
+    });
+
+    return () => {
+      cancelled = true;
+      if (editorInst) editorInst.destroy();
+      if (debugInst) debugInst.destroy();
+      containerEl.remove();
+      setEditorGui(null);
+      setDebugGamesFolder(null);
+    };
+  }, [showEditor]);
 
   // Shared uniforms for all globe shaders (surface, clouds, atmosphere, particles)
   const sharedUniforms = useRef({
@@ -4520,7 +4671,7 @@ export default function Home() {
 
           {/* DAILY CIPHER + VAULT CELL */}
           <div className="bento-cell cell-game-vault">
-            <DailyCipher showVault={true} editorContainer={editorContainer} />
+            <DailyCipher showVault={true} debugGamesFolder={debugGamesFolder} />
           </div>
 
         </div>
@@ -4898,29 +5049,18 @@ export default function Home() {
         </AnimatePresence>
       </section>
 
-      {/* Globe Debug Editor — hidden behind ?editor=jarowe */}
-      {showEditor && (
-        <>
-          <div
-            ref={editorContainerRef}
-            style={{
-              position: 'fixed', top: '10px', right: '10px', zIndex: 10000,
-              maxHeight: '92vh', overflowY: 'auto', width: '320px',
-            }}
+      {/* Editor panels — hidden behind ?editor=jarowe */}
+      {editorGui && (
+        <Suspense fallback={null}>
+          <GlobeEditor
+            editorParams={editorParams}
+            globeRef={globeRef}
+            globeShaderMaterial={globeShaderMaterial}
+            setOverlayParams={setOverlayParams}
+            parentGui={editorGui}
           />
-          {editorContainer && (
-            <Suspense fallback={null}>
-              <GlobeEditor
-                editorParams={editorParams}
-                globeRef={globeRef}
-                globeShaderMaterial={globeShaderMaterial}
-                setOverlayParams={setOverlayParams}
-                container={editorContainer}
-              />
-              <GlintEditor container={editorContainer} />
-            </Suspense>
-          )}
-        </>
+          <GlintEditor parentGui={editorGui} />
+        </Suspense>
       )}
     </div>
   );

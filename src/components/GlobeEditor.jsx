@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import GUI from 'lil-gui';
 import * as THREE from 'three';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
 const STORAGE_KEY = 'jarowe_globe_editor_preset';
@@ -18,11 +17,11 @@ function hexToRgb(hex) {
   return [r, g, b];
 }
 
-export default function GlobeEditor({ editorParams, globeRef, globeShaderMaterial, setOverlayParams, container }) {
+export default function GlobeEditor({ editorParams, globeRef, globeShaderMaterial, setOverlayParams, parentGui }) {
   const guiRef = useRef(null);
 
   useEffect(() => {
-    if (guiRef.current) return;
+    if (guiRef.current || !parentGui) return;
 
     const p = editorParams.current;
 
@@ -36,67 +35,9 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       }
     }
 
-    const guiOpts = { title: 'Globe', width: 320 };
-    if (container) guiOpts.container = container;
-    const gui = new GUI(guiOpts);
-    if (!container) {
-      gui.domElement.style.position = 'fixed';
-      gui.domElement.style.top = '10px';
-      gui.domElement.style.right = '10px';
-      gui.domElement.style.zIndex = '10000';
-      gui.domElement.style.maxHeight = '92vh';
-      gui.domElement.style.overflowY = 'auto';
-    }
+    const gui = parentGui.addFolder('Globe');
     gui.close();
     guiRef.current = gui;
-
-    // ── Search bar (hidden when section is collapsed) ──
-    const searchWrap = document.createElement('div');
-    searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e);display:none';
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search settings…';
-    searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(255,255,255,0.06);color:#eee;font-size:12px;outline:none';
-    searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,120,255,0.5)'; });
-    searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(255,255,255,0.15)'; });
-    searchWrap.appendChild(searchInput);
-    // Insert after the title bar
-    const titleEl = gui.domElement.querySelector('.title');
-    if (titleEl) titleEl.after(searchWrap);
-    else gui.domElement.prepend(searchWrap);
-    gui.onOpenClose((g) => { searchWrap.style.display = g._closed ? 'none' : ''; });
-
-    // Recursive filter logic — searches display name, property key, AND folder path
-    const filterGui = (query) => {
-      const q = query.toLowerCase().trim();
-      const processFolder = (folder, parentPath) => {
-        let anyVisible = false;
-        const folderName = (folder._title || '').toLowerCase();
-        const fullPath = parentPath ? parentPath + ' ' + folderName : folderName;
-        // Filter controllers — match against display name, property key, and folder path
-        for (const ctrl of folder.controllers) {
-          const displayName = (ctrl._name || '').toLowerCase();
-          const propName = (ctrl.property || '').toLowerCase();
-          const searchable = fullPath + ' ' + displayName + ' ' + propName;
-          const match = !q || searchable.includes(q);
-          ctrl.domElement.parentElement.style.display = match ? '' : 'none';
-          if (match) anyVisible = true;
-        }
-        // Recurse subfolders
-        for (const sub of folder.folders) {
-          const subTitle = (sub._title || '').toLowerCase();
-          const titleMatch = !q || subTitle.includes(q);
-          const childVisible = processFolder(sub, fullPath);
-          const show = titleMatch || childVisible;
-          sub.domElement.style.display = show ? '' : 'none';
-          if (show && q) sub.open();
-          if (show) anyVisible = true;
-        }
-        return anyVisible;
-      };
-      processFolder(gui, '');
-    };
-    searchInput.addEventListener('input', () => filterGui(searchInput.value));
 
     // ── Helpers ──
     const updateSurfaceUniform = (key) => (v) => {
@@ -895,10 +836,10 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     }
 
     return () => {
-      gui.destroy();
+      try { gui.destroy(); } catch (_) {}
       guiRef.current = null;
     };
-  }, [editorParams, globeRef, globeShaderMaterial, setOverlayParams]);
+  }, [parentGui, editorParams, globeRef, globeShaderMaterial, setOverlayParams]);
 
   return null;
 }

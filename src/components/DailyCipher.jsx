@@ -45,7 +45,7 @@ const getDailyData = () => {
     };
 };
 
-export default function DailyCipher({ showVault = false, editorContainer }) {
+export default function DailyCipher({ showVault = false, debugGamesFolder }) {
     const [guesses, setGuesses] = useState([]);
     const [currentGuess, setCurrentGuess] = useState('');
     const [gameState, setGameState] = useState('playing'); // playing, won, lost
@@ -337,141 +337,112 @@ export default function DailyCipher({ showVault = false, editorContainer }) {
     };
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (new URLSearchParams(window.location.search).get('editor') !== 'jarowe') return;
+        if (!debugGamesFolder) return;
         if (debugGuiRef.current) return;
 
-        let gui;
-        import('lil-gui').then(({ default: GUI }) => {
-            const guiOpts = { title: 'Cipher', width: 320 };
-            if (editorContainer) guiOpts.container = editorContainer;
-            gui = new GUI(guiOpts);
-            if (!editorContainer) {
-                gui.domElement.style.position = 'fixed';
-                gui.domElement.style.bottom = '10px';
-                gui.domElement.style.left = '10px';
-                gui.domElement.style.top = 'auto';
-                gui.domElement.style.zIndex = '10001';
-                gui.domElement.style.maxHeight = '80vh';
-                gui.domElement.style.overflowY = 'auto';
-            }
-            gui.close();
-            debugGuiRef.current = gui;
+        const gui = debugGamesFolder.addFolder('Cipher');
+        debugGuiRef.current = gui;
 
-            // === Bonus Ciphers ===
-            const bonusFolder = gui.addFolder('Bonus Ciphers');
-            const bonusProxy = { count: parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) };
-            bonusFolder.add(bonusProxy, 'count', 0, 20, 1).name('Available').onChange(v => {
-                localStorage.setItem('jarowe_bonus_ciphers', String(v));
-                debugActionsRef.current.setBonusAvailable(v);
-            });
-            bonusFolder.add({ fn: () => {
-                const c = parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) + 1;
-                localStorage.setItem('jarowe_bonus_ciphers', String(c));
-                debugActionsRef.current.setBonusAvailable(c);
-                bonusProxy.count = c;
-                gui.controllersRecursive().forEach(ctrl => ctrl.updateDisplay());
-            }}, 'fn').name('Grant +1');
-            bonusFolder.add({ fn: () => {
-                const c = parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) + 5;
-                localStorage.setItem('jarowe_bonus_ciphers', String(c));
-                debugActionsRef.current.setBonusAvailable(c);
-                bonusProxy.count = c;
-                gui.controllersRecursive().forEach(ctrl => ctrl.updateDisplay());
-            }}, 'fn').name('Grant +5');
-
-            // === Vault Collection ===
-            const vaultFolder = gui.addFolder('Vault');
-            vaultFolder.add({ fn: () => {
-                const current = JSON.parse(localStorage.getItem('jarowe_collection') || '[]');
-                for (let i = 0; i < vaultPhotos.length; i++) {
-                    if (!current.includes(i)) {
-                        current.push(i);
-                        break;
-                    }
-                }
-                localStorage.setItem('jarowe_collection', JSON.stringify(current));
-                debugActionsRef.current.setUnlockedCards([...current]);
-            }}, 'fn').name('Unlock Next Card');
-            vaultFolder.add({ fn: () => {
-                const all = vaultPhotos.map((_, i) => i);
-                localStorage.setItem('jarowe_collection', JSON.stringify(all));
-                debugActionsRef.current.setUnlockedCards(all);
-            }}, 'fn').name('Unlock ALL Cards');
-            vaultFolder.add({ fn: () => {
-                localStorage.setItem('jarowe_collection', JSON.stringify([]));
-                debugActionsRef.current.setUnlockedCards([]);
-            }}, 'fn').name('Clear Collection');
-
-            // === Game State ===
-            const gameFolder = gui.addFolder('Game State');
-            gameFolder.add({ fn: () => {
-                debugActionsRef.current.handleWin();
-            }}, 'fn').name('Force Win');
-            gameFolder.add({ fn: () => {
-                debugActionsRef.current.setGameState('lost');
-            }}, 'fn').name('Force Lose');
-            gameFolder.add({ fn: () => {
-                const w = debugActionsRef.current.activeWord;
-                console.log('[Cipher Debug] Active word:', w);
-                alert('Active word: ' + w);
-            }}, 'fn').name('Reveal Word');
-            gameFolder.add({ fn: () => {
-                debugActionsRef.current.setGuesses([]);
-                debugActionsRef.current.setCurrentGuess('');
-                debugActionsRef.current.setGameState('playing');
-                localStorage.removeItem('dailyCipher');
-            }}, 'fn').name('Reset Daily');
-            gameFolder.add({ fn: () => {
-                localStorage.removeItem('jarowe_bonus_cipher_state');
-                debugActionsRef.current.setMode('daily');
-                debugActionsRef.current.setBonusWord('');
-                debugActionsRef.current.setBonusCardId(0);
-                debugActionsRef.current.setGuesses([]);
-                debugActionsRef.current.setCurrentGuess('');
-                debugActionsRef.current.setGameState('playing');
-                const stored = localStorage.getItem('dailyCipher');
-                if (stored) {
-                    const p = JSON.parse(stored);
-                    if (p.date === new Date().toDateString()) {
-                        debugActionsRef.current.setGuesses(p.guesses || []);
-                        debugActionsRef.current.setGameState(p.gameState || 'playing');
-                    }
-                }
-            }}, 'fn').name('Exit Bonus Mode');
-
-            // === Prism Dash ===
-            const prismFolder = gui.addFolder('Prism Dash');
-            const prismProxy = { highScore: parseInt(localStorage.getItem('jarowe_speed_highscore') || '0', 10) };
-            prismFolder.add(prismProxy, 'highScore', 0, 999, 1).name('High Score').onChange(v => {
-                localStorage.setItem('jarowe_speed_highscore', String(v));
-            });
-            prismFolder.add({ fn: () => {
-                localStorage.setItem('jarowe_speed_highscore', '0');
-                prismProxy.highScore = 0;
-                gui.controllersRecursive().forEach(ctrl => ctrl.updateDisplay());
-            }}, 'fn').name('Reset High Score');
-
-            // === Nuclear ===
-            const nukeFolder = gui.addFolder('Reset');
-            nukeFolder.add({ fn: () => {
-                if (!confirm('Reset ALL cipher data?')) return;
-                localStorage.removeItem('jarowe_collection');
-                localStorage.removeItem('dailyCipher');
-                localStorage.removeItem('jarowe_bonus_cipher_state');
-                localStorage.removeItem('jarowe_bonus_ciphers');
-                localStorage.removeItem('jarowe_speed_highscore');
-                window.location.reload();
-            }}, 'fn').name('RESET EVERYTHING');
-            nukeFolder.close();
-
-            // Collapse less-used folders
-            vaultFolder.close();
-            prismFolder.close();
+        // === Bonus Ciphers ===
+        const bonusFolder = gui.addFolder('Bonus Ciphers');
+        const bonusProxy = { count: parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) };
+        bonusFolder.add(bonusProxy, 'count', 0, 20, 1).name('Available').onChange(v => {
+            localStorage.setItem('jarowe_bonus_ciphers', String(v));
+            debugActionsRef.current.setBonusAvailable(v);
         });
+        bonusFolder.add({ fn: () => {
+            const c = parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) + 1;
+            localStorage.setItem('jarowe_bonus_ciphers', String(c));
+            debugActionsRef.current.setBonusAvailable(c);
+            bonusProxy.count = c;
+            gui.controllersRecursive().forEach(ctrl => ctrl.updateDisplay());
+        }}, 'fn').name('Grant +1');
+        bonusFolder.add({ fn: () => {
+            const c = parseInt(localStorage.getItem('jarowe_bonus_ciphers') || '0', 10) + 5;
+            localStorage.setItem('jarowe_bonus_ciphers', String(c));
+            debugActionsRef.current.setBonusAvailable(c);
+            bonusProxy.count = c;
+            gui.controllersRecursive().forEach(ctrl => ctrl.updateDisplay());
+        }}, 'fn').name('Grant +5');
 
-        return () => { if (gui) { gui.destroy(); debugGuiRef.current = null; } };
-    }, [editorContainer]);
+        // === Vault Collection ===
+        const vaultFolder = gui.addFolder('Vault');
+        vaultFolder.add({ fn: () => {
+            const current = JSON.parse(localStorage.getItem('jarowe_collection') || '[]');
+            for (let i = 0; i < vaultPhotos.length; i++) {
+                if (!current.includes(i)) {
+                    current.push(i);
+                    break;
+                }
+            }
+            localStorage.setItem('jarowe_collection', JSON.stringify(current));
+            debugActionsRef.current.setUnlockedCards([...current]);
+        }}, 'fn').name('Unlock Next Card');
+        vaultFolder.add({ fn: () => {
+            const all = vaultPhotos.map((_, i) => i);
+            localStorage.setItem('jarowe_collection', JSON.stringify(all));
+            debugActionsRef.current.setUnlockedCards(all);
+        }}, 'fn').name('Unlock ALL Cards');
+        vaultFolder.add({ fn: () => {
+            localStorage.setItem('jarowe_collection', JSON.stringify([]));
+            debugActionsRef.current.setUnlockedCards([]);
+        }}, 'fn').name('Clear Collection');
+
+        // === Game State ===
+        const gameFolder = gui.addFolder('Game State');
+        gameFolder.add({ fn: () => {
+            debugActionsRef.current.handleWin();
+        }}, 'fn').name('Force Win');
+        gameFolder.add({ fn: () => {
+            debugActionsRef.current.setGameState('lost');
+        }}, 'fn').name('Force Lose');
+        gameFolder.add({ fn: () => {
+            const w = debugActionsRef.current.activeWord;
+            console.log('[Cipher Debug] Active word:', w);
+            alert('Active word: ' + w);
+        }}, 'fn').name('Reveal Word');
+        gameFolder.add({ fn: () => {
+            debugActionsRef.current.setGuesses([]);
+            debugActionsRef.current.setCurrentGuess('');
+            debugActionsRef.current.setGameState('playing');
+            localStorage.removeItem('dailyCipher');
+        }}, 'fn').name('Reset Daily');
+        gameFolder.add({ fn: () => {
+            localStorage.removeItem('jarowe_bonus_cipher_state');
+            debugActionsRef.current.setMode('daily');
+            debugActionsRef.current.setBonusWord('');
+            debugActionsRef.current.setBonusCardId(0);
+            debugActionsRef.current.setGuesses([]);
+            debugActionsRef.current.setCurrentGuess('');
+            debugActionsRef.current.setGameState('playing');
+            const stored = localStorage.getItem('dailyCipher');
+            if (stored) {
+                const p = JSON.parse(stored);
+                if (p.date === new Date().toDateString()) {
+                    debugActionsRef.current.setGuesses(p.guesses || []);
+                    debugActionsRef.current.setGameState(p.gameState || 'playing');
+                }
+            }
+        }}, 'fn').name('Exit Bonus Mode');
+
+        // === Reset cipher data ===
+        gui.add({ fn: () => {
+            if (!confirm('Reset all cipher data (daily, bonus, collection)?')) return;
+            localStorage.removeItem('jarowe_collection');
+            localStorage.removeItem('dailyCipher');
+            localStorage.removeItem('jarowe_bonus_cipher_state');
+            localStorage.removeItem('jarowe_bonus_ciphers');
+            window.location.reload();
+        }}, 'fn').name('Reset Cipher Data');
+
+        // Collapse less-used folders
+        vaultFolder.close();
+
+        return () => {
+            try { gui.destroy(); } catch (_) {}
+            debugGuiRef.current = null;
+        };
+    }, [debugGamesFolder]);
 
     return (
         <div className={`cipher-vault-wrapper ${showVault ? 'with-vault' : ''}`}>

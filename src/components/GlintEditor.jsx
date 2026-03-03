@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import GUI from 'lil-gui';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import { GLASS_PRESETS } from './Prism3D';
 
@@ -12,69 +11,15 @@ function rgbToHex(arr) {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-export default function GlintEditor({ container }) {
+export default function GlintEditor({ parentGui }) {
   const guiRef = useRef(null);
 
   useEffect(() => {
-    if (guiRef.current) return;
+    if (guiRef.current || !parentGui) return;
 
-    const guiOpts = { title: 'Glint', width: 320 };
-    if (container) guiOpts.container = container;
-    const gui = new GUI(guiOpts);
-    if (!container) {
-      gui.domElement.style.position = 'fixed';
-      gui.domElement.style.top = '10px';
-      gui.domElement.style.right = '10px';
-      gui.domElement.style.zIndex = '10000';
-      gui.domElement.style.maxHeight = '92vh';
-      gui.domElement.style.overflowY = 'auto';
-    }
+    const gui = parentGui.addFolder('Glint');
     gui.close();
     guiRef.current = gui;
-
-    // ── Search bar (hidden when section is collapsed) ──
-    const searchWrap = document.createElement('div');
-    searchWrap.style.cssText = 'padding:4px 8px 2px;position:sticky;top:0;z-index:1;background:var(--background-color,#1a1a2e);display:none';
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search settings…';
-    searchInput.style.cssText = 'width:100%;box-sizing:border-box;padding:5px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(255,255,255,0.06);color:#eee;font-size:12px;outline:none';
-    searchInput.addEventListener('focus', () => { searchInput.style.borderColor = 'rgba(140,120,255,0.5)'; });
-    searchInput.addEventListener('blur', () => { searchInput.style.borderColor = 'rgba(255,255,255,0.15)'; });
-    searchWrap.appendChild(searchInput);
-    const titleEl = gui.domElement.querySelector('.title');
-    if (titleEl) titleEl.after(searchWrap);
-    else gui.domElement.prepend(searchWrap);
-    gui.onOpenClose((g) => { searchWrap.style.display = g._closed ? 'none' : ''; });
-
-    const filterGui = (query) => {
-      const q = query.toLowerCase().trim();
-      const processFolder = (folder, parentPath) => {
-        let anyVisible = false;
-        const folderName = (folder._title || '').toLowerCase();
-        const fullPath = parentPath ? parentPath + ' ' + folderName : folderName;
-        for (const ctrl of folder.controllers) {
-          const displayName = (ctrl._name || '').toLowerCase();
-          const propName = (ctrl.property || '').toLowerCase();
-          const searchable = fullPath + ' ' + displayName + ' ' + propName;
-          const match = !q || searchable.includes(q);
-          ctrl.domElement.parentElement.style.display = match ? '' : 'none';
-          if (match) anyVisible = true;
-        }
-        for (const sub of folder.folders) {
-          const subTitle = (sub._title || '').toLowerCase();
-          const titleMatch = !q || subTitle.includes(q);
-          const childVisible = processFolder(sub, fullPath);
-          const show = titleMatch || childVisible;
-          sub.domElement.style.display = show ? '' : 'none';
-          if (show && q) sub.open();
-          if (show) anyVisible = true;
-        }
-        return anyVisible;
-      };
-      processFolder(gui, '');
-    };
-    searchInput.addEventListener('input', () => filterGui(searchInput.value));
 
     // Initialize prism config with defaults
     if (!window.__prismConfig) {
@@ -800,11 +745,11 @@ export default function GlintEditor({ container }) {
     } }, 'pushPrismToLive').name('\u2B06 Push Prism to Live');
 
     return () => {
-      gui.destroy();
+      try { gui.destroy(); } catch (_) {}
       guiRef.current = null;
       window.removeEventListener('prism-spawn-point', spawnChangeHandler);
     };
-  }, []);
+  }, [parentGui]);
 
   return null;
 }
