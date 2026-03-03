@@ -146,8 +146,6 @@ const lightState = {
   mouseProximityFactor: 1.0, // multiplied into dispersionSpread
   portalSuckProgress: 0,     // 0 = normal, 1 = fully sucked (for cascading ray death)
   portalSuckStartTime: 0,    // when portal suck started
-  entranceStartTime: 0,      // when entrance bop impulse was detected
-  wasEntering: false,        // tracks entrance state for beam excitement
 };
 
 /* ═══════════ Audio reactivity (reads global analyser from AudioContext.jsx) ═══════════ */
@@ -1806,33 +1804,8 @@ function LightDirectionTracker() {
 
     // 2. Smooth-read prism Y rotation for dispersion breathing
     //    beamDamping: 0=responsive (0.08 lerp), 1=very smooth (0.004 lerp) — kills portal shake
-    //    entranceBeamExcitement / exitBeamExcitement scale responsiveness during transitions
     const rawY = window.__prismRotationY || 0;
-    const baseDamping = cfg.beamDamping ?? 0.7;
-
-    // Detect entrance: bop impulse fires when prism emerges from portal
-    if (window.__prismBopImpulse && !lightState.wasEntering) {
-      lightState.entranceStartTime = performance.now();
-      lightState.wasEntering = true;
-    }
-    // Entrance window: ~1.5s after bop impulse
-    const entranceElapsed = performance.now() - lightState.entranceStartTime;
-    const isEntering = lightState.wasEntering && entranceElapsed < 1500;
-    if (!isEntering) lightState.wasEntering = false;
-
-    const suckActive = !!window.__prismPortalSuck;
-
-    // Apply excitement multipliers: 0=calm (high damping), 1=full excitement (use base damping)
-    let damping = baseDamping;
-    if (isEntering) {
-      const excitement = cfg.entranceBeamExcitement ?? 1.0;
-      // Blend toward max damping (1.0 = very smooth) when excitement is low
-      damping = baseDamping + (1.0 - baseDamping) * (1.0 - excitement);
-    } else if (suckActive) {
-      const excitement = cfg.exitBeamExcitement ?? 1.0;
-      damping = baseDamping + (1.0 - baseDamping) * (1.0 - excitement);
-    }
-
+    const damping = cfg.beamDamping ?? 0.7;
     const lerpFactor = 0.08 * (1 - damping * 0.95);
     lightState.prismYRot += (rawY - lightState.prismYRot) * lerpFactor;
     const prismY = lightState.prismYRot;
@@ -1874,7 +1847,8 @@ function LightDirectionTracker() {
       lightState.dispersionSpread *= lightState.mouseProximityFactor;
     }
 
-    // 8. Portal suck cascade tracking (suckActive declared above in step 2)
+    // 8. Portal suck cascade tracking
+    const suckActive = !!window.__prismPortalSuck;
     if (suckActive && lightState.portalSuckProgress === 0) {
       lightState.portalSuckStartTime = performance.now();
     }
@@ -2038,13 +2012,20 @@ function RainbowFan() {
     const rayScale = (cfg.rayLength ?? 14) / 7;
 
     // Separate controls: jitter = spread breathing, sweep = rotational center shaking
-    const jitter = cfg.rayJitter ?? 1.0;       // scales widening/narrowing (the breathing)
-    const sweep = cfg.raySweep ?? 0.5;          // scales rotational center sweep (the shaking)
+    // During entrance/exit, scale by excitement multiplier (0=calm, 1=full shake)
+    const isEntering = !!window.__prismEntering;
+    const isExiting = lightState.portalSuckProgress > 0.01;
+    let excitement = 1.0;
+    if (isEntering) excitement = cfg.entranceBeamExcitement ?? 1.0;
+    else if (isExiting) excitement = cfg.exitBeamExcitement ?? 1.0;
+
+    const jitter = (cfg.rayJitter ?? 1.0) * excitement;
+    const sweep = (cfg.raySweep ?? 0.5) * excitement;
     const jitteredCenter = lightState.dispersionCenter * sweep;
     const jitteredSpread = baseDisp + (lightState.dispersionSpread - baseDisp) * jitter;
 
-    // Portal exit spread boost: rays fan apart as they retract
-    const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5);
+    // Portal exit spread boost: rays fan apart as they retract (scaled by exit excitement)
+    const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5) * (isExiting ? excitement : 1.0);
 
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;

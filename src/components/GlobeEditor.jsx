@@ -18,7 +18,7 @@ function hexToRgb(hex) {
   return [r, g, b];
 }
 
-export default function GlobeEditor({ editorParams, globeRef, globeShaderMaterial, setOverlayParams }) {
+export default function GlobeEditor({ editorParams, globeRef, globeShaderMaterial, setOverlayParams, container }) {
   const guiRef = useRef(null);
 
   useEffect(() => {
@@ -36,13 +36,18 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
       }
     }
 
-    const gui = new GUI({ title: 'Globe Editor', width: 320 });
-    gui.domElement.style.position = 'fixed';
-    gui.domElement.style.top = '10px';
-    gui.domElement.style.right = '10px';
-    gui.domElement.style.zIndex = '10000';
-    gui.domElement.style.maxHeight = '92vh';
-    gui.domElement.style.overflowY = 'auto';
+    const guiOpts = { title: 'Globe', width: 320 };
+    if (container) guiOpts.container = container;
+    const gui = new GUI(guiOpts);
+    if (!container) {
+      gui.domElement.style.position = 'fixed';
+      gui.domElement.style.top = '10px';
+      gui.domElement.style.right = '10px';
+      gui.domElement.style.zIndex = '10000';
+      gui.domElement.style.maxHeight = '92vh';
+      gui.domElement.style.overflowY = 'auto';
+    }
+    gui.close();
     guiRef.current = gui;
 
     // ── Search bar ──

@@ -175,6 +175,10 @@ export default function Home() {
     return new URLSearchParams(window.location.search).get('editor') === 'jarowe';
   }, []);
 
+  // Shared container for all editor panels (Globe, Glint, Cipher)
+  const [editorContainer, setEditorContainer] = useState(null);
+  const editorContainerRef = useCallback((el) => { setEditorContainer(el); }, []);
+
   // Shared uniforms for all globe shaders (surface, clouds, atmosphere, particles)
   const sharedUniforms = useRef({
     time: { value: 0 },
@@ -3553,6 +3557,9 @@ export default function Home() {
       // ── Landing physics: flash nebula + spin impulse + landing squash ──
       window.__nebulaFlash = 1.0;
       window.__prismExpression = 'excited';
+      // Signal beam excitement system that entrance is active
+      window.__prismEntering = true;
+      setTimeout(() => { window.__prismEntering = false; }, 1500);
       // Directional spin from portal → gives "shot out" feel
       window.__prismBopImpulse = {
         x: (Math.random() - 0.5) * 0.3,
@@ -4893,15 +4900,27 @@ export default function Home() {
 
       {/* Globe Debug Editor — hidden behind ?editor=jarowe */}
       {showEditor && (
-        <Suspense fallback={null}>
-          <GlobeEditor
-            editorParams={editorParams}
-            globeRef={globeRef}
-            globeShaderMaterial={globeShaderMaterial}
-            setOverlayParams={setOverlayParams}
+        <>
+          <div
+            ref={editorContainerRef}
+            style={{
+              position: 'fixed', top: '10px', right: '10px', zIndex: 10000,
+              maxHeight: '92vh', overflowY: 'auto', width: '320px',
+            }}
           />
-          <GlintEditor />
-        </Suspense>
+          {editorContainer && (
+            <Suspense fallback={null}>
+              <GlobeEditor
+                editorParams={editorParams}
+                globeRef={globeRef}
+                globeShaderMaterial={globeShaderMaterial}
+                setOverlayParams={setOverlayParams}
+                container={editorContainer}
+              />
+              <GlintEditor container={editorContainer} />
+            </Suspense>
+          )}
+        </>
       )}
     </div>
   );

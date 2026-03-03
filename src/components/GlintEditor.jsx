@@ -12,19 +12,24 @@ function rgbToHex(arr) {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
-export default function GlintEditor() {
+export default function GlintEditor({ container }) {
   const guiRef = useRef(null);
 
   useEffect(() => {
     if (guiRef.current) return;
 
-    const gui = new GUI({ title: 'Glint Editor', width: 320 });
-    gui.domElement.style.position = 'fixed';
-    gui.domElement.style.top = '10px';
-    gui.domElement.style.left = '10px';
-    gui.domElement.style.zIndex = '10000';
-    gui.domElement.style.maxHeight = '92vh';
-    gui.domElement.style.overflowY = 'auto';
+    const guiOpts = { title: 'Glint', width: 320 };
+    if (container) guiOpts.container = container;
+    const gui = new GUI(guiOpts);
+    if (!container) {
+      gui.domElement.style.position = 'fixed';
+      gui.domElement.style.top = '10px';
+      gui.domElement.style.right = '10px';
+      gui.domElement.style.zIndex = '10000';
+      gui.domElement.style.maxHeight = '92vh';
+      gui.domElement.style.overflowY = 'auto';
+    }
+    gui.close();
     guiRef.current = gui;
 
     // ── Search bar ──
@@ -85,7 +90,7 @@ export default function GlintEditor() {
     // -- Peek Control --
     const peekFolder = gui.addFolder('Peek Control');
     const peekStyles = ['portal', 'slide', 'bounce', 'swing', 'pop', 'roll'];
-    const peekProxy = { side: 'left', cell: 0, duration: 8, pinned: false, style: 'portal', dragMode: false };
+    const peekProxy = { side: 'top', cell: 0, duration: 8, pinned: false, style: 'portal', dragMode: false };
     peekFolder.add(peekProxy, 'side', ['right', 'left', 'top']).name('Side');
     peekFolder.add(peekProxy, 'cell', 0, 3, 1).name('Cell Index');
     peekFolder.add(peekProxy, 'duration', 1, 30, 1).name('Duration (s)');
