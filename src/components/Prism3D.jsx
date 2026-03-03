@@ -306,13 +306,14 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
     window.__prismDragSpin = null;
   }
 
-  // ── 5. Portal suck vortex — multiplies ALL rotation (direct + velocity) ──
+  // ── 5. Portal suck vortex — additive spin boost (not multiplicative!) ──
   const suckTarget = window.__prismPortalSuck ? 1 : 0;
   portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 6);
   const suckLerp = portalSuckLerp.current;
   if (suckLerp > 0.01) {
-    const suckBoost = suckLerp * (cfg.portalSuckSpinMult ?? 8.0);
-    rot.y += rot.y * suckBoost * delta;
+    // Additive: constant spin rate that ramps up, not exponential multiplication
+    const suckSpeed = suckLerp * (cfg.portalSuckSpinMult ?? 6.0);
+    rot.y += suckSpeed * delta;
   }
 
   // ── 6. Damping on impulse/drag velocity only ──
@@ -1875,8 +1876,10 @@ function LightDirectionTracker() {
     lightState.beamAngle = Math.atan2(ly, lx);
 
     // 2. Smooth-read prism Y rotation for dispersion breathing
-    //    beamDamping: 0=responsive (0.08 lerp), 1=very smooth (0.004 lerp) — kills portal shake
-    const rawY = window.__prismRotationY || 0;
+    //    beamDamping: 0=responsive (0.08 lerp), 1=very smooth (0.004 lerp)
+    //    Normalize raw rotation to [-PI, PI] so accumulated spins don't cause chaos
+    let rawY = window.__prismRotationY || 0;
+    rawY = ((rawY % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
     const damping = cfg.beamDamping ?? 0.7;
     const lerpFactor = 0.08 * (1 - damping * 0.95);
     lightState.prismYRot += (rawY - lightState.prismYRot) * lerpFactor;
