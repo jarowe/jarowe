@@ -3723,13 +3723,36 @@ export default function Home() {
       });
     }
 
+    // Birthday mode: pop ALL background balloons at once!
+    if (isBirthday) {
+      const allIds = bgBalloonData.map(b => b.id);
+      const visibleBalloons = allIds.filter(id => !poppedBgBalloons.has(id));
+      if (visibleBalloons.length > 0) {
+        // Pop all visible balloons with staggered confetti
+        setPoppedBgBalloons(prev => new Set([...prev, ...visibleBalloons]));
+        visibleBalloons.forEach((id, i) => {
+          setTimeout(() => {
+            playBalloonPopSound();
+            confetti({
+              particleCount: 5, spread: 40,
+              origin: { x: 0.1 + Math.random() * 0.8, y: 0.1 + Math.random() * 0.7 },
+              colors: ['#ff6b6b', '#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'],
+              startVelocity: 12, gravity: 1.5, scalar: 0.5, ticks: 80,
+            });
+          }, i * 60);
+        });
+        // Respawn all after a while
+        setTimeout(() => setPoppedBgBalloons(new Set()), 12000);
+      }
+    }
+
     if (!avatarDiscovered.current) {
       avatarDiscovered.current = true;
       localStorage.setItem('jarowe_avatar_discovered', 'true');
     }
 
     setTimeout(() => setAvatarEffect(null), 1000);
-  }, []);
+  }, [isBirthday, bgBalloonData, poppedBgBalloons]);
 
   // Currently cell hover messages
   const [currentlyMsg, setCurrentlyMsg] = useState(null);
