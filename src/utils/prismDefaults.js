@@ -93,8 +93,8 @@ export const PRISM_DEFAULTS = {
   raySweep: 0.5,               // 0=no rotational sweep/shaking, 1=full rotation-driven center sweep
   portalExitSpread: 1.5,       // extra angular spread during portal exit (0=none)
   portalExitWiden: 1.0,        // individual ray width boost during portal exit
-  entranceBeamExcitement: 1.4, // beam liveliness on entrance (1=normal, >1=more alive, fades to 1.0)
-  exitBeamExcitement: 0.6,     // beam liveliness on exit (1=normal, <1=calmer on way out)
+  entranceBeamExcitement: 1.6, // beam liveliness on entrance (1=normal, >1=more alive, fades to 1.0)
+  exitBeamExcitement: 1.3,     // beam liveliness on exit (1=normal, >1=more flutter on way out)
 
   // Convergence glow (iridescent cover where beam meets prism)
   convergenceGlowSize: 1.5,
@@ -125,6 +125,9 @@ export const PRISM_DEFAULTS = {
   chromaticSpread: 1.0,
   glassAlpha: 0.22,
   streakIntensity: 1.0,
+
+  // Beam feathering (0=sharp crisp rays, 1=soft glowy rays)
+  beamFeathering: 0.5,
 
   // Glass mode
   glassMode: 'shader',

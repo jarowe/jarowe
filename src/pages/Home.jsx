@@ -3797,6 +3797,7 @@ export default function Home() {
   const [peekVisible, setPeekVisible] = useState(false);
   const [peekPosition, setPeekPosition] = useState({ cell: 0, side: 'right' });
   const [peekStyle, setPeekStyle] = useState('slide');
+  const [portalExitAnim, setPortalExitAnim] = useState(false); // true = shrinking in-place via framer-motion
   const [prismBops, setPrismBops] = useState(0);
   const [prismBubble, setPrismBubble] = useState(null);
   const [bubblePhase, setBubblePhase] = useState(null); // null | 'thinking' | 'speaking'
@@ -4124,9 +4125,9 @@ export default function Home() {
     // Random exit spin impulse — each exit feels different
     const exitDir = Math.random() > 0.5 ? 1 : -1;
     window.__prismBopImpulse = {
-      x: (Math.random() - 0.5) * 0.2,
-      y: exitDir * (0.2 + Math.random() * 0.2),
-      z: (Math.random() - 0.5) * 0.1,
+      x: (Math.random() - 0.5) * 0.25,
+      y: exitDir * (0.2 + Math.random() * 0.25),
+      z: (Math.random() - 0.5) * 0.12,
     };
 
     const cfg = window.__prismConfig || {};
@@ -4149,11 +4150,15 @@ export default function Home() {
     const cOy = parseFloat(oy) / 100;
     confetti({ particleCount: 30, spread: 360, origin: { x: cOx, y: cOy }, colors: ['#7c3aed', '#38bdf8', '#f472b6', '#c4b5fd'], startVelocity: 12, gravity: 0.1, scalar: 0.4, ticks: 120, shapes: ['circle'] });
 
-    // Framer-motion handles the exit — smooth shrink-to-zero (reverse of entrance)
-    // After 500ms, hide character (framer-motion animates scale→0 + opacity→0)
+    // Start in-place shrink animation (framer-motion animates scale→0 + opacity→0)
+    // This keeps x:0, y:0 so the character NEVER moves — only shrinks and fades
+    setPortalExitAnim(true);
+    clearBubble();
+
+    // After shrink completes, hide character (no visual change — already at 0,0,0)
     setTimeout(() => {
       setPeekVisible(false);
-      clearBubble();
+      setPortalExitAnim(false);
     }, 500);
 
     // After 800ms, stop portal suck + begin fading the portal
@@ -4550,10 +4555,11 @@ export default function Home() {
       setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // ── PORTAL EXIT (600ms) — same as Hide Glint but with bonk face ──
+    // ── PORTAL EXIT (600ms) — bop-exit: snappier spin (already has bop impulse) ──
     setTimeout(() => {
       setBopPhase(null);
       setExitStyle(null);
+      window.__prismBopExit = true; // tells 3D spin to ramp faster
       clearBubble();
       runPortalExitSequence();
     }, 600);
@@ -5299,22 +5305,17 @@ export default function Home() {
           const offX = peekPosition.side === 'right' ? 120 : peekPosition.side === 'left' ? -120 : 0;
           const offY = peekPosition.side === 'top' ? -120 : 0;
           const pso = portalSpawnOffsetRef.current;
-          // Only activate exit mode when peekVisible is already false — prevents
-          // transition swap from causing a snap while entrance spring is still settling
-          const isPortalExiting = portalExitingRef.current && !peekVisible;
+          // hiddenState only used for entrance (how the character starts before animating in)
           const hiddenState =
-            // Portal exit: smooth shrink in-place (reverse of entrance pop)
-            peekStyle === 'portal' && isPortalExiting ? { opacity: 0, x: 0, y: 0, scale: 0 }
-            // Portal entrance: spring from entrance offset toward final position
-            : peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
+            peekStyle === 'portal' ? { opacity: 0, x: pso.x, y: pso.y, scale: 0, rotate: -30 }
             : peekStyle === 'bounce' ? { opacity: 0, x: 0, y: -120, scale: 1, rotate: 0 }
             : peekStyle === 'swing' ? { opacity: 0, x: 0, y: 0, scale: 1, rotate: peekPosition.side === 'left' ? 90 : -90 }
             : peekStyle === 'pop' ? { opacity: 0, x: 0, y: 0, scale: 0, rotate: 0 }
             : peekStyle === 'roll' ? { opacity: 0, x: offX || 80, y: 0, scale: 1, rotate: 360 }
             : { opacity: 0, x: offX, y: offY, scale: 1, rotate: 0 };
           const peekTransition =
-            // Portal exit: smooth shrink over 500ms (character gets sucked back into portal)
-            peekStyle === 'portal' && isPortalExiting ? { type: 'tween', duration: 0.5, ease: [0.4, 0, 0.2, 1] }
+            // Portal exit: smooth shrink (x/y stay at 0 — NO position movement)
+            portalExitAnim ? { type: 'tween', duration: 0.5, ease: [0.4, 0, 0.2, 1] }
             // Portal entrance: bouncy spring from portal toward final position
             : peekStyle === 'portal' ? { type: 'spring', stiffness: 180, damping: 10, mass: 0.8, velocity: 8 }
             : peekStyle === 'bounce' ? { type: 'spring', bounce: 0.7, stiffness: 300 }
@@ -5329,8 +5330,10 @@ export default function Home() {
             : bopPhase === 'exit' && exitStyle === 'melt' ? { opacity: 0, x: 0, y: 0, scaleX: 2, scaleY: 0, rotate: 0 }
             : null;
           const spawnScale = window.__prismConfig?.spawnScale ?? 1.0;
+          // portalExitAnim: shrink in-place (x/y stay at 0 — NO position change)
           const animateState = exitAnimState
             ? exitAnimState
+            : portalExitAnim ? { opacity: 0, x: 0, y: 0, scale: 0 }
             : peekVisible ? { opacity: 1, x: 0, y: 0, scale: spawnScale, rotate: 0 }
             : hiddenState;
           const exitTransition = bopPhase === 'exit'

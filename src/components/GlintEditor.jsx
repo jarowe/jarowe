@@ -129,6 +129,8 @@ export default function GlintEditor({ parentGui }) {
     const pFx = gui.addFolder('Beams & Effects');
     pFx.add(pcfg, 'beamOpacity', 0, 1.5, 0.01).name('Beam Opacity');
     pFx.add(pcfg, 'rayOpacity', 0, 1.5, 0.01).name('Ray Opacity');
+    if (pcfg.beamFeathering === undefined) pcfg.beamFeathering = 0.5;
+    pFx.add(pcfg, 'beamFeathering', 0, 1.0, 0.01).name('Beam Feathering');
     if (pcfg.beamLength === undefined) pcfg.beamLength = 14;
     if (pcfg.rayLength === undefined) pcfg.rayLength = 14;
     pFx.add(pcfg, 'beamLength', 4, 30, 0.5).name('Beam Length');

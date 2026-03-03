@@ -308,17 +308,21 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
 
   // ── 5. Portal suck vortex — smooth ease-in spin with organic wobble ──
   const suckTarget = window.__prismPortalSuck ? 1 : 0;
-  // Slower ramp for natural easing (delta*3 instead of *6)
-  portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, delta * 3);
+  // Bop-exit: faster ramp (already spinning from bop), auto-exit: gentle ramp
+  const isBopExit = !!window.__prismBopExit;
+  const suckRampSpeed = isBopExit ? delta * 8 : delta * 3;
+  portalSuckLerp.current = THREE.MathUtils.lerp(portalSuckLerp.current, suckTarget, suckRampSpeed);
   const suckLerp = portalSuckLerp.current;
+  // Clear bop-exit flag when suck is done
+  if (suckTarget === 0 && suckLerp < 0.01) window.__prismBopExit = false;
   if (suckLerp > 0.01) {
     // Ease-in curve: suckLerp² gives slow start, fast finish
     const eased = suckLerp * suckLerp;
     const suckSpeed = eased * (cfg.portalSuckSpinMult ?? 6.0);
     rot.y += suckSpeed * delta;
     // Organic wobble — subtle X/Z tumble that increases with suck intensity
-    rot.x += Math.sin(t * 5.3) * eased * 0.15 * delta * 60;
-    rot.z += Math.cos(t * 3.7) * eased * 0.08 * delta * 60;
+    rot.x += Math.sin(t * 5.3) * eased * 0.12 * delta * 60;
+    rot.z += Math.cos(t * 3.7) * eased * 0.06 * delta * 60;
   }
 
   // ── 6. Damping on impulse/drag velocity only ──
@@ -697,6 +701,7 @@ const rayFrag = `
   uniform float uDispersionWidth;  // 0-1+ : how wide dispersion is right now
   uniform float uCascadeFade;      // 0 = visible, 1 = fully faded (portal exit cascade)
   uniform float uPortalWiden;      // individual ray width boost during portal exit
+  uniform float uFeathering;       // 0=sharp crisp rays, 1=soft glowy rays
   varying vec2 vUv;
   void main() {
     // Ray widens more dramatically when dispersion is wide
@@ -710,12 +715,15 @@ const rayFrag = `
     // Fade both ends: prism origin (soft start) and far tip
     float edgeFade = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.75, vUv.x);
 
-    // Core + glow layers
-    float coreTight = 25.0 + (1.0 - uDispersionWidth) * 20.0;
+    // Core + glow layers — feathering shifts balance from tight core to soft glow
+    float coreTight = mix(45.0, 12.0, uFeathering) + (1.0 - uDispersionWidth) * 20.0;
+    float glowTight = mix(6.0, 2.0, uFeathering);
     float core = exp(-d * d * coreTight);
-    float glow = exp(-d * d * 3.5);
+    float glow = exp(-d * d * glowTight);
+    float coreWeight = mix(1.6, 0.8, uFeathering);
+    float glowWeight = mix(0.3, 0.8, uFeathering);
 
-    float intensity = (core * 1.4 + glow * 0.45) * fade * edgeFade;
+    float intensity = (core * coreWeight + glow * glowWeight) * fade * edgeFade;
 
     // Shimmer
     float shimmer = 0.88 + 0.12 * sin(vUv.x * 20.0 + uTime * 3.0);
@@ -2157,6 +2165,7 @@ function RainbowFan() {
       mesh.material.uniforms.uTime.value = t;
       mesh.material.uniforms.uDispersionWidth.value = normalizedDisp;
       mesh.material.uniforms.uPortalWiden.value = cfg.portalExitWiden ?? 1.0;
+      mesh.material.uniforms.uFeathering.value = cfg.beamFeathering ?? 0.5;
 
       // Cascading portal exit: rays smoothly retract violet-first → red-last
       const cascadeDelay = (bandCount - 1 - i) / bandCount * 0.5;
@@ -2183,6 +2192,7 @@ function RainbowFan() {
               uDispersionWidth: { value: 1.0 },
               uCascadeFade: { value: 0 },
               uPortalWiden: { value: cfg.portalExitWiden ?? 1.0 },
+              uFeathering: { value: cfg.beamFeathering ?? 0.5 },
             }}
             transparent
             blending={THREE.AdditiveBlending}
