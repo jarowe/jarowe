@@ -4,16 +4,29 @@ import { useHoliday } from '../context/HolidayContext';
 import confetti from 'canvas-confetti';
 import './HolidayBanner.css';
 
+// Timing constants (ms)
+const GREETING_DURATION = 15000;   // 15s showing greeting
+const FACT_DURATION = 15000;       // 15s showing fact
+const OFFSCREEN_DURATION = 60000;  // 60s hidden before looping back
+
 export default function HolidayBanner({ onTriviaLaunch }) {
   const { holiday, tier, isBirthday } = useHoliday();
   const confettiFired = useRef(false);
-  const [dismissed, setDismissed] = useState(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return sessionStorage.getItem(`jarowe_banner_dismissed_${today}`) === 'true';
-  });
+  const [visible, setVisible] = useState(true);
   const [showFact, setShowFact] = useState(false);
-  const dismissTimer = useRef(null);
-  const factTimer = useRef(null);
+  const [clickedTrivia, setClickedTrivia] = useState(false);
+  const timers = useRef([]);
+
+  const clearAllTimers = useCallback(() => {
+    timers.current.forEach(t => clearTimeout(t));
+    timers.current = [];
+  }, []);
+
+  const addTimer = useCallback((fn, delay) => {
+    const id = setTimeout(fn, delay);
+    timers.current.push(id);
+    return id;
+  }, []);
 
   // T3 confetti burst on mount
   useEffect(() => {
@@ -34,57 +47,59 @@ export default function HolidayBanner({ onTriviaLaunch }) {
     }
   }, [tier, isBirthday, holiday]);
 
-  // T1 auto-dismiss after 8s + fact crossfade at 4s
+  // T1 looping cycle: greeting 15s → fact 15s → hide 60s → repeat
   useEffect(() => {
-    if (tier !== 1 || dismissed || isBirthday || !holiday) return;
+    if (tier !== 1 || clickedTrivia || isBirthday || !holiday) return;
 
-    // Show fact crossfade at 4s (only if holiday has a fact)
-    if (holiday.fact) {
-      factTimer.current = setTimeout(() => setShowFact(true), 4000);
+    function startCycle() {
+      clearAllTimers();
+      setShowFact(false);
+      setVisible(true);
+
+      // After 15s, crossfade to fact (if available)
+      if (holiday.fact) {
+        addTimer(() => setShowFact(true), GREETING_DURATION);
+      }
+
+      // After 30s total (or 15s if no fact), slide out
+      const totalVisible = holiday.fact
+        ? GREETING_DURATION + FACT_DURATION
+        : GREETING_DURATION;
+      addTimer(() => setVisible(false), totalVisible);
+
+      // After offscreen period, loop back
+      addTimer(() => startCycle(), totalVisible + OFFSCREEN_DURATION);
     }
 
-    // Auto-dismiss at 8s
-    dismissTimer.current = setTimeout(() => {
-      const today = new Date().toISOString().slice(0, 10);
-      sessionStorage.setItem(`jarowe_banner_dismissed_${today}`, 'true');
-      setDismissed(true);
-    }, 8000);
-
-    return () => {
-      clearTimeout(factTimer.current);
-      clearTimeout(dismissTimer.current);
-    };
-  }, [tier, dismissed, isBirthday, holiday]);
+    startCycle();
+    return clearAllTimers;
+  }, [tier, clickedTrivia, isBirthday, holiday, clearAllTimers, addTimer]);
 
   const handleBannerClick = useCallback(() => {
-    // Cancel auto-dismiss
-    clearTimeout(dismissTimer.current);
-    clearTimeout(factTimer.current);
-
-    // Mark as dismissed so it doesn't re-show
-    const today = new Date().toISOString().slice(0, 10);
-    sessionStorage.setItem(`jarowe_banner_dismissed_${today}`, 'true');
-    setDismissed(true);
+    // Cancel the loop
+    clearAllTimers();
+    setClickedTrivia(true);
+    setVisible(false);
 
     // Launch trivia
     if (onTriviaLaunch) onTriviaLaunch();
-  }, [onTriviaLaunch]);
+  }, [onTriviaLaunch, clearAllTimers]);
 
   // Birthday has its own banner — don't render ours
   if (isBirthday || !holiday) return null;
   if (tier <= 0) return null;
 
-  // ── T1: Smart Toast ──
+  // ── T1: Looping Smart Toast ──
   if (tier === 1) {
     return (
       <AnimatePresence>
-        {!dismissed && (
+        {visible && !clickedTrivia && (
           <motion.div
             className="holiday-banner holiday-banner-t1"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             onClick={handleBannerClick}
             style={{
               '--hb-primary': holiday.accentPrimary,
@@ -102,7 +117,7 @@ export default function HolidayBanner({ onTriviaLaunch }) {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.4 }}
                   >
                     <span className="holiday-banner-t1-name">{holiday.name}</span>
                     <span className="holiday-banner-greeting">{holiday.greeting}</span>
@@ -114,7 +129,7 @@ export default function HolidayBanner({ onTriviaLaunch }) {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.4 }}
                   >
                     <span className="holiday-banner-t1-name">This day in history</span>
                     <span className="holiday-banner-greeting">{holiday.fact}</span>
