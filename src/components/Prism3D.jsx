@@ -2157,10 +2157,11 @@ function RainbowFan() {
     const jitteredCenter = lightState.dispersionCenter * sweep;
     const jitteredSpread = baseDisp + (lightState.dispersionSpread - baseDisp) * jitter;
 
-    // ── Portal exit: rays NARROW (converge) with strong ease-in ──
+    // ── Portal exit: rays NARROW (converge) with strong ease-out ──
     const suckProg = lightState.portalSuckProgress;
-    // Cubic ease-in: slow start → dramatic acceleration into convergence
-    const easedSuck = suckProg * suckProg * suckProg;
+    // Quadratic ease-out: dramatic immediate narrowing, smooth finish
+    const inv = 1.0 - suckProg;
+    const easedSuck = 1.0 - inv * inv;
     // exitNarrow: 1.0 (normal spread) → 0.0 (fully converged) during exit
     const exitNarrow = isExiting ? (1.0 - easedSuck) : 1.0;
 
