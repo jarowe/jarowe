@@ -2157,8 +2157,12 @@ function RainbowFan() {
     const jitteredCenter = lightState.dispersionCenter * sweep;
     const jitteredSpread = baseDisp + (lightState.dispersionSpread - baseDisp) * jitter;
 
-    // Portal exit spread boost: rays fan apart as they retract (scaled by exit excitement)
-    const portalSpread = lightState.portalSuckProgress * (cfg.portalExitSpread ?? 1.5) * (isExiting ? excitement : 1.0);
+    // ── Portal exit: rays NARROW (converge) with strong ease-in ──
+    const suckProg = lightState.portalSuckProgress;
+    // Cubic ease-in: slow start → dramatic acceleration into convergence
+    const easedSuck = suckProg * suckProg * suckProg;
+    // exitNarrow: 1.0 (normal spread) → 0.0 (fully converged) during exit
+    const exitNarrow = isExiting ? (1.0 - easedSuck) : 1.0;
 
     // ── Beam feathering breathing — organic oscillation for "alive" feel ──
     const baseFeathering = cfg.beamFeathering ?? 0.5;
@@ -2168,7 +2172,9 @@ function RainbowFan() {
     const featherBreath = Math.sin(t * breathSpd * 2.0) * 0.5
       + Math.sin(t * breathSpd * 3.7 + 1.3) * 0.3
       + Math.sin(t * breathSpd * 0.7 + 2.7) * 0.2;
-    const featherVal = THREE.MathUtils.clamp(baseFeathering + featherBreath * breathAmt, 0, 1);
+    const featherBase = THREE.MathUtils.clamp(baseFeathering + featherBreath * breathAmt, 0, 1);
+    // On exit, feathering narrows toward 0 (sharp focused beams) as rays converge
+    const featherVal = isExiting ? featherBase * exitNarrow : featherBase;
 
     const holidayBands = getHolidayBands();
     const activeBands = window.__birthdayMode ? BIRTHDAY_BANDS : (holidayBands || RAINBOW_BANDS);
@@ -2182,10 +2188,10 @@ function RainbowFan() {
       // Normalized position across spectrum: -1 (red) to +1 (violet)
       const normalizedPos = (i / (bandCount - 1)) * 2 - 1;
 
-      // Ray angle: base + jittered motion + portal exit fan-out
+      // Ray angle: base + jittered motion, narrowing on exit
       mesh.rotation.z = exitBase
-        + jitteredCenter
-        + normalizedPos * (jitteredSpread + portalSpread);
+        + jitteredCenter * exitNarrow
+        + normalizedPos * jitteredSpread * exitNarrow;
 
       // Ray length scaling
       mesh.scale.x = rayScale;
