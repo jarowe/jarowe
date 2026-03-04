@@ -334,6 +334,92 @@
   max-width: 500px;
 }
 
+/* ── Glint Nudge: Prismatic Glow ── */
+.holiday-banner-glint-glow {
+  animation: prismaticGlow 2s ease-in-out infinite;
+  position: relative;
+}
+@keyframes prismaticGlow {
+  0%   { box-shadow: 0 0 8px #ff000066, 0 0 20px #ff000022; border-left-color: #ff0000; }
+  14%  { box-shadow: 0 0 8px #ff880066, 0 0 20px #ff880022; border-left-color: #ff8800; }
+  28%  { box-shadow: 0 0 8px #ffff0066, 0 0 20px #ffff0022; border-left-color: #ffff00; }
+  42%  { box-shadow: 0 0 8px #00ff0066, 0 0 20px #00ff0022; border-left-color: #00ff00; }
+  57%  { box-shadow: 0 0 8px #0088ff66, 0 0 20px #0088ff22; border-left-color: #0088ff; }
+  71%  { box-shadow: 0 0 8px #8800ff66, 0 0 20px #8800ff22; border-left-color: #8800ff; }
+  85%  { box-shadow: 0 0 8px #ff00ff66, 0 0 20px #ff00ff22; border-left-color: #ff00ff; }
+  100% { box-shadow: 0 0 8px #ff000066, 0 0 20px #ff000022; border-left-color: #ff0000; }
+}
+/* Rainbow shimmer sweep over banner during glow */
+.holiday-banner-glint-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255,0,0,0.06) 30%,
+    rgba(255,136,0,0.06) 35%,
+    rgba(255,255,0,0.06) 40%,
+    rgba(0,255,0,0.06) 45%,
+    rgba(0,136,255,0.06) 50%,
+    rgba(136,0,255,0.06) 55%,
+    transparent 65%
+  );
+  animation: glintShimmerSweep 2s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+@keyframes glintShimmerSweep {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+
+/* ── Glint Rainbow Beam ── */
+.glint-rainbow-beam {
+  position: fixed;
+  width: var(--beam-length, 200px);
+  height: 3px;
+  left: var(--beam-start-x, 50%);
+  top: var(--beam-start-y, 50%);
+  transform-origin: left center;
+  transform: rotate(var(--beam-angle, 0deg));
+  background: linear-gradient(to right, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff);
+  border-radius: 2px;
+  box-shadow: 0 0 12px 2px rgba(136, 0, 255, 0.5), 0 0 4px 1px rgba(0, 136, 255, 0.4);
+  animation: beamFire var(--beam-duration, 1200ms) ease-out forwards;
+  pointer-events: none;
+  z-index: 9999;
+}
+@keyframes beamFire {
+  0%   { transform: rotate(var(--beam-angle, 0deg)) scaleX(0); opacity: 1; }
+  33%  { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 1; }
+  66%  { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 0.8; }
+  100% { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 0; }
+}
+
+/* ── Glint Challenge Badge ── */
+.glint-challenge-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  margin-left: 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  border-radius: 8px;
+  animation: badgePulse 1.5s ease-in-out infinite;
+  white-space: nowrap;
+  transition: opacity 0.4s ease;
+}
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .holiday-banner-t1 {

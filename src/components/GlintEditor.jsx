@@ -650,6 +650,21 @@ export default function GlintEditor({ parentGui }) {
     } }, 'resetDefaults').name('Reset to Defaults');
     spawnMgmtFolder.close();
 
+    // -- Banner Nudge --
+    const pNudge = gui.addFolder('Banner Nudge');
+    pNudge.add(pcfg, 'bannerNudgeEnabled').name('Enabled');
+    pNudge.add(pcfg, 'bannerNudgeIntervalMin', 30, 180, 1).name('Interval Min (s)');
+    pNudge.add(pcfg, 'bannerNudgeIntervalMax', 60, 300, 1).name('Interval Max (s)');
+    pNudge.add(pcfg, 'bannerNudgeGlowDuration', 2000, 8000, 100).name('Glow Duration (ms)');
+    pNudge.add(pcfg, 'bannerNudgeBeamDuration', 500, 3000, 50).name('Beam Duration (ms)');
+    pNudge.add({ testNudge() {
+      const pos = window.__prismScreenPos || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      window.dispatchEvent(new CustomEvent('glint-nudge-banner', {
+        detail: { x: pos.x, y: pos.y }
+      }));
+    } }, 'testNudge').name('Test Nudge');
+    pNudge.close();
+
     // -- Reset --
     gui.add({ reset() {
       Object.assign(pcfg, JSON.parse(JSON.stringify(PRISM_DEFAULTS)));

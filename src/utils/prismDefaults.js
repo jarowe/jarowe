@@ -248,4 +248,11 @@ export const PRISM_DEFAULTS = {
   bopPlusScale: 1.8,            // final scale multiplier
   bopPlusRandomColor: true,     // cycle through prismatic colors each bop
   bopPlusColor: '#fbbf24',      // base color (used when randomColor is off)
+
+  // Banner nudge (Glint → holiday banner interaction)
+  bannerNudgeEnabled: true,
+  bannerNudgeIntervalMin: 75,     // seconds between nudges
+  bannerNudgeIntervalMax: 120,    // seconds between nudges
+  bannerNudgeGlowDuration: 4000,  // ms banner glows after beam
+  bannerNudgeBeamDuration: 1200,  // ms beam animation
 };

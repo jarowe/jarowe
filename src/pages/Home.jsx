@@ -12,7 +12,7 @@ import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
 import { useBirthday, useHoliday } from '../context/HolidayContext';
-import { HOLIDAY_CALENDAR, CATEGORIES } from '../data/holidayCalendar';
+import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import HolidayBanner from '../components/HolidayBanner';
 import HolidayParticles from '../components/HolidayParticles';
 import HolidayBackground from '../components/HolidayBackground';
@@ -511,7 +511,7 @@ export default function Home() {
       const params = new URLSearchParams(window.location.search);
       const activeOverride = params.get('holiday') || '';
       const holidayProxy = {
-        currentHoliday: holiday ? `${holiday.emoji} ${holiday.name} (T${holiday.tier})` : 'None',
+        currentHoliday: holiday ? `${holiday.emoji} ${holiday.name} (${TIER_NAMES[holiday.tier]})` : 'None',
       };
       holidayFolder.add(holidayProxy, 'currentHoliday').name('Today').disable();
 
@@ -566,7 +566,7 @@ export default function Home() {
           if (entry) {
             const cat = CATEGORIES[entry.category];
             const color = cat ? cat.accentPrimary : '#888';
-            title = `${entry.emoji} ${entry.name} (T${entry.tier})`;
+            title = `${entry.emoji} ${entry.name} (${TIER_NAMES[entry.tier]})`;
             if (entry.tier === 1) {
               dot = '<span class="hcal-dot t1"></span>';
             } else if (entry.tier === 2) {
@@ -580,9 +580,9 @@ export default function Home() {
         html += '</div>';
         // Legend
         html += `<div class="hcal-legend">
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:rgba(160,150,180,0.4)"></span>T1</span>
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa"></span>T2</span>
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>T3</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:rgba(160,150,180,0.4)"></span>${TIER_NAMES[1]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa"></span>${TIER_NAMES[2]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>${TIER_NAMES[3]}</span>
         </div>`;
         html += '<button class="hcal-reset">Reset to Today</button>';
 
@@ -4451,6 +4451,73 @@ export default function Home() {
     let timerId = scheduleNext();
     return () => clearTimeout(timerId);
   }, [spawnPoints]);
+
+  // ── Glint → Banner Nudge: periodic rainbow beam + trivia taunt ──
+  const bannerNudgeTaunts = useRef([
+    "Psst... try the trivia! I bet you can't get 3/3...",
+    "I know ALL the answers. Click it if you dare.",
+    "That banner up there? It has secrets.",
+    "Quiz time! I'll give you a hint: it's NOT option A.",
+    "Fun fact: clicking that banner makes you 47% cooler.",
+    "The trivia is calling your name. Can you hear it?",
+    "I dare you. Triple dare. Click the banner.",
+    "Click it. Do it. You won't. (You will.)",
+  ]);
+  useEffect(() => {
+    let timerId;
+    const scheduleNudge = () => {
+      const cfg = window.__prismConfig || {};
+      if (!cfg.bannerNudgeEnabled) { timerId = setTimeout(scheduleNudge, 10000); return; }
+      const minS = cfg.bannerNudgeIntervalMin ?? 75;
+      const maxS = cfg.bannerNudgeIntervalMax ?? 120;
+      const delay = (minS + Math.random() * (maxS - minS)) * 1000;
+
+      timerId = setTimeout(() => {
+        const cfg2 = window.__prismConfig || {};
+        // Only fire when Glint is peeking + banner exists + not birthday
+        const bannerEl = document.querySelector('.holiday-banner');
+        if (!peekVisibleRef.current || !bannerEl || isBirthday || !cfg2.bannerNudgeEnabled) {
+          timerId = setTimeout(scheduleNudge, 5000); // retry sooner
+          return;
+        }
+
+        // 1. Mischief expression
+        window.__prismExpression = 'mischief';
+
+        // 2. Taunt speech bubble
+        const taunts = bannerNudgeTaunts.current;
+        const taunt = taunts[Math.floor(Math.random() * taunts.length)];
+        window.__prismTalking = true;
+        showBubbleWithThinking(taunt);
+
+        // 3. After thinking phase, fire rainbow beam at banner
+        const thinkMs = cfg2.bubbleThinkingMs ?? 1200;
+        setTimeout(() => {
+          const pos = window.__prismScreenPos || { x: window.innerWidth - 100, y: window.innerHeight / 2 };
+          window.dispatchEvent(new CustomEvent('glint-nudge-banner', {
+            detail: { x: pos.x, y: pos.y }
+          }));
+        }, (cfg2.bubbleThinkingEnabled !== false) ? thinkMs + 200 : 200);
+
+        // 4. Reset after glow duration
+        const glowDur = cfg2.bannerNudgeGlowDuration ?? 4000;
+        setTimeout(() => {
+          window.__prismTalking = false;
+          window.__prismExpression = 'happy';
+        }, 1800);
+        setTimeout(() => {
+          clearBubble();
+          window.__prismExpression = 'normal';
+        }, glowDur);
+
+        // Schedule next
+        scheduleNudge();
+      }, delay);
+    };
+
+    scheduleNudge();
+    return () => clearTimeout(timerId);
+  }, [isBirthday, showBubbleWithThinking, clearBubble]);
 
   // Editor prism peek control (supports detail: { side, cell, duration, pinned, style })
   const peekPinnedRef = useRef(false);
