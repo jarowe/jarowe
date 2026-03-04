@@ -16,6 +16,7 @@ import { HOLIDAY_CALENDAR, CATEGORIES } from '../data/holidayCalendar';
 import HolidayBanner from '../components/HolidayBanner';
 import HolidayParticles from '../components/HolidayParticles';
 import HolidayBackground from '../components/HolidayBackground';
+const DailyTrivia = lazy(() => import('../components/DailyTrivia'));
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
@@ -515,7 +516,7 @@ export default function Home() {
       holidayFolder.add(holidayProxy, 'currentHoliday').name('Today').disable();
 
       // Build calendar widget
-      const calContainer = holidayFolder.domElement.querySelector('.children');
+      const calContainer = holidayFolder.$children;
       const calEl = document.createElement('div');
       calEl.className = 'hcal';
       calContainer.appendChild(calEl);
@@ -4021,6 +4022,7 @@ export default function Home() {
   // Offset from character's final position back to portal origin (for emerge animation)
   const portalSpawnOffsetRef = useRef({ x: 0, y: 0 });
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
+  const [showTrivia, setShowTrivia] = useState(false);
 
   // Track viewport size to force re-render on resize (spawn markers + character positioning)
   const [viewportKey, setViewportKey] = useState(0);
@@ -4947,7 +4949,7 @@ export default function Home() {
       )}
 
       {/* HOLIDAY BANNER (not on birthday — birthday has its own) */}
-      <HolidayBanner />
+      <HolidayBanner onTriviaLaunch={() => setShowTrivia(true)} />
 
       {/* HOLIDAY PARTICLES (floating emoji for T2+ days) */}
       <HolidayParticles />
@@ -5829,6 +5831,15 @@ export default function Home() {
           )}
         </AnimatePresence>
       </section>
+
+      {/* DAILY TRIVIA MODAL */}
+      <AnimatePresence>
+        {showTrivia && (
+          <Suspense fallback={null}>
+            <DailyTrivia onClose={() => setShowTrivia(false)} />
+          </Suspense>
+        )}
+      </AnimatePresence>
 
       {/* Editor panels — hidden behind ?editor=jarowe */}
       {editorGui && (
