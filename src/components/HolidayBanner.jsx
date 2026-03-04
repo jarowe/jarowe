@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHoliday } from '../context/HolidayContext';
+import { GAMES } from '../data/gameRegistry';
 import confetti from 'canvas-confetti';
 import './HolidayBanner.css';
 
@@ -8,7 +9,7 @@ function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function HolidayBanner({ onTriviaLaunch }) {
+export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
   const { holiday, tier, isBirthday } = useHoliday();
   const confettiFired = useRef(false);
   const [showFact, setShowFact] = useState(false);
@@ -111,6 +112,8 @@ export default function HolidayBanner({ onTriviaLaunch }) {
     };
   })();
 
+  const gameInfo = holiday?.game ? GAMES[holiday.game] : null;
+
   // Birthday has its own banner — don't render ours
   if (isBirthday || !holiday) return null;
   if (tier <= 0) return null;
@@ -164,12 +167,23 @@ export default function HolidayBanner({ onTriviaLaunch }) {
               )}
             </AnimatePresence>
           </div>
-          {(holiday.trivia || onTriviaLaunch) && (
-            <span className="holiday-banner-play" aria-label="Play trivia">
-              ▸
-              {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
-            </span>
-          )}
+          <div className="holiday-banner-t1-actions">
+            {gameInfo && onGameLaunch && (
+              <span
+                className="holiday-banner-play holiday-banner-play-game"
+                onClick={(e) => { e.stopPropagation(); onGameLaunch(); }}
+                aria-label={`Play ${gameInfo.name}`}
+              >
+                🎮
+              </span>
+            )}
+            {(holiday.trivia || onTriviaLaunch) && (
+              <span className="holiday-banner-play" aria-label="Play trivia">
+                ▸
+                {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
+              </span>
+            )}
+          </div>
         </motion.div>
         {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}
       </>
@@ -210,12 +224,22 @@ export default function HolidayBanner({ onTriviaLaunch }) {
               <span className="holiday-category-tag">
                 {holiday.emoji} {holiday.category || ''}
               </span>
-              {(holiday.trivia || onTriviaLaunch) && (
-                <span className="holiday-banner-play holiday-banner-play-t2">
-                  ▸ Play Trivia
-                  {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
-                </span>
-              )}
+              <div className="holiday-banner-t2-actions">
+                {gameInfo && onGameLaunch && (
+                  <span
+                    className="holiday-banner-play holiday-banner-play-t2 holiday-banner-play-game"
+                    onClick={(e) => { e.stopPropagation(); onGameLaunch(); }}
+                  >
+                    🎮 Play {gameInfo.name}
+                  </span>
+                )}
+                {(holiday.trivia || onTriviaLaunch) && (
+                  <span className="holiday-banner-play holiday-banner-play-t2">
+                    ▸ Play Trivia
+                    {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -255,12 +279,22 @@ export default function HolidayBanner({ onTriviaLaunch }) {
           </motion.div>
           <div className="holiday-banner-name holiday-t3-name">{holiday.name}</div>
           <div className="holiday-banner-greeting">{holiday.greeting}</div>
-          {(holiday.trivia || onTriviaLaunch) && (
-            <span className="holiday-banner-play holiday-banner-play-t3">
-              ▸ Play Trivia
-              {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
-            </span>
-          )}
+          <div className="holiday-banner-t3-actions">
+            {gameInfo && onGameLaunch && (
+              <span
+                className="holiday-banner-play holiday-banner-play-t3 holiday-banner-play-game holiday-banner-play-game-t3"
+                onClick={(e) => { e.stopPropagation(); onGameLaunch(); }}
+              >
+                🎮 Play {gameInfo.name}
+              </span>
+            )}
+            {(holiday.trivia || onTriviaLaunch) && (
+              <span className="holiday-banner-play holiday-banner-play-t3">
+                ▸ Play Trivia
+                {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
+              </span>
+            )}
+          </div>
         </div>
       </motion.div>
       {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}

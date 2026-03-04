@@ -17,6 +17,7 @@ import HolidayBanner from '../components/HolidayBanner';
 import HolidayParticles from '../components/HolidayParticles';
 import HolidayBackground from '../components/HolidayBackground';
 const DailyTrivia = lazy(() => import('../components/DailyTrivia'));
+const GameLauncher = lazy(() => import('../components/GameLauncher'));
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
@@ -362,14 +363,22 @@ export default function Home() {
       .hcal-day.hcal-active { box-shadow: inset 0 0 0 2px rgba(140,100,255,0.7); border-radius: 4px; }
       .hcal-dot {
         position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
-        width: 5px; height: 5px; border-radius: 50%;
+        border-radius: 50%;
       }
-      .hcal-dot.t1 { background: rgba(160,150,180,0.4); }
-      .hcal-dot.t2 { /* color set inline */ }
-      .hcal-dot.t3 { /* color set inline with glow */ }
-      .hcal-legend { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 2px 0; }
-      .hcal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: rgba(180,160,255,0.5); }
-      .hcal-legend-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+      .hcal-dot.t1 { width: 4px; height: 4px; background: rgba(140,130,170,0.35); }
+      .hcal-dot.t2 { width: 5px; height: 5px; /* color set inline */ }
+      .hcal-dot.t3 { width: 6px; height: 6px; /* color+glow set inline */ }
+      .hcal-dot.t4 { width: 7px; height: 7px; /* spectacle - gold star */ border-radius: 0;
+        background: #f59e0b; clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+        box-shadow: 0 0 6px #f59e0b, 0 0 12px rgba(245,158,11,0.4); }
+      .hcal-legend { display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 2px 0; }
+      .hcal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: rgba(180,160,255,0.55); }
+      .hcal-legend-dot { border-radius: 50%; display: inline-block; }
+      .hcal-legend-dot.ld1 { width: 4px; height: 4px; }
+      .hcal-legend-dot.ld2 { width: 5px; height: 5px; }
+      .hcal-legend-dot.ld3 { width: 6px; height: 6px; }
+      .hcal-legend-dot.ld4 { width: 7px; height: 7px; border-radius: 0;
+        clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); }
       .hcal-reset {
         width: 100%; margin-top: 6px; padding: 5px 0; font-size: 11px;
         background: rgba(100,70,200,0.2); border: 1px solid rgba(140,100,255,0.2);
@@ -567,12 +576,14 @@ export default function Home() {
             const cat = CATEGORIES[entry.category];
             const color = cat ? cat.accentPrimary : '#888';
             title = `${entry.emoji} ${entry.name} (${TIER_NAMES[entry.tier]})`;
-            if (entry.tier === 1) {
-              dot = '<span class="hcal-dot t1"></span>';
+            if (entry.tier === 4) {
+              dot = '<span class="hcal-dot t4"></span>';
+            } else if (entry.tier === 3) {
+              dot = `<span class="hcal-dot t3" style="background:${color};box-shadow:0 0 8px ${color}"></span>`;
             } else if (entry.tier === 2) {
               dot = `<span class="hcal-dot t2" style="background:${color}"></span>`;
             } else {
-              dot = `<span class="hcal-dot t3" style="background:${color};box-shadow:0 0 6px ${color}"></span>`;
+              dot = '<span class="hcal-dot t1"></span>';
             }
           }
           html += `<div class="${cls}" data-date="${key}" title="${title}">${d}${dot}</div>`;
@@ -580,9 +591,10 @@ export default function Home() {
         html += '</div>';
         // Legend
         html += `<div class="hcal-legend">
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:rgba(160,150,180,0.4)"></span>${TIER_NAMES[1]}</span>
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa"></span>${TIER_NAMES[2]}</span>
-          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>${TIER_NAMES[3]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot ld1" style="background:rgba(140,130,170,0.35)"></span>${TIER_NAMES[1]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot ld2" style="background:#a78bfa"></span>${TIER_NAMES[2]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot ld3" style="background:#a78bfa;box-shadow:0 0 8px #a78bfa"></span>${TIER_NAMES[3]}</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot ld4" style="background:#f59e0b;box-shadow:0 0 6px #f59e0b"></span>${TIER_NAMES[4]}</span>
         </div>`;
         html += '<button class="hcal-reset">Reset to Today</button>';
 
@@ -4023,6 +4035,7 @@ export default function Home() {
   const portalSpawnOffsetRef = useRef({ x: 0, y: 0 });
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
   const [showTrivia, setShowTrivia] = useState(false);
+  const [showGame, setShowGame] = useState(false);
 
   // Track viewport size to force re-render on resize (spawn markers + character positioning)
   const [viewportKey, setViewportKey] = useState(0);
@@ -5016,7 +5029,7 @@ export default function Home() {
       )}
 
       {/* HOLIDAY BANNER (not on birthday — birthday has its own) */}
-      <HolidayBanner onTriviaLaunch={() => setShowTrivia(true)} />
+      <HolidayBanner onTriviaLaunch={() => setShowTrivia(true)} onGameLaunch={() => setShowGame(true)} />
 
       {/* HOLIDAY PARTICLES (floating emoji for T2+ days) */}
       <HolidayParticles />
@@ -5904,6 +5917,19 @@ export default function Home() {
         {showTrivia && (
           <Suspense fallback={null}>
             <DailyTrivia onClose={() => setShowTrivia(false)} />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* DAILY GAME MODAL */}
+      <AnimatePresence>
+        {showGame && holiday?.game && (
+          <Suspense fallback={null}>
+            <GameLauncher
+              gameId={holiday.game}
+              holiday={holiday}
+              onClose={() => setShowGame(false)}
+            />
           </Suspense>
         )}
       </AnimatePresence>

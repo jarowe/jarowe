@@ -16,10 +16,12 @@ export function HolidayProvider({ children }) {
   const now = new Date();
   const params = new URLSearchParams(window.location.search);
   const debugBirthday = params.get('birthday') === 'true';
+  const debugHoliday = params.get('holiday');
 
   const holiday = useMemo(() => getTodayHoliday(), []);
 
-  const isBirthday = debugBirthday || (now.getMonth() === 2 && now.getDate() === 3);
+  // Birthday triggers on: real March 3, ?birthday=true, or ?holiday=03-03
+  const isBirthday = debugBirthday || debugHoliday === '03-03' || (now.getMonth() === 2 && now.getDate() === 3);
   const age = now.getFullYear() - 1986;
   const isMilestone = age % 10 === 0;
   const year = now.getFullYear();
