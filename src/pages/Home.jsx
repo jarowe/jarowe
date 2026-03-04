@@ -11,7 +11,10 @@ import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBa
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
-import { useBirthday } from '../context/BirthdayContext';
+import { useBirthday, useHoliday } from '../context/HolidayContext';
+import HolidayBanner from '../components/HolidayBanner';
+import HolidayParticles from '../components/HolidayParticles';
+import HolidayBackground from '../components/HolidayBackground';
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
@@ -131,7 +134,7 @@ const arcsData = [
 export default function Home() {
   const BASE = import.meta.env.BASE_URL;
   const navigate = useNavigate();
-  const { isBirthday, age, isMilestone } = useBirthday();
+  const { isBirthday, age, isMilestone, holiday } = useBirthday();
 
   // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
@@ -4265,7 +4268,8 @@ export default function Home() {
 
         // Show a Glint idea after character settles
         const ideaDelay = setTimeout(() => {
-          const ideaPool = isBirthday ? birthdayGlintIdeas : glintIdeas;
+          const holidayIdeas = (holiday && holiday.glintIdeas && holiday.tier >= 2 && !isBirthday) ? holiday.glintIdeas : [];
+          const ideaPool = isBirthday ? birthdayGlintIdeas : (holidayIdeas.length > 0 ? [...holidayIdeas, ...glintIdeas.slice(0, 5)] : glintIdeas);
           const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)];
           window.__prismTalking = true;
           showBubbleWithThinking(idea);
@@ -4783,6 +4787,15 @@ export default function Home() {
           )}
         </motion.div>
       )}
+
+      {/* HOLIDAY BANNER (not on birthday — birthday has its own) */}
+      <HolidayBanner />
+
+      {/* HOLIDAY PARTICLES (floating emoji for T2+ days) */}
+      <HolidayParticles />
+
+      {/* HOLIDAY BACKGROUND EFFECTS (snow, fog, fireworks for T3) */}
+      <HolidayBackground />
 
       {/* FLOATING BIRTHDAY BALLOONS - poppable! */}
       {isBirthday && (

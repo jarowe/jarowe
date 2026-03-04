@@ -21,11 +21,35 @@
   --font-display: 'Outfit', sans-serif;
 }
 
+/* Holiday System CSS Variables */
+:root {
+  --holiday-accent-primary: var(--accent-primary);
+  --holiday-accent-secondary: var(--accent-secondary);
+  --holiday-accent-glow: var(--accent-glow);
+}
+
 /* Birthday Mode Override */
 body.birthday-mode {
   --accent-primary: #f59e0b;
   --accent-secondary: #ec4899;
   --accent-glow: rgba(245, 158, 11, 0.2);
+}
+
+/* Holiday dot pulse on navbar brand dot (T2+) */
+.brand-dot.holiday-dot {
+  animation: holidayDotPulse 2s ease-in-out infinite;
+  color: var(--holiday-dot-color, var(--accent-primary));
+}
+
+@keyframes holidayDotPulse {
+  0%, 100% {
+    text-shadow: 0 0 6px var(--holiday-dot-color, var(--accent-primary));
+    opacity: 1;
+  }
+  50% {
+    text-shadow: 0 0 14px var(--holiday-dot-color, var(--accent-primary));
+    opacity: 0.85;
+  }
 }
 
 body.birthday-mode .brand-dot {

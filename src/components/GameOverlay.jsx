@@ -105,6 +105,23 @@ export default function GameOverlay() {
         return () => clearTimeout(timer);
     }, [addXp]);
 
+    // Holiday XP (T2: 25 XP, T3: 75 XP, once per holiday per year)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const hm = window.__holidayMode;
+        if (!hm || hm.tier < 2 || window.__birthdayMode) return;
+        const year = new Date().getFullYear();
+        const safeKey = (hm.name || 'holiday').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        const key = `jarowe_holiday_xp_${safeKey}_${year}`;
+        if (localStorage.getItem(key) === 'true') return;
+        const xpAmount = hm.tier >= 3 ? 75 : 25;
+        const timer = setTimeout(() => {
+            addXp(xpAmount, `${hm.emoji || '🎉'} ${hm.name}`);
+            localStorage.setItem(key, 'true');
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [addXp]);
+
     return (
         <div className="game-overlay">
             <div className="xp-container glass-panel">

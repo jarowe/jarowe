@@ -1568,7 +1568,12 @@ function GlassOrbEye() {
         'normal', 'normal', 'curious', 'happy', 'normal', 'surprised',
         'excited', 'thinking', 'mischief', 'normal', 'love', 'normal',
       ];
-      const states = window.__birthdayMode ? birthdayExpressions : defaultStates;
+      // Holiday mood weighting: T2+ holidays bias toward their category's glintMood
+      const hm = window.__holidayMode;
+      const holidayStates = (hm && hm.tier >= 2 && hm.glintMood && !window.__birthdayMode)
+        ? [...defaultStates, hm.glintMood, hm.glintMood, hm.glintMood]
+        : null;
+      const states = window.__birthdayMode ? birthdayExpressions : (holidayStates || defaultStates);
       const newExpr = states[Math.floor(Math.random() * states.length)];
       expressionRef.current = newExpr;
       window.__prismExpression = newExpr;
@@ -2091,6 +2096,22 @@ const BIRTHDAY_BANDS = [
   { color: new THREE.Color('#c084fc') },
 ];
 
+// Holiday category band colors (T3 holidays get themed light bands)
+const HOLIDAY_BAND_MAP = {
+  spooky:    ['#ff6b00', '#22c55e', '#8b5cf6', '#ff6b00', '#22c55e', '#8b5cf6', '#ff6b00'],
+  winter:    ['#38bdf8', '#e0f2fe', '#ffffff', '#93c5fd', '#bfdbfe', '#e0f2fe', '#38bdf8'],
+  family:    ['#ec4899', '#f43f5e', '#f472b6', '#fb7185', '#fda4af', '#ec4899', '#f43f5e'],
+  humor:     ['#eab308', '#ec4899', '#f97316', '#eab308', '#ec4899', '#f97316', '#eab308'],
+  scifi:     ['#8b5cf6', '#6366f1', '#06b6d4', '#8b5cf6', '#6366f1', '#06b6d4', '#8b5cf6'],
+  adventure: ['#f97316', '#eab308', '#22c55e', '#f97316', '#eab308', '#22c55e', '#f97316'],
+};
+
+function getHolidayBands() {
+  const hm = window.__holidayMode;
+  if (!hm || hm.tier < 3 || !HOLIDAY_BAND_MAP[hm.category]) return null;
+  return HOLIDAY_BAND_MAP[hm.category].map(c => ({ color: new THREE.Color(c) }));
+}
+
 function RainbowFan() {
   const raysRef = useRef([]);
   const geo = useMemo(() => {
@@ -2149,7 +2170,8 @@ function RainbowFan() {
       + Math.sin(t * breathSpd * 0.7 + 2.7) * 0.2;
     const featherVal = THREE.MathUtils.clamp(baseFeathering + featherBreath * breathAmt, 0, 1);
 
-    const activeBands = window.__birthdayMode ? BIRTHDAY_BANDS : RAINBOW_BANDS;
+    const holidayBands = getHolidayBands();
+    const activeBands = window.__birthdayMode ? BIRTHDAY_BANDS : (holidayBands || RAINBOW_BANDS);
 
     raysRef.current.forEach((mesh, i) => {
       if (!mesh?.material?.uniforms) return;

@@ -28,13 +28,18 @@ export default function Navbar() {
     };
 
     const isBirthdayMode = typeof window !== 'undefined' && window.__birthdayMode;
+    const holidayMode = typeof window !== 'undefined' && window.__holidayMode;
+    const showHolidayDot = !isBirthdayMode && holidayMode && holidayMode.tier >= 2;
 
     return (
         <nav className="navbar glass-panel">
             <div className="nav-container">
                 <Link to="/" className="nav-brand">
                     <span className={`font-display${isBirthdayMode ? ' birthday-brand' : ''}`}>JAROWE</span>
-                    <span className={`brand-dot${isBirthdayMode ? ' birthday-dot' : ''}`}>.</span>
+                    <span
+                      className={`brand-dot${isBirthdayMode ? ' birthday-dot' : ''}${showHolidayDot ? ' holiday-dot' : ''}`}
+                      style={showHolidayDot ? { '--holiday-dot-color': holidayMode.accentPrimary } : undefined}
+                    >.</span>
                 </Link>
 
                 <div className="nav-links">

@@ -15,27 +15,35 @@ import Workshop from './pages/Workshop';
 import Favorites from './pages/Favorites';
 import Vault from './pages/Vault';
 import { AudioProvider } from './context/AudioContext';
-import { BirthdayProvider, useBirthday } from './context/BirthdayContext';
+import { HolidayProvider, useHoliday } from './context/HolidayContext';
 import GlobalPlayer from './components/GlobalPlayer';
 
-function BirthdayBodyClass() {
-  const { isBirthday } = useBirthday();
+function HolidayBodyClass() {
+  const { isBirthday, holiday } = useHoliday();
   React.useEffect(() => {
     if (isBirthday) {
       document.body.classList.add('birthday-mode');
     } else {
       document.body.classList.remove('birthday-mode');
     }
-    return () => document.body.classList.remove('birthday-mode');
-  }, [isBirthday]);
+    // Add holiday category class for T2+
+    const catClass = holiday ? `holiday-${holiday.category}` : null;
+    if (catClass && holiday.tier >= 2 && !isBirthday) {
+      document.body.classList.add(catClass);
+    }
+    return () => {
+      document.body.classList.remove('birthday-mode');
+      if (catClass) document.body.classList.remove(catClass);
+    };
+  }, [isBirthday, holiday]);
   return null;
 }
 
 function App() {
   return (
     <AudioProvider>
-      <BirthdayProvider>
-        <BirthdayBodyClass />
+      <HolidayProvider>
+        <HolidayBodyClass />
         <Router basename={import.meta.env.BASE_URL}>
           <div className="app-container">
             <Navbar />
@@ -71,7 +79,7 @@ function App() {
             </main>
           </div>
         </Router>
-      </BirthdayProvider>
+      </HolidayProvider>
     </AudioProvider>
   );
 }

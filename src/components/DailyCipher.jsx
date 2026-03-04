@@ -3,6 +3,7 @@ import { Lock, Unlock, Zap, X, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playClickSound, playHoverSound } from '../utils/sounds';
+import { getTodayHoliday } from '../data/holidayCalendar';
 import './DailyCipher.css';
 
 const WORD_LENGTH = 5;
@@ -52,6 +53,19 @@ const getDailyData = () => {
     }
 
     const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+
+    // Holiday cipher words (T2+ holidays get themed words)
+    const holiday = getTodayHoliday();
+    if (holiday && holiday.cipherWords && holiday.cipherWords.length > 0 && holiday.tier >= 2) {
+        const validWords = holiday.cipherWords.filter(w => w.length === WORD_LENGTH);
+        if (validWords.length > 0) {
+            return {
+                word: validWords[seed % validWords.length],
+                cardIndex: seed % vaultPhotos.length
+            };
+        }
+    }
+
     return {
         word: WORDS[seed % WORDS.length],
         cardIndex: seed % vaultPhotos.length
