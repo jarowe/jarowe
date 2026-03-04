@@ -1,35 +1,24 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHoliday } from '../context/HolidayContext';
 import confetti from 'canvas-confetti';
 import './HolidayBanner.css';
 
-// Timing constants (ms)
-const GREETING_DURATION = 15000;   // 15s showing greeting
-const FACT_DURATION = 15000;       // 15s showing fact
-const OFFSCREEN_DURATION = 60000;  // 60s hidden before looping back
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function HolidayBanner({ onTriviaLaunch }) {
   const { holiday, tier, isBirthday } = useHoliday();
   const confettiFired = useRef(false);
-  const [visible, setVisible] = useState(true);
   const [showFact, setShowFact] = useState(false);
-  const [clickedTrivia, setClickedTrivia] = useState(false);
-  const timers = useRef([]);
+  const [triviaCompleted, setTriviaCompleted] = useState(() => {
+    return !!localStorage.getItem(`jarowe_trivia_${getTodayKey()}`);
+  });
   const [glintNudge, setGlintNudge] = useState({ active: false, glintX: 0, glintY: 0 });
   const nudgeTimerRef = useRef(null);
   const bannerRef = useRef(null);
-
-  const clearAllTimers = useCallback(() => {
-    timers.current.forEach(t => clearTimeout(t));
-    timers.current = [];
-  }, []);
-
-  const addTimer = useCallback((fn, delay) => {
-    const id = setTimeout(fn, delay);
-    timers.current.push(id);
-    return id;
-  }, []);
+  const factTimerRef = useRef(null);
 
   // T3 confetti burst on mount
   useEffect(() => {
@@ -56,7 +45,6 @@ export default function HolidayBanner({ onTriviaLaunch }) {
       const { x = 0, y = 0 } = e.detail || {};
       setGlintNudge({ active: true, glintX: x, glintY: y });
 
-      // Clear after glow duration
       if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
       const cfg = window.__prismConfig || {};
       const glowDuration = cfg.bannerNudgeGlowDuration ?? 4000;
@@ -71,43 +59,36 @@ export default function HolidayBanner({ onTriviaLaunch }) {
     };
   }, []);
 
-  // T1 looping cycle: greeting 15s → fact 15s → hide 60s → repeat
+  // T1 fact crossfade (greeting → fact after 15s, stays on fact)
   useEffect(() => {
-    if (tier !== 1 || clickedTrivia || isBirthday || !holiday) return;
+    if (tier !== 1 || !holiday?.fact || isBirthday || triviaCompleted) return;
+    factTimerRef.current = setTimeout(() => setShowFact(true), 15000);
+    return () => { if (factTimerRef.current) clearTimeout(factTimerRef.current); };
+  }, [tier, holiday, isBirthday, triviaCompleted]);
 
-    function startCycle() {
-      clearAllTimers();
-      setShowFact(false);
-      setVisible(true);
-
-      // After 15s, crossfade to fact (if available)
-      if (holiday.fact) {
-        addTimer(() => setShowFact(true), GREETING_DURATION);
+  // Listen for trivia completion — poll localStorage when trivia modal closes
+  useEffect(() => {
+    const checkCompletion = () => {
+      if (localStorage.getItem(`jarowe_trivia_${getTodayKey()}`)) {
+        setTriviaCompleted(true);
       }
-
-      // After 30s total (or 15s if no fact), slide out
-      const totalVisible = holiday.fact
-        ? GREETING_DURATION + FACT_DURATION
-        : GREETING_DURATION;
-      addTimer(() => setVisible(false), totalVisible);
-
-      // After offscreen period, loop back
-      addTimer(() => startCycle(), totalVisible + OFFSCREEN_DURATION);
-    }
-
-    startCycle();
-    return clearAllTimers;
-  }, [tier, clickedTrivia, isBirthday, holiday, clearAllTimers, addTimer]);
+    };
+    // Check on storage events (cross-tab) and on focus (same-tab after modal closes)
+    window.addEventListener('storage', checkCompletion);
+    window.addEventListener('focus', checkCompletion);
+    // Also poll briefly after trivia launches to catch same-tab completion
+    const interval = setInterval(checkCompletion, 2000);
+    return () => {
+      window.removeEventListener('storage', checkCompletion);
+      window.removeEventListener('focus', checkCompletion);
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleBannerClick = useCallback(() => {
-    // Cancel the loop
-    clearAllTimers();
-    setClickedTrivia(true);
-    setVisible(false);
-
-    // Launch trivia
+    // Launch trivia — banner stays visible until quiz is completed
     if (onTriviaLaunch) onTriviaLaunch();
-  }, [onTriviaLaunch, clearAllTimers]);
+  }, [onTriviaLaunch]);
 
   // Compute beam geometry from Glint position → banner center
   const beamStyle = (() => {
@@ -133,66 +114,63 @@ export default function HolidayBanner({ onTriviaLaunch }) {
   // Birthday has its own banner — don't render ours
   if (isBirthday || !holiday) return null;
   if (tier <= 0) return null;
+  // Hide once today's trivia is completed
+  if (triviaCompleted) return null;
 
-  // ── T1: Looping Smart Toast ──
+  // ── T1: Persistent Toast (stays until trivia completed) ──
   if (tier === 1) {
     return (
       <>
-        <AnimatePresence>
-          {visible && !clickedTrivia && (
-            <motion.div
-              ref={bannerRef}
-              className={`holiday-banner holiday-banner-t1${glintNudge.active ? ' holiday-banner-glint-glow' : ''}`}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              onClick={handleBannerClick}
-              style={{
-                '--hb-primary': holiday.accentPrimary,
-                '--hb-secondary': holiday.accentSecondary,
-                '--hb-glow': holiday.accentGlow,
-              }}
-            >
-              <span className="holiday-banner-emoji">{holiday.emoji}</span>
-              <div className="holiday-banner-t1-content">
-                <AnimatePresence mode="wait">
-                  {!showFact ? (
-                    <motion.div
-                      key="greeting"
-                      className="holiday-banner-t1-text"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <span className="holiday-banner-t1-name">{holiday.name}</span>
-                      <span className="holiday-banner-greeting">{holiday.greeting}</span>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="fact"
-                      className="holiday-banner-t1-text"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <span className="holiday-banner-t1-name">This day in history</span>
-                      <span className="holiday-banner-greeting">{holiday.fact}</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              {(holiday.trivia || onTriviaLaunch) && (
-                <span className="holiday-banner-play" aria-label="Play trivia">
-                  ▸
-                  {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
-                </span>
+        <motion.div
+          ref={bannerRef}
+          className={`holiday-banner holiday-banner-t1${glintNudge.active ? ' holiday-banner-glint-glow' : ''}`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          onClick={handleBannerClick}
+          style={{
+            '--hb-primary': holiday.accentPrimary,
+            '--hb-secondary': holiday.accentSecondary,
+            '--hb-glow': holiday.accentGlow,
+          }}
+        >
+          <span className="holiday-banner-emoji">{holiday.emoji}</span>
+          <div className="holiday-banner-t1-content">
+            <AnimatePresence mode="wait">
+              {!showFact ? (
+                <motion.div
+                  key="greeting"
+                  className="holiday-banner-t1-text"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <span className="holiday-banner-t1-name">{holiday.name}</span>
+                  <span className="holiday-banner-greeting">{holiday.greeting}</span>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="fact"
+                  className="holiday-banner-t1-text"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <span className="holiday-banner-t1-name">This day in history</span>
+                  <span className="holiday-banner-greeting">{holiday.fact}</span>
+                </motion.div>
               )}
-            </motion.div>
+            </AnimatePresence>
+          </div>
+          {(holiday.trivia || onTriviaLaunch) && (
+            <span className="holiday-banner-play" aria-label="Play trivia">
+              ▸
+              {glintNudge.active && <span className="glint-challenge-badge">Glint Challenge!</span>}
+            </span>
           )}
-        </AnimatePresence>
+        </motion.div>
         {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}
       </>
     );
