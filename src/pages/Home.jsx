@@ -3870,6 +3870,7 @@ export default function Home() {
   const peekVisibleRef = useRef(false); // stale-closure-safe peekVisible
   const autoExitTimerRef = useRef(null); // auto-exit 8s timer — cancelled on bop
   const entranceTimersRef = useRef([]); // entrance sequence timeouts — cancelled on exit
+  const peekIdeaCountRef = useRef(0); // tracks peek count for holiday idea alternation
   // Offset from character's final position back to portal origin (for emerge animation)
   const portalSpawnOffsetRef = useRef({ x: 0, y: 0 });
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
@@ -4268,9 +4269,19 @@ export default function Home() {
 
         // Show a Glint idea after character settles
         const ideaDelay = setTimeout(() => {
-          const holidayIdeas = (holiday && holiday.glintIdeas && holiday.tier >= 2 && !isBirthday) ? holiday.glintIdeas : [];
-          const ideaPool = isBirthday ? birthdayGlintIdeas : (holidayIdeas.length > 0 ? [...holidayIdeas, ...glintIdeas.slice(0, 5)] : glintIdeas);
-          const idea = ideaPool[Math.floor(Math.random() * ideaPool.length)];
+          const holidayPool = (holiday && holiday.glintIdeas && holiday.tier >= 2 && !isBirthday) ? holiday.glintIdeas : [];
+          const peekNum = peekIdeaCountRef.current++;
+          let idea;
+          if (isBirthday) {
+            idea = birthdayGlintIdeas[Math.floor(Math.random() * birthdayGlintIdeas.length)];
+          } else if (holidayPool.length > 0) {
+            // T2+ holidays: first peek always holiday, then alternate holiday/default
+            const useHoliday = peekNum === 0 || peekNum % 2 === 0;
+            const pool = useHoliday ? holidayPool : glintIdeas;
+            idea = pool[Math.floor(Math.random() * pool.length)];
+          } else {
+            idea = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
+          }
           window.__prismTalking = true;
           showBubbleWithThinking(idea);
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
@@ -5477,6 +5488,7 @@ export default function Home() {
                             fontSize: `${cfg.bubbleFontSize || 0.8}rem`,
                             maxWidth: `${cfg.bubbleMaxWidth || 260}px`,
                             padding: `${cfg.bubblePadding || 14}px ${(cfg.bubblePadding || 14) + 2}px`,
+                            ...(holiday && holiday.tier >= 3 && !isBirthday ? { borderLeft: `2px solid ${holiday.accentPrimary}` } : {}),
                           }}
                         >
                           {prismBubble}

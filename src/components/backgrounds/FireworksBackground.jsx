@@ -21,7 +21,7 @@ export default function FireworksBackground() {
 
     function spawnBurst(x, y) {
       const color = colors[Math.floor(Math.random() * colors.length)];
-      const count = 30 + Math.floor(Math.random() * 20);
+      const count = 40 + Math.floor(Math.random() * 25);
       for (let i = 0; i < count; i++) {
         const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
         const speed = 1.5 + Math.random() * 3;
@@ -42,9 +42,9 @@ export default function FireworksBackground() {
     function tick(time) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (time - lastSpawn > 1200 + Math.random() * 2000) {
+      if (time - lastSpawn > 600 + Math.random() * 1000) {
         const x = canvas.width * 0.15 + Math.random() * canvas.width * 0.7;
-        const y = canvas.height * 0.1 + Math.random() * canvas.height * 0.4;
+        const y = canvas.height * 0.05 + Math.random() * canvas.height * 0.85;
         spawnBurst(x, y);
         lastSpawn = time;
       }
@@ -62,8 +62,15 @@ export default function FireworksBackground() {
           continue;
         }
 
-        ctx.globalAlpha = p.life * 0.8;
+        // Glow trail (larger, dimmer circle behind)
+        ctx.globalAlpha = p.life * 0.3;
         ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main particle
+        ctx.globalAlpha = p.life * 0.8;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
         ctx.fill();

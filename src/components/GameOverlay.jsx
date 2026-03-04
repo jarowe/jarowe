@@ -8,6 +8,7 @@ export default function GameOverlay() {
     const [xp, setXp] = useState(0);
     const [level, setLevel] = useState(1);
     const [recentGain, setRecentGain] = useState(null);
+    const [holidayToast, setHolidayToast] = useState(null);
     const location = useLocation();
 
     // Load XP from localStorage
@@ -106,6 +107,8 @@ export default function GameOverlay() {
     }, [addXp]);
 
     // Holiday XP (T2: 25 XP, T3: 75 XP, once per holiday per year)
+    // T3: confetti burst + celebration toast
+    // T2: celebration toast
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const hm = window.__holidayMode;
@@ -115,9 +118,38 @@ export default function GameOverlay() {
         const key = `jarowe_holiday_xp_${safeKey}_${year}`;
         if (localStorage.getItem(key) === 'true') return;
         const xpAmount = hm.tier >= 3 ? 75 : 25;
+
         const timer = setTimeout(() => {
             addXp(xpAmount, `${hm.emoji || '🎉'} ${hm.name}`);
             localStorage.setItem(key, 'true');
+
+            // T3: confetti burst with holiday accent colors
+            if (hm.tier >= 3) {
+                confetti({
+                    particleCount: 120,
+                    spread: 90,
+                    origin: { y: 0.4 },
+                    colors: [
+                        hm.accentPrimary || '#7c3aed',
+                        hm.accentSecondary || '#06b6d4',
+                        '#ffffff',
+                        '#fbbf24',
+                    ],
+                    gravity: 0.7,
+                    scalar: 1.2,
+                });
+            }
+
+            // Show celebration toast for T2+
+            setHolidayToast({
+                emoji: hm.emoji || '🎉',
+                name: hm.name || 'Holiday',
+                xp: xpAmount,
+                primary: hm.accentPrimary || '#7c3aed',
+                glow: `${hm.accentPrimary || '#7c3aed'}40`,
+                id: Date.now(),
+            });
+            setTimeout(() => setHolidayToast(null), 4000);
         }, 3000);
         return () => clearTimeout(timer);
     }, [addXp]);
@@ -133,7 +165,7 @@ export default function GameOverlay() {
             </div>
 
             <AnimatePresence>
-                {recentGain && (
+                {recentGain && !holidayToast && (
                     <motion.div
                         key={recentGain.id}
                         className="xp-notification glass-panel"
@@ -144,6 +176,28 @@ export default function GameOverlay() {
                     >
                         <span className="gain-amount">+{recentGain.amount} XP</span>
                         <span className="gain-reason">{recentGain.reason}</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Holiday Celebration Toast */}
+            <AnimatePresence>
+                {holidayToast && (
+                    <motion.div
+                        key={holidayToast.id}
+                        className="holiday-toast glass-panel"
+                        initial={{ opacity: 0, scale: 0.6, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        style={{
+                            '--ht-primary': holidayToast.primary,
+                            '--ht-glow': holidayToast.glow,
+                        }}
+                    >
+                        <div className="holiday-toast-emoji">{holidayToast.emoji}</div>
+                        <div className="holiday-toast-name">{holidayToast.name}</div>
+                        <div className="holiday-toast-xp">+{holidayToast.xp} XP</div>
                     </motion.div>
                 )}
             </AnimatePresence>
