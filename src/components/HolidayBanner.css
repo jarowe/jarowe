@@ -6,6 +6,12 @@
   50% { transform: translateY(-3px) scale(1.05); }
 }
 
+/* ── All banners: sit above the globe dome (z-index:20) ── */
+.holiday-banner {
+  position: relative;
+  z-index: 25;
+}
+
 /* ── T1: Smart Toast Strip ── */
 .holiday-banner-t1 {
   display: flex;
