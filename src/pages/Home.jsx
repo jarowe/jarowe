@@ -22,6 +22,7 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
+import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode } from '../utils/glintBrain';
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -4037,12 +4038,24 @@ export default function Home() {
   const [showTrivia, setShowTrivia] = useState(false);
   const [showGame, setShowGame] = useState(false);
 
+  // Glint Brain — conversation mode (Tier 2)
+  const [conversationMode, setConversationMode] = useState(false);
+  const [conversationNode, setConversationNode] = useState(null);
+  const conversationModeRef = useRef(false);
+  useEffect(() => { conversationModeRef.current = conversationMode; }, [conversationMode]);
+
   // Track viewport size to force re-render on resize (spawn markers + character positioning)
   const [viewportKey, setViewportKey] = useState(0);
   useEffect(() => {
     const onResize = () => setViewportKey(k => k + 1);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Track visit count for Glint Brain context
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem('jarowe_visit_count') || '0');
+    localStorage.setItem('jarowe_visit_count', String(count + 1));
   }, []);
 
   // Spawn points from localStorage
@@ -4393,6 +4406,52 @@ export default function Home() {
     }, 800 + residualMs);
   }, [clearBubble]);
 
+  // ── Glint Brain: Conversation mode (Tier 2) ──
+  const conversationTimeoutRef = useRef(null);
+
+  const exitConversation = useCallback(() => {
+    setConversationMode(false);
+    setConversationNode(null);
+    if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
+    clearBubble();
+    window.__prismBopExit = true;
+    runPortalExitSequence();
+  }, [clearBubble, runPortalExitSequence]);
+
+  const handlePillClick = useCallback((reply) => {
+    if (reply.nodeId === null) {
+      exitConversation();
+      return;
+    }
+    window.__currentHoliday = holiday;
+    window.__isBirthday = isBirthday;
+    const ctx = buildContext();
+    const node = getDialogueNode(reply.nodeId, ctx);
+    if (!node) { exitConversation(); return; }
+
+    setConversationNode(node);
+    window.__prismExpression = node.expression || 'happy';
+    showBubbleWithThinking(node.text);
+
+    // Reset conversation timeout
+    if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+    const cfg = window.__prismConfig || {};
+    conversationTimeoutRef.current = setTimeout(() => {
+      exitConversation();
+    }, (cfg.brainConversationTimeout ?? 15) * 1000);
+  }, [exitConversation, showBubbleWithThinking, holiday, isBirthday]);
+
+  // Escape key exits conversation
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && conversationModeRef.current) {
+        exitConversation();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [exitConversation]);
+
   useEffect(() => {
     const peekStyles = ['portal', 'portal', 'portal', 'bounce', 'pop', 'roll'];
     const scheduleNext = () => {
@@ -4429,25 +4488,48 @@ export default function Home() {
           setPeekVisible(true);
         }
 
-        // Show a Glint idea after character settles
+        // Show a Glint idea after character settles — uses Brain (Tier 1) when enabled
         const ideaDelay = setTimeout(() => {
-          const holidayPool = (holiday && holiday.glintIdeas && holiday.tier >= 2 && !isBirthday) ? holiday.glintIdeas : [];
-          const peekNum = peekIdeaCountRef.current++;
-          let idea;
+          // Increment peek count for brain context
+          const pc = parseInt(sessionStorage.getItem('glint_peek_count') || '0');
+          sessionStorage.setItem('glint_peek_count', String(pc + 1));
+
+          const brainCfg = window.__prismConfig || {};
+          const useBrain = brainCfg.brainEnabled !== false && Math.random() < (brainCfg.brainAmbientWeight ?? 0.7);
+          let ideaText, ideaExpression;
+
           if (isBirthday) {
-            idea = birthdayGlintIdeas[Math.floor(Math.random() * birthdayGlintIdeas.length)];
-          } else if (holidayPool.length > 0) {
-            // T2+ holidays: first peek always holiday, then alternate holiday/default
-            const useHoliday = peekNum === 0 || peekNum % 2 === 0;
-            const pool = useHoliday ? holidayPool : glintIdeas;
-            idea = pool[Math.floor(Math.random() * pool.length)];
-          } else {
-            idea = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
+            ideaText = birthdayGlintIdeas[Math.floor(Math.random() * birthdayGlintIdeas.length)];
+          } else if (useBrain) {
+            window.__currentHoliday = holiday;
+            window.__isBirthday = isBirthday;
+            const ctx = buildContext();
+            const ambient = getAmbientLine(ctx);
+            if (ambient) {
+              ideaText = ambient.text;
+              ideaExpression = ambient.expression;
+            }
           }
+
+          // Fallback: original random selection
+          if (!ideaText) {
+            const holidayPool = (holiday && holiday.glintIdeas && holiday.tier >= 2 && !isBirthday) ? holiday.glintIdeas : [];
+            const peekNum = peekIdeaCountRef.current++;
+            if (holidayPool.length > 0) {
+              const useHol = peekNum === 0 || peekNum % 2 === 0;
+              const pool = useHol ? holidayPool : glintIdeas;
+              ideaText = pool[Math.floor(Math.random() * pool.length)];
+            } else {
+              ideaText = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
+            }
+          }
+
+          if (ideaExpression) window.__prismExpression = ideaExpression;
           window.__prismTalking = true;
-          showBubbleWithThinking(idea);
+          showBubbleWithThinking(ideaText);
+          const exprMs = brainCfg.brainExpressionDuration ?? 3000;
           setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
-          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
+          setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, Math.max(5000, exprMs));
         }, style === 'portal' ? 2000 : 1200);
         autoExitTimerRef.current = setTimeout(() => {
           clearTimeout(ideaDelay);
@@ -4645,6 +4727,32 @@ export default function Home() {
     window.addEventListener('prism-spawn-markers', spawnMarkerHandler);
     window.addEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
     window.addEventListener('bop-plus-test', bopPlusTestHandler);
+
+    // Glint Brain test events from GlintEditor
+    const brainTestBubbleHandler = (e) => {
+      const { text } = e.detail;
+      if (text && peekVisibleRef.current) {
+        showBubbleWithThinking(text);
+        setTimeout(() => clearBubble(), 5000);
+      }
+    };
+    const brainTestConvoHandler = (e) => {
+      const root = e.detail;
+      if (root && peekVisibleRef.current) {
+        setConversationMode(true);
+        setConversationNode(root);
+        window.__prismExpression = root.expression || 'happy';
+        showBubbleWithThinking(root.text);
+        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+        const cfg = window.__prismConfig || {};
+        conversationTimeoutRef.current = setTimeout(() => {
+          exitConversation();
+        }, (cfg.brainConversationTimeout ?? 15) * 1000);
+      }
+    };
+    window.addEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
+    window.addEventListener('glint-brain-test-conversation', brainTestConvoHandler);
+
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
@@ -4653,9 +4761,11 @@ export default function Home() {
       window.removeEventListener('prism-spawn-markers', spawnMarkerHandler);
       window.removeEventListener('prism-spawn-markers-update', spawnMarkersUpdateHandler);
       window.removeEventListener('bop-plus-test', bopPlusTestHandler);
+      window.removeEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
+      window.removeEventListener('glint-brain-test-conversation', brainTestConvoHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
-  }, [spawnPoints, dragPosition]);
+  }, [spawnPoints, dragPosition, showBubbleWithThinking, clearBubble, exitConversation]);
 
   // Dynamic bubble-to-character connector — rAF loop updates SVG path directly (no re-renders)
   const connectorPathRef = useRef(null); // main curved path
@@ -4795,6 +4905,8 @@ export default function Home() {
   }, [peekVisible]);
 
   const handleCatchCharacter = useCallback((e) => {
+    // Don't re-bop during conversation mode
+    if (conversationModeRef.current) return;
     // One bop per reveal only
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
@@ -4802,6 +4914,13 @@ export default function Home() {
     // Cancel any pending exit timers — bop takes over the exit sequence
     if (autoExitTimerRef.current) { clearTimeout(autoExitTimerRef.current); autoExitTimerRef.current = null; }
     if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
+
+    // Track session bops for brain context
+    const sb = parseInt(sessionStorage.getItem('glint_bops_session') || '0');
+    sessionStorage.setItem('glint_bops_session', String(sb + 1));
+    // Track total bops in localStorage for brain milestones
+    const tb = parseInt(localStorage.getItem('jarowe_total_bops') || '0');
+    localStorage.setItem('jarowe_total_bops', String(tb + 1));
 
     playBopSound();
     const newBops = prismBops + 1;
@@ -4856,20 +4975,45 @@ export default function Home() {
       setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // ── PORTAL EXIT (600ms) — bop-exit: snappier spin (already has bop impulse) ──
-    setTimeout(() => {
-      setBopPhase(null);
-      setExitStyle(null);
-      window.__prismBopExit = true; // tells 3D spin to ramp faster
-      clearBubble();
-      runPortalExitSequence();
-    }, 600);
+    // ── After impact (600ms): either enter conversation mode or portal exit ──
+    const convoEnabled = bpCfg.brainConversationEnabled !== false && bpCfg.brainEnabled !== false;
+
+    if (convoEnabled) {
+      // Enter conversation mode
+      setTimeout(() => {
+        setBopPhase(null);
+        window.__currentHoliday = holiday;
+        window.__isBirthday = isBirthday;
+        const ctx = buildContext();
+        ctx.bopsThisSession = sb + 1;
+        const root = getConversationRoot(ctx);
+        setConversationMode(true);
+        setConversationNode(root);
+        window.__prismExpression = root.expression || 'happy';
+        showBubbleWithThinking(root.text);
+
+        // Start conversation timeout
+        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+        conversationTimeoutRef.current = setTimeout(() => {
+          exitConversation();
+        }, (bpCfg.brainConversationTimeout ?? 15) * 1000);
+      }, 600);
+    } else {
+      // Original behavior: immediate portal exit
+      setTimeout(() => {
+        setBopPhase(null);
+        setExitStyle(null);
+        window.__prismBopExit = true;
+        clearBubble();
+        runPortalExitSequence();
+      }, 600);
+    }
 
     // Every 3 bops, trigger the speed puzzle game
     if (newBops % 3 === 0) {
       setTimeout(() => setShowSpeedGame(true), 2500);
     }
-  }, [prismBops, clearBubble, runPortalExitSequence]);
+  }, [prismBops, clearBubble, runPortalExitSequence, exitConversation, showBubbleWithThinking, holiday, isBirthday]);
 
   // Compute directional bop impulse based on WHERE you hit the hitbox
   const computeBopImpulse = useCallback((clickEvent) => {
@@ -5721,6 +5865,23 @@ export default function Home() {
                           }}
                         >
                           {prismBubble}
+                          {/* Quick-reply pills (Glint Brain Tier 2) */}
+                          {conversationMode && conversationNode?.replies && (
+                            <div className="glint-reply-pills">
+                              {conversationNode.replies.map((reply, i) => (
+                                <motion.button
+                                  key={reply.label}
+                                  className="glint-pill"
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.3 + i * (cfg.brainPillAnimDelay ?? 0.1) }}
+                                  onClick={(ev) => { ev.stopPropagation(); handlePillClick(reply); }}
+                                >
+                                  {reply.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>

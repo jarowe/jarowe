@@ -255,4 +255,14 @@ export const PRISM_DEFAULTS = {
   bannerNudgeIntervalMax: 120,    // seconds between nudges
   bannerNudgeGlowDuration: 4000,  // ms banner glows after beam
   bannerNudgeBeamDuration: 1200,  // ms beam animation
+
+  // Glint Brain
+  brainEnabled: true,              // master toggle for smart line selection
+  brainConversationEnabled: true,  // Tier 2 dialogue trees on bop
+  brainAmbientWeight: 0.7,        // 0-1: chance of brain line vs random idea (1 = always brain)
+  brainConversationTimeout: 15,    // seconds before auto-exit in conversation mode
+  brainPillAnimDelay: 0.1,        // seconds between each pill appearing
+  brainMaxReplies: 3,             // max quick-reply pills shown
+  brainExpressionDuration: 3000,  // ms expression holds before relaxing
+  brainDebugLog: false,           // log brain decisions to console
 };

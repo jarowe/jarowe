@@ -2243,3 +2243,37 @@
     z-index: 6;
     backdrop-filter: blur(8px);
 }
+
+/* Glint conversation pills */
+.glint-reply-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.glint-pill {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(56, 189, 248, 0.15));
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    color: #e0d4ff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.glint-pill:hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(56, 189, 248, 0.3));
+    border-color: rgba(124, 58, 237, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.glint-pill:active {
+    transform: translateY(0);
+}

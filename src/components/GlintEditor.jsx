@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import { GLASS_PRESETS } from './Prism3D';
+import { buildContext, getAmbientLine, getConversationRoot } from '../utils/glintBrain';
 
 const GLASS_PRESET_STORAGE_KEY = 'jarowe_glass_presets';
 
@@ -664,6 +665,29 @@ export default function GlintEditor({ parentGui }) {
       }));
     } }, 'testNudge').name('Test Nudge');
     pNudge.close();
+
+    // -- Glint Brain --
+    const pBrain = gui.addFolder('Glint Brain');
+    pBrain.add(pcfg, 'brainEnabled').name('Brain Enabled');
+    pBrain.add(pcfg, 'brainConversationEnabled').name('Conversation Enabled');
+    pBrain.add(pcfg, 'brainAmbientWeight', 0, 1, 0.05).name('Ambient Weight');
+    pBrain.add(pcfg, 'brainConversationTimeout', 5, 30, 1).name('Convo Timeout (s)');
+    pBrain.add(pcfg, 'brainPillAnimDelay', 0, 0.5, 0.01).name('Pill Anim Delay');
+    pBrain.add(pcfg, 'brainDebugLog').name('Debug Log');
+    pBrain.add({ testAmbient() {
+      const ctx = buildContext();
+      const line = getAmbientLine(ctx);
+      if (line) {
+        window.__prismExpression = line.expression || 'happy';
+        window.dispatchEvent(new CustomEvent('glint-brain-test-bubble', { detail: { text: line.text } }));
+      }
+    } }, 'testAmbient').name('Test Ambient Line');
+    pBrain.add({ testConvo() {
+      const ctx = buildContext();
+      const root = getConversationRoot(ctx);
+      window.dispatchEvent(new CustomEvent('glint-brain-test-conversation', { detail: root }));
+    } }, 'testConvo').name('Test Conversation');
+    pBrain.close();
 
     // -- Reset --
     gui.add({ reset() {
