@@ -28,6 +28,7 @@ export const HOLIDAY_CALENDAR = {
   // ══════════ JANUARY ══════════
   '01-01': { tier: 3, name: "New Year's Day", category: 'humor', emoji: '🎆',
     greeting: "New year, new deploys. Let's build something legendary.",
+    greetingAlt: "First morning of the year. Make it count.",
     bgEffect: 'fireworks',
     glintIdeas: ["New year's resolution: refract even HARDER", "Plot twist: every year is my year", "365 fresh days of being brilliant!"],
     cipherWords: ['FRESH', 'START', 'SPARK'] },
@@ -143,7 +144,8 @@ export const HOLIDAY_CALENDAR = {
     cipherWords: ['RADIO', 'WAVES', 'SONIC'] },
   '02-14': { tier: 3, name: "Valentine's Day", category: 'family', emoji: '❤️',
     greeting: "Love is the original open-source project. Maria, you're my main branch.",
-    bgEffect: 'none',
+    greetingAlt: "Good morning, love. Today the whole site celebrates you.",
+    bgEffect: 'hearts',
     glintIdeas: ["Love refracts more beautifully than any light", "Maria + Jared = the ultimate pair programming", "My heart runs on an infinite loop"],
     cipherWords: ['HEART', 'LOVER', 'BLISS'] },
   '02-15': { tier: 1, name: 'Singles Awareness Day', category: 'humor', emoji: '💜',
@@ -194,7 +196,7 @@ export const HOLIDAY_CALENDAR = {
     greeting: "IT'S MY BIRTHDAY! The whole site goes party mode!",
     glintIdeas: ["It's BIRTHDAY TIME! Party like it's 1986!", "Another year of pure genius. You're welcome, universe!"],
     cipherWords: ['PARTY', 'FORTY', 'BLAZE'] },
-  '03-04': { tier: 1, name: 'Grammar Day', category: 'arts', emoji: '📝',
+  '03-04': { tier: 1, name: 'Grammar Day', category: 'arts', emoji: '✏️',
     greeting: "Their, they're, there—it's going to be okay." },
   '03-05': { tier: 1, name: 'Cheese Doodle Day', category: 'food', emoji: '🧀',
     greeting: "Orange fingers are the badge of honor for snack enthusiasts." },
@@ -274,7 +276,8 @@ export const HOLIDAY_CALENDAR = {
   // ══════════ APRIL ══════════
   '04-01': { tier: 3, name: 'April Fools Day', category: 'humor', emoji: '🃏',
     greeting: "Trust nothing today. Except this website. Probably.",
-    bgEffect: 'none',
+    greetingAlt: "Morning! Nothing suspicious here. Move along.",
+    bgEffect: 'confetti',
     glintIdeas: ["April Fools! ...or IS it? You'll never know.", "I replaced all your semicolons with Greek question marks. Just kidding. Or am I?", "Today's prank: everything works perfectly. Suspicious."],
     cipherWords: ['PRANK', 'JOKES', 'TRICK'] },
   '04-02': { tier: 1, name: 'World Autism Awareness Day', category: 'family', emoji: '🧩',
@@ -373,7 +376,8 @@ export const HOLIDAY_CALENDAR = {
     greeting: "Free press, free code, free thought. Protect all three." },
   '05-04': { tier: 3, name: 'Star Wars Day', category: 'scifi', emoji: '⚔️',
     greeting: "May the Fourth be with you. Always.",
-    bgEffect: 'none',
+    greetingAlt: "A new hope dawns. May the Fourth be with you this morning.",
+    bgEffect: 'stars',
     glintIdeas: ["I find your lack of refraction disturbing", "Do or do not. There is no try/catch.", "The Force is strong with this prism"],
     cipherWords: ['FORCE', 'JEDI', 'LIGHT'] },
   '05-05': { tier: 2, name: 'Cinco de Mayo', category: 'food', emoji: '🌮',
@@ -589,6 +593,8 @@ export const HOLIDAY_CALENDAR = {
     greeting: "Be silly. Be weird. Be memorable." },
   '07-20': { tier: 2, name: 'Moon Landing Day', category: 'space', emoji: '🌙',
     greeting: "One small step for man, one giant leap for everyone who builds things.",
+    greetingAlt: "Good morning, Houston. We have liftoff.",
+    bgEffect: 'stars',
     glintIdeas: ["Humans walked on the MOON with less computing power than your phone", "Apollo 11's code was open-sourced. True story. Look it up."],
     cipherWords: ['LUNAR', 'EAGLE', 'GIANT'] },
   '07-21': { tier: 1, name: 'Junk Food Day', category: 'food', emoji: '🍟',
@@ -671,7 +677,8 @@ export const HOLIDAY_CALENDAR = {
     greeting: "Inhale calm. Exhale bugs. Deploy peace." },
   '08-16': { tier: 3, name: 'National Rollercoaster Day', category: 'adventure', emoji: '🎢',
     greeting: "COASTERS! VelociCoaster, Hulk, Mako—this is my SUPER BOWL!",
-    bgEffect: 'none',
+    greetingAlt: "Rise and grind—today we ride the COASTERS!",
+    bgEffect: 'confetti',
     glintIdeas: ["Rollercoasters are engineering art that makes you scream. PERFECT.", "G-forces are just gravity showing off", "The vault has coaster pics. Have you unlocked them all?"],
     cipherWords: ['RIDES', 'LOOPS', 'SPEED'] },
   '08-17': { tier: 1, name: 'Thrift Shop Day', category: 'humor', emoji: '🛍️',
@@ -760,7 +767,7 @@ export const HOLIDAY_CALENDAR = {
     greeting: "Cheeseburger: America's greatest composition pattern." },
   '09-19': { tier: 3, name: 'Talk Like a Pirate Day', category: 'adventure', emoji: '🏴‍☠️',
     greeting: "Arrr! Hoist the main branch and deploy the starboard code!",
-    bgEffect: 'none',
+    bgEffect: 'fog',
     glintIdeas: ["Shiver me timbers! That's some fine refraction, matey!", "A pirate's favorite programming language? R! ...no wait, C!", "Arrr, the treasure be in the vault. Have ye cracked the cipher?"],
     cipherWords: ['JOLLY', 'PLANK', 'OCEAN'] },
   '09-20': { tier: 2, name: 'Pepperoni Pizza Day', category: 'food', emoji: '🍕',
@@ -891,6 +898,7 @@ export const HOLIDAY_CALENDAR = {
     cipherWords: ['PRANK', 'NIGHT', 'TRICK'] },
   '10-31': { tier: 3, name: 'Halloween', category: 'spooky', emoji: '🎃',
     greeting: "Boo! The scariest thing tonight isn't ghosts—it's legacy code.",
+    greetingAlt: "The haunting begins at dawn. Deploy if you dare.",
     bgEffect: 'fog',
     glintIdeas: ["I'm dressed as a prism for Halloween. Wait, I'm ALWAYS a prism.", "The scariest code: `rm -rf /` without sudo", "Trick or treat? How about trick AND treat—find my easter eggs!"],
     cipherWords: ['GHOST', 'SCARY', 'WITCH'] },
@@ -968,7 +976,8 @@ export const HOLIDAY_CALENDAR = {
     greeting: "The cake is NOT a lie. (Unless you're playing Portal.)" },
   '11-27': { tier: 3, name: 'Thanksgiving', category: 'family', emoji: '🦃',
     greeting: "Grateful for family, code, and people who visit personal websites.",
-    bgEffect: 'none',
+    greetingAlt: "Good morning! Today we give thanks. Starting with you being here.",
+    bgEffect: 'confetti',
     glintIdeas: ["I'm thankful for photons, glass, and everyone who booped me", "Thanksgiving: the original potluck API", "Grateful for the builders, dreamers, and late-night coders"],
     cipherWords: ['FEAST', 'GRACE', 'THANK'] },
   '11-28': { tier: 1, name: 'French Toast Day', category: 'food', emoji: '🍞',
@@ -1051,6 +1060,7 @@ export const HOLIDAY_CALENDAR = {
     cipherWords: ['SANTA', 'GIFTS', 'NIGHT'] },
   '12-25': { tier: 3, name: 'Christmas Day', category: 'winter', emoji: '🎅',
     greeting: "Merry Christmas! May your deploys be merry and your bugs be few.",
+    greetingAlt: "Christmas morning magic. Hope you got everything you wished for.",
     bgEffect: 'snow',
     glintIdeas: ["Ho ho ho! I wrapped myself in rainbows. Merry Christmas!", "The greatest gift? Time with family. Second greatest? Good WiFi.", "Rudolph's nose is just a biological LED. I refract light better though."],
     cipherWords: ['JOLLY', 'SANTA', 'PEACE'] },
@@ -1122,8 +1132,16 @@ export function getTodayHoliday(dateOverride) {
 
   const category = CATEGORIES[entry.category] || CATEGORIES.tech;
 
+  // Time-of-day greeting variation
+  let greeting = entry.greeting;
+  if (entry.greetingAlt) {
+    const hour = new Date().getHours();
+    if (hour < 12) greeting = entry.greetingAlt;
+  }
+
   return {
     ...entry,
+    greeting,
     key,
     categoryData: category,
     accentPrimary: category.accentPrimary,
