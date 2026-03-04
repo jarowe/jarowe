@@ -1,12 +1,19 @@
-import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useHoliday } from '../context/HolidayContext';
 import confetti from 'canvas-confetti';
 import './HolidayBanner.css';
 
-export default function HolidayBanner() {
+export default function HolidayBanner({ onTriviaLaunch }) {
   const { holiday, tier, isBirthday } = useHoliday();
   const confettiFired = useRef(false);
+  const [dismissed, setDismissed] = useState(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return sessionStorage.getItem(`jarowe_banner_dismissed_${today}`) === 'true';
+  });
+  const [showFact, setShowFact] = useState(false);
+  const dismissTimer = useRef(null);
+  const factTimer = useRef(null);
 
   // T3 confetti burst on mount
   useEffect(() => {
@@ -27,36 +34,104 @@ export default function HolidayBanner() {
     }
   }, [tier, isBirthday, holiday]);
 
+  // T1 auto-dismiss after 8s + fact crossfade at 4s
+  useEffect(() => {
+    if (tier !== 1 || dismissed || isBirthday || !holiday) return;
+
+    // Show fact crossfade at 4s (only if holiday has a fact)
+    if (holiday.fact) {
+      factTimer.current = setTimeout(() => setShowFact(true), 4000);
+    }
+
+    // Auto-dismiss at 8s
+    dismissTimer.current = setTimeout(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      sessionStorage.setItem(`jarowe_banner_dismissed_${today}`, 'true');
+      setDismissed(true);
+    }, 8000);
+
+    return () => {
+      clearTimeout(factTimer.current);
+      clearTimeout(dismissTimer.current);
+    };
+  }, [tier, dismissed, isBirthday, holiday]);
+
+  const handleBannerClick = useCallback(() => {
+    // Cancel auto-dismiss
+    clearTimeout(dismissTimer.current);
+    clearTimeout(factTimer.current);
+
+    // Mark as dismissed so it doesn't re-show
+    const today = new Date().toISOString().slice(0, 10);
+    sessionStorage.setItem(`jarowe_banner_dismissed_${today}`, 'true');
+    setDismissed(true);
+
+    // Launch trivia
+    if (onTriviaLaunch) onTriviaLaunch();
+  }, [onTriviaLaunch]);
+
   // Birthday has its own banner — don't render ours
   if (isBirthday || !holiday) return null;
   if (tier <= 0) return null;
 
-  const categoryName = holiday.category || '';
-
-  // ── T1: Visible "Daily Vibe" strip ──
+  // ── T1: Smart Toast ──
   if (tier === 1) {
     return (
-      <motion.div
-        className="holiday-banner holiday-banner-t1"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.5 }}
-        style={{
-          '--hb-primary': holiday.accentPrimary,
-          '--hb-secondary': holiday.accentSecondary,
-          '--hb-glow': holiday.accentGlow,
-        }}
-      >
-        <span className="holiday-banner-emoji holiday-emoji-breathe">{holiday.emoji}</span>
-        <div className="holiday-banner-t1-content">
-          <span className="holiday-banner-t1-name">{holiday.name}</span>
-          <span className="holiday-banner-greeting">{holiday.greeting}</span>
-        </div>
-      </motion.div>
+      <AnimatePresence>
+        {!dismissed && (
+          <motion.div
+            className="holiday-banner holiday-banner-t1"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            onClick={handleBannerClick}
+            style={{
+              '--hb-primary': holiday.accentPrimary,
+              '--hb-secondary': holiday.accentSecondary,
+              '--hb-glow': holiday.accentGlow,
+            }}
+          >
+            <span className="holiday-banner-emoji">{holiday.emoji}</span>
+            <div className="holiday-banner-t1-content">
+              <AnimatePresence mode="wait">
+                {!showFact ? (
+                  <motion.div
+                    key="greeting"
+                    className="holiday-banner-t1-text"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="holiday-banner-t1-name">{holiday.name}</span>
+                    <span className="holiday-banner-greeting">{holiday.greeting}</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="fact"
+                    className="holiday-banner-t1-text"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="holiday-banner-t1-name">This day in history</span>
+                    <span className="holiday-banner-greeting">{holiday.fact}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {(holiday.trivia || onTriviaLaunch) && (
+              <span className="holiday-banner-play" aria-label="Play trivia">▸</span>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 
-  // ── T2: "Wow, something is happening today!" ──
+  // ── T2: Glass panel with trivia click ──
   if (tier === 2) {
     return (
       <motion.div
@@ -64,10 +139,12 @@ export default function HolidayBanner() {
         initial={{ opacity: 0, y: -20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.4 }}
+        onClick={handleBannerClick}
         style={{
           '--hb-primary': holiday.accentPrimary,
           '--hb-secondary': holiday.accentSecondary,
           '--hb-glow': holiday.accentGlow,
+          cursor: 'pointer',
         }}
       >
         <div className="holiday-banner-shimmer holiday-shimmer-t2" />
@@ -82,9 +159,14 @@ export default function HolidayBanner() {
         <div className="holiday-banner-content">
           <div className="holiday-banner-name">{holiday.name}</div>
           <div className="holiday-banner-greeting">{holiday.greeting}</div>
-          <span className="holiday-category-tag">
-            {holiday.emoji} {categoryName}
-          </span>
+          <div className="holiday-banner-t2-footer">
+            <span className="holiday-category-tag">
+              {holiday.emoji} {holiday.category || ''}
+            </span>
+            {(holiday.trivia || onTriviaLaunch) && (
+              <span className="holiday-banner-play holiday-banner-play-t2">▸ Play Trivia</span>
+            )}
+          </div>
         </div>
       </motion.div>
     );
@@ -97,10 +179,12 @@ export default function HolidayBanner() {
       initial={{ opacity: 0, y: -30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
+      onClick={handleBannerClick}
       style={{
         '--hb-primary': holiday.accentPrimary,
         '--hb-secondary': holiday.accentSecondary,
         '--hb-glow': holiday.accentGlow,
+        cursor: 'pointer',
       }}
     >
       <div className="holiday-banner-shimmer holiday-shimmer-t3" />
@@ -117,6 +201,9 @@ export default function HolidayBanner() {
         </motion.div>
         <div className="holiday-banner-name holiday-t3-name">{holiday.name}</div>
         <div className="holiday-banner-greeting">{holiday.greeting}</div>
+        {(holiday.trivia || onTriviaLaunch) && (
+          <span className="holiday-banner-play holiday-banner-play-t3">▸ Play Trivia</span>
+        )}
       </div>
     </motion.div>
   );
