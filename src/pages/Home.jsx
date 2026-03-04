@@ -463,6 +463,49 @@ export default function Home() {
       }}, 'fn').name('NUCLEAR RESET');
       storageFolder.close();
 
+      // Debug > Holiday Simulator
+      const holidayFolder = debugInst.addFolder('Holiday Simulator');
+      const params = new URLSearchParams(window.location.search);
+      const holidayProxy = {
+        date: params.get('holiday') || '',
+        currentHoliday: holiday ? `${holiday.emoji} ${holiday.name} (T${holiday.tier})` : 'None',
+      };
+      holidayFolder.add(holidayProxy, 'currentHoliday').name('Today').disable();
+      holidayFolder.add(holidayProxy, 'date').name('Jump to MM-DD').onFinishChange(v => {
+        if (/^\d{2}-\d{2}$/.test(v)) {
+          const p = new URLSearchParams(window.location.search);
+          p.set('holiday', v);
+          p.set('editor', 'jarowe');
+          window.location.search = p.toString();
+        }
+      });
+      // Quick-jump buttons for notable holidays
+      const quickJumps = holidayFolder.addFolder('Quick Jump');
+      const jumpTo = (date) => {
+        const p = new URLSearchParams(window.location.search);
+        p.set('holiday', date);
+        p.set('editor', 'jarowe');
+        window.location.search = p.toString();
+      };
+      quickJumps.add({ fn: () => jumpTo('01-01') }, 'fn').name("🎆 New Year's");
+      quickJumps.add({ fn: () => jumpTo('02-14') }, 'fn').name("❤️ Valentine's");
+      quickJumps.add({ fn: () => jumpTo('04-01') }, 'fn').name('🃏 April Fools');
+      quickJumps.add({ fn: () => jumpTo('05-04') }, 'fn').name('⚔️ Star Wars');
+      quickJumps.add({ fn: () => jumpTo('07-04') }, 'fn').name('🇺🇸 July 4th');
+      quickJumps.add({ fn: () => jumpTo('10-31') }, 'fn').name('🎃 Halloween');
+      quickJumps.add({ fn: () => jumpTo('12-25') }, 'fn').name('🎅 Christmas');
+      quickJumps.add({ fn: () => jumpTo('01-19') }, 'fn').name('🍿 Popcorn Day (T2)');
+      quickJumps.add({ fn: () => jumpTo('03-07') }, 'fn').name('🥣 Cereal Day (T1)');
+      quickJumps.add({ fn: () => jumpTo('07-20') }, 'fn').name('🌙 Moon Day (T2)');
+      quickJumps.close();
+      // Clear holiday override
+      holidayFolder.add({ fn: () => {
+        const p = new URLSearchParams(window.location.search);
+        p.delete('holiday');
+        p.set('editor', 'jarowe');
+        window.location.search = p.toString();
+      }}, 'fn').name('Reset to Today');
+
       setEditorGui(editorInst);
       setDebugGamesFolder(gamesFolder);
     });
