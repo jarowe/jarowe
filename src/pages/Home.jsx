@@ -12,6 +12,7 @@ import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
 import { useBirthday, useHoliday } from '../context/HolidayContext';
+import { HOLIDAY_CALENDAR, CATEGORIES } from '../data/holidayCalendar';
 import HolidayBanner from '../components/HolidayBanner';
 import HolidayParticles from '../components/HolidayParticles';
 import HolidayBackground from '../components/HolidayBackground';
@@ -334,6 +335,47 @@ export default function Home() {
       .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar { width: 4px; }
       .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-track { background: transparent; }
       .jarowe-editor-panels .lil-gui .children::-webkit-scrollbar-thumb { background: rgba(140,100,255,0.25); border-radius: 3px; }
+
+      /* ── Holiday Calendar Widget ── */
+      .hcal { padding: 6px 8px; user-select: none; }
+      .hcal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+      .hcal-nav button {
+        background: rgba(100,70,200,0.25); border: 1px solid rgba(140,100,255,0.2);
+        color: #c8b8ff; border-radius: 4px; width: 28px; height: 28px; cursor: pointer;
+        font-size: 14px; display: flex; align-items: center; justify-content: center;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .hcal-nav button:hover { background: rgba(120,80,220,0.4); border-color: rgba(140,100,255,0.45); }
+      .hcal-label { color: #c8b8ff; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+      .hcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+      .hcal-dow { text-align: center; font-size: 10px; color: rgba(180,160,255,0.5); padding: 2px 0; font-weight: 600; }
+      .hcal-day {
+        position: relative; text-align: center; font-size: 11px; color: #c0bcd8;
+        padding: 5px 0 8px; border-radius: 4px; cursor: pointer;
+        transition: background 0.12s;
+      }
+      .hcal-day:hover { background: rgba(100,70,200,0.2); }
+      .hcal-day.hcal-empty { cursor: default; }
+      .hcal-day.hcal-empty:hover { background: transparent; }
+      .hcal-day.hcal-today { color: #a78bfa; font-weight: 700; }
+      .hcal-day.hcal-active { box-shadow: inset 0 0 0 2px rgba(140,100,255,0.7); border-radius: 4px; }
+      .hcal-dot {
+        position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+        width: 5px; height: 5px; border-radius: 50%;
+      }
+      .hcal-dot.t1 { background: rgba(160,150,180,0.4); }
+      .hcal-dot.t2 { /* color set inline */ }
+      .hcal-dot.t3 { /* color set inline with glow */ }
+      .hcal-legend { display: flex; align-items: center; gap: 12px; margin-top: 6px; padding: 2px 0; }
+      .hcal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: rgba(180,160,255,0.5); }
+      .hcal-legend-dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+      .hcal-reset {
+        width: 100%; margin-top: 6px; padding: 5px 0; font-size: 11px;
+        background: rgba(100,70,200,0.2); border: 1px solid rgba(140,100,255,0.2);
+        color: #c8b8ff; border-radius: 4px; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .hcal-reset:hover { background: rgba(120,80,220,0.35); border-color: rgba(140,100,255,0.4); }
     `;
     document.head.appendChild(styleEl);
 
@@ -463,48 +505,110 @@ export default function Home() {
       }}, 'fn').name('NUCLEAR RESET');
       storageFolder.close();
 
-      // Debug > Holiday Simulator
+      // Debug > Holiday Simulator (Calendar Widget)
       const holidayFolder = debugInst.addFolder('Holiday Simulator');
       const params = new URLSearchParams(window.location.search);
+      const activeOverride = params.get('holiday') || '';
       const holidayProxy = {
-        date: params.get('holiday') || '',
         currentHoliday: holiday ? `${holiday.emoji} ${holiday.name} (T${holiday.tier})` : 'None',
       };
       holidayFolder.add(holidayProxy, 'currentHoliday').name('Today').disable();
-      holidayFolder.add(holidayProxy, 'date').name('Jump to MM-DD').onFinishChange(v => {
-        if (/^\d{2}-\d{2}$/.test(v)) {
-          const p = new URLSearchParams(window.location.search);
-          p.set('holiday', v);
-          p.set('editor', 'jarowe');
-          window.location.search = p.toString();
-        }
-      });
-      // Quick-jump buttons for notable holidays
-      const quickJumps = holidayFolder.addFolder('Quick Jump');
-      const jumpTo = (date) => {
+
+      // Build calendar widget
+      const calContainer = holidayFolder.domElement.querySelector('.children');
+      const calEl = document.createElement('div');
+      calEl.className = 'hcal';
+      calContainer.appendChild(calEl);
+
+      const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const now = new Date();
+      let calMonth = now.getMonth();
+      let calYear = now.getFullYear();
+
+      const jumpTo = (mmdd) => {
         const p = new URLSearchParams(window.location.search);
-        p.set('holiday', date);
+        p.set('holiday', mmdd);
         p.set('editor', 'jarowe');
         window.location.search = p.toString();
       };
-      quickJumps.add({ fn: () => jumpTo('01-01') }, 'fn').name("🎆 New Year's");
-      quickJumps.add({ fn: () => jumpTo('02-14') }, 'fn').name("❤️ Valentine's");
-      quickJumps.add({ fn: () => jumpTo('04-01') }, 'fn').name('🃏 April Fools');
-      quickJumps.add({ fn: () => jumpTo('05-04') }, 'fn').name('⚔️ Star Wars');
-      quickJumps.add({ fn: () => jumpTo('07-04') }, 'fn').name('🇺🇸 July 4th');
-      quickJumps.add({ fn: () => jumpTo('10-31') }, 'fn').name('🎃 Halloween');
-      quickJumps.add({ fn: () => jumpTo('12-25') }, 'fn').name('🎅 Christmas');
-      quickJumps.add({ fn: () => jumpTo('01-19') }, 'fn').name('🍿 Popcorn Day (T2)');
-      quickJumps.add({ fn: () => jumpTo('03-07') }, 'fn').name('🥣 Cereal Day (T1)');
-      quickJumps.add({ fn: () => jumpTo('07-20') }, 'fn').name('🌙 Moon Day (T2)');
-      quickJumps.close();
-      // Clear holiday override
-      holidayFolder.add({ fn: () => {
-        const p = new URLSearchParams(window.location.search);
-        p.delete('holiday');
-        p.set('editor', 'jarowe');
-        window.location.search = p.toString();
-      }}, 'fn').name('Reset to Today');
+
+      const renderCalendar = () => {
+        const todayMM = String(now.getMonth() + 1).padStart(2, '0');
+        const todayDD = String(now.getDate()).padStart(2, '0');
+        const todayKey = `${todayMM}-${todayDD}`;
+
+        const mm = String(calMonth + 1).padStart(2, '0');
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const firstDow = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+
+        let html = `<div class="hcal-nav">
+          <button class="hcal-prev">\u25C0</button>
+          <span class="hcal-label">${MONTH_NAMES[calMonth]} ${calYear}</span>
+          <button class="hcal-next">\u25B6</button>
+        </div>`;
+        html += '<div class="hcal-grid">';
+        ['S','M','T','W','T','F','S'].forEach(d => { html += `<div class="hcal-dow">${d}</div>`; });
+        // Empty cells before first day
+        for (let i = 0; i < firstDow; i++) html += '<div class="hcal-day hcal-empty"></div>';
+        // Day cells
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dd = String(d).padStart(2, '0');
+          const key = `${mm}-${dd}`;
+          const entry = HOLIDAY_CALENDAR[key];
+          const isToday = key === todayKey && calYear === now.getFullYear();
+          const isActive = key === activeOverride;
+          let cls = 'hcal-day';
+          if (isToday) cls += ' hcal-today';
+          if (isActive) cls += ' hcal-active';
+          let dot = '';
+          let title = '';
+          if (entry) {
+            const cat = CATEGORIES[entry.category];
+            const color = cat ? cat.accentPrimary : '#888';
+            title = `${entry.emoji} ${entry.name} (T${entry.tier})`;
+            if (entry.tier === 1) {
+              dot = '<span class="hcal-dot t1"></span>';
+            } else if (entry.tier === 2) {
+              dot = `<span class="hcal-dot t2" style="background:${color}"></span>`;
+            } else {
+              dot = `<span class="hcal-dot t3" style="background:${color};box-shadow:0 0 6px ${color}"></span>`;
+            }
+          }
+          html += `<div class="${cls}" data-date="${key}" title="${title}">${d}${dot}</div>`;
+        }
+        html += '</div>';
+        // Legend
+        html += `<div class="hcal-legend">
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:rgba(160,150,180,0.4)"></span>T1</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa"></span>T2</span>
+          <span class="hcal-legend-item"><span class="hcal-legend-dot" style="background:#a78bfa;box-shadow:0 0 6px #a78bfa"></span>T3</span>
+        </div>`;
+        html += '<button class="hcal-reset">Reset to Today</button>';
+
+        calEl.innerHTML = html;
+
+        // Wire events
+        calEl.querySelector('.hcal-prev').addEventListener('click', () => {
+          calMonth--;
+          if (calMonth < 0) { calMonth = 11; calYear--; }
+          renderCalendar();
+        });
+        calEl.querySelector('.hcal-next').addEventListener('click', () => {
+          calMonth++;
+          if (calMonth > 11) { calMonth = 0; calYear++; }
+          renderCalendar();
+        });
+        calEl.querySelectorAll('.hcal-day[data-date]').forEach(el => {
+          el.addEventListener('click', () => jumpTo(el.dataset.date));
+        });
+        calEl.querySelector('.hcal-reset').addEventListener('click', () => {
+          const p = new URLSearchParams(window.location.search);
+          p.delete('holiday');
+          p.set('editor', 'jarowe');
+          window.location.search = p.toString();
+        });
+      };
+      renderCalendar();
 
       setEditorGui(editorInst);
       setDebugGamesFolder(gamesFolder);
