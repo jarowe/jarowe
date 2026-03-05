@@ -48,25 +48,34 @@ export function AuthProvider({ children }) {
         }
       }
       setLoading(false);
+    }).catch(() => {
+      // Supabase connection failed — continue as guest
+      setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          const p = await fetchProfile(session.user.id);
-          setProfile(p);
-          if (event === 'SIGNED_IN') {
-            window.dispatchEvent(new CustomEvent('auth-signed-in'));
+    let subscription;
+    try {
+      const result = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (session?.user) {
+            setUser(session.user);
+            const p = await fetchProfile(session.user.id);
+            setProfile(p);
+            if (event === 'SIGNED_IN') {
+              window.dispatchEvent(new CustomEvent('auth-signed-in'));
+            }
+          } else {
+            setUser(null);
+            setProfile(null);
           }
-        } else {
-          setUser(null);
-          setProfile(null);
         }
-      }
-    );
+      );
+      subscription = result.data.subscription;
+    } catch (_) {
+      // Auth listener failed — continue as guest
+    }
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, [fetchProfile]);
 
   const signInWithGoogle = useCallback(async () => {
