@@ -4526,12 +4526,27 @@ export default function Home() {
       conversationTimeoutRef.current = null;
     }
 
+    // Pause autonomy during AI chat
+    const aut0 = getGlintAutonomy();
+    if (aut0) aut0.pause();
+
     // Show thinking expression
     window.__prismExpression = 'thinking';
     window.__prismTalking = false;
     setBubblePhase('speaking');
     const thinkingLines = ['Refracting your question...', 'Processing wavelengths...', 'Let me think...', 'Hmm, interesting...'];
     setPrismBubble(thinkingLines[Math.floor(Math.random() * thinkingLines.length)]);
+
+    // Safety timeout — if no response in 15s, show fallback
+    const safetyTimeout = setTimeout(() => {
+      if (aiAbortRef.current) aiAbortRef.current.abort();
+      console.warn('[GlintAI] Safety timeout — no response in 15s');
+      window.__prismExpression = 'curious';
+      setPrismBubble("Hmm, my signal got lost in the spectrum. Try again!");
+      setAiMessages(prev => [...prev, { role: 'assistant', content: "Hmm, my signal got lost in the spectrum. Try again!", timestamp: Date.now() }]);
+      setAiStreaming(false);
+      setAiStreamText('');
+    }, 15000);
 
     // Build context for system prompt
     const context = {
@@ -4579,6 +4594,7 @@ export default function Home() {
       });
 
       if (!res.ok) {
+        clearTimeout(safetyTimeout);
         const errData = await res.json().catch(() => ({}));
         aiLog('API error:', res.status, errData);
 
@@ -4591,6 +4607,8 @@ export default function Home() {
         }
         setAiStreaming(false);
         setAiStreamText('');
+        const aut1 = getGlintAutonomy();
+        if (aut1) aut1.resume();
         return;
       }
 
@@ -4643,6 +4661,9 @@ export default function Home() {
         }
       }
 
+      // Stream completed — clear safety timeout
+      clearTimeout(safetyTimeout);
+
       // Finalize
       const cleanText = fullText
         .replace(/\[expression:\w+\]/g, '')
@@ -4686,6 +4707,7 @@ export default function Home() {
       playChatReceiveSound();
       aiLog('Response complete:', cleanText.slice(0, 80) + '...');
     } catch (err) {
+      clearTimeout(safetyTimeout);
       if (err.name === 'AbortError') {
         aiLog('Request aborted');
         return;
@@ -4697,6 +4719,8 @@ export default function Home() {
       setAiMessages(prev => [...prev, { role: 'assistant', content: fallback, timestamp: Date.now() }]);
       setAiStreaming(false);
       setAiStreamText('');
+      const aut2 = getGlintAutonomy();
+      if (aut2) aut2.resume();
     }
   }, [aiMessages, holiday, exitConversation, aiLog]);
 

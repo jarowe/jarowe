@@ -773,6 +773,8 @@
     position: fixed;
     z-index: 500;
     pointer-events: none;
+    will-change: transform, opacity;
+    transform: translateZ(0);
 }
 
 .peek-character.peek-right {
@@ -891,13 +893,14 @@
     position: absolute;
     bottom: calc(100% - 30px);
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateZ(0);
+    will-change: transform, opacity;
     background: linear-gradient(135deg,
         rgba(12, 8, 35, 0.96) 0%,
         rgba(25, 12, 55, 0.94) 50%,
         rgba(15, 8, 40, 0.96) 100%);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     color: #f0e8ff;
     padding: 12px 16px;
     border-radius: 14px 14px 14px 4px;
@@ -982,7 +985,8 @@
 .prism-thinking-dots {
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateZ(0);
+    will-change: transform, opacity;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -990,8 +994,8 @@
         rgba(12, 8, 35, 0.96) 0%,
         rgba(25, 12, 55, 0.94) 50%,
         rgba(15, 8, 40, 0.96) 100%);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 10px 16px;
     border-radius: 14px 14px 14px 4px;
     border: 1px solid rgba(167, 139, 250, 0.3);
