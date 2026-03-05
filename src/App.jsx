@@ -19,6 +19,7 @@ import { AudioProvider } from './context/AudioContext';
 import { AuthProvider } from './context/AuthContext';
 import { HolidayProvider, useHoliday } from './context/HolidayContext';
 import GlobalPlayer from './components/GlobalPlayer';
+import AuthModal from './components/AuthModal';
 
 function HolidayBodyClass() {
   const { isBirthday, holiday } = useHoliday();
@@ -86,6 +87,7 @@ function App() {
               <GlobalPlayer />
             </main>
           </div>
+          <AuthModal />
         </Router>
       </HolidayProvider>
       </AuthProvider>

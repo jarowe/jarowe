@@ -2,11 +2,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Linkedin, Wrench, Instagram, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { getMuted, setMuted, playClickSound } from '../utils/sounds';
 import { useAuth } from '../context/AuthContext';
 import UserMenu from './UserMenu';
-import AuthModal from './AuthModal';
 import './Navbar.css';
 
 /* ── Crystal Astronaut — Mini (navbar) ── */
@@ -201,7 +199,6 @@ export default function Navbar() {
                 </div>
             </div>
 
-            {auth && createPortal(<AuthModal />, document.body)}
         </nav>
     );
 }
