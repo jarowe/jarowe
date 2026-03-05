@@ -32,169 +32,215 @@ const PERKS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ECLIPSE SCENE V2 — Astronaut at the edge of a supermassive black hole
+   ECLIPSE SCENE V3 — Cinematic black hole with orbiting astronaut
    ═══════════════════════════════════════════════════════════════════════ */
 function EclipseScene() {
   return (
     <div className="eclipse-stage">
-      {/* Layered CSS corona glows behind the SVG */}
+      {/* Gravitational wave pulses — expanding rings */}
+      <div className="eclipse-wave w1" />
+      <div className="eclipse-wave w2" />
+      <div className="eclipse-wave w3" />
+      {/* Layered CSS corona glows */}
+      <div className="eclipse-corona c-hot" />
       <div className="eclipse-corona c-warm" />
       <div className="eclipse-corona c-purple" />
       <div className="eclipse-corona c-cyan" />
-      <svg width="280" height="160" viewBox="0 0 280 160" fill="none" className="eclipse-svg">
+      <svg width="300" height="170" viewBox="0 0 300 170" fill="none" className="eclipse-svg">
         <defs>
           <radialGradient id="ec-hole" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0%" stopColor="#000" />
-            <stop offset="80%" stopColor="#020617" />
+            <stop offset="85%" stopColor="#020617" />
             <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
           </radialGradient>
-          {/* Photon ring — bright thin white-violet ring */}
+          {/* Photon ring — razor-bright */}
           <radialGradient id="ec-photon" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="72%" stopColor="transparent" />
-            <stop offset="80%" stopColor="#a78bfa" stopOpacity="0.3" />
-            <stop offset="85%" stopColor="#e0d4ff" stopOpacity="0.9" />
-            <stop offset="87%" stopColor="#fff" stopOpacity="1" />
-            <stop offset="89%" stopColor="#e0d4ff" stopOpacity="0.9" />
-            <stop offset="93%" stopColor="#a78bfa" stopOpacity="0.3" />
+            <stop offset="70%" stopColor="transparent" />
+            <stop offset="79%" stopColor="#a78bfa" stopOpacity="0.2" />
+            <stop offset="84%" stopColor="#e0d4ff" stopOpacity="0.8" />
+            <stop offset="86.5%" stopColor="#fff" stopOpacity="1" />
+            <stop offset="89%" stopColor="#e0d4ff" stopOpacity="0.8" />
+            <stop offset="94%" stopColor="#a78bfa" stopOpacity="0.2" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
-          {/* Wider lensing halo */}
+          {/* Inner photon ring — even tighter */}
+          <radialGradient id="ec-photon2" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="78%" stopColor="transparent" />
+            <stop offset="85%" stopColor="rgba(255,255,255,0.15)" />
+            <stop offset="88%" stopColor="rgba(255,255,255,0.4)" />
+            <stop offset="91%" stopColor="rgba(255,255,255,0.15)" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+          {/* Lensing halo */}
           <radialGradient id="ec-halo" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="50%" stopColor="transparent" />
-            <stop offset="68%" stopColor="#7c3aed" stopOpacity="0.12" />
-            <stop offset="80%" stopColor="#a78bfa" stopOpacity="0.06" />
+            <stop offset="45%" stopColor="transparent" />
+            <stop offset="62%" stopColor="#7c3aed" stopOpacity="0.1" />
+            <stop offset="75%" stopColor="#a78bfa" stopOpacity="0.05" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
-          {/* Hot accretion disc — warm center, cool edges */}
+          {/* Hot accretion disc — Doppler shifted (left=bright approach, right=dimmer recede) */}
           <linearGradient id="ec-acc-hot" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#7c3aed" stopOpacity="0" />
-            <stop offset="15%" stopColor="#a855f7" stopOpacity="0.3" />
-            <stop offset="30%" stopColor="#f472b6" stopOpacity="0.6" />
-            <stop offset="42%" stopColor="#fb923c" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="#fbbf24" stopOpacity="1" />
-            <stop offset="58%" stopColor="#fb923c" stopOpacity="0.8" />
-            <stop offset="70%" stopColor="#f472b6" stopOpacity="0.6" />
-            <stop offset="85%" stopColor="#a855f7" stopOpacity="0.3" />
+            <stop offset="10%" stopColor="#f472b6" stopOpacity="0.5" />
+            <stop offset="22%" stopColor="#fb923c" stopOpacity="0.9" />
+            <stop offset="35%" stopColor="#fbbf24" stopOpacity="1" />
+            <stop offset="45%" stopColor="#fff" stopOpacity="0.9" />
+            <stop offset="55%" stopColor="#fbbf24" stopOpacity="0.8" />
+            <stop offset="68%" stopColor="#fb923c" stopOpacity="0.5" />
+            <stop offset="80%" stopColor="#f472b6" stopOpacity="0.3" />
+            <stop offset="92%" stopColor="#a855f7" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="ec-acc-cool" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#06b6d4" stopOpacity="0" />
-            <stop offset="25%" stopColor="#06b6d4" stopOpacity="0.25" />
-            <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.5" />
-            <stop offset="75%" stopColor="#06b6d4" stopOpacity="0.25" />
+            <stop offset="20%" stopColor="#06b6d4" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.4" />
+            <stop offset="80%" stopColor="#06b6d4" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
           </linearGradient>
-          {/* Jet gradient — vertical */}
+          {/* Lensed arc gradient (the wrapped disc above/below) */}
+          <linearGradient id="ec-lensed" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#fb923c" stopOpacity="0" />
+            <stop offset="30%" stopColor="#fb923c" stopOpacity="0.5" />
+            <stop offset="50%" stopColor="#fbbf24" stopOpacity="0.7" />
+            <stop offset="70%" stopColor="#fb923c" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#fb923c" stopOpacity="0" />
+          </linearGradient>
+          {/* Jet gradients */}
           <linearGradient id="ec-jet-up" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.5" />
-            <stop offset="40%" stopColor="#a78bfa" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.6" />
+            <stop offset="30%" stopColor="#a78bfa" stopOpacity="0.25" />
             <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="ec-jet-dn" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.4" />
-            <stop offset="40%" stopColor="#a78bfa" stopOpacity="0.15" />
+            <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.45" />
+            <stop offset="30%" stopColor="#a78bfa" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
           </linearGradient>
           <filter id="ec-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="1.5" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" />
           </filter>
           <filter id="ec-bloom" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="4" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" />
+            <feGaussianBlur stdDeviation="5" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" />
           </filter>
           <filter id="ec-soft" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="2.5" />
+            <feGaussianBlur stdDeviation="3" />
+          </filter>
+          <filter id="ec-mega" x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur stdDeviation="8" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" />
           </filter>
         </defs>
 
-        {/* ── Nebula background wash ── */}
-        <ellipse cx="140" cy="80" rx="130" ry="70" fill="rgba(124,58,237,0.03)" filter="url(#ec-soft)" className="ec-nebula n1" />
-        <ellipse cx="100" cy="60" rx="80" ry="40" fill="rgba(6,182,212,0.025)" filter="url(#ec-soft)" className="ec-nebula n2" />
-        <ellipse cx="180" cy="100" rx="60" ry="35" fill="rgba(244,114,182,0.02)" filter="url(#ec-soft)" className="ec-nebula n3" />
+        {/* ── Nebula wash ── */}
+        <ellipse cx="150" cy="85" rx="140" ry="75" fill="rgba(124,58,237,0.035)" filter="url(#ec-soft)" className="ec-nebula n1" />
+        <ellipse cx="100" cy="60" rx="85" ry="45" fill="rgba(6,182,212,0.025)" filter="url(#ec-soft)" className="ec-nebula n2" />
+        <ellipse cx="200" cy="110" rx="65" ry="40" fill="rgba(244,114,182,0.02)" filter="url(#ec-soft)" className="ec-nebula n3" />
 
-        {/* ── Stars — denser field ── */}
-        <circle cx="15" cy="20" r="0.8" fill="#fff" opacity="0.7" className="ec-star s1" />
-        <circle cx="40" cy="140" r="0.5" fill="#fff" opacity="0.4" className="ec-star s2" />
-        <circle cx="60" cy="12" r="0.6" fill="#fbbf24" opacity="0.5" className="ec-star s3" />
-        <circle cx="245" cy="30" r="0.7" fill="#67e8f9" opacity="0.6" className="ec-star s1" />
-        <circle cx="260" cy="120" r="0.4" fill="#f472b6" opacity="0.5" className="ec-star s2" />
-        <circle cx="220" cy="145" r="0.5" fill="#fff" opacity="0.35" className="ec-star s3" />
-        <circle cx="25" cy="90" r="0.4" fill="#a78bfa" opacity="0.45" className="ec-star s1" />
-        <circle cx="265" cy="70" r="0.6" fill="#fff" opacity="0.3" className="ec-star s2" />
-        <circle cx="50" cy="55" r="0.3" fill="#67e8f9" opacity="0.4" className="ec-star s3" />
-        <circle cx="230" cy="15" r="0.3" fill="#fbbf24" opacity="0.35" className="ec-star s1" />
-        <circle cx="10" cy="130" r="0.4" fill="#fff" opacity="0.3" className="ec-star s2" />
-        <circle cx="270" cy="50" r="0.35" fill="#c4b5fd" opacity="0.4" className="ec-star s3" />
+        {/* ── Stars ── */}
+        <circle cx="12" cy="18" r="0.8" fill="#fff" opacity="0.7" className="ec-star s1" />
+        <circle cx="38" cy="150" r="0.5" fill="#fff" opacity="0.4" className="ec-star s2" />
+        <circle cx="62" cy="10" r="0.6" fill="#fbbf24" opacity="0.5" className="ec-star s3" />
+        <circle cx="255" cy="28" r="0.7" fill="#67e8f9" opacity="0.6" className="ec-star s1" />
+        <circle cx="275" cy="125" r="0.5" fill="#f472b6" opacity="0.5" className="ec-star s2" />
+        <circle cx="232" cy="152" r="0.5" fill="#fff" opacity="0.35" className="ec-star s3" />
+        <circle cx="22" cy="95" r="0.4" fill="#a78bfa" opacity="0.5" className="ec-star s1" />
+        <circle cx="280" cy="68" r="0.6" fill="#fff" opacity="0.3" className="ec-star s2" />
+        <circle cx="48" cy="52" r="0.35" fill="#67e8f9" opacity="0.4" className="ec-star s3" />
+        <circle cx="242" cy="12" r="0.35" fill="#fbbf24" opacity="0.4" className="ec-star s1" />
+        <circle cx="8" cy="135" r="0.4" fill="#fff" opacity="0.3" className="ec-star s2" />
+        <circle cx="288" cy="48" r="0.4" fill="#c4b5fd" opacity="0.4" className="ec-star s3" />
+        <circle cx="130" cy="8" r="0.3" fill="#fff" opacity="0.35" className="ec-star s1" />
+        <circle cx="170" cy="162" r="0.3" fill="#67e8f9" opacity="0.3" className="ec-star s2" />
 
-        {/* ── Polar jets ── */}
-        <path d="M136 42 L140 8 L144 42" fill="url(#ec-jet-up)" opacity="0.5" className="ec-jet jet-up" />
-        <path d="M137 45 L140 18 L143 45" fill="rgba(255,255,255,0.15)" className="ec-jet jet-up" />
-        <path d="M136 118 L140 152 L144 118" fill="url(#ec-jet-dn)" opacity="0.4" className="ec-jet jet-dn" />
+        {/* ── Polar jets — wider, brighter ── */}
+        <path d="M144 48 L150 4 L156 48" fill="url(#ec-jet-up)" opacity="0.6" className="ec-jet jet-up" />
+        <path d="M146 50 L150 14 L154 50" fill="rgba(255,255,255,0.2)" className="ec-jet jet-up" />
+        <path d="M147 52 L150 28 L153 52" fill="rgba(255,255,255,0.1)" className="ec-jet jet-up" />
+        <path d="M144 122 L150 166 L156 122" fill="url(#ec-jet-dn)" opacity="0.45" className="ec-jet jet-dn" />
+        <path d="M146 120 L150 156 L154 120" fill="rgba(255,255,255,0.12)" className="ec-jet jet-dn" />
 
-        {/* ── Outer accretion disc — cool cyan, wide ── */}
-        <ellipse cx="140" cy="80" rx="95" ry="9" fill="url(#ec-acc-cool)" opacity="0.35" className="ec-disc-outer" />
+        {/* ── Outer accretion disc ── */}
+        <ellipse cx="150" cy="85" rx="100" ry="10" fill="url(#ec-acc-cool)" opacity="0.3" className="ec-disc-outer" />
 
-        {/* ── Hot accretion disc — warm colors, bright ── */}
-        <ellipse cx="140" cy="80" rx="75" ry="7" fill="url(#ec-acc-hot)" opacity="0.7" className="ec-disc" />
-        <ellipse cx="140" cy="80" rx="55" ry="4" fill="url(#ec-acc-hot)" opacity="0.9" className="ec-disc-inner" />
+        {/* ── Hot accretion disc — multi-layer ── */}
+        <ellipse cx="150" cy="85" rx="82" ry="8" fill="url(#ec-acc-hot)" opacity="0.6" className="ec-disc" />
+        <ellipse cx="150" cy="85" rx="65" ry="5.5" fill="url(#ec-acc-hot)" opacity="0.85" className="ec-disc-inner" />
+        <ellipse cx="150" cy="85" rx="48" ry="3" fill="url(#ec-acc-hot)" opacity="0.95" filter="url(#ec-glow)" className="ec-disc-core" />
 
-        {/* ── Gravitational lensing halo ── */}
-        <circle cx="140" cy="80" r="52" fill="url(#ec-halo)" className="ec-halo" />
+        {/* ── Lensed disc arcs — Interstellar-style wrapped light ── */}
+        <path d="M118 54 A 42 42 0 0 1 182 54" stroke="url(#ec-lensed)" strokeWidth="2.5" fill="none" opacity="0.4" className="ec-lensed top" />
+        <path d="M122 52 A 38 38 0 0 1 178 52" stroke="rgba(255,255,255,0.15)" strokeWidth="1" fill="none" className="ec-lensed top" />
+        <path d="M120 116 A 40 40 0 0 0 180 116" stroke="url(#ec-lensed)" strokeWidth="2" fill="none" opacity="0.3" className="ec-lensed bot" />
 
-        {/* ── Photon ring — the bright razor ring ── */}
-        <circle cx="140" cy="80" r="32" fill="url(#ec-photon)" className="ec-photon" />
+        {/* ── Lensing halo ── */}
+        <circle cx="150" cy="85" r="55" fill="url(#ec-halo)" className="ec-halo" />
 
-        {/* ── The void — absolute black ── */}
-        <circle cx="140" cy="80" r="26" fill="url(#ec-hole)" />
-        <circle cx="140" cy="80" r="24" fill="#000" />
+        {/* ── Photon ring — double razor ring ── */}
+        <circle cx="150" cy="85" r="34" fill="url(#ec-photon)" className="ec-photon" />
+        <circle cx="150" cy="85" r="30" fill="url(#ec-photon2)" className="ec-photon p2" />
 
-        {/* ── Event horizon — white-hot inner edge ── */}
-        <circle cx="140" cy="80" r="25" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="0.6" filter="url(#ec-glow)" className="ec-horizon" />
-        <circle cx="140" cy="80" r="26.5" fill="none" stroke="rgba(196,181,253,0.2)" strokeWidth="1.2" className="ec-horizon-glow" />
+        {/* ── The void ── */}
+        <circle cx="150" cy="85" r="27" fill="url(#ec-hole)" />
+        <circle cx="150" cy="85" r="25" fill="#000" />
 
-        {/* ── Corona wisps — light bending around ── */}
-        <path d="M102 56 Q115 38 140 35 Q165 38 178 56" stroke="rgba(255,255,255,0.3)" strokeWidth="1" fill="none" filter="url(#ec-glow)" className="ec-wisp w1" />
-        <path d="M105 104 Q118 120 140 124 Q162 120 175 104" stroke="rgba(196,181,253,0.15)" strokeWidth="0.7" fill="none" className="ec-wisp w2" />
-        <path d="M95 70 Q105 58 118 54" stroke="rgba(103,232,249,0.25)" strokeWidth="0.6" fill="none" className="ec-wisp w3" />
-        <path d="M185 90 Q175 102 162 106" stroke="rgba(244,114,182,0.18)" strokeWidth="0.5" fill="none" className="ec-wisp w3" />
-        {/* Extra bright rim highlight */}
-        <path d="M112 58 Q125 48 140 46 Q155 48 168 58" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" filter="url(#ec-bloom)" className="ec-edge" />
+        {/* ── Event horizon edge — white-hot ── */}
+        <circle cx="150" cy="85" r="26" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7" filter="url(#ec-glow)" className="ec-horizon" />
+        <circle cx="150" cy="85" r="27.5" fill="none" stroke="rgba(196,181,253,0.15)" strokeWidth="1.5" className="ec-horizon-glow" />
 
-        {/* ── Astronaut — bigger, more detailed ── */}
-        <g className="ec-astronaut" filter="url(#ec-glow)">
-          {/* Jetpack trail */}
-          <path d="M78 82 Q72 84 65 90 Q60 96 58 105" stroke="rgba(103,232,249,0.15)" strokeWidth="1.2" fill="none" className="ec-trail" />
-          <path d="M78 84 Q74 88 70 96 Q68 102 66 108" stroke="rgba(167,139,250,0.1)" strokeWidth="0.8" fill="none" className="ec-trail t2" />
-          {/* Helmet */}
-          <ellipse cx="75" cy="72" rx="5" ry="5.5" fill="#0f0a2a" stroke="rgba(196,181,253,0.6)" strokeWidth="0.8" />
-          {/* Visor — reflective curve */}
-          <ellipse cx="73.5" cy="71" rx="2.5" ry="3" fill="rgba(103,232,249,0.2)" />
-          <ellipse cx="72.5" cy="70" rx="1.2" ry="1.5" fill="rgba(103,232,249,0.35)" className="ec-visor-glint" />
-          <circle cx="72" cy="69.5" r="0.5" fill="rgba(255,255,255,0.8)" />
-          {/* Body suit */}
-          <path d="M72 77.5 L70 89 L72.5 90.5 L75 85 L77.5 90.5 L80 89 L78 77.5" fill="#0f0a2a" stroke="rgba(196,181,253,0.4)" strokeWidth="0.6" />
-          {/* Left arm reaching toward the void */}
-          <path d="M72 79 L66 76 L64 78" stroke="rgba(196,181,253,0.35)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
-          {/* Right arm */}
-          <path d="M78 79 L82 82 L84 81" stroke="rgba(196,181,253,0.35)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
-          {/* Backpack */}
-          <rect x="78" y="78" width="3" height="6.5" rx="0.8" fill="rgba(124,58,237,0.35)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.4" />
-          {/* Backpack light */}
-          <circle cx="79.5" cy="80" r="0.6" fill="#7c3aed" opacity="0.8" className="ec-pack-light" />
-          {/* Tether line to void */}
-          <path d="M80 82 Q95 78 114 80" stroke="rgba(196,181,253,0.12)" strokeWidth="0.5" fill="none" strokeDasharray="2.5 2" className="ec-tether" />
-          {/* Helmet ambient glow */}
-          <circle cx="75" cy="72" r="8" fill="none" stroke="rgba(167,139,250,0.1)" strokeWidth="0.5" />
+        {/* ── Front disc arc — passes in front of void ── */}
+        <path d="M110 89 A 58 5 0 0 0 190 89" stroke="url(#ec-acc-hot)" strokeWidth="2.5" fill="none" opacity="0.5" filter="url(#ec-glow)" className="ec-front-disc" />
+
+        {/* ── Corona wisps ── */}
+        <path d="M108 58 Q125 40 150 37 Q175 40 192 58" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" fill="none" filter="url(#ec-glow)" className="ec-wisp w1" />
+        <path d="M112 112 Q128 128 150 131 Q172 128 188 112" stroke="rgba(196,181,253,0.15)" strokeWidth="0.8" fill="none" className="ec-wisp w2" />
+        <path d="M100 75 Q112 60 125 56" stroke="rgba(103,232,249,0.3)" strokeWidth="0.7" fill="none" className="ec-wisp w3" />
+        <path d="M200 95 Q188 108 175 112" stroke="rgba(244,114,182,0.2)" strokeWidth="0.5" fill="none" className="ec-wisp w3" />
+
+        {/* ── Mega bright rim ── */}
+        <path d="M118 60 Q132 50 150 48 Q168 50 182 60" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" fill="none" filter="url(#ec-mega)" className="ec-edge" />
+
+        {/* ── Orbiting astronaut ── */}
+        <g className="ec-orbit" style={{transformOrigin: '150px 85px'}}>
+          {/* Tether — rotates with orbit so it always points toward center */}
+          <line x1="92" y1="85" x2="128" y2="85" stroke="rgba(196,181,253,0.1)" strokeWidth="0.5" strokeDasharray="2.5 2" className="ec-tether" />
+          {/* Counter-rotating astronaut group — stays upright */}
+          <g className="ec-astronaut" style={{transformOrigin: '82px 80px'}} filter="url(#ec-glow)">
+            {/* Jetpack exhaust */}
+            <ellipse cx="88" cy="92" rx="2" ry="5" fill="rgba(103,232,249,0.12)" className="ec-exhaust e1" />
+            <ellipse cx="86" cy="93" rx="1.5" ry="4" fill="rgba(167,139,250,0.08)" className="ec-exhaust e2" />
+            {/* Helmet */}
+            <ellipse cx="82" cy="75" rx="5.5" ry="6" fill="#0c0820" stroke="rgba(196,181,253,0.65)" strokeWidth="0.9" />
+            {/* Visor — reflective */}
+            <ellipse cx="80" cy="74" rx="2.8" ry="3.2" fill="rgba(103,232,249,0.15)" />
+            <ellipse cx="79" cy="73" rx="1.3" ry="1.6" fill="rgba(103,232,249,0.35)" className="ec-visor-glint" />
+            <circle cx="78.5" cy="72.5" r="0.6" fill="rgba(255,255,255,0.85)" />
+            {/* Body */}
+            <path d="M79 81 L77 93 L79.5 94.5 L82 88 L84.5 94.5 L87 93 L85 81" fill="#0c0820" stroke="rgba(196,181,253,0.45)" strokeWidth="0.7" />
+            {/* Left arm — reaching toward the void */}
+            <path d="M79 83 L73 79 L71 81" stroke="rgba(196,181,253,0.4)" strokeWidth="1" fill="none" strokeLinecap="round" className="ec-arm-reach" />
+            {/* Right arm */}
+            <path d="M85 83 L89 87 L91 85.5" stroke="rgba(196,181,253,0.4)" strokeWidth="1" fill="none" strokeLinecap="round" className="ec-arm-wave" />
+            {/* Backpack */}
+            <rect x="85" y="82" width="3.5" height="7" rx="1" fill="rgba(124,58,237,0.4)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.5" />
+            {/* Backpack light */}
+            <circle cx="86.8" cy="84" r="0.7" fill="#7c3aed" className="ec-pack-light" />
+            {/* Helmet glow */}
+            <circle cx="82" cy="75" r="9" fill="none" stroke="rgba(167,139,250,0.08)" strokeWidth="0.6" />
+            <circle cx="82" cy="75" r="12" fill="none" stroke="rgba(103,232,249,0.04)" strokeWidth="0.4" />
+          </g>
         </g>
 
-        {/* ── Particle streams — debris drawn inward ── */}
-        <circle cx="215" cy="72" r="0.8" fill="#67e8f9" opacity="0.7" className="ec-particle p1" />
-        <circle cx="225" cy="85" r="0.5" fill="#a78bfa" opacity="0.55" className="ec-particle p2" />
-        <circle cx="205" cy="60" r="0.4" fill="#f472b6" opacity="0.5" className="ec-particle p3" />
-        <circle cx="55" cy="95" r="0.6" fill="#fbbf24" opacity="0.45" className="ec-particle p4" />
-        <circle cx="45" cy="72" r="0.4" fill="#67e8f9" opacity="0.35" className="ec-particle p5" />
-        <circle cx="210" cy="95" r="0.35" fill="#fff" opacity="0.4" className="ec-particle p1" />
-        <circle cx="60" cy="65" r="0.3" fill="#c4b5fd" opacity="0.3" className="ec-particle p2" />
-        <circle cx="230" cy="75" r="0.45" fill="#fb923c" opacity="0.4" className="ec-particle p3" />
+        {/* ── Particles ── */}
+        <circle cx="225" cy="78" r="0.9" fill="#67e8f9" opacity="0.7" className="ec-particle p1" />
+        <circle cx="238" cy="90" r="0.5" fill="#a78bfa" opacity="0.55" className="ec-particle p2" />
+        <circle cx="215" cy="62" r="0.45" fill="#f472b6" opacity="0.5" className="ec-particle p3" />
+        <circle cx="60" cy="100" r="0.7" fill="#fbbf24" opacity="0.5" className="ec-particle p4" />
+        <circle cx="48" cy="78" r="0.4" fill="#67e8f9" opacity="0.35" className="ec-particle p5" />
+        <circle cx="220" cy="102" r="0.4" fill="#fff" opacity="0.4" className="ec-particle p1" />
+        <circle cx="65" cy="68" r="0.35" fill="#c4b5fd" opacity="0.3" className="ec-particle p2" />
+        <circle cx="242" cy="80" r="0.5" fill="#fb923c" opacity="0.45" className="ec-particle p3" />
+        <circle cx="55" cy="88" r="0.3" fill="#fff" opacity="0.3" className="ec-particle p4" />
+        <circle cx="235" cy="70" r="0.35" fill="#fbbf24" opacity="0.35" className="ec-particle p5" />
       </svg>
     </div>
   );
