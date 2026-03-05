@@ -774,21 +774,20 @@
     z-index: 500;
     pointer-events: none;
     will-change: transform, opacity;
-    transform: translateZ(0);
 }
 
 .peek-character.peek-right {
     right: 10px;
-    top: 50%;
+    top: calc(50% - 210px);
 }
 
 .peek-character.peek-left {
     left: 10px;
-    top: 40%;
+    top: calc(40% - 210px);
 }
 
 .peek-character.peek-top {
-    left: 50%;
+    left: calc(50% - 210px);
     top: 20px;
 }
 

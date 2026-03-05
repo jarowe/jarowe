@@ -111,7 +111,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setProfile(null);
     if (!supabase) return;
-    try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
+    try { await supabase.auth.signOut({ scope: 'global' }); } catch (_) { /* ignore */ }
     // Force-clear Supabase auth tokens from localStorage in case server signOut failed
     try {
       Object.keys(localStorage)

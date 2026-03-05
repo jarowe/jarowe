@@ -4537,16 +4537,16 @@ export default function Home() {
     const thinkingLines = ['Refracting your question...', 'Processing wavelengths...', 'Let me think...', 'Hmm, interesting...'];
     setPrismBubble(thinkingLines[Math.floor(Math.random() * thinkingLines.length)]);
 
-    // Safety timeout — if no response in 15s, show fallback
+    // Safety timeout — if no response in 30s, show fallback
     const safetyTimeout = setTimeout(() => {
       if (aiAbortRef.current) aiAbortRef.current.abort();
-      console.warn('[GlintAI] Safety timeout — no response in 15s');
+      console.warn('[GlintAI] Safety timeout — no response in 30s');
       window.__prismExpression = 'curious';
       setPrismBubble("Hmm, my signal got lost in the spectrum. Try again!");
       setAiMessages(prev => [...prev, { role: 'assistant', content: "Hmm, my signal got lost in the spectrum. Try again!", timestamp: Date.now() }]);
       setAiStreaming(false);
       setAiStreamText('');
-    }, 15000);
+    }, 30000);
 
     // Build context for system prompt
     const context = {
@@ -4556,17 +4556,20 @@ export default function Home() {
       model: cfg.aiModel || 'gpt-4o-mini',
     };
 
-    // Get auth token if available
+    // Get auth token if available (3s timeout so slow Supabase doesn't block fetch)
     let authHeader = {};
     try {
-      const { supabase } = await import('../lib/supabase');
-      if (supabase) {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session?.access_token) {
-          authHeader = { Authorization: `Bearer ${data.session.access_token}` };
-          context.userName = data.session.user?.user_metadata?.display_name || null;
+      const authPromise = (async () => {
+        const { supabase } = await import('../lib/supabase');
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.access_token) {
+            authHeader = { Authorization: `Bearer ${data.session.access_token}` };
+            context.userName = data.session.user?.user_metadata?.display_name || null;
+          }
         }
-      }
+      })();
+      await Promise.race([authPromise, new Promise(r => setTimeout(r, 3000))]);
     } catch { /* no auth available */ }
 
     // Get relationship level from autonomy
@@ -4891,6 +4894,9 @@ export default function Home() {
             runPortalExitSequence();
           } else {
             setPeekVisible(false);
+            // Resume autonomy for non-portal exits (portal exit resumes in runPortalExitSequence)
+            const aut = getGlintAutonomy();
+            if (aut) aut.resume();
           }
         }, 8000);
         timerId = scheduleNext();
@@ -5553,11 +5559,37 @@ export default function Home() {
       setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // ── After impact (600ms): either enter conversation mode or portal exit ──
+    // ── After impact (600ms): enter AI chat, scripted convo, or portal exit ──
     const convoEnabled = bpCfg.brainConversationEnabled !== false && bpCfg.brainEnabled !== false;
+    const aiChatOnBop = bpCfg.aiChatEnabled && bpCfg.brainEnabled !== false;
 
-    if (convoEnabled) {
-      // Enter conversation mode
+    if (aiChatOnBop) {
+      // Bop → AI chat mode directly
+      setTimeout(() => {
+        setBopPhase(null);
+        window.__currentHoliday = holiday;
+        window.__isBirthday = isBirthday;
+        const ctx = buildContext();
+        ctx.bopsThisSession = sb + 1;
+        const root = getConversationRoot(ctx);
+        setConversationMode(true);
+        setConversationNode(null); // no scripted node — AI mode
+        setAiChatMode(true);
+        // Pause autonomy during conversation
+        const aut = getGlintAutonomy();
+        if (aut) aut.pause();
+        window.__prismExpression = root.expression || 'happy';
+        showBubbleWithThinking(root.text);
+
+        // Longer timeout for AI chat — user needs time to type
+        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+        conversationTimeoutRef.current = setTimeout(() => {
+          exitConversation();
+          setAiChatMode(false);
+        }, 60 * 1000);
+      }, 600);
+    } else if (convoEnabled) {
+      // Enter scripted conversation mode (fallback when AI disabled)
       setTimeout(() => {
         setBopPhase(null);
         window.__currentHoliday = holiday;
@@ -6458,7 +6490,7 @@ export default function Home() {
                         >
                           {prismBubble}
                           {/* Quick-reply pills (Glint Brain Tier 2 + AI Tier 4) */}
-                          {conversationMode && conversationNode?.replies && !aiStreaming && (
+                          {conversationMode && conversationNode?.replies && !aiStreaming && !aiChatMode && (
                             <div className="glint-reply-pills">
                               {conversationNode.replies.map((reply, i) => (
                                 <motion.button
@@ -6474,6 +6506,26 @@ export default function Home() {
                                   }}
                                 >
                                   {reply.label}
+                                </motion.button>
+                              ))}
+                            </div>
+                          )}
+                          {/* AI chat mode pills (bop-triggered) */}
+                          {conversationMode && aiChatMode && !aiStreaming && aiMessages.length === 0 && (
+                            <div className="glint-reply-pills">
+                              {['What is this site?', 'Tell me a secret', 'Who made you?'].map((q, i) => (
+                                <motion.button
+                                  key={q}
+                                  className="glint-pill glint-pill-ai"
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.5 + i * 0.1 }}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    handleAiChat(q);
+                                  }}
+                                >
+                                  {q}
                                 </motion.button>
                               ))}
                             </div>
@@ -6698,6 +6750,23 @@ export default function Home() {
               onClose={() => { setShowGame(false); const aut = getGlintAutonomy(); if (aut) aut.resume(); }}
             />
           </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* GLINT AI CHAT PANEL TAB — persistent prism trigger on right edge */}
+      <AnimatePresence>
+        {aiMessages.length > 0 && !chatPanelOpen && (
+          <motion.div
+            className="glint-panel-tab"
+            initial={{ x: 50, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 50, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            onClick={openChatPanel}
+            title="Open Glint chat"
+          >
+            <div className="glint-panel-tab-prism" />
+          </motion.div>
         )}
       </AnimatePresence>
 
