@@ -1,8 +1,8 @@
 // Vercel serverless function: Glint AI Chat proxy with SSE streaming
 // POST /api/glint-chat  { messages: [...], context: {...} }
 
-import { buildSystemPrompt } from './lib/glint-system-prompt.js';
-import { checkRateLimit } from './lib/rate-limiter.js';
+import { buildSystemPrompt } from './_lib/glint-system-prompt.js';
+import { checkRateLimit } from './_lib/rate-limiter.js';
 
 export const config = {
   runtime: 'edge',

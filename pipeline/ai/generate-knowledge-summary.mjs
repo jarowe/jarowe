@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generates the knowledge summary for Glint's system prompt from constellation data.
 // Usage: node pipeline/ai/generate-knowledge-summary.mjs
-// Output: api/lib/knowledge-summary.js
+// Output: api/_lib/knowledge-summary.js
 
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
 
 const GRAPH_PATH = resolve(ROOT, 'public/data/constellation.graph.json');
-const OUTPUT_PATH = resolve(ROOT, 'api/lib/knowledge-summary.js');
+const OUTPUT_PATH = resolve(ROOT, 'api/_lib/knowledge-summary.js');
 
 // ── Load & Filter ──
 let graph;
