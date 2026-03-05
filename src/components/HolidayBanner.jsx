@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHoliday } from '../context/HolidayContext';
 import { GAMES } from '../data/gameRegistry';
 import confetti from 'canvas-confetti';
+import GlintBeam from './GlintBeam';
 import './HolidayBanner.css';
 
 function getTodayKey() {
@@ -92,23 +93,19 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
   }, [onTriviaLaunch]);
 
   // Compute beam geometry from Glint position → banner center
-  const beamStyle = (() => {
+  const beamCoords = (() => {
     if (!glintNudge.active || !bannerRef.current) return null;
     const rect = bannerRef.current.getBoundingClientRect();
     const bannerCX = rect.left + rect.width / 2;
     const bannerCY = rect.top + rect.height / 2;
-    const dx = bannerCX - glintNudge.glintX;
-    const dy = bannerCY - glintNudge.glintY;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     const cfg = window.__prismConfig || {};
     const beamDuration = cfg.bannerNudgeBeamDuration ?? 1200;
     return {
-      '--beam-start-x': `${glintNudge.glintX}px`,
-      '--beam-start-y': `${glintNudge.glintY}px`,
-      '--beam-angle': `${angle}deg`,
-      '--beam-length': `${length}px`,
-      '--beam-duration': `${beamDuration}ms`,
+      startX: glintNudge.glintX,
+      startY: glintNudge.glintY,
+      endX: bannerCX,
+      endY: bannerCY,
+      duration: beamDuration,
     };
   })();
 
@@ -185,7 +182,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
             )}
           </div>
         </motion.div>
-        {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}
+        {glintNudge.active && beamCoords && <GlintBeam {...beamCoords} />}
       </>
     );
   }
@@ -243,7 +240,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
             </div>
           </div>
         </motion.div>
-        {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}
+        {glintNudge.active && beamCoords && <GlintBeam {...beamCoords} />}
       </>
     );
   }
@@ -297,7 +294,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
           </div>
         </div>
       </motion.div>
-      {glintNudge.active && beamStyle && <div className="glint-rainbow-beam" style={beamStyle} />}
+      {glintNudge.active && beamCoords && <GlintBeam {...beamCoords} />}
     </>
   );
 }

@@ -4893,20 +4893,117 @@ export default function Home() {
     return () => cancelAnimationFrame(rafId);
   }, [peekVisible]);
 
-  // One bop per reveal guard
+  // One bop per reveal guard + rapid-fire punch counter
   const boppedThisRevealRef = useRef(false);
+  const punchCountRef = useRef(0); // punches during conversation — 5 = pushed through portal
   // Reset when peek becomes visible
   useEffect(() => {
     if (peekVisible) {
       boppedThisRevealRef.current = false;
+      punchCountRef.current = 0;
       // Reset Glint's rotation + angular velocity so it starts with clean Y spin
       window.__prismResetRotation = true;
     }
   }, [peekVisible]);
 
+  // ── Rapid-fire punch during conversation — accumulates force, pushes Glint through portal ──
+  const handleConversationPunch = useCallback((e) => {
+    punchCountRef.current += 1;
+    const punches = punchCountRef.current;
+    const PUSH_THRESHOLD = 5;
+
+    // Angular impulse — each punch spins Glint harder
+    const impulseStr = 0.3 + punches * 0.15;
+    const angle = Math.random() * Math.PI * 2;
+    window.__prismBopImpulse = {
+      x: Math.sin(angle) * impulseStr,
+      y: Math.cos(angle) * impulseStr,
+      z: (Math.random() - 0.5) * 0.3 * punches,
+    };
+    window.__prismSquash = Date.now();
+
+    // Sound + ripple for each punch
+    playBopSound();
+    if (e && e.clientX != null) {
+      setBopRipple({ x: e.clientX, y: e.clientY });
+      setTimeout(() => setBopRipple(null), 400);
+    }
+
+    // Mini confetti sparks (escalating with punch count)
+    let confettiOrigin = { x: 0.5, y: 0.5 };
+    if (peekCharRef.current) {
+      const rect = peekCharRef.current.getBoundingClientRect();
+      confettiOrigin = {
+        x: (rect.left + rect.width / 2) / window.innerWidth,
+        y: (rect.top + rect.height / 2) / window.innerHeight,
+      };
+    }
+    confetti({
+      particleCount: 8 + punches * 6,
+      spread: 40 + punches * 15,
+      origin: confettiOrigin,
+      colors: ['#fff', '#fbbf24', '#f472b6', '#7c3aed'],
+      gravity: 0.5,
+      scalar: 0.5,
+      startVelocity: 15 + punches * 5,
+      ticks: 60,
+      shapes: ['circle'],
+    });
+
+    // Escalating expressions: annoyed → angry → scared
+    if (punches >= 4) {
+      window.__prismExpression = 'surprised';
+    } else if (punches >= 2) {
+      window.__prismExpression = 'angry';
+    } else {
+      window.__prismExpression = 'surprised';
+    }
+
+    // Screen micro-shake (smaller than initial bop)
+    const bento = document.querySelector('.bento-container');
+    if (bento) {
+      bento.style.animation = 'none';
+      bento.offsetHeight; // force reflow
+      bento.classList.add('screen-shake');
+      setTimeout(() => bento.classList.remove('screen-shake'), 200);
+    }
+
+    // Reached threshold — DRAMATIC PUSH through portal!
+    if (punches >= PUSH_THRESHOLD) {
+      // Cancel conversation timeout
+      if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
+      setConversationMode(false);
+      setConversationNode(null);
+      clearBubble();
+
+      // Big dramatic exit — extra spin, extra confetti
+      window.__prismBopExit = true;
+      window.__prismBopImpulse = {
+        x: (Math.random() - 0.5) * 3,
+        y: (Math.random() > 0.5 ? 1 : -1) * 2.5,
+        z: (Math.random() - 0.5) * 1.5,
+      };
+      confetti({
+        particleCount: 80,
+        spread: 120,
+        origin: confettiOrigin,
+        colors: ['#fff', '#fbbf24', '#38bdf8', '#7c3aed', '#f472b6', '#22c55e'],
+        gravity: 0.2,
+        scalar: 0.9,
+        startVelocity: 50,
+        ticks: 150,
+        shapes: ['circle', 'square'],
+      });
+      setTimeout(() => runPortalExitSequence(), 100);
+    }
+  }, [clearBubble, runPortalExitSequence]);
+
   const handleCatchCharacter = useCallback((e) => {
-    // Don't re-bop during conversation mode
-    if (conversationModeRef.current) return;
+    // During conversation: rapid-fire punching instead of re-bop
+    if (conversationModeRef.current) {
+      handleConversationPunch(e);
+      return;
+    }
     // One bop per reveal only
     if (boppedThisRevealRef.current) return;
     boppedThisRevealRef.current = true;
@@ -5013,7 +5110,7 @@ export default function Home() {
     if (newBops % 3 === 0) {
       setTimeout(() => setShowSpeedGame(true), 2500);
     }
-  }, [prismBops, clearBubble, runPortalExitSequence, exitConversation, showBubbleWithThinking, holiday, isBirthday]);
+  }, [prismBops, clearBubble, runPortalExitSequence, exitConversation, showBubbleWithThinking, holiday, isBirthday, handleConversationPunch]);
 
   // Compute directional bop impulse based on WHERE you hit the hitbox
   const computeBopImpulse = useCallback((clickEvent) => {

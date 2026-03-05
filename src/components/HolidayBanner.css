@@ -374,29 +374,6 @@
   100% { transform: translateX(150%); }
 }
 
-/* ── Glint Rainbow Beam ── */
-.glint-rainbow-beam {
-  position: fixed;
-  width: var(--beam-length, 200px);
-  height: 3px;
-  left: var(--beam-start-x, 50%);
-  top: var(--beam-start-y, 50%);
-  transform-origin: left center;
-  transform: rotate(var(--beam-angle, 0deg));
-  background: linear-gradient(to right, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff);
-  border-radius: 2px;
-  box-shadow: 0 0 12px 2px rgba(136, 0, 255, 0.5), 0 0 4px 1px rgba(0, 136, 255, 0.4);
-  animation: beamFire var(--beam-duration, 1200ms) ease-out forwards;
-  pointer-events: none;
-  z-index: 9999;
-}
-@keyframes beamFire {
-  0%   { transform: rotate(var(--beam-angle, 0deg)) scaleX(0); opacity: 1; }
-  33%  { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 1; }
-  66%  { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 0.8; }
-  100% { transform: rotate(var(--beam-angle, 0deg)) scaleX(1); opacity: 0; }
-}
-
 /* ── Glint Challenge Badge ── */
 .glint-challenge-badge {
   display: inline-flex;
