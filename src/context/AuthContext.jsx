@@ -33,9 +33,19 @@ export function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUser(session.user);
         const p = await fetchProfile(session.user.id);
-        setProfile(p);
+        if (p) {
+          setUser(session.user);
+          setProfile(p);
+        } else {
+          // Stale session — user was deleted or profile missing, force sign out
+          try { await supabase.auth.signOut(); } catch (_) {}
+          try {
+            Object.keys(localStorage)
+              .filter(k => k.startsWith('sb-'))
+              .forEach(k => localStorage.removeItem(k));
+          } catch (_) {}
+        }
       }
       setLoading(false);
     });
@@ -90,6 +100,12 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     if (!supabase) return;
     try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
+    // Force-clear Supabase auth tokens from localStorage in case server signOut failed
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (_) { /* ignore */ }
     setUser(null);
     setProfile(null);
   }, []);
