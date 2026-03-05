@@ -60,12 +60,17 @@
 .nav-socials {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    height: 34px;
 }
 
 .social-icon {
     color: var(--text-muted);
     transition: color 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 18px;
 }
 
 .social-icon:hover {
@@ -73,7 +78,7 @@
     transform: translateY(-2px);
 }
 
-/* ── Guest Avatar ── */
+/* ── Guest Avatar (Astronaut) ── */
 .guest-avatar {
     position: relative;
     width: 34px;
@@ -83,10 +88,11 @@
     border: none;
     cursor: pointer;
     padding: 0;
-    margin-left: 8px;
+    margin-left: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 .guest-avatar-ring {
     position: absolute;
@@ -94,12 +100,13 @@
     border-radius: 50%;
     background: conic-gradient(from 0deg, #7c3aed, #06b6d4, #f472b6, #fbbf24, #7c3aed);
     animation: guestRingSpin 3s linear infinite;
-    opacity: 0.7;
-    transition: opacity 0.3s;
+    opacity: 0.6;
+    transition: opacity 0.3s, filter 0.3s;
 }
 .guest-avatar:hover .guest-avatar-ring {
     opacity: 1;
-    animation-duration: 1.5s;
+    animation-duration: 1s;
+    filter: brightness(1.3);
 }
 @keyframes guestRingSpin {
     to { transform: rotate(360deg); }
@@ -114,13 +121,49 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
-    transition: color 0.2s, background 0.3s;
+    transition: background 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
 }
 .guest-avatar:hover .guest-avatar-inner {
-    color: #fff;
-    background: rgba(124, 58, 237, 0.2);
+    background: rgba(124, 58, 237, 0.15);
+    transform: scale(1.05);
 }
+
+/* Astronaut SVG animations */
+.astronaut-svg {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center center;
+}
+.guest-avatar:hover .astronaut-svg {
+    transform: rotate(-8deg) translateX(1px) scale(1.1);
+}
+.astro-visor {
+    transition: fill-opacity 0.3s;
+}
+.guest-avatar:hover .astro-visor {
+    fill-opacity: 1;
+    filter: brightness(1.4);
+}
+.astro-shine {
+    animation: visorShimmer 3s ease-in-out infinite;
+}
+@keyframes visorShimmer {
+    0%, 100% { opacity: 0.35; transform: translateX(0); }
+    50% { opacity: 0.7; transform: translateX(2px); }
+}
+.astro-antenna-tip {
+    animation: antennaPulse 2s ease-in-out infinite;
+}
+@keyframes antennaPulse {
+    0%, 100% { fill: #7c3aed; r: 1.2; }
+    33% { fill: #06b6d4; r: 1.5; }
+    66% { fill: #f472b6; r: 1.3; }
+}
+.guest-avatar:hover .astro-helmet {
+    stroke: rgba(255, 255, 255, 0.9);
+    fill: rgba(255, 255, 255, 0.2);
+}
+
 .guest-avatar-tooltip {
     position: absolute;
     top: calc(100% + 8px);

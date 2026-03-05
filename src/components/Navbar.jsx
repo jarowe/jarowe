@@ -14,9 +14,26 @@ function GuestAvatar({ onClick }) {
         <button className="guest-avatar" onClick={onClick} aria-label="Sign in">
             <span className="guest-avatar-ring" />
             <span className="guest-avatar-inner">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
+                {/* Astronaut SVG — helmet + visor + body */}
+                <svg width="18" height="18" viewBox="0 0 32 32" fill="none" className="astronaut-svg">
+                    {/* Helmet */}
+                    <ellipse cx="16" cy="12" rx="9" ry="9.5" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" className="astro-helmet"/>
+                    {/* Visor */}
+                    <ellipse cx="16" cy="12.5" rx="6" ry="5.5" fill="url(#visorGrad)" className="astro-visor"/>
+                    {/* Visor shine */}
+                    <ellipse cx="13" cy="10.5" rx="2" ry="1.2" fill="rgba(255,255,255,0.35)" className="astro-shine"/>
+                    {/* Body hint */}
+                    <path d="M10 21 C10 18 12 17 16 17 C20 17 22 18 22 21 L22 24 L10 24 Z" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.3)" strokeWidth="1" className="astro-body"/>
+                    {/* Antenna */}
+                    <line x1="16" y1="2.5" x2="16" y2="5" stroke="rgba(255,255,255,0.5)" strokeWidth="1" className="astro-antenna"/>
+                    <circle cx="16" cy="2" r="1.2" fill="#7c3aed" className="astro-antenna-tip"/>
+                    <defs>
+                        <linearGradient id="visorGrad" x1="10" y1="7" x2="22" y2="18">
+                            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8"/>
+                            <stop offset="50%" stopColor="#7c3aed" stopOpacity="0.6"/>
+                            <stop offset="100%" stopColor="#f472b6" stopOpacity="0.7"/>
+                        </linearGradient>
+                    </defs>
                 </svg>
             </span>
             <span className="guest-avatar-tooltip">Join the adventure</span>
