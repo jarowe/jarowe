@@ -8,6 +8,7 @@ import StarseedProject from './pages/StarseedProject';
 const UniversePage = React.lazy(() => import('./pages/UniversePage'));
 const ConstellationPage = React.lazy(() => import('./pages/ConstellationPage'));
 const AdminPage = React.lazy(() => import('./pages/Admin'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
 import Now from './pages/Now';
@@ -15,6 +16,7 @@ import Workshop from './pages/Workshop';
 import Favorites from './pages/Favorites';
 import Vault from './pages/Vault';
 import { AudioProvider } from './context/AudioContext';
+import { AuthProvider } from './context/AuthContext';
 import { HolidayProvider, useHoliday } from './context/HolidayContext';
 import GlobalPlayer from './components/GlobalPlayer';
 
@@ -42,6 +44,7 @@ function HolidayBodyClass() {
 function App() {
   return (
     <AudioProvider>
+      <AuthProvider>
       <HolidayProvider>
         <HolidayBodyClass />
         <Router basename={import.meta.env.BASE_URL}>
@@ -68,6 +71,11 @@ function App() {
                     <ConstellationPage />
                   </Suspense>
                 } />
+                <Route path="/profile" element={
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Profile...</div>}>
+                    <ProfilePage />
+                  </Suspense>
+                } />
                 <Route path="/admin" element={
                   <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Admin...</div>}>
                     <AdminPage />
@@ -80,6 +88,7 @@ function App() {
           </div>
         </Router>
       </HolidayProvider>
+      </AuthProvider>
     </AudioProvider>
   );
 }

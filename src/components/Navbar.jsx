@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Wrench, Instagram, Volume2, VolumeX } from 'lucide-react';
+import { Github, Linkedin, Wrench, Instagram, Volume2, VolumeX, LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { getMuted, setMuted, playClickSound } from '../utils/sounds';
+import { useAuth } from '../context/AuthContext';
+import UserMenu from './UserMenu';
+import AuthModal from './AuthModal';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -15,6 +18,7 @@ export default function Navbar() {
         { name: 'Now', path: '/now' }
     ];
 
+    const auth = useAuth();
     const [isMuted, setIsMuted] = useState(getMuted());
 
     const toggleMute = () => {
@@ -85,8 +89,22 @@ export default function Navbar() {
                     >
                         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
+
+                    {auth?.user ? (
+                        <UserMenu />
+                    ) : auth ? (
+                        <button
+                            onClick={auth.openAuthModal}
+                            className="social-icon nav-signin"
+                            title="Sign In"
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none', marginLeft: '8px' }}
+                        >
+                            <LogIn size={18} />
+                        </button>
+                    ) : null}
                 </div>
             </div>
+            {auth && <AuthModal />}
         </nav>
     );
 }

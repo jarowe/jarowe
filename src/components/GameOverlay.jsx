@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { useCloudSync } from '../hooks/useCloudSync';
+import { checkAchievements, gatherStats, ACHIEVEMENTS } from '../data/achievements';
 import './GameOverlay.css';
 
 export default function GameOverlay() {
@@ -9,7 +11,16 @@ export default function GameOverlay() {
     const [level, setLevel] = useState(1);
     const [recentGain, setRecentGain] = useState(null);
     const [holidayToast, setHolidayToast] = useState(null);
+    const [achievementToast, setAchievementToast] = useState(null);
     const location = useLocation();
+    const { syncXp, syncVisitedPaths, syncAchievement, initialSync } = useCloudSync();
+
+    // Trigger cloud sync when user signs in
+    useEffect(() => {
+        const handler = () => { initialSync(); };
+        window.addEventListener('auth-signed-in', handler);
+        return () => window.removeEventListener('auth-signed-in', handler);
+    }, [initialSync]);
 
     // Load XP from localStorage
     useEffect(() => {
@@ -17,6 +28,27 @@ export default function GameOverlay() {
         setXp(savedXp);
         setLevel(Math.floor(savedXp / 100) + 1);
     }, []);
+
+    // Check achievements and show toast for new unlocks
+    const runAchievementCheck = useCallback((currentXp) => {
+        try {
+            const stats = gatherStats(currentXp);
+            const unlocked = JSON.parse(localStorage.getItem('jarowe_achievements') || '[]');
+            const newIds = checkAchievements(stats, unlocked);
+            if (newIds.length > 0) {
+                const updated = [...unlocked, ...newIds];
+                localStorage.setItem('jarowe_achievements', JSON.stringify(updated));
+                // Show toast for first new achievement
+                const ach = ACHIEVEMENTS.find(a => a.id === newIds[0]);
+                if (ach) {
+                    setAchievementToast({ icon: ach.icon, name: ach.name, desc: ach.desc, id: Date.now() });
+                    setTimeout(() => setAchievementToast(null), 4000);
+                }
+                // Sync all new achievements to cloud
+                newIds.forEach(id => syncAchievement(id));
+            }
+        } catch (e) { /* silent */ }
+    }, [syncAchievement]);
 
     const addXp = useCallback((amount, reason) => {
         setXp(prev => {
@@ -39,12 +71,17 @@ export default function GameOverlay() {
             }
 
             setLevel(newLevel);
+
+            // Cloud sync + achievement check
+            syncXp(newXp);
+            setTimeout(() => runAchievementCheck(newXp), 500);
+
             return newXp;
         });
 
         setRecentGain({ amount, reason, id: Date.now() });
         setTimeout(() => setRecentGain(null), 3000);
-    }, []);
+    }, [syncXp, runAchievementCheck]);
 
     // Track page visits for XP
     useEffect(() => {
@@ -52,12 +89,13 @@ export default function GameOverlay() {
         if (!visitedPaths.includes(location.pathname)) {
             visitedPaths.push(location.pathname);
             localStorage.setItem('jarowe_visited_paths', JSON.stringify(visitedPaths));
+            syncVisitedPaths(visitedPaths);
 
             setTimeout(() => {
                 addXp(50, `Explored: ${location.pathname === '/' ? 'The Hub' : location.pathname}`);
             }, 1000);
         }
-    }, [location.pathname, addXp]);
+    }, [location.pathname, addXp, syncVisitedPaths]);
 
     // Konami Code Easter Egg
     useEffect(() => {
@@ -92,6 +130,18 @@ export default function GameOverlay() {
         window.addEventListener('add-xp', handler);
         return () => window.removeEventListener('add-xp', handler);
     }, [addXp]);
+
+    // Listen for cloud sync XP updates
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.detail?.xp != null) {
+                setXp(e.detail.xp);
+                setLevel(Math.floor(e.detail.xp / 100) + 1);
+            }
+        };
+        window.addEventListener('xp-synced', handler);
+        return () => window.removeEventListener('xp-synced', handler);
+    }, []);
 
     // Birthday visitor XP
     useEffect(() => {
@@ -198,6 +248,26 @@ export default function GameOverlay() {
                         <div className="holiday-toast-emoji">{holidayToast.emoji}</div>
                         <div className="holiday-toast-name">{holidayToast.name}</div>
                         <div className="holiday-toast-xp">+{holidayToast.xp} XP</div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Achievement Toast */}
+            <AnimatePresence>
+                {achievementToast && (
+                    <motion.div
+                        key={achievementToast.id}
+                        className="achievement-toast glass-panel"
+                        initial={{ opacity: 0, x: 80, y: 0 }}
+                        animate={{ opacity: 1, x: 0, y: 0 }}
+                        exit={{ opacity: 0, x: 80 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    >
+                        <span className="achievement-toast-icon">{achievementToast.icon}</span>
+                        <div className="achievement-toast-text">
+                            <span className="achievement-toast-label">Achievement Unlocked!</span>
+                            <span className="achievement-toast-name">{achievementToast.name}</span>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

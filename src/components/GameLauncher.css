@@ -154,6 +154,72 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Mini Leaderboard ── */
+.game-launcher-leaderboard {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+}
+.gl-lb-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 0.5rem;
+}
+.gl-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+.gl-lb-row.gl-lb-me {
+  color: #fff;
+  background: rgba(124, 58, 237, 0.1);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.4rem;
+  margin: 0 -0.4rem;
+}
+.gl-lb-rank {
+  font-weight: 700;
+  min-width: 24px;
+  color: var(--gl-primary, #7c3aed);
+}
+.gl-lb-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.gl-lb-avatar-placeholder {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+}
+.gl-lb-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-lb-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.game-launcher-signin-hint {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  margin: 0.25rem 0 0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 520px) {
   .game-launcher-modal {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CATEGORIES } from '../data/holidayCalendar';
+import { supabase } from '../lib/supabase';
 
 // ─── Game Timer Hook ─────────────────────────────────────────────────
 // Countdown timer with pause/resume. Calls onExpire when it hits 0.
@@ -47,10 +48,23 @@ export function useHighScore(gameId) {
     if (score > best) {
       setBest(score);
       localStorage.setItem(key, score.toString());
+      // Fire-and-forget cloud upsert
+      if (supabase) {
+        supabase.auth.getUser().then(({ data }) => {
+          if (data?.user) {
+            supabase.from('high_scores')
+              .upsert(
+                { user_id: data.user.id, game_id: gameId, score, updated_at: new Date().toISOString() },
+                { onConflict: 'user_id,game_id' }
+              )
+              .then(() => {});
+          }
+        }).catch(() => {});
+      }
       return true; // new high score
     }
     return false;
-  }, [best, key]);
+  }, [best, key, gameId]);
 
   return { best, submit };
 }

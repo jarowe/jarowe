@@ -1,0 +1,107 @@
+/* ─── User Menu ──────────────────────────────────────────────────────── */
+.user-menu {
+  position: relative;
+  margin-left: 8px;
+}
+
+.user-menu-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, var(--accent-primary, #7c3aed), var(--accent-secondary, #06b6d4));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.user-menu-avatar:hover {
+  border-color: var(--accent-primary, #7c3aed);
+  transform: scale(1.08);
+}
+
+.user-menu-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.user-menu-initials {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+/* Dropdown */
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  padding: 0.5rem 0;
+  border-radius: 0.75rem;
+  background: rgba(15, 15, 25, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.user-menu-header {
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.25rem;
+}
+
+.user-menu-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+.user-menu-level {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-secondary, #06b6d4);
+  background: rgba(6, 182, 212, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+}
+.user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.user-menu-signout {
+  color: rgba(248, 113, 113, 0.8);
+}
+.user-menu-signout:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}

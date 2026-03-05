@@ -1,7 +1,9 @@
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GAMES } from '../data/gameRegistry';
 import { getGameTheme, awardGameXP, isGameCompletedToday, markGameCompleted } from '../games/shared';
+import { useCloudSync } from '../hooks/useCloudSync';
+import { useAuth } from '../context/AuthContext';
 import './GameLauncher.css';
 
 export default function GameLauncher({ gameId, holiday, onClose }) {
@@ -9,8 +11,11 @@ export default function GameLauncher({ gameId, holiday, onClose }) {
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
   const theme = getGameTheme(holiday);
   const alreadyPlayed = isGameCompletedToday(gameId);
+  const { fetchLeaderboard } = useCloudSync();
+  const auth = useAuth();
 
   const handleComplete = useCallback((finalScore = 0) => {
     setCompleted(true);
@@ -19,7 +24,9 @@ export default function GameLauncher({ gameId, holiday, onClose }) {
       markGameCompleted(gameId);
       awardGameXP(game.xp, `${game.name}: ${finalScore} pts`);
     }
-  }, [alreadyPlayed, game, gameId]);
+    // Fetch leaderboard for results screen
+    fetchLeaderboard(gameId, 5).then(setLeaderboard);
+  }, [alreadyPlayed, game, gameId, fetchLeaderboard]);
 
   if (!game) return null;
 
@@ -99,6 +106,33 @@ export default function GameLauncher({ gameId, holiday, onClose }) {
             {!alreadyPlayed && (
               <p className="game-launcher-xp-earned">+{game.xp} XP earned!</p>
             )}
+
+            {/* Mini Leaderboard */}
+            {leaderboard.length > 0 && (
+              <div className="game-launcher-leaderboard">
+                <h3 className="gl-lb-title">Leaderboard</h3>
+                {leaderboard.map((entry, i) => (
+                  <div
+                    key={entry.user_id}
+                    className={`gl-lb-row${auth?.user?.id === entry.user_id ? ' gl-lb-me' : ''}`}
+                  >
+                    <span className="gl-lb-rank">#{i + 1}</span>
+                    {entry.avatar_url ? (
+                      <img src={entry.avatar_url} alt="" className="gl-lb-avatar" />
+                    ) : (
+                      <span className="gl-lb-avatar gl-lb-avatar-placeholder" />
+                    )}
+                    <span className="gl-lb-name">{entry.display_name || 'Player'}</span>
+                    <span className="gl-lb-score">{entry.score}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!auth?.user && (
+              <p className="game-launcher-signin-hint">Sign in to compete on leaderboards</p>
+            )}
+
             <button className="game-launcher-start" onClick={onClose}>
               Done
             </button>
