@@ -113,135 +113,215 @@
   z-index: 1;
 }
 
-/* ── Eclipse Scene ── */
+/* ── Eclipse Scene V2 ── */
 .eclipse-stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: eclipseFloat 8s ease-in-out infinite;
+  margin-bottom: -0.25rem;
 }
 @keyframes eclipseFloat {
   0%, 100% { transform: translateY(0); }
-  25% { transform: translateY(-4px); }
+  25% { transform: translateY(-3px); }
   50% { transform: translateY(2px); }
-  75% { transform: translateY(-2px); }
+  75% { transform: translateY(-1.5px); }
 }
 
 .eclipse-svg {
   display: block;
-  filter: drop-shadow(0 2px 16px rgba(124,58,237,0.25));
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 20px rgba(124,58,237,0.2))
+          drop-shadow(0 0 40px rgba(124,58,237,0.1));
 }
 
-/* Corona glow — CSS div behind the SVG */
+/* ── CSS corona glows behind the SVG ── */
 .eclipse-corona {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 120px; height: 120px;
-  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, rgba(167,139,250,0.08) 40%, transparent 70%);
-  filter: blur(24px);
   pointer-events: none;
-  animation: coronaPulse 4s ease-in-out infinite;
+  z-index: 0;
 }
-.eclipse-corona.c2 {
-  width: 160px; height: 160px;
-  background: radial-gradient(circle, rgba(6,182,212,0.08) 0%, rgba(103,232,249,0.04) 40%, transparent 65%);
-  filter: blur(32px);
-  animation-delay: -2s;
-  animation-duration: 5s;
+.eclipse-corona.c-warm {
+  top: 50%; left: 50%;
+  width: 100px; height: 100px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(251,191,36,0.15) 0%, rgba(251,146,60,0.08) 40%, transparent 70%);
+  filter: blur(20px);
+  animation: coronaPulse 3s ease-in-out infinite;
+}
+.eclipse-corona.c-purple {
+  top: 50%; left: 50%;
+  width: 140px; height: 140px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, rgba(167,139,250,0.06) 50%, transparent 70%);
+  filter: blur(28px);
+  animation: coronaPulse 4s ease-in-out infinite;
+  animation-delay: -1s;
+}
+.eclipse-corona.c-cyan {
+  top: 50%; left: 50%;
+  width: 180px; height: 180px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, rgba(103,232,249,0.03) 40%, transparent 65%);
+  filter: blur(36px);
+  animation: coronaPulse 5.5s ease-in-out infinite;
+  animation-delay: -3s;
 }
 @keyframes coronaPulse {
-  0%, 100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
-  50% { opacity: 1; transform: translate(-50%,-50%) scale(1.12); }
+  0%, 100% { opacity: 0.5; transform: translate(-50%,-50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%,-50%) scale(1.15); }
 }
 
-/* Accretion disc rotation */
-.ec-disc {
-  animation: discRotate 12s linear infinite;
-  transform-origin: 110px 60px;
-}
-.ec-disc-inner {
-  animation: discRotate 10s linear infinite reverse;
-  transform-origin: 110px 60px;
-}
-@keyframes discRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* ── Nebula wash ── */
+.ec-nebula { animation: nebulaDrift 12s ease-in-out infinite; }
+.ec-nebula.n1 { animation-delay: 0s; }
+.ec-nebula.n2 { animation-delay: -4s; animation-duration: 15s; }
+.ec-nebula.n3 { animation-delay: -8s; animation-duration: 13s; }
+@keyframes nebulaDrift {
+  0%, 100% { opacity: 0.6; transform: translate(0, 0) scale(1); }
+  33% { opacity: 1; transform: translate(4px, -2px) scale(1.05); }
+  66% { opacity: 0.7; transform: translate(-3px, 2px) scale(0.97); }
 }
 
-/* Gravitational lensing shimmer */
-.ec-lens {
-  animation: lensShimmer 5s ease-in-out infinite;
-  transform-origin: 110px 60px;
-}
-@keyframes lensShimmer {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.03); }
-}
-
-/* Corona wisps undulate */
-.ec-wisp { animation: wispDrift 6s ease-in-out infinite; }
-.ec-wisp.w1 { animation-delay: 0s; }
-.ec-wisp.w2 { animation-delay: -2s; animation-duration: 7s; }
-.ec-wisp.w3 { animation-delay: -4s; animation-duration: 5s; }
-@keyframes wispDrift {
-  0%, 100% { opacity: 0.2; transform: translateY(0); }
-  50% { opacity: 0.5; transform: translateY(-2px); }
-}
-
-/* Edge light flicker */
-.ec-edge {
-  animation: edgeFlicker 3s ease-in-out infinite;
-}
-@keyframes edgeFlicker {
-  0%, 100% { opacity: 0.4; }
-  30% { opacity: 0.7; }
-  60% { opacity: 0.3; }
-}
-
-/* Star twinkle */
+/* ── Stars — denser field with twinkle ── */
 .ec-star { animation: ecStarTwinkle 3s ease-in-out infinite; }
 .ec-star.s1 { animation-delay: 0s; animation-duration: 2.5s; }
 .ec-star.s2 { animation-delay: 0.8s; animation-duration: 3.2s; }
 .ec-star.s3 { animation-delay: 1.6s; animation-duration: 2.8s; }
 @keyframes ecStarTwinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1.5); }
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.6); }
 }
 
-/* Astronaut gentle drift */
+/* ── Polar jets pulsing ── */
+.ec-jet { animation: jetPulse 4s ease-in-out infinite; }
+.ec-jet.jet-up { transform-origin: 140px 42px; }
+.ec-jet.jet-dn { transform-origin: 140px 118px; animation-delay: -2s; }
+@keyframes jetPulse {
+  0%, 100% { opacity: 0.4; transform: scaleY(1); }
+  50% { opacity: 0.8; transform: scaleY(1.15); }
+}
+
+/* ── Accretion disc — different speeds per layer ── */
+.ec-disc-outer {
+  animation: discSlow 20s linear infinite;
+  transform-origin: 140px 80px;
+}
+.ec-disc {
+  animation: discMid 14s linear infinite;
+  transform-origin: 140px 80px;
+}
+.ec-disc-inner {
+  animation: discFast 10s linear infinite reverse;
+  transform-origin: 140px 80px;
+}
+@keyframes discSlow { to { transform: rotate(360deg); } }
+@keyframes discMid { to { transform: rotate(360deg); } }
+@keyframes discFast { to { transform: rotate(360deg); } }
+
+/* ── Gravitational halo breathe ── */
+.ec-halo {
+  animation: haloBreathe 6s ease-in-out infinite;
+  transform-origin: 140px 80px;
+}
+@keyframes haloBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.04); }
+}
+
+/* ── Photon ring shimmer ── */
+.ec-photon {
+  animation: photonShimmer 4s ease-in-out infinite;
+  transform-origin: 140px 80px;
+}
+@keyframes photonShimmer {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.75; }
+  50% { opacity: 1; }
+  75% { opacity: 0.85; }
+}
+
+/* ── Event horizon glow ── */
+.ec-horizon { animation: horizonGlow 3s ease-in-out infinite; }
+.ec-horizon-glow { animation: horizonGlow 3s ease-in-out infinite; animation-delay: -1.5s; }
+@keyframes horizonGlow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ── Corona wisps ── */
+.ec-wisp { animation: wispDrift 6s ease-in-out infinite; }
+.ec-wisp.w1 { animation-delay: 0s; }
+.ec-wisp.w2 { animation-delay: -2s; animation-duration: 7s; }
+.ec-wisp.w3 { animation-delay: -4s; animation-duration: 5s; }
+@keyframes wispDrift {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 0.7; transform: translateY(-2px); }
+}
+
+/* ── Bright edge flicker ── */
+.ec-edge { animation: edgeFlicker 3s ease-in-out infinite; }
+@keyframes edgeFlicker {
+  0%, 100% { opacity: 0.5; }
+  25% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+  75% { opacity: 0.7; }
+}
+
+/* ── Astronaut gentle drift ── */
 .ec-astronaut {
-  animation: astronautDrift 7s ease-in-out infinite;
+  animation: astronautDrift 9s ease-in-out infinite;
 }
 @keyframes astronautDrift {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(1px, -2px) rotate(1deg); }
-  50% { transform: translate(-1px, 1px) rotate(-0.5deg); }
-  75% { transform: translate(2px, -1px) rotate(0.5deg); }
+  25% { transform: translate(1.5px, -3px) rotate(1.5deg); }
+  50% { transform: translate(-1px, 1.5px) rotate(-0.8deg); }
+  75% { transform: translate(2px, -1.5px) rotate(0.5deg); }
 }
 
-/* Tether dash animation */
-.ec-tether {
-  animation: tetherFlow 3s linear infinite;
+/* ── Visor glint pulse ── */
+.ec-visor-glint { animation: visorGlint 4s ease-in-out infinite; }
+@keyframes visorGlint {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
 }
+
+/* ── Backpack light blink ── */
+.ec-pack-light { animation: packBlink 2s ease-in-out infinite; }
+@keyframes packBlink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* ── Jetpack trail ── */
+.ec-trail { animation: trailFade 3s ease-in-out infinite; }
+.ec-trail.t2 { animation-delay: -1.5s; }
+@keyframes trailFade {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.35; }
+}
+
+/* ── Tether flow ── */
+.ec-tether { animation: tetherFlow 3s linear infinite; }
 @keyframes tetherFlow {
   0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -8; }
+  100% { stroke-dashoffset: -9; }
 }
 
-/* Particles drifting toward the black hole */
-.ec-particle { animation: particlePull 4s ease-in infinite; }
-.ec-particle.p1 { animation-delay: 0s; animation-duration: 4s; }
-.ec-particle.p2 { animation-delay: -1s; animation-duration: 5s; }
-.ec-particle.p3 { animation-delay: -2s; animation-duration: 3.5s; }
-.ec-particle.p4 { animation-delay: -0.5s; animation-duration: 4.5s; }
-.ec-particle.p5 { animation-delay: -3s; animation-duration: 3.8s; }
+/* ── Particles spiraling inward ── */
+.ec-particle { animation: particlePull 5s ease-in infinite; }
+.ec-particle.p1 { animation-delay: 0s; animation-duration: 4.5s; }
+.ec-particle.p2 { animation-delay: -1.2s; animation-duration: 5.5s; }
+.ec-particle.p3 { animation-delay: -2.5s; animation-duration: 4s; }
+.ec-particle.p4 { animation-delay: -0.6s; animation-duration: 5s; }
+.ec-particle.p5 { animation-delay: -3.5s; animation-duration: 4.2s; }
 @keyframes particlePull {
-  0% { opacity: 0.6; transform: translate(0, 0) scale(1); }
-  70% { opacity: 0.3; }
-  100% { opacity: 0; transform: translate(-20px, 0) scale(0.3); }
+  0% { opacity: 0.7; transform: translate(0, 0) scale(1); }
+  60% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate(-25px, 2px) scale(0.2); }
 }
 
 /* Title */
@@ -535,7 +615,7 @@
 /* ═══ RESPONSIVE ═══ */
 @media (max-width: 440px) {
   .auth-modal { max-width: 100%; border-radius: 1rem; padding: 0.85rem 1rem 0.85rem; }
-  .eclipse-svg { width: 180px; height: auto; }
+  .eclipse-svg { width: 220px; height: auto; }
   .auth-title-lg { font-size: 1.4rem; }
   .auth-perks { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
   .auth-perk-ring { width: 32px; height: 32px; }
