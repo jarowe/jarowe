@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
 import './AuthModal.css';
@@ -313,19 +312,15 @@ export default function AuthModal() {
         {/* ── Perks — glass cards with icons + confetti ── */}
         <div className="auth-perks">
           {PERKS.map((perk, i) => (
-            <motion.div key={perk.id} className="auth-perk"
-              style={{ '--pc': perk.color }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 + i * 0.07 }}
-              whileHover={{ y: -10, scale: 1.08 }}
-              onHoverStart={(e) => handlePerkHover(perk, e)}>
+            <div key={perk.id} className="auth-perk"
+              style={{ '--pc': perk.color, animationDelay: `${0.12 + i * 0.07}s` }}
+              onMouseEnter={(e) => handlePerkHover(perk, e)}>
               <div className="auth-perk-ring">
                 <svg width="24" height="24" viewBox="0 0 24 24" className="auth-perk-icon">{perk.icon}</svg>
               </div>
               <span className="auth-perk-label">{perk.label}</span>
               <span className="auth-perk-desc">{perk.desc}</span>
-            </motion.div>
+            </div>
           ))}
         </div>
 

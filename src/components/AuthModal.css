@@ -192,9 +192,14 @@
   border: 1px solid rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.02);
   text-align: center;
-  transition: border-color 0.4s, background 0.4s, box-shadow 0.4s;
+  transition: border-color 0.4s, background 0.4s, box-shadow 0.4s, transform 0.3s;
   position: relative;
   overflow: hidden;
+  animation: perkFadeIn 0.4s ease-out both;
+}
+@keyframes perkFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .auth-perk::before {
   content: '';
@@ -209,6 +214,7 @@
   filter: blur(12px);
 }
 .auth-perk:hover {
+  transform: translateY(-10px) scale(1.08);
   border-color: color-mix(in srgb, var(--pc, #7c3aed), transparent 50%);
   background: color-mix(in srgb, var(--pc, #7c3aed), transparent 92%);
   box-shadow:
