@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useCloudSync } from '../hooks/useCloudSync';
+import { useAuth } from '../context/AuthContext';
 import { checkAchievements, gatherStats, ACHIEVEMENTS } from '../data/achievements';
 import './GameOverlay.css';
 
@@ -12,8 +13,10 @@ export default function GameOverlay() {
     const [recentGain, setRecentGain] = useState(null);
     const [holidayToast, setHolidayToast] = useState(null);
     const [achievementToast, setAchievementToast] = useState(null);
+    const [signupDismissed, setSignupDismissed] = useState(() => sessionStorage.getItem('jarowe_signup_dismissed') === 'true');
     const location = useLocation();
-    const { syncXp, syncVisitedPaths, syncAchievement, initialSync } = useCloudSync();
+    const { user, openAuthModal } = useAuth() || {};
+    const { syncXp, syncVisitedPaths, syncAchievement, syncFlags, initialSync } = useCloudSync();
 
     // Trigger cloud sync when user signs in
     useEffect(() => {
@@ -107,6 +110,8 @@ export default function GameOverlay() {
                 konamiIndex++;
                 if (konamiIndex === konamiCode.length) {
                     addXp(200, "Secret Found: Konami Code!");
+                    localStorage.setItem('jarowe_konami_used', 'true');
+                    syncFlags({ konami_used: true });
                     document.body.classList.add('retro-mode');
                     setTimeout(() => document.body.classList.remove('retro-mode'), 10000);
                     konamiIndex = 0;
@@ -268,6 +273,33 @@ export default function GameOverlay() {
                             <span className="achievement-toast-label">Achievement Unlocked!</span>
                             <span className="achievement-toast-name">{achievementToast.name}</span>
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Sign-Up Encouragement Banner */}
+            <AnimatePresence>
+                {!user && xp >= 500 && !signupDismissed && (
+                    <motion.div
+                        className="signup-prompt glass-panel"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    >
+                        <div className="signup-prompt-text">
+                            You've earned <strong>{xp} XP</strong>! <button className="signup-prompt-link" onClick={() => openAuthModal?.()}>Sign in</button> to save progress across devices.
+                        </div>
+                        <button
+                            className="signup-prompt-dismiss"
+                            onClick={() => {
+                                sessionStorage.setItem('jarowe_signup_dismissed', 'true');
+                                setSignupDismissed(true);
+                            }}
+                            aria-label="Dismiss"
+                        >
+                            &times;
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playClickSound, playHoverSound } from '../utils/sounds';
 import { getTodayHoliday } from '../data/holidayCalendar';
+import { useCloudSync } from '../hooks/useCloudSync';
 import './DailyCipher.css';
 
 const WORD_LENGTH = 5;
@@ -85,6 +86,7 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
     const [selectedCard, setSelectedCard] = useState(null);
 
     const isBirthdayMode = typeof window !== 'undefined' && window.__birthdayMode;
+    const { syncVaultCollection, syncBonusCiphers, syncCipherStreak, syncFlags } = useCloudSync();
 
     // Bonus cipher state
     const [mode, setMode] = useState('daily'); // 'daily' | 'bonus'
@@ -221,6 +223,7 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
         const newCount = bonusAvailable - 1;
         setBonusAvailable(newCount);
         localStorage.setItem('jarowe_bonus_ciphers', String(newCount));
+        syncBonusCiphers(newCount);
 
         // Generate bonus word (avoid daily word)
         const dailyW = getDailyData().word;
@@ -276,6 +279,26 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
         setGameState('won');
         playClickSound();
 
+        // Flag: vault opened (first cipher win)
+        localStorage.setItem('jarowe_vault_opened', 'true');
+        syncFlags({ vault_opened: true });
+
+        // Track cipher streak (consecutive daily wins by date)
+        if (mode === 'daily') {
+            const today = new Date().toISOString().slice(0, 10);
+            const lastDate = localStorage.getItem('jarowe_cipher_streak_date') || '';
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            let streak = parseInt(localStorage.getItem('jarowe_cipher_streak') || '0', 10);
+            if (lastDate === yesterday) {
+                streak += 1;
+            } else if (lastDate !== today) {
+                streak = 1;
+            }
+            localStorage.setItem('jarowe_cipher_streak', String(streak));
+            localStorage.setItem('jarowe_cipher_streak_date', today);
+            syncCipherStreak(streak);
+        }
+
         let newUnlocked = [...unlockedCards];
         let cardToUnlock = activeCardId;
 
@@ -293,6 +316,7 @@ export default function DailyCipher({ showVault = false, debugGamesFolder }) {
             newUnlocked.push(cardToUnlock);
             setUnlockedCards(newUnlocked);
             localStorage.setItem('jarowe_collection', JSON.stringify(newUnlocked));
+            syncVaultCollection(newUnlocked);
 
             setTimeout(() => {
                 setShowRewardSplash(cardToUnlock);

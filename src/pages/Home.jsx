@@ -24,6 +24,7 @@ const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
@@ -148,6 +149,7 @@ export default function Home() {
   const BASE = import.meta.env.BASE_URL;
   const navigate = useNavigate();
   const { isBirthday, age, isMilestone, holiday } = useBirthday();
+  const { syncFlags, syncTotalBops } = useCloudSync();
 
   // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
@@ -4336,8 +4338,8 @@ export default function Home() {
     } else {
       // Character visual center for each CSS-positioned side:
       const side = sp.side || 'right';
-      if (side === 'right') { cx = W - 130; cy = H * 0.5 + CHAR_HALF; }
-      else if (side === 'left') { cx = 130; cy = H * 0.4 + CHAR_HALF; }
+      if (side === 'right') { cx = W - 30 - CHAR_HALF; cy = H * 0.5 + CHAR_HALF; }
+      else if (side === 'left') { cx = 30 + CHAR_HALF; cy = H * 0.4 + CHAR_HALF; }
       else { cx = W * 0.5 + CHAR_HALF; cy = 230; }
     }
     // Clamp portal origin to viewport so VFX ring stays mostly visible
@@ -5393,6 +5395,7 @@ export default function Home() {
     // Track total bops in localStorage
     const totalBops = parseInt(localStorage.getItem('jarowe_total_bops') || '0') + 1;
     localStorage.setItem('jarowe_total_bops', String(totalBops));
+    syncTotalBops(totalBops);
     // Dispatch XP event for each punch
     window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 2 } }));
 
@@ -5505,6 +5508,12 @@ export default function Home() {
     // Track total bops in localStorage for brain milestones
     const tb = parseInt(localStorage.getItem('jarowe_total_bops') || '0');
     localStorage.setItem('jarowe_total_bops', String(tb + 1));
+    syncTotalBops(tb + 1);
+    // Flag: user has met Glint (first bop ever)
+    if (tb === 0) {
+      localStorage.setItem('jarowe_glint_met', 'true');
+      syncFlags({ glint_met: true });
+    }
 
     playBopSound();
     const newBops = prismBops + 1;
@@ -6227,8 +6236,8 @@ export default function Home() {
                 px = spPx.x + CHAR_HALF; py = spPx.y + CHAR_HALF;
               } else {
                 const side = sp.side || 'right';
-                if (side === 'right') { px = W - 130; py = H * 0.5; }
-                else if (side === 'left') { px = 130; py = H * 0.4; }
+                if (side === 'right') { px = W - 30 - CHAR_HALF; py = H * 0.5; }
+                else if (side === 'left') { px = 30 + CHAR_HALF; py = H * 0.4; }
                 else { px = W * 0.5; py = 230; }
               }
               return (

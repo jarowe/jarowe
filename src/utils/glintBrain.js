@@ -17,6 +17,7 @@ export function buildContext() {
     isBirthday: window.__isBirthday || false,
     peekCount: parseInt(sessionStorage.getItem('glint_peek_count') || '0'),
     bopsThisSession: parseInt(sessionStorage.getItem('glint_bops_session') || '0'),
+    user: window.__jaroweUser || null, // set by AuthContext for save-progress nudge
   };
 }
 
@@ -454,7 +455,14 @@ export function getAmbientLine(context) {
     }
   }
 
-  // 8. Fallback — original genius ideas
+  // 8. Save-progress nudge for guests with XP (low weight ~10%)
+  if (!ctx.user && ctx.xp >= 500 && Math.random() < 0.1) {
+    const line = { text: "Your progress isn't saved yet! Sign in to keep your XP across devices.", expression: 'curious' };
+    log('Ambient: save-progress-nudge');
+    return line;
+  }
+
+  // 9. Fallback — original genius ideas
   const line = pick(FALLBACK_IDEAS);
   log('Ambient: fallback', line.text);
   return line;

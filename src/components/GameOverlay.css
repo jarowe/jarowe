@@ -186,6 +186,65 @@
     color: #fff;
 }
 
+/* Sign-Up Encouragement Banner */
+.signup-prompt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(15, 15, 18, 0.88);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    border-radius: 16px;
+    max-width: 380px;
+    pointer-events: auto;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+}
+.signup-prompt-text {
+    font-size: 0.8rem;
+    color: #d4d4d8;
+    line-height: 1.4;
+}
+.signup-prompt-text strong {
+    color: #a78bfa;
+}
+.signup-prompt-link {
+    background: none;
+    border: none;
+    color: #38bdf8;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-family: inherit;
+}
+.signup-prompt-link:hover {
+    color: #7dd3fc;
+}
+.signup-prompt-dismiss {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.2s, color 0.2s;
+}
+.signup-prompt-dismiss:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
 /* Retro Mode Easter Egg */
 body.retro-mode {
     font-family: 'Courier New', Courier, monospace !important;

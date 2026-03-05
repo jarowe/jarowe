@@ -131,6 +131,12 @@ export function AuthProvider({ children }) {
     if (data) setProfile(data);
   }, [user]);
 
+  // Expose user to non-React code (glintBrain ambient lines)
+  useEffect(() => {
+    window.__jaroweUser = user || null;
+    return () => { window.__jaroweUser = null; };
+  }, [user]);
+
   const openAuthModal = useCallback(() => setShowAuthModal(true), []);
   const closeAuthModal = useCallback(() => setShowAuthModal(false), []);
 
