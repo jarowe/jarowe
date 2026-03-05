@@ -293,329 +293,214 @@
   75% { opacity: 0.7; }
 }
 
-/* ═══ IK ASTRONAUT V5 — Full suit with effects ═══ */
-/* Each joint has a DIFFERENT prime-ish duration so they never sync up,
-   creating organic, non-repeating zero-gravity floating motion. */
+/* ═══ ASTRONAUT V6 — Realistic EVA suit, gentle zero-g ═══ */
+/* Slow, smooth animations for realistic weightless motion.
+   Prime-ish durations so joints never sync. */
 
-/* Energy aura around astronaut */
-.ik-aura { animation: ikAura 6s ease-in-out infinite; }
-.ik-aura.a2 { animation-delay: -3s; animation-duration: 8s; }
-@keyframes ikAura {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.08); }
-}
-
-/* Overall float — gentle drift in space */
+/* Overall float — very gentle drift */
 .ik-float {
-  animation: ikFloat 9s ease-in-out infinite;
+  animation: ikFloat 14s ease-in-out infinite;
 }
 @keyframes ikFloat {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(2.5px, -3.5px) rotate(2deg); }
-  40% { transform: translate(0.5px, 1px) rotate(-0.5deg); }
-  60% { transform: translate(-2px, 2.5px) rotate(-1.5deg); }
-  80% { transform: translate(1.5px, -1px) rotate(1deg); }
+  25% { transform: translate(1.5px, -2px) rotate(1deg); }
+  50% { transform: translate(-0.5px, 1.5px) rotate(-0.5deg); }
+  75% { transform: translate(1px, -0.5px) rotate(0.5deg); }
 }
 
-/* Torso — slow body rock */
+/* Torso — slow, subtle body rock */
 .ik-torso {
-  transform-origin: 70px 54px;
-  animation: ikTorso 7.3s ease-in-out infinite;
+  transform-origin: 70px 52px;
+  animation: ikTorso 11.3s ease-in-out infinite;
 }
 @keyframes ikTorso {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(3.5deg); }
-  50% { transform: rotate(-2deg); }
-  75% { transform: rotate(-3deg); }
+  30% { transform: rotate(1.8deg); }
+  60% { transform: rotate(-1.2deg); }
+  85% { transform: rotate(0.5deg); }
 }
 
-/* Head — look around, bob */
+/* Head — gentle look around */
 .ik-head {
-  transform-origin: 70px 43px;
-  animation: ikHead 5.1s ease-in-out infinite;
+  transform-origin: 70px 38px;
+  animation: ikHead 8.7s ease-in-out infinite;
 }
 @keyframes ikHead {
   0%, 100% { transform: rotate(0deg) translateY(0); }
-  15% { transform: rotate(-5deg) translateY(-0.8px); }
-  35% { transform: rotate(3deg) translateY(0.4px); }
-  55% { transform: rotate(6deg) translateY(0.3px); }
-  75% { transform: rotate(-3deg) translateY(-0.5px); }
-  90% { transform: rotate(2deg) translateY(0.2px); }
+  20% { transform: rotate(-2.5deg) translateY(-0.3px); }
+  45% { transform: rotate(2deg) translateY(0.2px); }
+  70% { transform: rotate(-1deg) translateY(-0.2px); }
+  90% { transform: rotate(1.5deg) translateY(0.1px); }
 }
 
-/* Left upper arm — reaching toward the void */
+/* Left upper arm — slow drift */
 .ik-arm-l {
-  transform-origin: 62px 46px;
-  animation: ikArmL 6.7s ease-in-out infinite;
+  transform-origin: 61px 42px;
+  animation: ikArmL 10.7s ease-in-out infinite;
 }
 @keyframes ikArmL {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-10deg); }
-  45% { transform: rotate(5deg); }
-  70% { transform: rotate(-6deg); }
-  90% { transform: rotate(2deg); }
+  25% { transform: rotate(-5deg); }
+  55% { transform: rotate(3deg); }
+  80% { transform: rotate(-2deg); }
 }
 
-/* Left forearm — waving / grabbing */
+/* Left forearm — gentle lazy drift */
 .ik-forearm-l {
-  transform-origin: 54px 54px;
-  animation: ikForearmL 4.3s ease-in-out infinite;
+  transform-origin: 53px 53px;
+  animation: ikForearmL 7.3s ease-in-out infinite;
 }
 @keyframes ikForearmL {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-14deg); }
-  40% { transform: rotate(7deg); }
-  60% { transform: rotate(-9deg); }
-  80% { transform: rotate(4deg); }
-}
-
-/* Right upper arm — relaxed wave */
-.ik-arm-r {
-  transform-origin: 78px 46px;
-  animation: ikArmR 5.9s ease-in-out infinite;
-}
-@keyframes ikArmR {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(8deg); }
-  50% { transform: rotate(-5deg); }
-  75% { transform: rotate(6deg); }
-}
-
-/* Right forearm — gentle wave back */
-.ik-forearm-r {
-  transform-origin: 88px 52px;
-  animation: ikForearmR 3.7s ease-in-out infinite;
-}
-@keyframes ikForearmR {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(12deg); }
-  50% { transform: rotate(-7deg); }
-  75% { transform: rotate(9deg); }
-}
-
-/* Left thigh — floaty drift */
-.ik-leg-l {
-  transform-origin: 66px 63px;
-  animation: ikLegL 7.7s ease-in-out infinite;
-}
-@keyframes ikLegL {
-  0%, 100% { transform: rotate(0deg); }
-  30% { transform: rotate(-7deg); }
-  60% { transform: rotate(5deg); }
+  30% { transform: rotate(-6deg); }
+  60% { transform: rotate(3deg); }
   85% { transform: rotate(-2deg); }
 }
 
-/* Left shin — knee drift */
+/* Right upper arm */
+.ik-arm-r {
+  transform-origin: 79px 42px;
+  animation: ikArmR 9.1s ease-in-out infinite;
+}
+@keyframes ikArmR {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(4deg); }
+  60% { transform: rotate(-3deg); }
+  85% { transform: rotate(2deg); }
+}
+
+/* Right forearm */
+.ik-forearm-r {
+  transform-origin: 87px 53px;
+  animation: ikForearmR 6.7s ease-in-out infinite;
+}
+@keyframes ikForearmR {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(5deg); }
+  55% { transform: rotate(-4deg); }
+  80% { transform: rotate(3deg); }
+}
+
+/* Left thigh — slow float */
+.ik-leg-l {
+  transform-origin: 66px 61px;
+  animation: ikLegL 12.1s ease-in-out infinite;
+}
+@keyframes ikLegL {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-4deg); }
+  65% { transform: rotate(3deg); }
+}
+
+/* Left shin — gentle knee drift */
 .ik-shin-l {
-  transform-origin: 61px 73px;
-  animation: ikShinL 5.3s ease-in-out infinite;
+  transform-origin: 61px 74px;
+  animation: ikShinL 8.3s ease-in-out infinite;
 }
 @keyframes ikShinL {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(10deg); }
-  55% { transform: rotate(-4deg); }
-  80% { transform: rotate(6deg); }
+  30% { transform: rotate(5deg); }
+  60% { transform: rotate(-2deg); }
+  85% { transform: rotate(3deg); }
 }
 
-/* Right thigh — opposite phase from left */
+/* Right thigh */
 .ik-leg-r {
-  transform-origin: 74px 63px;
-  animation: ikLegR 6.9s ease-in-out infinite;
+  transform-origin: 74px 61px;
+  animation: ikLegR 10.9s ease-in-out infinite;
 }
 @keyframes ikLegR {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(6deg); }
-  50% { transform: rotate(-7deg); }
-  80% { transform: rotate(4deg); }
+  25% { transform: rotate(3deg); }
+  55% { transform: rotate(-4deg); }
+  80% { transform: rotate(2deg); }
 }
 
-/* Right shin — knee bend */
+/* Right shin */
 .ik-shin-r {
-  transform-origin: 80px 73px;
-  animation: ikShinR 4.7s ease-in-out infinite;
+  transform-origin: 79px 74px;
+  animation: ikShinR 7.7s ease-in-out infinite;
 }
 @keyframes ikShinR {
   0%, 100% { transform: rotate(0deg); }
-  20% { transform: rotate(-6deg); }
-  45% { transform: rotate(10deg); }
-  70% { transform: rotate(-4deg); }
+  25% { transform: rotate(-3deg); }
+  50% { transform: rotate(5deg); }
+  75% { transform: rotate(-2deg); }
 }
 
-/* Antenna — color cycling beacon with size pulse */
-.ik-antenna {
-  fill: #7c3aed;
-  animation: ikAntenna 2.5s ease-in-out infinite;
+/* Headlamp — steady white with subtle pulse */
+.ik-headlamp {
+  fill: rgba(255,255,255,0.7);
+  animation: ikHeadlamp 4s ease-in-out infinite;
 }
-@keyframes ikAntenna {
-  0%, 100% { fill: #7c3aed; opacity: 0.6; r: 1.5; }
-  33% { fill: #06b6d4; opacity: 1; r: 2; }
-  66% { fill: #f472b6; opacity: 0.8; r: 1.7; }
-}
-/* Antenna broadcast ring */
-.ik-antenna-ring {
-  animation: ikAntennaRing 2.5s ease-out infinite;
-}
-@keyframes ikAntennaRing {
-  0% { r: 2; opacity: 0.3; stroke: rgba(124,58,237,0.3); }
-  50% { r: 5; opacity: 0.15; stroke: rgba(103,232,249,0.15); }
-  100% { r: 8; opacity: 0; stroke: rgba(244,114,182,0.05); }
+@keyframes ikHeadlamp {
+  0%, 100% { fill: rgba(255,255,255,0.5); opacity: 0.6; }
+  50% { fill: rgba(255,255,255,0.9); opacity: 1; }
 }
 
-/* Comm light on helmet side */
-.ik-comm-light {
-  fill: #22c55e;
-  animation: ikCommLight 1.8s ease-in-out infinite;
-}
-@keyframes ikCommLight {
-  0%, 49% { fill: #22c55e; opacity: 0.7; }
-  50%, 100% { fill: #22c55e; opacity: 0.15; }
-}
-
-/* Visor — shimmer catching accretion disc light */
-.ik-visor {
-  animation: ikVisor 3.3s ease-in-out infinite;
-}
-@keyframes ikVisor {
-  0%, 100% { fill: rgba(103,232,249,0.12); opacity: 0.4; }
-  25% { fill: rgba(251,191,36,0.2); opacity: 0.9; }
-  50% { fill: rgba(244,114,182,0.15); opacity: 0.5; }
-  75% { fill: rgba(167,139,250,0.18); opacity: 0.7; }
-}
-/* Visor warm reflection (accretion disc orange) */
+/* Visor warm reflection — accretion disc light */
 .ik-visor-warm {
-  animation: ikVisorWarm 4.1s ease-in-out infinite;
+  animation: ikVisorWarm 6s ease-in-out infinite;
 }
 @keyframes ikVisorWarm {
-  0%, 100% { fill: rgba(251,191,36,0.04); opacity: 0.3; }
-  50% { fill: rgba(251,146,60,0.1); opacity: 0.7; }
-}
-/* Visor tiny star reflections */
-.ik-visor-star { animation: ikVisorStar 2.8s ease-in-out infinite; }
-.ik-visor-star.vs2 { animation-delay: -1s; animation-duration: 3.2s; }
-.ik-visor-star.vs3 { animation-delay: -2s; animation-duration: 2.4s; }
-@keyframes ikVisorStar {
-  0%, 100% { opacity: 0.15; r: 0.2; }
-  50% { opacity: 0.9; r: 0.45; }
-}
-/* Visor ambient glow pulse */
-.ik-visor-glow {
-  animation: ikVisorGlow 4.5s ease-in-out infinite;
-}
-@keyframes ikVisorGlow {
   0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; stroke: rgba(103,232,249,0.12); }
+  50% { opacity: 0.7; }
 }
 
-/* Chest light — breathing glow */
+/* Visor star reflections */
+.ik-visor-star { animation: ikVisorStar 3.5s ease-in-out infinite; }
+.ik-visor-star.vs2 { animation-delay: -1.5s; animation-duration: 4.2s; }
+@keyframes ikVisorStar {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.7; }
+}
+
+/* Chest display glow */
 .ik-chest-light {
-  animation: ikChestLight 3.5s ease-in-out infinite;
+  animation: ikChestLight 5s ease-in-out infinite;
 }
 @keyframes ikChestLight {
-  0%, 100% { fill: rgba(103,232,249,0.06); stroke: rgba(103,232,249,0.15); }
-  50% { fill: rgba(103,232,249,0.15); stroke: rgba(103,232,249,0.4); }
+  0%, 100% { fill: rgba(103,232,249,0.04); stroke: rgba(103,232,249,0.08); }
+  50% { fill: rgba(103,232,249,0.12); stroke: rgba(103,232,249,0.25); }
 }
 
-/* Suit rim light — warm glow from black hole */
+/* Suit rim light — warm accretion disc glow */
 .ik-rim-light {
-  animation: ikRimLight 5.5s ease-in-out infinite;
+  animation: ikRimLight 8s ease-in-out infinite;
 }
 @keyframes ikRimLight {
-  0%, 100% { opacity: 0.5; stroke: rgba(251,191,36,0.12); }
-  30% { opacity: 1; stroke: rgba(251,191,36,0.25); }
-  60% { opacity: 0.3; stroke: rgba(244,114,182,0.1); }
+  0%, 100% { opacity: 0.4; }
+  40% { opacity: 0.9; }
+  70% { opacity: 0.3; }
 }
 
-/* Joint glow dots */
-.ik-joint-glow { animation: ikJointGlow 3.8s ease-in-out infinite; }
-.ik-joint-glow.j2 { animation-delay: -1.9s; }
-@keyframes ikJointGlow {
-  0%, 100% { opacity: 0.15; r: 0.5; }
-  50% { opacity: 0.6; r: 1; }
-}
-
-/* Fingertip glow — energy at the hand */
-.ik-finger-glow {
-  animation: ikFingerGlow 2.8s ease-in-out infinite;
-}
-@keyframes ikFingerGlow {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.9; }
-}
-
-/* Boot sole glow */
-.ik-boot-glow { animation: ikBootGlow 2.2s ease-in-out infinite; }
-.ik-boot-glow.b2 { animation-delay: -1.1s; }
-@keyframes ikBootGlow {
-  0%, 100% { opacity: 0.1; }
-  50% { opacity: 0.5; }
-}
-
-/* Boot thrusters — tiny exhaust */
-.ik-boot-thrust { animation: ikBootThrust 0.4s ease-in-out infinite alternate; }
-.ik-boot-thrust.bt2 { animation-delay: -0.2s; }
-@keyframes ikBootThrust {
-  0% { opacity: 0.02; ry: 1.5; }
-  100% { opacity: 0.08; ry: 3; }
-}
-
-/* Backpack LEDs — color cycle with stagger */
+/* PLSS status LEDs — subtle blink */
 .ik-pack-led {
-  fill: #06b6d4;
-  animation: ikPackLed 2.1s ease-in-out infinite;
+  fill: #22c55e;
+  animation: ikPackLed 3s ease-in-out infinite;
 }
-.ik-pack-led.l2 { animation-delay: -0.7s; animation-duration: 1.8s; }
-.ik-pack-led.l3 { animation-delay: -1.4s; animation-duration: 2.4s; }
+.ik-pack-led.l2 { animation-delay: -1.5s; fill: #06b6d4; }
 @keyframes ikPackLed {
-  0%, 100% { fill: #06b6d4; opacity: 0.35; }
-  33% { fill: #7c3aed; opacity: 1; }
-  66% { fill: #fbbf24; opacity: 0.65; }
+  0%, 40% { opacity: 0.6; }
+  50% { opacity: 1; }
+  60%, 100% { opacity: 0.6; }
 }
 
-/* Jetpack exhaust — multi-layer flicker */
-.ik-exhaust { animation: ikExhaust 0.35s ease-in-out infinite alternate; }
-.ik-exhaust.e2 { animation-delay: -0.1s; animation-duration: 0.4s; }
-.ik-exhaust.e3 { animation-delay: -0.2s; animation-duration: 0.3s; }
-.ik-exhaust.e4 { animation-delay: -0.25s; animation-duration: 0.45s; }
+/* Maneuvering exhaust — very subtle */
+.ik-exhaust { animation: ikExhaust 0.5s ease-in-out infinite alternate; }
+.ik-exhaust.e2 { animation-delay: -0.25s; }
 @keyframes ikExhaust {
-  0% { opacity: 0.04; transform: scaleY(0.6) scaleX(0.8); }
-  100% { opacity: 0.15; transform: scaleY(1.5) scaleX(1.2); }
-}
-/* Exhaust core — bright flicker */
-.ik-exhaust-core { animation: ikExhaustCore 0.25s ease-in-out infinite alternate; }
-.ik-exhaust-core.c2 { animation-delay: -0.12s; }
-@keyframes ikExhaustCore {
-  0% { opacity: 0.08; }
-  100% { opacity: 0.3; }
+  0% { opacity: 0.02; transform: scaleY(0.7); }
+  100% { opacity: 0.08; transform: scaleY(1.3); }
 }
 
-/* Exhaust sparks — drift + fade */
-.ik-spark { animation: ikSpark 1.4s ease-out infinite; }
-.ik-spark.s2 { animation-delay: -0.4s; animation-duration: 1.7s; }
-.ik-spark.s3 { animation-delay: -0.9s; animation-duration: 1.2s; }
-.ik-spark.s4 { animation-delay: -1.2s; animation-duration: 1.6s; }
-@keyframes ikSpark {
-  0% { opacity: 0.4; transform: translate(0, 0); }
-  100% { opacity: 0; transform: translate(3px, 8px); }
-}
-
-/* Tether — energy flow along the line */
+/* Safety tether — slow flow */
 .ik-tether {
-  animation: ikTether 2.5s linear infinite;
+  animation: ikTether 4s linear infinite;
 }
 @keyframes ikTether {
   0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -14; }
-}
-
-/* Tether particles — flow toward black hole */
-.ik-tether-dot { animation: ikTetherDot 3s ease-in infinite; }
-.ik-tether-dot.t2 { animation-delay: -0.8s; animation-duration: 3.4s; }
-.ik-tether-dot.t3 { animation-delay: -1.6s; animation-duration: 2.8s; }
-.ik-tether-dot.t4 { animation-delay: -2.2s; animation-duration: 3.2s; }
-@keyframes ikTetherDot {
-  0% { opacity: 0.6; r: 0.8; }
-  50% { opacity: 0.3; }
-  100% { opacity: 0; r: 0.2; transform: translate(8px, 4px); }
+  100% { stroke-dashoffset: -10; }
 }
 
 /* ── Particles ── */
