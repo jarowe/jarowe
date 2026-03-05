@@ -1,26 +1,58 @@
-/* ─── User Menu ──────────────────────────────────────────────────────── */
+/* ─── User Menu — Crystal Theme ──────────────────────────────────────── */
 .user-menu {
   position: relative;
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .user-menu-avatar {
-  width: 32px;
-  height: 32px;
+  position: relative;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  background: linear-gradient(135deg, var(--accent-primary, #7c3aed), var(--accent-secondary, #06b6d4));
+  border: none;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   padding: 0;
-  transition: border-color 0.2s, transform 0.2s;
+  flex-shrink: 0;
 }
-.user-menu-avatar:hover {
-  border-color: var(--accent-primary, #7c3aed);
-  transform: scale(1.08);
+
+/* Spinning prismatic ring — matches guest avatar style */
+.user-menu-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #7c3aed, #06b6d4, #22c55e, #fbbf24, #f472b6, #7c3aed);
+  animation: userRingSpin 4s linear infinite;
+  opacity: 0.5;
+  transition: opacity 0.3s, filter 0.3s;
+}
+.user-menu-avatar:hover .user-menu-ring {
+  opacity: 0.9;
+  animation-duration: 1.5s;
+  filter: brightness(1.2);
+}
+@keyframes userRingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.user-menu-inner {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7c3aed, #06b6d4);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.user-menu-avatar:hover .user-menu-inner {
+  transform: scale(1.05);
 }
 
 .user-menu-img {
@@ -31,61 +63,120 @@
 }
 
 .user-menu-initials {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.02em;
 }
 
-/* Dropdown */
+/* Level badge — gold pip on avatar */
+.user-menu-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  z-index: 2;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1a1a2e;
+  font-size: 0.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  border: 1.5px solid rgba(10, 8, 24, 0.9);
+}
+
+/* ── Dropdown ── */
 .user-menu-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  min-width: 160px;
-  padding: 0.5rem 0;
-  border-radius: 0.75rem;
-  background: rgba(15, 15, 25, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  padding: 0;
+  border-radius: 0.85rem;
+  background: rgba(10, 8, 24, 0.97);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  box-shadow:
+    0 0 30px rgba(124, 58, 237, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.5);
   z-index: 100;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
 }
 
 .user-menu-header {
-  padding: 0.5rem 1rem;
+  padding: 0.65rem 0.85rem 0.35rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 0.25rem;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.user-menu-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
 }
 
 .user-menu-name {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100px;
+  max-width: 110px;
+}
+
+.user-menu-xp {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
 }
 
 .user-menu-level {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--accent-secondary, #06b6d4);
-  background: rgba(6, 182, 212, 0.15);
-  padding: 2px 6px;
-  border-radius: 6px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
+/* XP progress bar */
+.user-menu-progress {
+  margin: 0.15rem 0.85rem 0.5rem;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.user-menu-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4);
+  border-radius: 2px;
+  transition: width 0.5s ease-out;
+  min-width: 2px;
+}
+
+/* Menu items */
 .user-menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.45rem 1rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem 0.85rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
   background: none;
   border: none;
   text-align: left;
@@ -94,14 +185,23 @@
   text-decoration: none;
 }
 .user-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: #fff;
+}
+.user-menu-item svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.user-menu-item:hover svg {
+  opacity: 0.8;
 }
 
 .user-menu-signout {
-  color: rgba(248, 113, 113, 0.8);
+  color: rgba(248, 113, 113, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 0.15rem;
 }
 .user-menu-signout:hover {
   color: #f87171;
-  background: rgba(248, 113, 113, 0.08);
+  background: rgba(248, 113, 113, 0.06);
 }
