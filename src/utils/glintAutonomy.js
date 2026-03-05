@@ -192,22 +192,9 @@ class PeekScheduler {
   }
 
   _checkFirstVisit() {
-    if (sessionStorage.getItem('glint_hello_done')) return;
-
-    const visitCount = parseInt(localStorage.getItem('jarowe_visit_count') || '0');
-    const isFirstVisit = visitCount <= 1;
-    const delay = isFirstVisit
-      ? getCfg('autonomyFirstVisitDelay', 3000)
-      : getCfg('autonomyReturnVisitDelay', 5000);
-    const triggerType = isFirstVisit ? 'first-visit' : 'return-hello';
-
-    setTimeout(() => {
-      if (!this.autonomy._paused && getCfg('autonomousPeeks', true)) {
-        sessionStorage.setItem('glint_hello_done', '1');
-        this.autonomy.triggerPeek(triggerType, {});
-      }
-    }, delay);
-    log(`${isFirstVisit ? 'First visit' : 'Return hello'}: scheduled in ${delay}ms`);
+    // Initial hello is now handled by the guaranteed fallback in Home.jsx.
+    // The autonomy scheduler still handles idle + periodic peeks.
+    log('_checkFirstVisit: initial peek delegated to Home.jsx fallback');
   }
 
   _startIdleDetection() {

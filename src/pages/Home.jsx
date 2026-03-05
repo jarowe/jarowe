@@ -25,11 +25,6 @@ const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
-
-// Ensure __prismConfig exists before Prism3D lazy-loads — autonomy needs lockedPeekStyle etc.
-if (!window.__prismConfig) {
-  window.__prismConfig = { ...PRISM_DEFAULTS };
-}
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -38,6 +33,11 @@ const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
 const Prism3D = lazy(() => import('../components/Prism3D'));
+
+// Ensure __prismConfig exists before Prism3D lazy-loads — autonomy needs lockedPeekStyle etc.
+if (!window.__prismConfig) {
+  window.__prismConfig = { ...PRISM_DEFAULTS };
+}
 
 // Real-time sun position based on UTC time (solar declination + hour angle)
 // Uses three-globe's coordinate system: theta = (90 - lng), so lng=0 → +Z
@@ -4642,6 +4642,22 @@ export default function Home() {
       startGlintAutonomy(cfg);
     }
     return () => stopGlintAutonomy();
+  }, []);
+
+  // ── Guaranteed initial Glint peek — fires if autonomy hasn't triggered one yet ──
+  useEffect(() => {
+    const delay = window.__prismConfig?.autonomyReturnVisitDelay ?? 5000;
+    const timer = setTimeout(() => {
+      // Only fire if Glint isn't already visible
+      if (!peekVisibleRef.current) {
+        const visitCount = parseInt(localStorage.getItem('jarowe_visit_count') || '0');
+        const context = visitCount <= 1 ? 'first-visit' : 'return-hello';
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: { autonomous: true, context, triggerType: context, pinned: false, duration: 10000 }
+        }));
+      }
+    }, delay);
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Music state monitor — detects play/stop transitions for autonomy ──
