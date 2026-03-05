@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
     setUser(null);
     setProfile(null);
   }, []);
