@@ -1,12 +1,28 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Github, Linkedin, Wrench, Instagram, Volume2, VolumeX, LogIn } from 'lucide-react';
+import { Linkedin, Wrench, Instagram, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getMuted, setMuted, playClickSound } from '../utils/sounds';
 import { useAuth } from '../context/AuthContext';
 import UserMenu from './UserMenu';
 import AuthModal from './AuthModal';
 import './Navbar.css';
+
+function GuestAvatar({ onClick }) {
+    return (
+        <button className="guest-avatar" onClick={onClick} aria-label="Sign in">
+            <span className="guest-avatar-ring" />
+            <span className="guest-avatar-inner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+            </span>
+            <span className="guest-avatar-tooltip">Join the adventure</span>
+        </button>
+    );
+}
 
 export default function Navbar() {
     const location = useLocation();
@@ -26,7 +42,6 @@ export default function Navbar() {
         setMuted(newState);
         setIsMuted(newState);
         if (!newState) {
-            // Play a tiny sound after unmuting to confirm
             setTimeout(playClickSound, 50);
         }
     };
@@ -93,18 +108,13 @@ export default function Navbar() {
                     {auth?.user ? (
                         <UserMenu />
                     ) : auth ? (
-                        <button
-                            onClick={auth.openAuthModal}
-                            className="social-icon nav-signin"
-                            title="Sign In"
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none', marginLeft: '8px' }}
-                        >
-                            <LogIn size={18} />
-                        </button>
+                        <GuestAvatar onClick={auth.openAuthModal} />
                     ) : null}
                 </div>
             </div>
-            {auth && <AuthModal />}
+
+            {/* Portal to body so modal escapes nav overflow/positioning */}
+            {auth && createPortal(<AuthModal />, document.body)}
         </nav>
     );
 }
