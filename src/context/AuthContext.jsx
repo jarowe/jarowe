@@ -98,6 +98,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Clear state FIRST for immediate UI feedback
+    setUser(null);
+    setProfile(null);
     if (!supabase) return;
     try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
     // Force-clear Supabase auth tokens from localStorage in case server signOut failed
@@ -106,8 +109,6 @@ export function AuthProvider({ children }) {
         .filter(k => k.startsWith('sb-'))
         .forEach(k => localStorage.removeItem(k));
     } catch (_) { /* ignore */ }
-    setUser(null);
-    setProfile(null);
   }, []);
 
   const updateProfile = useCallback(async (updates) => {
