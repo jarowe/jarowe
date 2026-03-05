@@ -291,4 +291,16 @@ export const PRISM_DEFAULTS = {
   autonomyScrollWeight: 0.3,          // probability of reacting to scroll-to-bottom (0-1)
   autonomyIdleWeight: 0.7,            // probability of idle peek (0-1)
   autonomyReturnWeight: 0.7,          // probability of welcome-back peek (0-1)
+
+  // ── AI Chat (Tier 4) ──
+  aiChatEnabled: true,                 // master toggle for AI-powered chat
+  aiModel: 'gpt-4o-mini',             // OpenAI model ID
+  aiMaxMessages: 20,                   // max conversation length before reset
+  aiStreamingEnabled: true,            // token-by-token display
+  aiSuggestedPills: 3,                 // number of follow-up suggestions
+  aiBubbleMode: true,                  // show chat input in bubble
+  aiPanelEnabled: true,                // enable slide-out panel
+  aiAnonymousLimit: 10,                // messages per session (anonymous)
+  aiAuthenticatedLimit: 100,           // messages per hour (authenticated)
+  aiDebugLog: false,                   // log AI decisions to console
 };

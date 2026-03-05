@@ -2279,3 +2279,31 @@
 .glint-pill:active {
     transform: translateY(0);
 }
+
+/* AI-powered pill — visually distinct from scripted pills */
+.glint-pill-ai {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(244, 114, 182, 0.15), rgba(56, 189, 248, 0.2));
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    position: relative;
+    overflow: hidden;
+}
+
+.glint-pill-ai::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: glint-pill-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes glint-pill-shimmer {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+.glint-pill-ai:hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(244, 114, 182, 0.2), rgba(56, 189, 248, 0.35));
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
+}

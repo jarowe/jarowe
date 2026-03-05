@@ -765,6 +765,29 @@ export default function GlintEditor({ parentGui }) {
 
     pAuto.close();
 
+    // -- AI Chat (Tier 4) --
+    const pAI = gui.addFolder('AI Chat');
+    pAI.add(pcfg, 'aiChatEnabled').name('AI Chat Enabled');
+    pAI.add(pcfg, 'aiStreamingEnabled').name('Streaming');
+    pAI.add(pcfg, 'aiBubbleMode').name('Bubble Chat Input');
+    pAI.add(pcfg, 'aiPanelEnabled').name('Chat Panel');
+    pAI.add(pcfg, 'aiModel', { 'GPT-4o Mini': 'gpt-4o-mini', 'GPT-4o': 'gpt-4o' }).name('Model');
+    pAI.add(pcfg, 'aiMaxMessages', 5, 50, 1).name('Max Messages');
+    pAI.add(pcfg, 'aiSuggestedPills', 0, 5, 1).name('Suggested Pills');
+    pAI.add(pcfg, 'aiAnonymousLimit', 1, 30, 1).name('Anon Limit');
+    pAI.add(pcfg, 'aiAuthenticatedLimit', 10, 500, 10).name('Auth Limit');
+    pAI.add(pcfg, 'aiDebugLog').name('Debug Log');
+    pAI.add({ testChat() {
+      window.dispatchEvent(new CustomEvent('glint-ai-test', { detail: { message: 'Hello Glint! What can you tell me about this site?' } }));
+    } }, 'testChat').name('Test AI Chat');
+    pAI.add({ clearHistory() {
+      window.dispatchEvent(new CustomEvent('glint-ai-clear'));
+    } }, 'clearHistory').name('Clear Chat History');
+    pAI.add({ togglePanel() {
+      window.dispatchEvent(new CustomEvent('glint-ai-toggle-panel'));
+    } }, 'togglePanel').name('Toggle Chat Panel');
+    pAI.close();
+
     // -- Reset --
     gui.add({ reset() {
       Object.assign(pcfg, JSON.parse(JSON.stringify(PRISM_DEFAULTS)));

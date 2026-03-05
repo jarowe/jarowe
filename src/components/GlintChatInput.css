@@ -1,0 +1,147 @@
+.glint-chat-input-wrap {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(124, 58, 237, 0.2);
+    pointer-events: auto;
+}
+
+.glint-chat-input-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 15, 25, 0.5);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 16px;
+    padding: 3px 4px 3px 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glint-chat-input-form:focus-within {
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.15), inset 0 0 8px rgba(124, 58, 237, 0.05);
+}
+
+.glint-chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e0d4ff;
+    font-family: inherit;
+    font-size: 0.72rem;
+    padding: 5px 0;
+    min-width: 0;
+}
+
+.glint-chat-input::placeholder {
+    color: rgba(200, 180, 255, 0.35);
+    transition: opacity 0.3s ease;
+}
+
+.glint-chat-input:disabled {
+    opacity: 0.5;
+}
+
+.glint-chat-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(56, 189, 248, 0.4));
+    color: #e0d4ff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.glint-chat-send:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.glint-chat-send:not(:disabled):hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(56, 189, 248, 0.6));
+    transform: scale(1.1);
+}
+
+/* Thinking dots */
+.glint-chat-dots {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 8px;
+    height: 26px;
+}
+
+.glint-chat-dots span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    animation: glint-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.glint-chat-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.glint-chat-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes glint-dot-pulse {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Expand button */
+.glint-chat-expand {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 3px 10px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(56, 189, 248, 0.05));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 10px;
+    color: rgba(200, 180, 255, 0.5);
+    font-size: 0.6rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.glint-chat-expand:hover {
+    color: #e0d4ff;
+    border-color: rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(56, 189, 248, 0.1));
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.12);
+}
+
+/* AI tag */
+.glint-chat-ai-tag {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 4px;
+    font-size: 0.55rem;
+    color: rgba(200, 180, 255, 0.3);
+    justify-content: flex-end;
+}
+
+.glint-chat-sparkle {
+    font-size: 0.65rem;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: glint-sparkle-spin 3s linear infinite;
+}
+
+@keyframes glint-sparkle-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

@@ -7,7 +7,7 @@ import { photos } from '../data/photos';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
@@ -24,6 +24,8 @@ const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
+const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import './Home.css';
 import * as THREE from 'three';
@@ -4056,6 +4058,28 @@ export default function Home() {
   const conversationModeRef = useRef(false);
   useEffect(() => { conversationModeRef.current = conversationMode; }, [conversationMode]);
 
+  // Glint AI Chat — Tier 4
+  const [aiChatMode, setAiChatMode] = useState(false);
+  const [aiStreaming, setAiStreaming] = useState(false);
+  const [aiStreamText, setAiStreamText] = useState('');
+  const [aiMessages, setAiMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('glint_ai_messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
+  const aiAbortRef = useRef(null);
+
+  // Persist AI messages to sessionStorage
+  useEffect(() => {
+    try {
+      if (aiMessages.length > 0) {
+        sessionStorage.setItem('glint_ai_messages', JSON.stringify(aiMessages));
+      }
+    } catch { /* quota exceeded */ }
+  }, [aiMessages]);
+
   // Track viewport size to force re-render on resize (spawn markers + character positioning)
   const [viewportKey, setViewportKey] = useState(0);
   useEffect(() => {
@@ -4468,6 +4492,291 @@ export default function Home() {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [exitConversation]);
+
+  // ── Glint AI Chat — Tier 4 ──
+
+  const aiLog = useCallback((...args) => {
+    const cfg = window.__prismConfig || {};
+    if (cfg.aiDebugLog) console.log('[GlintAI]', ...args);
+  }, []);
+
+  const handleAiChat = useCallback(async (userMessage) => {
+    const cfg = window.__prismConfig || {};
+    if (!cfg.aiChatEnabled) return;
+
+    aiLog('User message:', userMessage);
+    playChatSendSound();
+
+    // Add user message
+    const userMsg = { role: 'user', content: userMessage, timestamp: Date.now() };
+    setAiMessages(prev => {
+      const next = [...prev, userMsg];
+      // Trim to max messages
+      const max = cfg.aiMaxMessages || 20;
+      return next.length > max ? next.slice(-max) : next;
+    });
+
+    setAiChatMode(true);
+    setAiStreaming(true);
+    setAiStreamText('');
+
+    // Disable conversation timeout while AI is responding
+    if (conversationTimeoutRef.current) {
+      clearTimeout(conversationTimeoutRef.current);
+      conversationTimeoutRef.current = null;
+    }
+
+    // Show thinking expression
+    window.__prismExpression = 'thinking';
+    window.__prismTalking = false;
+    setBubblePhase('speaking');
+    const thinkingLines = ['Refracting your question...', 'Processing wavelengths...', 'Let me think...', 'Hmm, interesting...'];
+    setPrismBubble(thinkingLines[Math.floor(Math.random() * thinkingLines.length)]);
+
+    // Build context for system prompt
+    const context = {
+      page: window.location.pathname,
+      hour: new Date().getHours(),
+      holiday: holiday?.name || null,
+      model: cfg.aiModel || 'gpt-4o-mini',
+    };
+
+    // Get auth token if available
+    let authHeader = {};
+    try {
+      const { supabase } = await import('../lib/supabase');
+      if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.access_token) {
+          authHeader = { Authorization: `Bearer ${data.session.access_token}` };
+          context.userName = data.session.user?.user_metadata?.display_name || null;
+        }
+      }
+    } catch { /* no auth available */ }
+
+    // Get relationship level from autonomy
+    const aut = getGlintAutonomy();
+    if (aut) context.relationshipLevel = aut.relationship.getLevel();
+
+    // Prepare messages for API (current messages + new user message)
+    const apiMessages = [...aiMessages, userMsg].map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const abortController = new AbortController();
+    aiAbortRef.current = abortController;
+
+    try {
+      const res = await fetch('/api/glint-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+        body: JSON.stringify({ messages: apiMessages, context }),
+        signal: abortController.signal,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        aiLog('API error:', res.status, errData);
+
+        if (errData.fallback) {
+          // Use fallback message
+          const fallbackText = errData.message || "Glint's connection flickered. Let me try the old-fashioned way...";
+          window.__prismExpression = 'curious';
+          setPrismBubble(fallbackText);
+          setAiMessages(prev => [...prev, { role: 'assistant', content: fallbackText, timestamp: Date.now() }]);
+        }
+        setAiStreaming(false);
+        setAiStreamText('');
+        return;
+      }
+
+      // Read SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let buffer = '';
+      let expressionSet = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed === 'data: [DONE]') continue;
+          if (!trimmed.startsWith('data: ')) continue;
+
+          try {
+            const data = JSON.parse(trimmed.slice(6));
+            if (data.token) {
+              fullText += data.token;
+
+              // Parse expression hints
+              const exprMatch = fullText.match(/\[expression:(\w+)\]/);
+              if (exprMatch && !expressionSet) {
+                window.__prismExpression = exprMatch[1];
+                expressionSet = true;
+                aiLog('Expression:', exprMatch[1]);
+              }
+
+              // Display text without expression tags
+              const displayText = fullText
+                .replace(/\[expression:\w+\]/g, '')
+                .replace(/\[suggest:[^\]]*\]/g, '')
+                .trim();
+
+              setAiStreamText(displayText);
+              setPrismBubble(displayText || '...');
+            }
+            if (data.error) {
+              aiLog('Stream error:', data.error);
+            }
+          } catch { /* skip malformed chunk */ }
+        }
+      }
+
+      // Finalize
+      const cleanText = fullText
+        .replace(/\[expression:\w+\]/g, '')
+        .replace(/\[suggest:[^\]]*\]/g, '')
+        .trim();
+
+      // Extract suggested pills
+      const suggestMatches = [...fullText.matchAll(/\[suggest:([^\]]+)\]/g)];
+      const maxPills = cfg.aiSuggestedPills ?? 3;
+      const suggestedPills = suggestMatches.slice(0, maxPills).map(m => ({
+        label: m[1].trim(),
+        nodeId: '__ai__', // special marker for AI pill
+      }));
+
+      setPrismBubble(cleanText || "...");
+      setAiStreamText('');
+      setAiStreaming(false);
+
+      // Store assistant message
+      setAiMessages(prev => [...prev, { role: 'assistant', content: cleanText, timestamp: Date.now() }]);
+
+      // Set suggested pills as conversation node replies
+      if (suggestedPills.length > 0) {
+        setConversationNode(prev => ({
+          ...(prev || {}),
+          text: cleanText,
+          expression: expressionSet ? window.__prismExpression : 'happy',
+          replies: suggestedPills,
+        }));
+      } else {
+        setConversationNode(prev => prev ? { ...prev, replies: null } : null);
+      }
+
+      // Reset conversation timeout (longer for AI mode)
+      if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+      conversationTimeoutRef.current = setTimeout(() => {
+        exitConversation();
+        setAiChatMode(false);
+      }, 60 * 1000); // 60s timeout for AI conversations
+
+      playChatReceiveSound();
+      aiLog('Response complete:', cleanText.slice(0, 80) + '...');
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        aiLog('Request aborted');
+        return;
+      }
+      aiLog('Fetch error:', err);
+      window.__prismExpression = 'curious';
+      const fallback = "Glint's connection flickered. Try again!";
+      setPrismBubble(fallback);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: fallback, timestamp: Date.now() }]);
+      setAiStreaming(false);
+      setAiStreamText('');
+    }
+  }, [aiMessages, holiday, exitConversation, aiLog]);
+
+  // Handle AI pill clicks (suggested follow-ups + "Ask me anything" bridge)
+  const handleAiPillClick = useCallback((reply) => {
+    if (reply.nodeId === '__ai__') {
+      // Strip emoji prefix from "Ask me anything" bridge pill
+      const text = reply.label.replace(/^\u2728\s*/, '');
+      // "Ask me anything" is the bridge pill — send a conversational opener
+      const msg = text === 'Ask me anything' ? "Hey Glint! What can you tell me?" : text;
+      handleAiChat(msg);
+    }
+  }, [handleAiChat]);
+
+  // Panel open/close with autonomy pause/resume
+  const openChatPanel = useCallback(() => {
+    const cfg = window.__prismConfig || {};
+    if (!cfg.aiPanelEnabled) return;
+    setChatPanelOpen(true);
+    const aut = getGlintAutonomy();
+    if (aut) aut.pause();
+  }, []);
+
+  const closeChatPanel = useCallback(() => {
+    setChatPanelOpen(false);
+    const aut = getGlintAutonomy();
+    if (aut) aut.resume();
+  }, []);
+
+  // Editor test events
+  useEffect(() => {
+    const handleTest = (e) => {
+      const msg = e.detail?.message;
+      if (msg) handleAiChat(msg);
+    };
+    const handleClear = () => {
+      setAiMessages([]);
+      setAiChatMode(false);
+      setAiStreaming(false);
+      try { sessionStorage.removeItem('glint_ai_messages'); } catch {}
+      setAiStreamText('');
+    };
+    const handleToggle = () => {
+      setChatPanelOpen(prev => !prev);
+    };
+    window.addEventListener('glint-ai-test', handleTest);
+    window.addEventListener('glint-ai-clear', handleClear);
+    window.addEventListener('glint-ai-toggle-panel', handleToggle);
+    return () => {
+      window.removeEventListener('glint-ai-test', handleTest);
+      window.removeEventListener('glint-ai-clear', handleClear);
+      window.removeEventListener('glint-ai-toggle-panel', handleToggle);
+    };
+  }, [handleAiChat]);
+
+  // Clean up abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (aiAbortRef.current) aiAbortRef.current.abort();
+    };
+  }, []);
+
+  // Ctrl+K to toggle chat panel
+  useEffect(() => {
+    const handleKeys = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        const cfg = window.__prismConfig || {};
+        if (!cfg.aiChatEnabled || !cfg.aiPanelEnabled) return;
+        e.preventDefault();
+        setChatPanelOpen(prev => {
+          const next = !prev;
+          const aut = getGlintAutonomy();
+          if (aut) next ? aut.pause() : aut.resume();
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeys);
+    return () => window.removeEventListener('keydown', handleKeys);
+  }, []);
 
   useEffect(() => {
     // Skip the legacy auto-scheduler when autonomy system is active
@@ -6124,22 +6433,36 @@ export default function Home() {
                           } : undefined}
                         >
                           {prismBubble}
-                          {/* Quick-reply pills (Glint Brain Tier 2) */}
-                          {conversationMode && conversationNode?.replies && (
+                          {/* Quick-reply pills (Glint Brain Tier 2 + AI Tier 4) */}
+                          {conversationMode && conversationNode?.replies && !aiStreaming && (
                             <div className="glint-reply-pills">
                               {conversationNode.replies.map((reply, i) => (
                                 <motion.button
                                   key={reply.label}
-                                  className="glint-pill"
+                                  className={`glint-pill${reply.nodeId === '__ai__' ? ' glint-pill-ai' : ''}`}
                                   initial={{ opacity: 0, y: 8 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: 0.3 + i * (cfg.brainPillAnimDelay ?? 0.1) }}
-                                  onClick={(ev) => { ev.stopPropagation(); handlePillClick(reply); }}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    if (reply.nodeId === '__ai__') handleAiPillClick(reply);
+                                    else handlePillClick(reply);
+                                  }}
                                 >
                                   {reply.label}
                                 </motion.button>
                               ))}
                             </div>
+                          )}
+                          {/* AI Chat Input (Tier 4) */}
+                          {conversationMode && cfg.aiChatEnabled && cfg.aiBubbleMode !== false && (
+                            <Suspense fallback={null}>
+                              <GlintChatInput
+                                onSend={handleAiChat}
+                                disabled={aiStreaming}
+                                onExpand={cfg.aiPanelEnabled ? openChatPanel : undefined}
+                              />
+                            </Suspense>
                           )}
                         </motion.div>
                       )}
@@ -6353,6 +6676,19 @@ export default function Home() {
           </Suspense>
         )}
       </AnimatePresence>
+
+      {/* GLINT AI CHAT PANEL */}
+      <Suspense fallback={null}>
+        <GlintChatPanel
+          open={chatPanelOpen}
+          onClose={closeChatPanel}
+          messages={aiMessages}
+          onSend={handleAiChat}
+          streaming={aiStreaming}
+          streamText={aiStreamText}
+          messageLimit={cfg.aiAnonymousLimit || 10}
+        />
+      </Suspense>
 
       {/* Editor panels — hidden behind ?editor=jarowe */}
       {editorGui && (

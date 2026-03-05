@@ -11,6 +11,7 @@
     "publish:constellation": "node pipeline/index.mjs --publish && echo Publish artifacts ready — commit public/data/*.json",
     "ingest:music": "node pipeline/ingest-music.mjs",
     "ingest:all": "node pipeline/ingest-music.mjs",
+    "build:knowledge": "node pipeline/ai/generate-knowledge-summary.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

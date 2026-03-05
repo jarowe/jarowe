@@ -1,0 +1,384 @@
+/* Backdrop */
+.glint-panel-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 509;
+}
+
+/* Panel */
+.glint-chat-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    max-width: 100vw;
+    background: rgba(10, 10, 18, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(124, 58, 237, 0.2);
+    z-index: 510;
+    display: flex;
+    flex-direction: column;
+    box-shadow:
+        -8px 0 40px rgba(0, 0, 0, 0.5),
+        -2px 0 20px rgba(124, 58, 237, 0.08);
+}
+
+/* Header */
+.glint-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+    flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.06) 0%, transparent 100%);
+}
+
+.glint-panel-avatar {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(124, 58, 237, 0.12);
+    border-radius: 8px;
+}
+
+.glint-panel-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e0d4ff;
+    flex: 1;
+}
+
+.glint-panel-badge {
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: rgba(124, 58, 237, 0.8);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(56, 189, 248, 0.08));
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 6px;
+    padding: 1px 6px;
+}
+
+.glint-panel-msg-count {
+    font-size: 0.6rem;
+    color: rgba(200, 180, 255, 0.35);
+    font-variant-numeric: tabular-nums;
+}
+
+.glint-panel-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.55rem;
+    color: rgba(200, 180, 255, 0.25);
+    margin-left: auto;
+    margin-right: 4px;
+}
+
+.glint-panel-shortcut kbd {
+    font-family: inherit;
+    font-size: 0.5rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    padding: 0 3px;
+    line-height: 1.4;
+}
+
+.glint-panel-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.glint-panel-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Messages area */
+.glint-panel-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124, 58, 237, 0.2) transparent;
+    scroll-behavior: smooth;
+}
+
+.glint-panel-messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.glint-panel-messages::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.2);
+    border-radius: 2px;
+}
+
+/* Empty state */
+.glint-panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 48px 20px 32px;
+    color: rgba(200, 180, 255, 0.5);
+    gap: 8px;
+}
+
+.glint-panel-empty-prism {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.3));
+}
+
+.glint-panel-empty p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: rgba(224, 212, 255, 0.7);
+}
+
+.glint-panel-empty-hint {
+    font-size: 0.75rem !important;
+    color: rgba(200, 180, 255, 0.4) !important;
+    max-width: 280px;
+    line-height: 1.4;
+    margin-top: 4px !important;
+}
+
+/* Starter question pills */
+.glint-panel-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+    max-width: 320px;
+}
+
+.glint-starter-pill {
+    padding: 6px 14px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(56, 189, 248, 0.06));
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 20px;
+    color: rgba(224, 212, 255, 0.75);
+    font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.glint-starter-pill:hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(56, 189, 248, 0.12));
+    border-color: rgba(124, 58, 237, 0.4);
+    color: #e0d4ff;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.15);
+}
+
+/* Message bubbles */
+.glint-panel-msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    gap: 4px;
+}
+
+.glint-msg-user {
+    align-self: flex-end;
+}
+
+.glint-msg-assistant {
+    align-self: flex-start;
+}
+
+/* Mini avatar for assistant messages */
+.glint-msg-avatar-mini {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    margin-bottom: 2px;
+}
+
+.glint-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.glint-msg-user .glint-msg-bubble {
+    background: rgba(30, 30, 50, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    border-bottom-right-radius: 4px;
+}
+
+.glint-msg-assistant .glint-msg-bubble {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(56, 189, 248, 0.06));
+    border: 1px solid rgba(124, 58, 237, 0.18);
+    color: #e0d4ff;
+    border-bottom-left-radius: 4px;
+}
+
+.glint-msg-time {
+    font-size: 0.6rem;
+    color: rgba(200, 180, 255, 0.2);
+    margin-top: 1px;
+    padding: 0 4px;
+}
+
+.glint-msg-user .glint-msg-time {
+    text-align: right;
+}
+
+/* Streaming cursor */
+.glint-stream-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 0.9em;
+    background: rgba(124, 58, 237, 0.6);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: glint-cursor-blink 0.8s step-end infinite;
+}
+
+@keyframes glint-cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Thinking dots */
+.glint-msg-thinking {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 18px;
+}
+
+.glint-think-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    animation: glint-think-bounce 1.4s ease-in-out infinite;
+}
+
+.glint-think-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.glint-think-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes glint-think-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+    40% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* Input bar */
+.glint-panel-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    flex-shrink: 0;
+    background: rgba(10, 10, 18, 0.6);
+}
+
+.glint-panel-input {
+    flex: 1;
+    background: rgba(20, 20, 35, 0.6);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 20px;
+    padding: 10px 16px;
+    color: #e0d4ff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glint-panel-input:focus {
+    border-color: rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.1);
+}
+
+.glint-panel-input::placeholder {
+    color: rgba(200, 180, 255, 0.3);
+}
+
+.glint-panel-input:disabled {
+    opacity: 0.5;
+}
+
+.glint-panel-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.5), rgba(56, 189, 248, 0.5));
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.glint-panel-send:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.glint-panel-send:not(:disabled):hover {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.7), rgba(56, 189, 248, 0.7));
+    transform: scale(1.05);
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.25);
+}
+
+.glint-panel-send:not(:disabled):active {
+    transform: scale(0.95);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .glint-chat-panel {
+        width: 100vw;
+        border-left: none;
+    }
+
+    .glint-panel-starters {
+        max-width: 100%;
+    }
+}

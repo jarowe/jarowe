@@ -191,6 +191,52 @@ export const playComboSound = (comboLevel = 1) => {
     } catch (e) { }
 };
 
+export const playChatSendSound = () => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') return;
+        const t = c.currentTime;
+        // Gentle ascending chime — two notes
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, t);
+        osc.frequency.setValueAtTime(1108, t + 0.08);
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t);
+        osc.stop(t + 0.2);
+    } catch (e) { }
+};
+
+export const playChatReceiveSound = () => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') return;
+        const t = c.currentTime;
+        // Soft descending sparkle — three notes
+        const notes = [
+            { freq: 1318, start: 0, dur: 0.1 },     // E6
+            { freq: 1108, start: 0.06, dur: 0.1 },   // C#6
+            { freq: 880, start: 0.12, dur: 0.15 },    // A5
+        ];
+        notes.forEach(({ freq, start, dur }) => {
+            const osc = c.createOscillator();
+            const gain = c.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.05, t + start);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+            osc.connect(gain).connect(c.destination);
+            osc.start(t + start);
+            osc.stop(t + start + dur + 0.02);
+        });
+    } catch (e) { }
+};
+
 export const playBalloonPopSound = () => {
     if (isMuted) return;
     try {

@@ -528,7 +528,7 @@ const DIALOGUE_TREES = {
     expression: 'excited',
     replies: [
       { label: "Any other secrets?", nodeId: 'secret-1' },
-      { label: "Thanks Glint!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
 
@@ -589,7 +589,7 @@ const DIALOGUE_TREES = {
     expression: 'happy',
     replies: [
       { label: "Challenge accepted!", nodeId: null },
-      { label: "Thanks Glint!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
 
@@ -648,6 +648,7 @@ const DIALOGUE_TREES = {
     expression: 'love',
     replies: [
       { label: "Bye Glint!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
 
@@ -714,6 +715,7 @@ const DIALOGUE_TREES = {
     expression: 'love',
     replies: [
       { label: "Bye Glint!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'philosophy-code': {
@@ -780,11 +782,15 @@ const DIALOGUE_TREES = {
     expression: 'thinking',
     replies: [
       { label: "Cryptic. I love it.", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
 };
 
 // ── Conversation Root Selection ──
+
+// AI pill — added to every conversation root to bridge Tier 2 → Tier 4
+const AI_CHAT_PILL = { label: "\u2728 Ask me anything", nodeId: '__ai__' };
 
 const CONVERSATION_ROOTS = {
   'first-bop': {
@@ -793,7 +799,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "What is this site?", nodeId: 'tour-start' },
       { label: "Tell me a secret", nodeId: 'secret-1' },
-      { label: "Bye Glint!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'repeat-bop': {
@@ -802,7 +808,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "Tell me a secret", nodeId: 'secret-1' },
       { label: "What are you?", nodeId: 'tour-glint' },
-      { label: "Just bopping!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'veteran-bop': {
@@ -811,7 +817,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "Any new secrets?", nodeId: 'secret-2' },
       { label: "Get philosophical", nodeId: 'philosophy-start' },
-      { label: "Just saying hi", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'puncher-bop': {
@@ -820,7 +826,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "Sorry! Pro tips?", nodeId: 'tips-start' },
       { label: "What's your deal?", nodeId: 'tour-glint' },
-      { label: "*keeps punching*", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'explorer-bop': {
@@ -829,7 +835,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "Pro tips!", nodeId: 'tips-start' },
       { label: "Tell me a secret", nodeId: 'secret-1' },
-      { label: "Nah, bye!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
   'holiday-bop': {
@@ -838,7 +844,7 @@ const CONVERSATION_ROOTS = {
     replies: [
       { label: "Tell me about today", nodeId: 'holiday-info' },
       { label: "What is this site?", nodeId: 'tour-start' },
-      { label: "Just bopping!", nodeId: null },
+      AI_CHAT_PILL,
     ],
   },
 };
