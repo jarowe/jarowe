@@ -16,6 +16,7 @@ import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalenda
 import HolidayBanner from '../components/HolidayBanner';
 import HolidayParticles from '../components/HolidayParticles';
 import HolidayBackground from '../components/HolidayBackground';
+import AvatarGeometry from '../components/AvatarGeometry';
 const DailyTrivia = lazy(() => import('../components/DailyTrivia'));
 const GameLauncher = lazy(() => import('../components/GameLauncher'));
 const BalloonPop = lazy(() => import('../components/BalloonPop'));
@@ -5851,24 +5852,26 @@ export default function Home() {
           <div className="bento-cell cell-hero tilt-enabled">
             <div className="bento-content">
               <div className="hero-header">
-                <div
-                  className={`hero-avatar ${avatarEffect ? `avatar-${avatarEffect}` : ''}${isBirthday ? ' birthday-avatar' : ''}`}
-                  onClick={handleAvatarClick}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={avatarPhotoIdx}
-                      className="avatar-photo-inner"
-                      style={{ backgroundImage: `url(${BASE}images/${avatarPhotos[avatarPhotoIdx]})` }}
-                      initial={{ opacity: 0, scale: 1.1 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.8 }}
-                    />
-                  </AnimatePresence>
-                </div>
+                <AvatarGeometry effect={avatarEffect}>
+                  <div
+                    className={`hero-avatar ${avatarEffect ? `avatar-${avatarEffect}` : ''}${isBirthday ? ' birthday-avatar' : ''}`}
+                    onClick={handleAvatarClick}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={avatarPhotoIdx}
+                        className="avatar-photo-inner"
+                        style={{ backgroundImage: `url(${BASE}images/${avatarPhotos[avatarPhotoIdx]})` }}
+                        initial={{ opacity: 0, scale: 1.1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.8 }}
+                      />
+                    </AnimatePresence>
+                  </div>
+                </AvatarGeometry>
                 <div className="hero-titles">
                   <h1>Jared Rowe</h1>
                   <h2 className={isBirthday ? 'birthday-prismatic' : ''}>Dad. Builder. Noise Maker.</h2>
