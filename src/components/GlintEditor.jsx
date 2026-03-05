@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import { GLASS_PRESETS } from './Prism3D';
 import { buildContext, getAmbientLine, getConversationRoot } from '../utils/glintBrain';
+import { getGlintAutonomy } from '../utils/glintAutonomy';
 
 const GLASS_PRESET_STORAGE_KEY = 'jarowe_glass_presets';
 
@@ -694,6 +695,75 @@ export default function GlintEditor({ parentGui }) {
     pBrain.add(pcfg, 'speedPuzzleInterval', 0, 30, 1).name('Speed Puzzle Every N');
     pBrain.close();
 
+    // -- Autonomy System (Tier 3) --
+    const pAuto = gui.addFolder('Autonomy System');
+
+    // Enable toggles
+    pAuto.add(pcfg, 'autonomyEnabled').name('Master Enable');
+    pAuto.add(pcfg, 'autonomousPeeks').name('Auto Peeks');
+    pAuto.add(pcfg, 'autonomyEventReactions').name('Event Reactions');
+    pAuto.add(pcfg, 'autonomyDebugLog').name('Debug Log');
+
+    // Scheduling
+    const pAutoSched = pAuto.addFolder('Scheduling');
+    pAutoSched.add(pcfg, 'autonomyFirstVisitDelay', 1000, 10000, 500).name('1st Visit Delay (ms)');
+    pAutoSched.add(pcfg, 'autonomyIdleTime', 10000, 120000, 1000).name('Idle Time (ms)');
+    pAutoSched.add(pcfg, 'autonomyPeriodicMin', 15, 300, 5).name('Periodic Min (s)');
+    pAutoSched.add(pcfg, 'autonomyPeriodicMax', 30, 600, 5).name('Periodic Max (s)');
+    pAutoSched.close();
+
+    // Cooldowns
+    const pAutoCool = pAuto.addFolder('Cooldowns');
+    pAutoCool.add(pcfg, 'autonomyGlobalCooldown', 5, 60, 1).name('Global (s)');
+    pAutoCool.add(pcfg, 'autonomySameTriggerCooldown', 10, 120, 1).name('Same Trigger (s)');
+    pAutoCool.close();
+
+    // Event Weights
+    const pAutoWeights = pAuto.addFolder('Event Weights');
+    pAutoWeights.add(pcfg, 'autonomyXpWeight', 0, 1, 0.05).name('XP Reaction');
+    pAutoWeights.add(pcfg, 'autonomyGameWeight', 0, 1, 0.05).name('Game Complete');
+    pAutoWeights.add(pcfg, 'autonomyMusicWeight', 0, 1, 0.05).name('Music');
+    pAutoWeights.add(pcfg, 'autonomyScrollWeight', 0, 1, 0.05).name('Scroll Bottom');
+    pAutoWeights.add(pcfg, 'autonomyIdleWeight', 0, 1, 0.05).name('Idle Nudge');
+    pAutoWeights.add(pcfg, 'autonomyReturnWeight', 0, 1, 0.05).name('Welcome Back');
+    pAutoWeights.close();
+
+    // Manual Test Triggers
+    const pAutoTriggers = pAuto.addFolder('Test Triggers');
+    const triggerTypes = [
+      'first-visit', 'idle-nudge', 'periodic',
+      'xp-reaction', 'xp-celebration', 'game-win', 'game-lose',
+      'music-reaction', 'music-stop-reaction', 'welcome-back', 'scroll-reaction'
+    ];
+    triggerTypes.forEach(type => {
+      pAutoTriggers.add({ fire() {
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: { autonomous: true, triggerType: type, context: type, pinned: false, duration: 10000 }
+        }));
+      } }, 'fire').name(type);
+    });
+    pAutoTriggers.close();
+
+    // Relationship Display (read-only)
+    const pAutoRelation = pAuto.addFolder('Relationship');
+    const relationProxy = { level: 'unknown', interactions: 0 };
+    const levelCtrl = pAutoRelation.add(relationProxy, 'level').name('Level').disable();
+    const interCtrl = pAutoRelation.add(relationProxy, 'interactions').name('Interactions').disable();
+    const updateRelation = () => {
+      const aut = getGlintAutonomy();
+      if (aut) {
+        relationProxy.level = aut.relationship.getLevel();
+        relationProxy.interactions = aut.relationship.totalInteractions;
+        levelCtrl.updateDisplay();
+        interCtrl.updateDisplay();
+      }
+    };
+    updateRelation();
+    const relationInterval = setInterval(updateRelation, 3000);
+    pAutoRelation.close();
+
+    pAuto.close();
+
     // -- Reset --
     gui.add({ reset() {
       Object.assign(pcfg, JSON.parse(JSON.stringify(PRISM_DEFAULTS)));
@@ -798,6 +868,7 @@ export default function GlintEditor({ parentGui }) {
       try { gui.destroy(); } catch (_) {}
       guiRef.current = null;
       window.removeEventListener('prism-spawn-point', spawnChangeHandler);
+      clearInterval(relationInterval);
     };
   }, [parentGui]);
 

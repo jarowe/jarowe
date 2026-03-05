@@ -24,6 +24,10 @@ export default function GameLauncher({ gameId, holiday, onClose }) {
       markGameCompleted(gameId);
       awardGameXP(game.xp, `${game.name}: ${finalScore} pts`);
     }
+    // Dispatch game-complete event for Glint autonomy reactions
+    window.dispatchEvent(new CustomEvent('game-complete', {
+      detail: { gameId, won: finalScore > 0, score: finalScore, gameName: game?.name }
+    }));
     // Fetch leaderboard for results screen
     fetchLeaderboard(gameId, 5).then(setLeaderboard);
   }, [alreadyPlayed, game, gameId, fetchLeaderboard]);

@@ -22,7 +22,8 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
-import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode } from '../utils/glintBrain';
+import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
+import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
@@ -4014,6 +4015,7 @@ export default function Home() {
   const [showSpeedGame, setShowSpeedGame] = useState(false);
   const [editorDragMode, setEditorDragMode] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
+  const dragPositionRef = useRef({ x: null, y: null }); // stale-closure-safe dragPosition
   const dragRef = useRef({ dragging: false, offsetX: 0, offsetY: 0 });
   const dragSpinRef = useRef({ active: false, lastX: 0, lastY: 0, startX: 0, startY: 0 });
   // Bop phases: null | 'impact' | 'reaction' | 'exit'
@@ -4033,6 +4035,7 @@ export default function Home() {
   const portalExitingRef = useRef(false);
   const peekVisibleRef = useRef(false); // stale-closure-safe peekVisible
   const autoExitTimerRef = useRef(null); // auto-exit 8s timer — cancelled on bop
+  const autonomyBubbleTimersRef = useRef([]); // autonomous peek bubble timers — cancelled on bop
   const entranceTimersRef = useRef([]); // entrance sequence timeouts — cancelled on exit
   const peekIdeaCountRef = useRef(0); // tracks peek count for holiday idea alternation
   // Offset from character's final position back to portal origin (for emerge animation)
@@ -4088,6 +4091,7 @@ export default function Home() {
   // Keep refs in sync for stale-closure-safe access
   useEffect(() => { peekStyleRef.current = peekStyle; }, [peekStyle]);
   useEffect(() => { peekVisibleRef.current = peekVisible; }, [peekVisible]);
+  useEffect(() => { dragPositionRef.current = dragPosition; }, [dragPosition]);
 
   const glintCatchPhrases = [
     "Hey! You found me!",
@@ -4306,9 +4310,9 @@ export default function Home() {
       else if (side === 'left') { cx = 130; cy = H * 0.4 + CHAR_HALF; }
       else { cx = W * 0.5 + CHAR_HALF; cy = 230; }
     }
-    // Clamp portal origin to viewport so it never opens off-screen
-    cx = Math.max(0, Math.min(W, cx));
-    cy = Math.max(0, Math.min(H, cy));
+    // Clamp portal origin to viewport so VFX ring stays mostly visible
+    cx = Math.max(60, Math.min(W - 60, cx));
+    cy = Math.max(60, Math.min(H - 60, cy));
     return { x: `${(cx / W) * 100}%`, y: `${(cy / H) * 100}%` };
   };
 
@@ -4329,10 +4333,11 @@ export default function Home() {
     // Character visual center = portal pos + DISTANCE toward screen center
     let charCX = portalX + (dx / dist) * PORTAL_SPAWN_DISTANCE;
     let charCY = portalY + (dy / dist) * PORTAL_SPAWN_DISTANCE;
-    // Clamp visual center to stay within viewport with comfortable padding
-    const PAD = 80;
-    charCX = Math.max(PAD, Math.min(W - PAD, charCX));
-    charCY = Math.max(PAD, Math.min(H - PAD, charCY));
+    // Clamp visual center so the full 420px container stays within viewport
+    const PAD_X = CHAR_HALF + 10; // 220px — keeps container 10px from edge
+    const PAD_Y = CHAR_HALF + 10;
+    charCX = Math.max(PAD_X, Math.min(W - PAD_X, charCX));
+    charCY = Math.max(PAD_Y, Math.min(H - PAD_Y, charCY));
     // Offset FROM final position BACK to portal (for framer-motion initial state)
     const offsetX = portalX - charCX;
     const offsetY = portalY - charCY;
@@ -4406,6 +4411,9 @@ export default function Home() {
     setTimeout(() => {
       setPortalPhase(null);
       portalExitingRef.current = false;
+      // Resume autonomy after exit completes
+      const aut = getGlintAutonomy();
+      if (aut) aut.resume();
     }, 800 + residualMs);
   }, [clearBubble]);
 
@@ -4456,6 +4464,10 @@ export default function Home() {
   }, [exitConversation]);
 
   useEffect(() => {
+    // Skip the legacy auto-scheduler when autonomy system is active
+    const cfg = window.__prismConfig || {};
+    if (cfg.autonomyEnabled !== false) return;
+
     const peekStyles = ['portal', 'portal', 'portal', 'bounce', 'pop', 'roll'];
     const scheduleNext = () => {
       const delay = 12000 + Math.random() * 20000;
@@ -4617,6 +4629,35 @@ export default function Home() {
     return () => clearTimeout(timerId);
   }, [isBirthday, showBubbleWithThinking, clearBubble]);
 
+  // ── Glint Autonomy System (Tier 3) — start/stop lifecycle ──
+  useEffect(() => {
+    const cfg = window.__prismConfig || {};
+    if (cfg.autonomyEnabled !== false) {
+      startGlintAutonomy(cfg);
+    }
+    return () => stopGlintAutonomy();
+  }, []);
+
+  // ── Music state monitor — detects play/stop transitions for autonomy ──
+  useEffect(() => {
+    let lastPlaying = false;
+    const interval = setInterval(() => {
+      // Howler exposes playing state; check the global sound instance
+      let currentlyPlaying = false;
+      try {
+        // Howler.js global check
+        if (typeof Howler !== 'undefined' && Howler._howls) {
+          currentlyPlaying = Howler._howls.some(h => h.playing());
+        }
+      } catch { /* ignore */ }
+      if (currentlyPlaying !== lastPlaying) {
+        window.dispatchEvent(new CustomEvent(currentlyPlaying ? 'music-started' : 'music-stopped'));
+        lastPlaying = currentlyPlaying;
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Editor prism peek control (supports detail: { side, cell, duration, pinned, style })
   const peekPinnedRef = useRef(false);
   const peekTimerRef = useRef(null);
@@ -4624,6 +4665,20 @@ export default function Home() {
     const peekStyles = ['portal', 'slide', 'bounce', 'swing', 'pop', 'roll'];
     const showHandler = (e) => {
       const d = e.detail || {};
+      const isAutonomous = d.autonomous || false;
+      const reactiveContext = d.context || null;
+
+      // Pause autonomy while Glint is visible (prevent overlapping peeks)
+      if (isAutonomous) {
+        const autonomy = getGlintAutonomy();
+        if (autonomy) autonomy.pause();
+      }
+
+      // Store reactive context for the bubble text selection
+      if (isAutonomous && reactiveContext) {
+        window.__glintReactiveContext = { context: reactiveContext, data: d };
+      }
+
       const sides = ['right', 'left', 'top'];
       const hasCustomPos = d.x != null && d.y != null;
       const side = hasCustomPos ? 'custom' : (d.side || sides[Math.floor(Math.random() * sides.length)]);
@@ -4665,7 +4720,56 @@ export default function Home() {
           } else {
             setPeekVisible(false);
           }
+          // Resume autonomy when Glint exits
+          const aut = getGlintAutonomy();
+          if (aut) aut.resume();
         }, d.duration || 8000);
+      }
+
+      // Autonomous peeks: show reactive bubble text after settling
+      if (isAutonomous) {
+        const bubbleDelay = style === 'portal' ? 2000 : 1200;
+        const outerTimer = setTimeout(() => {
+          // Skip if user already bopped into conversation mode during the delay
+          if (conversationModeRef.current) return;
+
+          const reactiveCtx = window.__glintReactiveContext;
+          window.__glintReactiveContext = null;
+          let ideaText, ideaExpression;
+
+          if (reactiveCtx) {
+            const reactiveLine = getReactiveLine(reactiveCtx.context, reactiveCtx.data);
+            if (reactiveLine) {
+              ideaText = reactiveLine.text;
+              ideaExpression = reactiveLine.expression;
+            }
+          }
+
+          // Fallback to ambient line
+          if (!ideaText) {
+            window.__currentHoliday = holiday;
+            window.__isBirthday = isBirthday;
+            const ctx = buildContext();
+            const ambient = getAmbientLine(ctx);
+            if (ambient) {
+              ideaText = ambient.text;
+              ideaExpression = ambient.expression;
+            }
+          }
+
+          if (!ideaText) {
+            ideaText = glintIdeas[Math.floor(Math.random() * glintIdeas.length)];
+          }
+
+          if (ideaExpression) window.__prismExpression = ideaExpression;
+          window.__prismTalking = true;
+          showBubbleWithThinking(ideaText);
+          const t1 = setTimeout(() => { window.__prismTalking = false; window.__prismExpression = 'happy'; }, 1800);
+          const t2 = setTimeout(() => { clearBubble(); window.__prismExpression = 'normal'; }, 5000);
+          autonomyBubbleTimersRef.current = [t1, t2];
+        }, bubbleDelay);
+        // Store outer timer so it can be cancelled if user bops during the delay
+        autonomyBubbleTimersRef.current = [outerTimer];
       }
     };
     const hideHandler = () => {
@@ -4682,9 +4786,10 @@ export default function Home() {
     // Spawn point management
     const spawnHandler = (e) => {
       const d = e.detail || {};
-      if (d.action === 'add' && dragPosition.x != null) {
+      if (d.action === 'add' && dragPositionRef.current.x != null) {
         // Store as viewport percentages for responsive scaling
-        const newPoints = [...spawnPoints, { label: d.label || `Point ${spawnPoints.length + 1}`, xPct: dragPosition.x / window.innerWidth, yPct: dragPosition.y / window.innerHeight, side: 'custom' }];
+        const dp = dragPositionRef.current;
+        const newPoints = [...spawnPoints, { label: d.label || `Point ${spawnPoints.length + 1}`, xPct: dp.x / window.innerWidth, yPct: dp.y / window.innerHeight, side: 'custom' }];
         setSpawnPoints(newPoints);
         localStorage.setItem('prism_spawn_points', JSON.stringify(newPoints));
       } else if (d.action === 'remove' && d.index != null) {
@@ -4768,7 +4873,7 @@ export default function Home() {
       window.removeEventListener('glint-brain-test-conversation', brainTestConvoHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
-  }, [spawnPoints, dragPosition, showBubbleWithThinking, clearBubble, exitConversation]);
+  }, [spawnPoints, showBubbleWithThinking, clearBubble, exitConversation]);
 
   // Dynamic bubble-to-character connector — rAF loop updates SVG path directly (no re-renders)
   const connectorPathRef = useRef(null); // main curved path
@@ -4916,6 +5021,12 @@ export default function Home() {
     const cfg = window.__prismConfig || {};
     const PUSH_THRESHOLD = cfg.punchExitThreshold ?? 5;
 
+    // Reset conversation timeout on each punch — active punching keeps conversation alive
+    if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+    conversationTimeoutRef.current = setTimeout(() => {
+      exitConversation();
+    }, (cfg.brainConversationTimeout ?? 15) * 1000);
+
     // +1 bop per punch — each hit counts!
     setPrismBops(prev => prev + 1);
     // Track total bops in localStorage
@@ -5008,7 +5119,7 @@ export default function Home() {
       });
       setTimeout(() => runPortalExitSequence(), 100);
     }
-  }, [clearBubble, runPortalExitSequence]);
+  }, [clearBubble, runPortalExitSequence, exitConversation]);
 
   const handleCatchCharacter = useCallback((e) => {
     // During conversation: rapid-fire punching instead of re-bop
@@ -5023,6 +5134,9 @@ export default function Home() {
     // Cancel any pending exit timers — bop takes over the exit sequence
     if (autoExitTimerRef.current) { clearTimeout(autoExitTimerRef.current); autoExitTimerRef.current = null; }
     if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
+    // Cancel autonomous bubble timers so they don't clear conversation bubble
+    autonomyBubbleTimersRef.current.forEach(clearTimeout);
+    autonomyBubbleTimersRef.current = [];
 
     // Track session bops for brain context
     const sb = parseInt(sessionStorage.getItem('glint_bops_session') || '0');
@@ -5098,6 +5212,9 @@ export default function Home() {
         const root = getConversationRoot(ctx);
         setConversationMode(true);
         setConversationNode(root);
+        // Pause autonomy during conversation
+        const aut = getGlintAutonomy();
+        if (aut) aut.pause();
         window.__prismExpression = root.expression || 'happy';
         showBubbleWithThinking(root.text);
 
@@ -5146,7 +5263,9 @@ export default function Home() {
 
   // Hit-target click handler — dispatched from the floating div that tracks prism screen pos
   const handleHitTargetClick = useCallback((e) => {
-    if (!peekVisible || editorDragMode || bopPhase != null) return;
+    if (!peekVisible || editorDragMode) return;
+    // During conversation, allow rapid punches even during bopPhase animation
+    if (bopPhase != null && !conversationModeRef.current) return;
     // Distinguish click vs drag: if total movement > 12px, it was a drag (generous threshold)
     const ds = dragSpinRef.current;
     const dx = e.clientX - ds.startX;
@@ -5283,7 +5402,7 @@ export default function Home() {
       )}
 
       {/* HOLIDAY BANNER (not on birthday — birthday has its own) */}
-      <HolidayBanner onTriviaLaunch={() => setShowTrivia(true)} onGameLaunch={() => setShowGame(true)} />
+      <HolidayBanner onTriviaLaunch={() => setShowTrivia(true)} onGameLaunch={() => { setShowGame(true); const aut = getGlintAutonomy(); if (aut) aut.pause(); }} />
 
       {/* HOLIDAY PARTICLES (floating emoji for T2+ days) */}
       <HolidayParticles />
@@ -5904,6 +6023,9 @@ export default function Home() {
               style={{
                 cursor: 'default',
                 pointerEvents: editorDragMode ? 'auto' : 'none',
+                // During conversation mode, bump z-index above hit target (502) so
+                // bubble/pills receive clicks instead of being blocked by the hit target
+                ...(conversationMode ? { zIndex: 503 } : {}),
                 ...(isDragCustom || isCustomPos ? { left: dragPosition.x, top: dragPosition.y, right: 'auto' } : {}),
               }}
             >
@@ -6094,7 +6216,7 @@ export default function Home() {
               borderRadius: '50%', // overridden by rAF loop based on hitboxShape
               transform: 'translate(-50%, -50%)',
               cursor: 'grab',
-              pointerEvents: conversationMode ? 'none' : 'auto',
+              pointerEvents: 'auto',
               zIndex: 502,
               touchAction: 'none',
             }}
@@ -6204,7 +6326,7 @@ export default function Home() {
             <GameLauncher
               gameId={holiday.game}
               holiday={holiday}
-              onClose={() => setShowGame(false)}
+              onClose={() => { setShowGame(false); const aut = getGlintAutonomy(); if (aut) aut.resume(); }}
             />
           </Suspense>
         )}

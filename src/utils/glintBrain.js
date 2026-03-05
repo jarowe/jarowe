@@ -197,6 +197,137 @@ const PUNCH_REACTION_LINES = [
   { text: "Is this... is this a bonding thing? It feels like a bonding thing.", expression: 'curious' },
 ];
 
+// ── Reactive Line Pools (Tier 3 Autonomy) ──
+
+const FIRST_VISIT_WELCOME_LINES = [
+  { text: "Hey! Welcome to Jared's site. I'm Glint, your luminous guide!", expression: 'excited' },
+  { text: "A new visitor! I've been waiting. Look around — there's SO much to find.", expression: 'happy' },
+  { text: "Welcome! First tip: click everything. Second tip: trust no prism. Third tip: ignore second tip.", expression: 'mischief' },
+  { text: "Oh hello! I'm Glint. I live here. Explore and I'll pop in with tips!", expression: 'curious' },
+  { text: "You found me! Well, I found you. Welcome to the coolest corner of the internet.", expression: 'excited' },
+  { text: "New face detected! Buckle up — this site is full of surprises.", expression: 'happy' },
+];
+
+const XP_MILESTONE_LINES = [
+  { text: "100 XP! You're officially not a tourist anymore!", expression: 'excited' },
+  { text: "250 XP! Now we're cooking. Keep exploring!", expression: 'happy' },
+  { text: "500 XP! Should I throw you a parade? I think I should.", expression: 'excited' },
+  { text: "1000 XP?! You absolute legend. Take a bow.", expression: 'love' },
+  { text: "1500 XP! You've seen more of this site than most. Respect.", expression: 'love' },
+  { text: "XP milestone! At this rate you'll unlock everything.", expression: 'excited' },
+  { text: "Big XP number! I'm genuinely impressed. And I'm hard to impress.", expression: 'happy' },
+];
+
+const XP_GAIN_LINES = [
+  { text: "Nice! XP gained. Keep exploring!", expression: 'happy' },
+  { text: "More XP! You're on a roll.", expression: 'excited' },
+  { text: "XP goes up, good vibes go up. Science.", expression: 'mischief' },
+  { text: "Cha-ching! That's the sound of progress.", expression: 'happy' },
+  { text: "Every point counts. Well, it counts to ME anyway.", expression: 'curious' },
+  { text: "XP acquired! Your adventure score is looking good.", expression: 'happy' },
+];
+
+const GAME_WIN_LINES = [
+  { text: "Victory! That was impressive.", expression: 'excited' },
+  { text: "Winner winner! I knew you had it in you.", expression: 'happy' },
+  { text: "Crushed it! Should I be worried about competing with you?", expression: 'mischief' },
+  { text: "GG! You make it look easy.", expression: 'excited' },
+  { text: "And the crowd goes wild! Well, I go wild. Same thing.", expression: 'love' },
+  { text: "A win! Your gaming skills are noted. And admired.", expression: 'happy' },
+];
+
+const GAME_LOSE_LINES = [
+  { text: "Close one! Try again?", expression: 'curious' },
+  { text: "That was a learning experience! Also known as 'not winning.'", expression: 'mischief' },
+  { text: "Don't sweat it. Even prisms have off days.", expression: 'happy' },
+  { text: "Almost had it! Round two?", expression: 'excited' },
+  { text: "Every expert was once a beginner. Deep, right?", expression: 'thinking' },
+  { text: "The real game was the fun you had along the way. Right?", expression: 'happy' },
+];
+
+const MUSIC_START_LINES = [
+  { text: "Music on! Now we're vibing.", expression: 'happy' },
+  { text: "Ooh, a soundtrack! Everything's better with music.", expression: 'excited' },
+  { text: "Jared's tracks! Fun fact: light and sound are both waves. We're cousins.", expression: 'thinking' },
+  { text: "The beats are flowing. I can feel the wavelengths.", expression: 'love' },
+  { text: "Music activated! My favorite browsing companion.", expression: 'happy' },
+  { text: "Tune time! This changes the whole mood.", expression: 'excited' },
+];
+
+const MUSIC_STOP_LINES = [
+  { text: "Silence? Bold choice.", expression: 'curious' },
+  { text: "The music stopped. Was it something I refracted?", expression: 'mischief' },
+  { text: "Quiet mode. I respect the focus.", expression: 'thinking' },
+  { text: "No music? That's okay, I make my own sound effects. *sparkle sparkle*", expression: 'happy' },
+  { text: "Peace and quiet. Sometimes the best soundtrack is none at all.", expression: 'thinking' },
+  { text: "Music off. Now you can hear me think. ...You can't actually hear me think.", expression: 'mischief' },
+];
+
+const WELCOME_BACK_LINES = [
+  { text: "Hey! You're back! Miss me?", expression: 'excited' },
+  { text: "Welcome back! I was just... refracting. Totally not lonely.", expression: 'happy' },
+  { text: "You returned! The internet was dimmer without you.", expression: 'love' },
+  { text: "Back again! Let's pick up where we left off.", expression: 'happy' },
+  { text: "There you are! I was starting to worry. (Prisms worry, it's a thing.)", expression: 'curious' },
+  { text: "Oh hey! Tab switch? I get it, I switch between wavelengths too.", expression: 'mischief' },
+];
+
+const IDLE_NUDGE_LINES = [
+  { text: "Psst... there's cool stuff waiting to be clicked.", expression: 'mischief' },
+  { text: "Still there? Try scrolling — there's more below!", expression: 'curious' },
+  { text: "I see you thinking. Need a hint? Click ANYTHING.", expression: 'happy' },
+  { text: "Idle hands are the... wait, you don't have idle hands. Idle mouse?", expression: 'thinking' },
+  { text: "Just checking in! Have you tried the trivia yet?", expression: 'excited' },
+  { text: "Pro tip: the best discoveries happen when you wander.", expression: 'happy' },
+  { text: "Hey, the globe down there has real-time day and night. Go look!", expression: 'curious' },
+];
+
+const SCROLL_BOTTOM_LINES = [
+  { text: "Made it to the bottom! Thorough explorer.", expression: 'happy' },
+  { text: "You scrolled all the way down? Dedication. I respect that.", expression: 'love' },
+  { text: "The bottom! But have you checked EVERYTHING on the way down?", expression: 'mischief' },
+  { text: "End of the scroll! But there are other pages to explore...", expression: 'curious' },
+  { text: "Bottom reached! Fun fact: there's no bottom in the Universe page.", expression: 'thinking' },
+  { text: "You've seen it all! Or have you? *mysterious sparkle*", expression: 'mischief' },
+];
+
+const REACTIVE_POOLS = {
+  'first-visit': FIRST_VISIT_WELCOME_LINES,
+  'xp-celebration': XP_MILESTONE_LINES,
+  'xp-reaction': XP_GAIN_LINES,
+  'game-win': GAME_WIN_LINES,
+  'game-lose': GAME_LOSE_LINES,
+  'music-reaction': MUSIC_START_LINES,
+  'music-stop-reaction': MUSIC_STOP_LINES,
+  'welcome-back': WELCOME_BACK_LINES,
+  'idle-nudge': IDLE_NUDGE_LINES,
+  'scroll-reaction': SCROLL_BOTTOM_LINES,
+  'periodic': null, // uses ambient line system
+};
+
+export function getReactiveLine(context, data) {
+  const pool = REACTIVE_POOLS[context];
+  if (!pool) {
+    // For periodic peeks, use the ambient system
+    log('Reactive: no pool for context "' + context + '", falling back to ambient');
+    const ctx = buildContext();
+    return getAmbientLine(ctx);
+  }
+
+  // For XP milestone, try to find a line matching the milestone value
+  if (context === 'xp-celebration' && data?.milestone) {
+    const milestoneSpecific = pool.find(l => l.text.includes(String(data.milestone)));
+    if (milestoneSpecific) {
+      log('Reactive: milestone-specific line', milestoneSpecific.text);
+      return milestoneSpecific;
+    }
+  }
+
+  const line = pick(pool);
+  log('Reactive:', context, line.text);
+  return line;
+}
+
 // Fallback: the original genius ideas (same as Home.jsx glintIdeas array)
 const FALLBACK_IDEAS = [
   { text: "What if we raised our kids on curiosity instead of curriculum?", expression: 'thinking' },

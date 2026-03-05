@@ -272,4 +272,22 @@ export const PRISM_DEFAULTS = {
   // Punch & Speed Puzzle
   punchExitThreshold: 5,          // punches during conversation before forced portal exit
   speedPuzzleInterval: 10,        // bops between speed puzzle triggers (0 = disabled)
+
+  // ── Autonomy System (Tier 3) ──
+  autonomyEnabled: true,               // master toggle for all autonomous behavior
+  autonomousPeeks: true,               // enable autonomous peek scheduling (first-visit, idle, periodic)
+  autonomyEventReactions: true,        // enable event-triggered reactions (XP, games, music, scroll)
+  autonomyDebugLog: false,             // log autonomy decisions to console
+  autonomyFirstVisitDelay: 3000,       // ms after page load before first-visit welcome
+  autonomyIdleTime: 30000,             // ms of inactivity before idle nudge
+  autonomyPeriodicMin: 60,             // seconds between periodic peeks (min)
+  autonomyPeriodicMax: 120,            // seconds between periodic peeks (max)
+  autonomyGlobalCooldown: 15,          // seconds between ANY autonomous peek
+  autonomySameTriggerCooldown: 45,     // seconds before same trigger type repeats
+  autonomyXpWeight: 0.8,              // probability of reacting to XP gain (0-1)
+  autonomyGameWeight: 0.9,            // probability of reacting to game complete (0-1)
+  autonomyMusicWeight: 0.5,           // probability of reacting to music start/stop (0-1)
+  autonomyScrollWeight: 0.3,          // probability of reacting to scroll-to-bottom (0-1)
+  autonomyIdleWeight: 0.7,            // probability of idle peek (0-1)
+  autonomyReturnWeight: 0.7,          // probability of welcome-back peek (0-1)
 };
