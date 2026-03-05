@@ -6686,7 +6686,7 @@ export default function Home() {
           onSend={handleAiChat}
           streaming={aiStreaming}
           streamText={aiStreamText}
-          messageLimit={cfg.aiAnonymousLimit || 10}
+          messageLimit={(window.__prismConfig || {}).aiAnonymousLimit || 10}
         />
       </Suspense>
 
