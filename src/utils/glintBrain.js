@@ -462,6 +462,9 @@ export function getAmbientLine(context) {
 
 // ── Tier 2: Dialogue Trees ──
 
+// AI pill — bridges Tier 2 dialogue → Tier 4 AI chat
+const AI_CHAT_PILL = { label: "\u2728 Ask me anything", nodeId: '__ai__' };
+
 const DIALOGUE_TREES = {
   // ── Tour tree ──
   'tour-start': {
@@ -788,9 +791,6 @@ const DIALOGUE_TREES = {
 };
 
 // ── Conversation Root Selection ──
-
-// AI pill — added to every conversation root to bridge Tier 2 → Tier 4
-const AI_CHAT_PILL = { label: "\u2728 Ask me anything", nodeId: '__ai__' };
 
 const CONVERSATION_ROOTS = {
   'first-bop': {
