@@ -707,6 +707,7 @@ export default function GlintEditor({ parentGui }) {
     // Scheduling
     const pAutoSched = pAuto.addFolder('Scheduling');
     pAutoSched.add(pcfg, 'autonomyFirstVisitDelay', 1000, 10000, 500).name('1st Visit Delay (ms)');
+    pAutoSched.add(pcfg, 'autonomyReturnVisitDelay', 1000, 15000, 500).name('Return Visit Delay (ms)');
     pAutoSched.add(pcfg, 'autonomyIdleTime', 10000, 120000, 1000).name('Idle Time (ms)');
     pAutoSched.add(pcfg, 'autonomyPeriodicMin', 15, 300, 5).name('Periodic Min (s)');
     pAutoSched.add(pcfg, 'autonomyPeriodicMax', 30, 600, 5).name('Periodic Max (s)');
@@ -731,7 +732,7 @@ export default function GlintEditor({ parentGui }) {
     // Manual Test Triggers
     const pAutoTriggers = pAuto.addFolder('Test Triggers');
     const triggerTypes = [
-      'first-visit', 'idle-nudge', 'periodic',
+      'first-visit', 'return-hello', 'idle-nudge', 'periodic',
       'xp-reaction', 'xp-celebration', 'game-win', 'game-lose',
       'music-reaction', 'music-stop-reaction', 'welcome-back', 'scroll-reaction'
     ];

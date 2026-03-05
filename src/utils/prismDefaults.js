@@ -279,6 +279,7 @@ export const PRISM_DEFAULTS = {
   autonomyEventReactions: true,        // enable event-triggered reactions (XP, games, music, scroll)
   autonomyDebugLog: false,             // log autonomy decisions to console
   autonomyFirstVisitDelay: 3000,       // ms after page load before first-visit welcome
+  autonomyReturnVisitDelay: 5000,      // ms after page load before return-visitor hello
   autonomyIdleTime: 30000,             // ms of inactivity before idle nudge
   autonomyPeriodicMin: 60,             // seconds between periodic peeks (min)
   autonomyPeriodicMax: 120,            // seconds between periodic peeks (max)

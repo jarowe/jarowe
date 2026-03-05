@@ -24,6 +24,12 @@ const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+import { PRISM_DEFAULTS } from '../utils/prismDefaults';
+
+// Ensure __prismConfig exists before Prism3D lazy-loads — autonomy needs lockedPeekStyle etc.
+if (!window.__prismConfig) {
+  window.__prismConfig = { ...PRISM_DEFAULTS };
+}
 import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';

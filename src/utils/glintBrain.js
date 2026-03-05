@@ -208,6 +208,15 @@ const FIRST_VISIT_WELCOME_LINES = [
   { text: "New face detected! Buckle up — this site is full of surprises.", expression: 'happy' },
 ];
 
+const RETURN_HELLO_LINES = [
+  { text: "Hey, you're back! What should we explore today?", expression: 'excited' },
+  { text: "Welcome back! I've been refracting in your absence.", expression: 'happy' },
+  { text: "Oh hey! Glad you stopped by again. There's always more to discover.", expression: 'curious' },
+  { text: "You again! My favorite visitor. Don't tell the others.", expression: 'mischief' },
+  { text: "Back for more? I like your style. Look around!", expression: 'happy' },
+  { text: "The wanderer returns! Did you miss me or the games?", expression: 'excited' },
+];
+
 const XP_MILESTONE_LINES = [
   { text: "100 XP! You're officially not a tourist anymore!", expression: 'excited' },
   { text: "250 XP! Now we're cooking. Keep exploring!", expression: 'happy' },
@@ -293,6 +302,7 @@ const SCROLL_BOTTOM_LINES = [
 
 const REACTIVE_POOLS = {
   'first-visit': FIRST_VISIT_WELCOME_LINES,
+  'return-hello': RETURN_HELLO_LINES,
   'xp-celebration': XP_MILESTONE_LINES,
   'xp-reaction': XP_GAIN_LINES,
   'game-win': GAME_WIN_LINES,

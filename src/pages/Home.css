@@ -776,12 +776,12 @@
 }
 
 .peek-character.peek-right {
-    right: -80px;
+    right: 10px;
     top: 50%;
 }
 
 .peek-character.peek-left {
-    left: -80px;
+    left: 10px;
     top: 40%;
 }
 
