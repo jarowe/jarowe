@@ -32,6 +32,8 @@ const PERKS = [
   },
 ];
 
+const PERK_COLORS = { cloud: '#06b6d4', trophy: '#fbbf24', badge: '#f472b6', rocket: '#a855f7' };
+
 /* ═══════════════════════════════════════════════════════════════════════
    COSMIC PORTAL — Sacred Geometry Wormhole (anime.js v4)
    ═══════════════════════════════════════════════════════════════════════ */
@@ -98,9 +100,10 @@ function arcPath(startAngle, sweep, r) {
   return `M${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
 }
 
-function CosmicPortal() {
+function CosmicPortal({ hoveredPerk, burst }) {
   const portalRef = useRef(null);
   const animsRef = useRef([]);
+  const hoveredRef = useRef(null);
 
   useEffect(() => {
     const el = portalRef.current;
@@ -258,6 +261,70 @@ function CosmicPortal() {
     };
   }, []);
 
+  /* ── Hover speed control ── */
+  useEffect(() => { hoveredRef.current = hoveredPerk; }, [hoveredPerk]);
+  useEffect(() => {
+    animsRef.current.forEach(a => { a.speed = hoveredPerk ? 3 : 1; });
+  }, [hoveredPerk]);
+
+  /* ── Burst animation on perk click ── */
+  useEffect(() => {
+    if (!burst || !portalRef.current) return;
+    const el = portalRef.current;
+    const color = PERK_COLORS[burst.id] || '#c4b5fd';
+    const burstScale = { cloud: 1.4, trophy: 1.6, badge: 1.3, rocket: 2.0 }[burst.id] || 1.5;
+
+    // Shockwave rings in perk color
+    const ring = el.querySelector('.portal-burst');
+    if (ring) {
+      ring.setAttribute('stroke', color);
+      animate(ring, { r: [5, 95], opacity: [0.7, 0], strokeWidth: [2.5, 0.2], duration: 700, ease: 'outCubic' });
+    }
+    const ring2 = el.querySelector('.portal-burst-2');
+    if (ring2) {
+      ring2.setAttribute('stroke', color);
+      setTimeout(() => animate(ring2, { r: [8, 80], opacity: [0.5, 0], strokeWidth: [1.5, 0.1], duration: 600, ease: 'outCubic' }), 150);
+    }
+
+    // Core elastic burst (scale varies per perk)
+    animate(el.querySelector('.portal-core'), { scale: [1, burstScale, 1], duration: 800, ease: 'outElastic(1, 0.5)' });
+
+    // Per-perk accent animations
+    if (burst.id === 'cloud') {
+      // Flower circles glow — data syncing vibe
+      animate(el.querySelectorAll('.flower-circle'), {
+        strokeWidth: [0.6, 2.5, 0.6], duration: 700,
+      });
+    } else if (burst.id === 'trophy') {
+      // Star ring blazes, rays flash bright — victory
+      animate(el.querySelectorAll('.star-petal'), {
+        opacity: [0.7, 1, 0.7], strokeWidth: [0.8, 2.5, 0.8],
+        duration: 600, delay: stagger(25),
+      });
+      animate(el.querySelectorAll('.portal-ray'), {
+        opacity: [0.15, 1, 0.15], duration: 500, delay: stagger(40),
+      });
+    } else if (burst.id === 'badge') {
+      // Hexagram heartbeat — achievement unlocked
+      animate(el.querySelectorAll('.hex-line'), {
+        strokeWidth: [1, 3.5, 1], duration: 800,
+      });
+    } else if (burst.id === 'rocket') {
+      // Energy arcs surge — launch/warp
+      animate(el.querySelectorAll('.energy-arc'), {
+        strokeWidth: [1, 3.5, 1], opacity: [0.2, 0.9, 0.2], duration: 600,
+      });
+    }
+
+    // Speed surge then ease back
+    animsRef.current.forEach(a => { a.speed = 5; });
+    const t = setTimeout(() => {
+      animsRef.current.forEach(a => { a.speed = hoveredRef.current ? 3 : 1; });
+    }, 600);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [burst?.key]);
+
   /* Build SVG once */
   const petals = useMemo(() => Array.from({ length: 12 }, (_, i) => (
     <path key={i} d={petalPath(i)} className="star-petal"
@@ -299,7 +366,7 @@ function CosmicPortal() {
   )), []);
 
   return (
-    <div className="portal-stage" ref={portalRef}>
+    <div className="portal-stage" ref={portalRef} data-perk={hoveredPerk || undefined}>
       <div className="portal-glow" style={{ opacity: 0 }} />
       <svg viewBox="0 0 320 200" className="portal-svg">
         <defs>
@@ -358,6 +425,10 @@ function CosmicPortal() {
             style={{ transformOrigin: `${CX}px ${CY}px` }} />
           <circle cx={CX} cy={CY} r="4" fill="rgba(255,255,255,0.15)" />
         </g>
+
+        {/* Burst rings (animated on perk click) */}
+        <circle cx={CX} cy={CY} r="5" className="portal-burst" fill="none" stroke="#c4b5fd" strokeWidth="2" opacity="0" />
+        <circle cx={CX} cy={CY} r="8" className="portal-burst-2" fill="none" stroke="#c4b5fd" strokeWidth="1.5" opacity="0" />
       </svg>
     </div>
   );
@@ -373,9 +444,12 @@ export default function AuthModal() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [hoveredPerk, setHoveredPerk] = useState(null);
+  const [burst, setBurst] = useState(null);
 
-  /* ── Confetti burst on perk hover ── */
+  /* ── Perk interactions ── */
   const handlePerkHover = useCallback((perk, e) => {
+    setHoveredPerk(perk.id);
     const rect = e.currentTarget.getBoundingClientRect();
     confetti({
       particleCount: 40, spread: 60, startVelocity: 25, gravity: 0.6, ticks: 80,
@@ -384,6 +458,8 @@ export default function AuthModal() {
       disableForReducedMotion: true,
     });
   }, []);
+  const handlePerkLeave = useCallback(() => setHoveredPerk(null), []);
+  const handlePerkClick = useCallback((perk) => setBurst({ id: perk.id, key: Date.now() }), []);
 
   /* ── Email submit ── */
   const handleSubmit = async (e) => {
@@ -452,7 +528,7 @@ export default function AuthModal() {
 
         {/* ── Hero: Cosmic Portal ── */}
         <div className="auth-hero">
-          <CosmicPortal />
+          <CosmicPortal hoveredPerk={hoveredPerk} burst={burst} />
           <h2 className="auth-title">
             <span className="auth-title-sm">WHERE IDEAS</span>
             <span className="auth-title-lg">COME ALIVE</span>
@@ -465,7 +541,9 @@ export default function AuthModal() {
           {PERKS.map((perk, i) => (
             <div key={perk.id} className="auth-perk"
               style={{ '--pc': perk.color, animationDelay: `${0.12 + i * 0.07}s` }}
-              onMouseEnter={(e) => handlePerkHover(perk, e)}>
+              onMouseEnter={(e) => handlePerkHover(perk, e)}
+              onMouseLeave={handlePerkLeave}
+              onClick={() => handlePerkClick(perk)}>
               <div className="auth-perk-ring">
                 <svg width="24" height="24" viewBox="0 0 24 24" className="auth-perk-icon">{perk.icon}</svg>
               </div>

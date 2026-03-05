@@ -141,6 +141,23 @@
 }
 .portal-core { will-change: transform; }
 
+/* Portal reactivity — perk hover color shifts */
+.portal-glow { transition: background 0.4s, transform 0.4s, opacity 0.4s, filter 0.4s; }
+.portal-svg { transition: filter 0.4s; }
+.portal-stage[data-perk] .portal-glow {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) scale(1.5);
+  filter: blur(25px);
+}
+.portal-stage[data-perk] .portal-svg { filter: brightness(1.4) saturate(1.3); }
+.portal-stage[data-perk="cloud"] .portal-glow { background: radial-gradient(circle, rgba(6,182,212,0.35) 0%, rgba(6,182,212,0.12) 40%, transparent 70%); }
+.portal-stage[data-perk="trophy"] .portal-glow { background: radial-gradient(circle, rgba(251,191,36,0.3) 0%, rgba(251,191,36,0.1) 40%, transparent 70%); }
+.portal-stage[data-perk="badge"] .portal-glow { background: radial-gradient(circle, rgba(244,114,182,0.32) 0%, rgba(244,114,182,0.1) 40%, transparent 70%); }
+.portal-stage[data-perk="rocket"] .portal-glow { background: radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(168,85,247,0.12) 40%, transparent 70%); }
+
+/* Burst shockwave rings */
+.portal-burst, .portal-burst-2 { pointer-events: none; }
+
 /* Title */
 .auth-title {
   display: flex; flex-direction: column; align-items: center;
