@@ -200,90 +200,184 @@ function EclipseScene() {
         <path d="M118 60 Q132 50 150 48 Q168 50 182 60" stroke="rgba(255,255,255,0.6)" strokeWidth="1.8" fill="none" filter="url(#ec-mega)" className="ec-edge" />
 
         {/* ══════════════════════════════════════════════════════════════
-            IK ASTRONAUT — Articulated limbs, each joint animated
-            independently for organic zero-g floating motion.
-            Hierarchy: float → torso → head / arms / legs (nested joints)
+            IK ASTRONAUT V5 — Full suit, glowing visor, energy aura,
+            suit panel lights, detailed helmet with reflections.
             ══════════════════════════════════════════════════════════════ */}
-        <g className="ik-float" filter="url(#ec-glow)">
-          {/* Tether to black hole */}
-          <path d="M78 58 Q108 46 130 62 Q142 72 148 83" stroke="rgba(196,181,253,0.1)" strokeWidth="0.6" fill="none" strokeDasharray="3 2.5" className="ik-tether" />
+
+        {/* Energy aura around the astronaut */}
+        <ellipse cx="68" cy="58" rx="32" ry="36" fill="none" stroke="rgba(124,58,237,0.06)" strokeWidth="1.5" className="ik-aura a1" />
+        <ellipse cx="68" cy="58" rx="38" ry="42" fill="none" stroke="rgba(103,232,249,0.04)" strokeWidth="1" className="ik-aura a2" />
+
+        <g className="ik-float">
+          {/* Tether — energy beam to black hole */}
+          <path d="M82 60 Q105 50 125 60 Q140 72 148 83" stroke="rgba(167,139,250,0.12)" strokeWidth="1.2" fill="none" strokeDasharray="4 3" className="ik-tether" />
+          <path d="M82 60 Q105 50 125 60 Q140 72 148 83" stroke="rgba(103,232,249,0.06)" strokeWidth="3" fill="none" filter="url(#ec-soft)" className="ik-tether" />
+          {/* Tether particles flowing toward black hole */}
+          <circle cx="95" cy="54" r="0.8" fill="#a78bfa" opacity="0.5" className="ik-tether-dot t1" />
+          <circle cx="112" cy="56" r="0.6" fill="#67e8f9" opacity="0.4" className="ik-tether-dot t2" />
+          <circle cx="128" cy="65" r="0.5" fill="#fbbf24" opacity="0.3" className="ik-tether-dot t3" />
+          <circle cx="140" cy="76" r="0.4" fill="#f472b6" opacity="0.3" className="ik-tether-dot t4" />
 
           <g className="ik-torso">
-            {/* Backpack */}
-            <rect x="78" y="49" width="5" height="12" rx="1.5" fill="rgba(124,58,237,0.35)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
-            <circle cx="80.5" cy="52.5" r="0.9" className="ik-pack-led" />
-            <circle cx="80.5" cy="56" r="0.6" className="ik-pack-led l2" />
+            {/* ── BACKPACK / JETPACK (detailed) ── */}
+            <rect x="79" y="47" width="7" height="16" rx="2" fill="rgba(15,12,35,0.9)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.7" />
+            {/* Pack panel lines */}
+            <line x1="80" y1="51" x2="85" y2="51" stroke="rgba(196,181,253,0.12)" strokeWidth="0.3" />
+            <line x1="80" y1="55" x2="85" y2="55" stroke="rgba(196,181,253,0.1)" strokeWidth="0.3" />
+            <line x1="80" y1="59" x2="85" y2="59" stroke="rgba(196,181,253,0.08)" strokeWidth="0.3" />
+            {/* Pack LEDs — 3 status lights */}
+            <circle cx="81.5" cy="49" r="0.9" className="ik-pack-led" />
+            <circle cx="84" cy="49" r="0.7" className="ik-pack-led l2" />
+            <circle cx="82.5" cy="52.5" r="0.6" className="ik-pack-led l3" />
+            {/* O2 tube from pack to helmet */}
+            <path d="M81 47 Q79 42 77 38" stroke="rgba(103,232,249,0.15)" strokeWidth="1" fill="none" strokeLinecap="round" />
+            <path d="M81 47 Q79 42 77 38" stroke="rgba(196,181,253,0.2)" strokeWidth="0.5" fill="none" strokeLinecap="round" />
+            {/* Exhaust nozzles */}
+            <rect x="80" y="63" width="2.5" height="2" rx="0.5" fill="rgba(30,25,60,0.8)" stroke="rgba(196,181,253,0.2)" strokeWidth="0.3" />
+            <rect x="83.5" y="63" width="2.5" height="2" rx="0.5" fill="rgba(30,25,60,0.8)" stroke="rgba(196,181,253,0.2)" strokeWidth="0.3" />
 
-            {/* Torso body */}
-            <path d="M63 48 Q61.5 54 63.5 60 L66 61.5 L70 58 L74 61.5 L76.5 60 Q78.5 54 77 48 Z" fill="#0c0820" stroke="rgba(196,181,253,0.5)" strokeWidth="0.8" />
-            <line x1="65.5" y1="52" x2="74.5" y2="52" stroke="rgba(196,181,253,0.12)" strokeWidth="0.4" />
-            <line x1="64.5" y1="56.5" x2="75.5" y2="56.5" stroke="rgba(196,181,253,0.15)" strokeWidth="0.5" />
+            {/* ── TORSO SUIT (proper shaped body) ── */}
+            <path d="M61 46 Q59 52 60 58 Q61 62 64 64 L67 65 L70 62 L73 65 L76 64 Q79 62 80 58 Q81 52 79 46 Q76 43 70 43 Q64 43 61 46 Z" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.5)" strokeWidth="0.9" />
+            {/* Chest plate — glowing center */}
+            <path d="M65 48 L75 48 L74 54 L66 54 Z" fill="none" stroke="rgba(196,181,253,0.2)" strokeWidth="0.4" />
+            <rect x="68" y="49" width="4" height="3" rx="0.8" fill="rgba(103,232,249,0.08)" stroke="rgba(103,232,249,0.2)" strokeWidth="0.3" className="ik-chest-light" />
+            {/* Belt */}
+            <path d="M62 58 Q66 60 70 59 Q74 60 78 58" stroke="rgba(196,181,253,0.25)" strokeWidth="0.8" fill="none" />
+            {/* Utility pouches */}
+            <rect x="62" y="59" width="3" height="2.5" rx="0.6" fill="rgba(20,16,42,0.8)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.3" />
+            <rect x="75" y="59" width="3" height="2.5" rx="0.6" fill="rgba(20,16,42,0.8)" stroke="rgba(196,181,253,0.15)" strokeWidth="0.3" />
+            {/* Shoulder joints — glowing circles */}
+            <circle cx="62" cy="46" r="2.2" fill="rgba(15,12,35,0.8)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+            <circle cx="62" cy="46" r="0.8" fill="rgba(103,232,249,0.15)" className="ik-joint-glow" />
+            <circle cx="78" cy="46" r="2.2" fill="rgba(15,12,35,0.8)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+            <circle cx="78" cy="46" r="0.8" fill="rgba(167,139,250,0.15)" className="ik-joint-glow j2" />
+            {/* Suit edge glow — rim lighting from black hole */}
+            <path d="M79 46 Q81 52 80 58 Q79 62 76 64" stroke="rgba(251,191,36,0.12)" strokeWidth="1.2" fill="none" filter="url(#ec-glow)" className="ik-rim-light" />
 
-            {/* Jetpack exhaust */}
-            <ellipse cx="80.5" cy="63" rx="2" ry="5.5" fill="rgba(103,232,249,0.1)" className="ik-exhaust e1" />
-            <ellipse cx="81.5" cy="64" rx="1.3" ry="4" fill="rgba(167,139,250,0.07)" className="ik-exhaust e2" />
-            <circle cx="80" cy="68" r="0.6" fill="rgba(103,232,249,0.15)" className="ik-spark s1" />
-            <circle cx="82" cy="70.5" r="0.4" fill="rgba(167,139,250,0.1)" className="ik-spark s2" />
+            {/* ── JETPACK EXHAUST (multi-layer) ── */}
+            <ellipse cx="81.2" cy="68" rx="2.5" ry="8" fill="rgba(103,232,249,0.08)" className="ik-exhaust e1" />
+            <ellipse cx="85" cy="68" rx="2" ry="7" fill="rgba(103,232,249,0.06)" className="ik-exhaust e2" />
+            <ellipse cx="81.2" cy="69" rx="1.5" ry="5" fill="rgba(167,139,250,0.1)" className="ik-exhaust e3" />
+            <ellipse cx="85" cy="69" rx="1.2" ry="4.5" fill="rgba(167,139,250,0.08)" className="ik-exhaust e4" />
+            {/* Exhaust core — bright white */}
+            <ellipse cx="81.2" cy="66" rx="0.8" ry="2" fill="rgba(255,255,255,0.15)" className="ik-exhaust-core" />
+            <ellipse cx="85" cy="66" rx="0.6" ry="1.5" fill="rgba(255,255,255,0.12)" className="ik-exhaust-core c2" />
+            {/* Exhaust sparks */}
+            <circle cx="80" cy="74" r="0.7" fill="rgba(103,232,249,0.2)" className="ik-spark s1" />
+            <circle cx="83" cy="77" r="0.5" fill="rgba(167,139,250,0.15)" className="ik-spark s2" />
+            <circle cx="86" cy="75" r="0.4" fill="rgba(251,191,36,0.12)" className="ik-spark s3" />
+            <circle cx="81" cy="79" r="0.35" fill="rgba(244,114,182,0.1)" className="ik-spark s4" />
 
-            {/* ── HEAD ── */}
+            {/* ── HEAD / HELMET (detailed) ── */}
             <g className="ik-head">
-              <ellipse cx="70" cy="38" rx="8" ry="8.5" fill="#0c0820" stroke="rgba(196,181,253,0.6)" strokeWidth="0.9" />
-              <path d="M63 35 Q66 30 73 29" stroke="rgba(255,255,255,0.08)" strokeWidth="0.6" fill="none" />
-              <ellipse cx="68" cy="37" rx="4.5" ry="5.2" fill="rgba(8,6,18,0.95)" stroke="rgba(103,232,249,0.25)" strokeWidth="0.4" />
-              <ellipse cx="66.5" cy="35.5" rx="2" ry="2.5" fill="rgba(103,232,249,0.2)" className="ik-visor" />
-              <circle cx="65.5" cy="34.5" r="0.8" fill="rgba(255,255,255,0.85)" />
-              <ellipse cx="70" cy="38" rx="10.5" ry="11" fill="none" stroke="rgba(167,139,250,0.06)" strokeWidth="0.5" />
-              <line x1="75" y1="31" x2="78" y2="24" stroke="rgba(196,181,253,0.45)" strokeWidth="0.7" strokeLinecap="round" />
-              <circle cx="78.5" cy="23" r="1.2" className="ik-antenna" />
+              {/* Helmet dome — outer shell */}
+              <ellipse cx="70" cy="36" rx="10" ry="10.5" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.6)" strokeWidth="1" />
+              {/* Helmet trim highlight */}
+              <path d="M61 33 Q65 26 74 25.5" stroke="rgba(255,255,255,0.1)" strokeWidth="0.8" fill="none" />
+              <path d="M79 33 Q76 27 70 25.5" stroke="rgba(255,255,255,0.05)" strokeWidth="0.6" fill="none" />
+              {/* Helmet edge glow from black hole light */}
+              <path d="M79 30 Q81 35 79 42" stroke="rgba(251,191,36,0.15)" strokeWidth="1.5" fill="none" filter="url(#ec-glow)" className="ik-rim-light" />
+
+              {/* VISOR — large reflective faceplate */}
+              <ellipse cx="68" cy="35.5" rx="6" ry="6.5" fill="rgba(6,6,18,0.97)" stroke="rgba(103,232,249,0.3)" strokeWidth="0.5" />
+              {/* Visor reflection gradient — shows accretion disc colors */}
+              <ellipse cx="67" cy="34" rx="4.5" ry="5" fill="rgba(103,232,249,0.12)" className="ik-visor" />
+              {/* Visor warm reflection (from disc) */}
+              <ellipse cx="69" cy="36" rx="3" ry="3.5" fill="rgba(251,191,36,0.06)" className="ik-visor-warm" />
+              {/* Visor primary highlight — crisp white */}
+              <path d="M63.5 32 Q65 30 68 29.5" stroke="rgba(255,255,255,0.9)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+              {/* Visor secondary highlight */}
+              <path d="M64 34 Q65.5 32.5 67.5 32" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" fill="none" strokeLinecap="round" />
+              {/* Tiny star reflections inside visor */}
+              <circle cx="65" cy="33" r="0.6" fill="rgba(255,255,255,0.85)" />
+              <circle cx="67" cy="31" r="0.35" fill="rgba(255,255,255,0.5)" className="ik-visor-star vs1" />
+              <circle cx="71" cy="37" r="0.25" fill="rgba(103,232,249,0.4)" className="ik-visor-star vs2" />
+              <circle cx="64" cy="37" r="0.2" fill="rgba(251,191,36,0.4)" className="ik-visor-star vs3" />
+              {/* Visor rim glow */}
+              <ellipse cx="68" cy="35.5" rx="6.5" ry="7" fill="none" stroke="rgba(103,232,249,0.08)" strokeWidth="2" filter="url(#ec-glow)" className="ik-visor-glow" />
+
+              {/* Helmet air vents */}
+              <line x1="76" y1="33" x2="78" y2="34" stroke="rgba(196,181,253,0.2)" strokeWidth="0.4" />
+              <line x1="76" y1="35" x2="78" y2="36" stroke="rgba(196,181,253,0.15)" strokeWidth="0.4" />
+
+              {/* Antenna with glowing tip */}
+              <line x1="76" y1="28" x2="80" y2="20" stroke="rgba(196,181,253,0.5)" strokeWidth="0.8" strokeLinecap="round" />
+              <circle cx="80.5" cy="19" r="1.5" className="ik-antenna" />
+              <circle cx="80.5" cy="19" r="3" fill="none" stroke="rgba(124,58,237,0.1)" strokeWidth="0.5" className="ik-antenna-ring" />
+
+              {/* Helmet comm light */}
+              <circle cx="61.5" cy="38" r="0.8" className="ik-comm-light" />
             </g>
 
-            {/* ── LEFT ARM (reaching toward void) ── */}
+            {/* ── LEFT ARM (reaching toward void — proper suit shape) ── */}
             <g className="ik-arm-l">
-              <line x1="63" y1="48" x2="55" y2="55" stroke="#0c0820" strokeWidth="3.2" strokeLinecap="round" />
-              <line x1="63" y1="48" x2="55" y2="55" stroke="rgba(196,181,253,0.4)" strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="55" cy="55" r="1.3" fill="rgba(140,130,180,0.15)" />
+              {/* Upper arm — suit-shaped */}
+              <path d="M60 45 L54 50 L52 54 L55 56 L58 52 L63 47 Z" fill="rgba(12,10,28,0.92)" stroke="rgba(196,181,253,0.4)" strokeWidth="0.7" />
+              {/* Arm light stripe */}
+              <line x1="60" y1="46" x2="54" y2="53" stroke="rgba(103,232,249,0.08)" strokeWidth="0.4" />
+              {/* Elbow joint */}
+              <circle cx="54" cy="54" r="2" fill="rgba(15,12,35,0.85)" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+              <circle cx="54" cy="54" r="0.7" fill="rgba(103,232,249,0.1)" className="ik-joint-glow" />
+
               <g className="ik-forearm-l">
-                <line x1="55" y1="55" x2="48" y2="62" stroke="#0c0820" strokeWidth="2.8" strokeLinecap="round" />
-                <line x1="55" y1="55" x2="48" y2="62" stroke="rgba(196,181,253,0.35)" strokeWidth="2.2" strokeLinecap="round" />
-                <circle cx="48" cy="62" r="2.2" fill="#0c0820" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
-                <circle cx="47.2" cy="61.5" r="0.4" fill="rgba(255,255,255,0.15)" />
+                {/* Forearm — suit-shaped */}
+                <path d="M52 53 L47 58 L45 62 L48 64 L51 60 L56 55 Z" fill="rgba(12,10,28,0.9)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.6" />
+                {/* Glove — detailed */}
+                <path d="M44 61 Q43 63 44 65 Q45.5 67 47.5 66 Q49 65 49 63 Q48.5 61 47 60 Z" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+                {/* Finger detail */}
+                <line x1="44" y1="63" x2="43.5" y2="64.5" stroke="rgba(196,181,253,0.15)" strokeWidth="0.3" />
+                <line x1="45.5" y1="64" x2="45" y2="65.5" stroke="rgba(196,181,253,0.12)" strokeWidth="0.3" />
+                {/* Fingertip glow — reaching toward the void */}
+                <circle cx="44" cy="65" r="1.5" fill="rgba(251,191,36,0.08)" className="ik-finger-glow" />
+                <circle cx="44" cy="65" r="0.5" fill="rgba(255,255,255,0.15)" className="ik-finger-glow" />
               </g>
             </g>
 
-            {/* ── RIGHT ARM (relaxed wave) ── */}
+            {/* ── RIGHT ARM (waving — proper suit shape) ── */}
             <g className="ik-arm-r">
-              <line x1="77" y1="48" x2="86" y2="52" stroke="#0c0820" strokeWidth="3.2" strokeLinecap="round" />
-              <line x1="77" y1="48" x2="86" y2="52" stroke="rgba(196,181,253,0.4)" strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="86" cy="52" r="1.3" fill="rgba(140,130,180,0.15)" />
+              <path d="M80 45 L86 49 L89 53 L86 55 L84 51 L78 47 Z" fill="rgba(12,10,28,0.92)" stroke="rgba(196,181,253,0.4)" strokeWidth="0.7" />
+              <line x1="80" y1="46" x2="87" y2="51" stroke="rgba(167,139,250,0.06)" strokeWidth="0.4" />
+              <circle cx="88" cy="52" r="2" fill="rgba(15,12,35,0.85)" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+              <circle cx="88" cy="52" r="0.7" fill="rgba(167,139,250,0.1)" className="ik-joint-glow j2" />
+
               <g className="ik-forearm-r">
-                <line x1="86" y1="52" x2="92" y2="46" stroke="#0c0820" strokeWidth="2.8" strokeLinecap="round" />
-                <line x1="86" y1="52" x2="92" y2="46" stroke="rgba(196,181,253,0.35)" strokeWidth="2.2" strokeLinecap="round" />
-                <circle cx="92" cy="46" r="2.2" fill="#0c0820" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
-                <circle cx="91.3" cy="45.5" r="0.4" fill="rgba(255,255,255,0.15)" />
+                <path d="M87 51 L91 46 L94 43 L96 45 L93 49 L89 53 Z" fill="rgba(12,10,28,0.9)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.6" />
+                {/* Glove */}
+                <path d="M94 42 Q96 40 97 41 Q98 43 97 45 Q95.5 46 94 45 Q93 43.5 94 42 Z" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+                <line x1="96" y1="41.5" x2="97" y2="40.5" stroke="rgba(196,181,253,0.15)" strokeWidth="0.3" />
+                <circle cx="96.5" cy="41" r="1" fill="rgba(167,139,250,0.06)" className="ik-finger-glow" />
               </g>
             </g>
 
-            {/* ── LEFT LEG ── */}
+            {/* ── LEFT LEG (proper suit shape) ── */}
             <g className="ik-leg-l">
-              <line x1="67" y1="60" x2="62" y2="71" stroke="#0c0820" strokeWidth="3" strokeLinecap="round" />
-              <line x1="67" y1="60" x2="62" y2="71" stroke="rgba(196,181,253,0.35)" strokeWidth="2.3" strokeLinecap="round" />
-              <circle cx="62" cy="71" r="1.2" fill="rgba(140,130,180,0.12)" />
+              <path d="M65 63 L62 68 L60 73 L63 74 L65 70 L67 65 Z" fill="rgba(12,10,28,0.92)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.6" />
+              <circle cx="61" cy="73" r="1.5" fill="rgba(15,12,35,0.85)" stroke="rgba(196,181,253,0.2)" strokeWidth="0.4" />
+              <circle cx="61" cy="73" r="0.5" fill="rgba(196,181,253,0.08)" className="ik-joint-glow" />
+
               <g className="ik-shin-l">
-                <line x1="62" y1="71" x2="58" y2="81" stroke="#0c0820" strokeWidth="2.8" strokeLinecap="round" />
-                <line x1="62" y1="71" x2="58" y2="81" stroke="rgba(196,181,253,0.3)" strokeWidth="2" strokeLinecap="round" />
-                <rect x="55" y="79.5" width="6.5" height="3.5" rx="1.5" fill="#0c0820" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+                <path d="M59 72 L57 77 L55 82 L58 83 L60 78 L63 74 Z" fill="rgba(12,10,28,0.9)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+                {/* Boot */}
+                <path d="M53 81 Q52 83 53 85 L59 85 Q60 83 59 82 L55 81 Z" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+                {/* Boot sole light */}
+                <line x1="54" y1="85" x2="58" y2="85" stroke="rgba(103,232,249,0.15)" strokeWidth="0.6" className="ik-boot-glow" />
+                {/* Boot thruster */}
+                <ellipse cx="56" cy="87" rx="1.5" ry="2.5" fill="rgba(103,232,249,0.04)" className="ik-boot-thrust bt1" />
               </g>
             </g>
 
-            {/* ── RIGHT LEG ── */}
+            {/* ── RIGHT LEG (proper suit shape) ── */}
             <g className="ik-leg-r">
-              <line x1="73" y1="60" x2="79" y2="71" stroke="#0c0820" strokeWidth="3" strokeLinecap="round" />
-              <line x1="73" y1="60" x2="79" y2="71" stroke="rgba(196,181,253,0.35)" strokeWidth="2.3" strokeLinecap="round" />
-              <circle cx="79" cy="71" r="1.2" fill="rgba(140,130,180,0.12)" />
+              <path d="M75 63 L78 68 L80 73 L77 74 L75 70 L73 65 Z" fill="rgba(12,10,28,0.92)" stroke="rgba(196,181,253,0.35)" strokeWidth="0.6" />
+              <circle cx="80" cy="73" r="1.5" fill="rgba(15,12,35,0.85)" stroke="rgba(196,181,253,0.2)" strokeWidth="0.4" />
+              <circle cx="80" cy="73" r="0.5" fill="rgba(196,181,253,0.08)" className="ik-joint-glow j2" />
+
               <g className="ik-shin-r">
-                <line x1="79" y1="71" x2="83" y2="80" stroke="#0c0820" strokeWidth="2.8" strokeLinecap="round" />
-                <line x1="79" y1="71" x2="83" y2="80" stroke="rgba(196,181,253,0.3)" strokeWidth="2" strokeLinecap="round" />
-                <rect x="80" y="78.5" width="6.5" height="3.5" rx="1.5" fill="#0c0820" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+                <path d="M79 72 L81 77 L84 82 L81 83 L79 78 L77 74 Z" fill="rgba(12,10,28,0.9)" stroke="rgba(196,181,253,0.3)" strokeWidth="0.5" />
+                {/* Boot */}
+                <path d="M83 81 Q85 83 84 85 L78 85 Q77 83 78 82 L82 81 Z" fill="rgba(12,10,28,0.95)" stroke="rgba(196,181,253,0.25)" strokeWidth="0.5" />
+                <line x1="79" y1="85" x2="83" y2="85" stroke="rgba(167,139,250,0.12)" strokeWidth="0.6" className="ik-boot-glow b2" />
+                <ellipse cx="81" cy="87" rx="1.5" ry="2.5" fill="rgba(167,139,250,0.03)" className="ik-boot-thrust bt2" />
               </g>
             </g>
           </g>
