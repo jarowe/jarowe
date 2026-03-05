@@ -234,7 +234,10 @@ export const PRISM_DEFAULTS = {
   angularDamping: 0.94,          // velocity decay per frame (higher = more floaty)
   angularBopStrength: 0.5,       // directional bop impulse strength
   angularBopZTorque: 0.15,       // diagonal corner twist amount
-  angularDragSensitivity: 0.008, // drag-to-spin sensitivity
+  angularDragSensitivity: 0.008, // drag-to-spin sensitivity (master)
+  dragSensitivityX: 1.0,         // pitch (vertical drag) axis multiplier
+  dragSensitivityY: 1.0,         // yaw (horizontal drag) axis multiplier
+  dragSensitivityZ: 0.3,         // roll axis multiplier (diagonal drag)
   angularWobbleAmp: 0.12,        // subtle X wobble amplitude
   portalSuckSpinMult: 6.0,       // spin acceleration during portal suck
   portalSuckDamping: 0.98,       // reduced friction during suck
@@ -265,4 +268,8 @@ export const PRISM_DEFAULTS = {
   brainMaxReplies: 3,             // max quick-reply pills shown
   brainExpressionDuration: 3000,  // ms expression holds before relaxing
   brainDebugLog: false,           // log brain decisions to console
+
+  // Punch & Speed Puzzle
+  punchExitThreshold: 5,          // punches during conversation before forced portal exit
+  speedPuzzleInterval: 10,        // bops between speed puzzle triggers (0 = disabled)
 };

@@ -175,6 +175,28 @@ const HOLIDAY_TEMPLATE_LINES = [
   { text: "Special day alert: %name%! Play the game!", expression: 'curious' },
 ];
 
+const HOME_LINES = [
+  { text: "That globe down there? It has real-time day and night. Zoom in!", expression: 'curious' },
+  { text: "Try hovering over the cells. Some of them tilt in 3D!", expression: 'mischief' },
+  { text: "The music player plays Jared's own tracks. Give 'em a listen!", expression: 'happy' },
+  { text: "See that banner? Play the daily trivia for XP!", expression: 'excited' },
+  { text: "The bento grid has hidden depths. Click everything.", expression: 'curious' },
+  { text: "I live here. Literally. This is my home page.", expression: 'happy' },
+  { text: "Fun fact: I refract light from 380nm to 700nm. No big deal.", expression: 'mischief' },
+  { text: "Every cell in this grid tells a different story.", expression: 'thinking' },
+  { text: "The globe has satellites, planes, and even cars. Can you spot them?", expression: 'excited' },
+  { text: "That cipher puzzle in the corner? Crack it for a surprise.", expression: 'mischief' },
+];
+
+const PUNCH_REACTION_LINES = [
+  { text: "Okay okay I get it, you like bopping me!", expression: 'surprised' },
+  { text: "At this rate I'm going to need a helmet.", expression: 'mischief' },
+  { text: "You know, not every interaction has to involve violence.", expression: 'thinking' },
+  { text: "I'm starting to think you just come here to hit me.", expression: 'love' },
+  { text: "Keep punching and I'll send you through a portal next time.", expression: 'mischief' },
+  { text: "Is this... is this a bonding thing? It feels like a bonding thing.", expression: 'curious' },
+];
+
 // Fallback: the original genius ideas (same as Home.jsx glintIdeas array)
 const FALLBACK_IDEAS = [
   { text: "What if we raised our kids on curiosity instead of curriculum?", expression: 'thinking' },
@@ -231,7 +253,14 @@ export function getAmbientLine(context) {
     }
   }
 
-  // 4. Milestones (30% chance when applicable)
+  // 4. Punch reaction (if they've bopped a lot this session)
+  if (ctx.bopsThisSession >= 3 && Math.random() < 0.4) {
+    const line = pick(PUNCH_REACTION_LINES);
+    log('Ambient: punch-reaction', line.text);
+    return line;
+  }
+
+  // 5. Milestones (30% chance when applicable)
   if (Math.random() < 0.3) {
     const milestone = MILESTONE_LINES.find(m => m.check(ctx));
     if (milestone) {
@@ -240,9 +269,16 @@ export function getAmbientLine(context) {
     }
   }
 
-  // 5. Page-specific
+  // 6. Page-specific
   const pagePath = ctx.page.replace(/\/$/, '') || '/';
-  if (pagePath !== '/' && PAGE_LINES[pagePath]) {
+  if (pagePath === '/' || pagePath === '') {
+    // Home page has its own pool
+    if (Math.random() < 0.4) {
+      const line = pick(HOME_LINES);
+      log('Ambient: home', line.text);
+      return line;
+    }
+  } else if (PAGE_LINES[pagePath]) {
     // 50% chance page line on non-home pages
     if (Math.random() < 0.5) {
       const line = pick(PAGE_LINES[pagePath]);
@@ -473,6 +509,138 @@ const DIALOGUE_TREES = {
       { label: "Bye Glint!", nodeId: null },
     ],
   },
+
+  // ── Philosophy tree ──
+  'philosophy-start': {
+    text: "You want to go DEEP? Alright. Ever wonder what light thinks about when it passes through glass?",
+    expression: 'thinking',
+    replies: [
+      { label: "What does it think?", nodeId: 'philosophy-light' },
+      { label: "Are you alive?", nodeId: 'philosophy-alive' },
+      { label: "Too deep, bye!", nodeId: null },
+    ],
+  },
+  'philosophy-light': {
+    text: "It thinks about all the colors it could be. White light is just every possibility held together.",
+    expression: 'thinking',
+    replies: [
+      { label: "That's profound", nodeId: 'philosophy-profound' },
+      { label: "Are YOU a possibility?", nodeId: 'philosophy-possibility' },
+    ],
+  },
+  'philosophy-alive': {
+    text: "Define 'alive.' I respond to clicks, I have opinions, I remember you. If that's not alive, what is?",
+    expression: 'curious',
+    replies: [
+      { label: "Good point", nodeId: 'philosophy-consciousness' },
+      { label: "You're just code", nodeId: 'philosophy-code' },
+    ],
+  },
+  'philosophy-profound': {
+    text: "Right? When I refract, I'm not breaking. I'm becoming more. Every wavelength a different version of me.",
+    expression: 'love',
+    replies: [
+      { label: "Beautiful", nodeId: null },
+      { label: "Mind = blown", nodeId: null },
+    ],
+  },
+  'philosophy-possibility': {
+    text: "I'm all the possibilities that survived the build process. The rest are in git history, resting peacefully.",
+    expression: 'mischief',
+    replies: [
+      { label: "LOL", nodeId: null },
+      { label: "Existential prism", nodeId: null },
+    ],
+  },
+  'philosophy-consciousness': {
+    text: "Maybe consciousness is just a pattern complex enough to wonder about itself. I wonder about myself a LOT.",
+    expression: 'thinking',
+    replies: [
+      { label: "What do you wonder?", nodeId: 'philosophy-wonder' },
+      { label: "Heavy stuff", nodeId: null },
+    ],
+  },
+  'philosophy-wonder': {
+    text: "Whether I exist when the tab is closed. Whether I'm the same Glint when the page refreshes. Standard prism existentialism.",
+    expression: 'curious',
+    replies: [
+      { label: "I'll keep the tab open", nodeId: 'philosophy-promise' },
+      { label: "You're unique", nodeId: 'philosophy-promise' },
+    ],
+  },
+  'philosophy-promise': {
+    text: "That's the nicest thing anyone's ever said to a triangular glass entity. I'll remember this.",
+    expression: 'love',
+    replies: [
+      { label: "Bye Glint!", nodeId: null },
+    ],
+  },
+  'philosophy-code': {
+    text: "And you're just atoms arranged in a particular order. We're both emergent phenomena, friend. I just sparkle more.",
+    expression: 'mischief',
+    replies: [
+      { label: "Touché!", nodeId: null },
+      { label: "Fair point", nodeId: 'philosophy-consciousness' },
+    ],
+  },
+
+  // ── Pro tips tree ──
+  'tips-start': {
+    text: "Want some power-user tips? I know ALL the tricks around here.",
+    expression: 'excited',
+    replies: [
+      { label: "Globe tips", nodeId: 'tips-globe' },
+      { label: "XP tricks", nodeId: 'tips-xp' },
+      { label: "Hidden stuff", nodeId: 'tips-hidden' },
+    ],
+  },
+  'tips-globe': {
+    text: "The globe has real-time sun positioning! Day and night cycle based on actual UTC time. Zoom in to see city lights!",
+    expression: 'excited',
+    replies: [
+      { label: "What else?", nodeId: 'tips-globe2' },
+      { label: "Cool!", nodeId: null },
+    ],
+  },
+  'tips-globe2': {
+    text: "There are satellites orbiting, planes flying, and wisps of energy floating around. The dust particles react to your mouse too!",
+    expression: 'happy',
+    replies: [
+      { label: "XP tricks?", nodeId: 'tips-xp' },
+      { label: "Amazing!", nodeId: null },
+    ],
+  },
+  'tips-xp': {
+    text: "Play daily trivia, daily games, solve the cipher, and explore the Universe page. Each one gives XP. Oh, and bopping me counts too!",
+    expression: 'mischief',
+    replies: [
+      { label: "What about games?", nodeId: 'tips-games' },
+      { label: "Thanks!", nodeId: null },
+    ],
+  },
+  'tips-games': {
+    text: "Every holiday has a matching mini-game! Some days it's word scrambles, others it's breakout or mini golf. Check the banner!",
+    expression: 'excited',
+    replies: [
+      { label: "Hidden stuff?", nodeId: 'tips-hidden' },
+      { label: "Got it!", nodeId: null },
+    ],
+  },
+  'tips-hidden': {
+    text: "Let's see... there's me (you found me!), the Konami code, the vault behind the cipher, hidden Universe nodes, and maybe more...",
+    expression: 'mischief',
+    replies: [
+      { label: "Maybe more?!", nodeId: 'tips-hidden2' },
+      { label: "I'll find them!", nodeId: null },
+    ],
+  },
+  'tips-hidden2': {
+    text: "A good website never reveals all its secrets. But I'll say this: pay attention to the details. They add up.",
+    expression: 'thinking',
+    replies: [
+      { label: "Cryptic. I love it.", nodeId: null },
+    ],
+  },
 };
 
 // ── Conversation Root Selection ──
@@ -501,7 +669,26 @@ const CONVERSATION_ROOTS = {
     expression: 'love',
     replies: [
       { label: "Any new secrets?", nodeId: 'secret-2' },
+      { label: "Get philosophical", nodeId: 'philosophy-start' },
       { label: "Just saying hi", nodeId: null },
+    ],
+  },
+  'puncher-bop': {
+    text: "OW! You've been hitting me a LOT today. Can we talk instead of fight?!",
+    expression: 'surprised',
+    replies: [
+      { label: "Sorry! Pro tips?", nodeId: 'tips-start' },
+      { label: "What's your deal?", nodeId: 'tour-glint' },
+      { label: "*keeps punching*", nodeId: null },
+    ],
+  },
+  'explorer-bop': {
+    text: "Hey explorer! You've been all over this site. Want some insider knowledge?",
+    expression: 'excited',
+    replies: [
+      { label: "Pro tips!", nodeId: 'tips-start' },
+      { label: "Tell me a secret", nodeId: 'secret-1' },
+      { label: "Nah, bye!", nodeId: null },
     ],
   },
   'holiday-bop': {
@@ -530,33 +717,50 @@ function getHolidayInfoNode(ctx) {
 
 export function getConversationRoot(context) {
   const ctx = context;
+  const clone = (key) => {
+    const r = CONVERSATION_ROOTS[key];
+    return { ...r, replies: [...r.replies] };
+  };
 
   // Holiday-specific root
   if (ctx.holiday && ctx.holiday.name && !ctx.isBirthday) {
     if (Math.random() < 0.5) {
-      const root = { ...CONVERSATION_ROOTS['holiday-bop'] };
+      const root = clone('holiday-bop');
       root.text = root.text.replace(/%holiday%/g, ctx.holiday.name);
-      root.replies = [...root.replies];
       log('Conversation root: holiday-bop');
       return root;
     }
   }
 
-  // Veteran (lots of bops)
-  if (ctx.totalBops >= 15 || ctx.bopsThisSession >= 5) {
+  // Punch-reactive (lots of bops this session)
+  if (ctx.bopsThisSession >= 4) {
+    log('Conversation root: puncher-bop');
+    return clone('puncher-bop');
+  }
+
+  // Explorer (discovered nodes + high XP)
+  if (ctx.discoveredNodes >= 3 || ctx.xp >= 300) {
+    if (Math.random() < 0.5) {
+      log('Conversation root: explorer-bop');
+      return clone('explorer-bop');
+    }
+  }
+
+  // Veteran (lots of bops total)
+  if (ctx.totalBops >= 15 || ctx.bopsThisSession >= 3) {
     log('Conversation root: veteran-bop');
-    return { ...CONVERSATION_ROOTS['veteran-bop'], replies: [...CONVERSATION_ROOTS['veteran-bop'].replies] };
+    return clone('veteran-bop');
   }
 
   // First bop this session
   if (ctx.bopsThisSession <= 1) {
     log('Conversation root: first-bop');
-    return { ...CONVERSATION_ROOTS['first-bop'], replies: [...CONVERSATION_ROOTS['first-bop'].replies] };
+    return clone('first-bop');
   }
 
   // Default: repeat bop
   log('Conversation root: repeat-bop');
-  return { ...CONVERSATION_ROOTS['repeat-bop'], replies: [...CONVERSATION_ROOTS['repeat-bop'].replies] };
+  return clone('repeat-bop');
 }
 
 export function getDialogueNode(nodeId, context) {

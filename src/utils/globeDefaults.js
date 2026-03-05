@@ -182,6 +182,7 @@ export const GLOBE_DEFAULTS = {
 
   // ── Particles: Mouse ──
   mouseRippleRadius: 14.5,
+  mouseRippleStrength: 1.0,       // multiplier for ripple push force (default was effectively 3.0, now scaled as strength * 3.0)
 
   // ── Particles: Wind (interactive fluid physics) ──
   windParticlesVisible: true,

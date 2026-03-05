@@ -428,7 +428,10 @@ export default function GlintEditor({ parentGui }) {
     pAngular.add(pcfg, 'angularDamping', 0.80, 0.999, 0.005).name('Damping');
     pAngular.add(pcfg, 'angularBopStrength', 0, 3.0, 0.05).name('Bop Strength');
     pAngular.add(pcfg, 'angularBopZTorque', 0, 1.5, 0.05).name('Bop Z Torque');
-    pAngular.add(pcfg, 'angularDragSensitivity', 0.001, 0.05, 0.001).name('Drag Sensitivity');
+    pAngular.add(pcfg, 'angularDragSensitivity', 0.001, 0.05, 0.001).name('Drag Sens (Master)');
+    pAngular.add(pcfg, 'dragSensitivityX', 0, 3.0, 0.1).name('Drag X (Pitch)');
+    pAngular.add(pcfg, 'dragSensitivityY', 0, 3.0, 0.1).name('Drag Y (Yaw)');
+    pAngular.add(pcfg, 'dragSensitivityZ', 0, 3.0, 0.1).name('Drag Z (Roll)');
     pAngular.add(pcfg, 'angularWobbleAmp', 0, 0.5, 0.01).name('Wobble Amp');
     pAngular.add(pcfg, 'portalSuckSpinMult', 1.0, 20.0, 0.5).name('Portal Suck Spin');
     pAngular.add(pcfg, 'portalSuckDamping', 0.90, 0.999, 0.005).name('Portal Suck Damping');
@@ -687,6 +690,8 @@ export default function GlintEditor({ parentGui }) {
       const root = getConversationRoot(ctx);
       window.dispatchEvent(new CustomEvent('glint-brain-test-conversation', { detail: root }));
     } }, 'testConvo').name('Test Conversation');
+    pBrain.add(pcfg, 'punchExitThreshold', 2, 15, 1).name('Punch Exit Threshold');
+    pBrain.add(pcfg, 'speedPuzzleInterval', 0, 30, 1).name('Speed Puzzle Every N');
     pBrain.close();
 
     // -- Reset --

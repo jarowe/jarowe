@@ -2330,6 +2330,7 @@ export default function Home() {
               dustSpeed: { value: pp.dustSpeed },
               dustAmplitude: { value: pp.dustAmplitude },
               mouseRippleRadius: { value: pp.mouseRippleRadius },
+              mouseRippleStrength: { value: pp.mouseRippleStrength ?? 1.0 },
               bopParticleBurst: { value: pp.bopParticleBurst },
               bopColorShift: { value: pp.bopColorShift },
               bopStarBurst: { value: pp.bopStarBurst },
@@ -2345,6 +2346,7 @@ export default function Home() {
               uniform float dustSpeed;
               uniform float dustAmplitude;
               uniform float mouseRippleRadius;
+              uniform float mouseRippleStrength;
               uniform float bopParticleBurst;
               uniform float bopStarBurst;
               attribute float aScale; attribute vec3 customColor; attribute float pType; attribute vec3 burstOffset;
@@ -2366,7 +2368,7 @@ export default function Home() {
                   if (mouseDist < mouseRippleRadius && length(mousePos) > 1.0) {
                     vec3 pushDir = normalize(pos - mousePos);
                     float rippleStr = (1.0 - mouseDist / mouseRippleRadius);
-                    rippleStr = rippleStr * rippleStr * 3.0;
+                    rippleStr = rippleStr * rippleStr * 3.0 * mouseRippleStrength;
                     // Ripple wave - particles oscillate as the ripple passes through
                     float wave = sin(mouseDist * 0.5 - time * 4.0) * 0.5 + 0.5;
                     pos += pushDir * rippleStr * wave;
@@ -2391,6 +2393,7 @@ export default function Home() {
               varying vec3 vColor; varying float vType; varying float vMouseDist;
               uniform float audioPulse; uniform float prismPulse; uniform float time;
               uniform float mouseRippleRadius;
+              uniform float mouseRippleStrength;
               uniform float bopColorShift;
               void main() {
                 vec2 xy = gl_PointCoord.xy - vec2(0.5);
@@ -2400,7 +2403,7 @@ export default function Home() {
                 float alpha = glow * (0.6 + audioPulse*0.4 + prismPulse*0.3);
 
                 // Mouse proximity glow - particles near cursor glow brighter
-                float mouseGlow = (vMouseDist < mouseRippleRadius) ? (1.0 - vMouseDist / mouseRippleRadius) * 0.5 : 0.0;
+                float mouseGlow = (vMouseDist < mouseRippleRadius) ? (1.0 - vMouseDist / mouseRippleRadius) * 0.5 * mouseRippleStrength : 0.0;
 
                 // Prismatic color shift (intensity controlled by bopColorShift)
                 vec3 prismatic = vec3(
@@ -4910,7 +4913,16 @@ export default function Home() {
   const handleConversationPunch = useCallback((e) => {
     punchCountRef.current += 1;
     const punches = punchCountRef.current;
-    const PUSH_THRESHOLD = 5;
+    const cfg = window.__prismConfig || {};
+    const PUSH_THRESHOLD = cfg.punchExitThreshold ?? 5;
+
+    // +1 bop per punch — each hit counts!
+    setPrismBops(prev => prev + 1);
+    // Track total bops in localStorage
+    const totalBops = parseInt(localStorage.getItem('jarowe_total_bops') || '0') + 1;
+    localStorage.setItem('jarowe_total_bops', String(totalBops));
+    // Dispatch XP event for each punch
+    window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 2 } }));
 
     // Angular impulse — each punch spins Glint harder
     const impulseStr = 0.3 + punches * 0.15;
@@ -5106,8 +5118,9 @@ export default function Home() {
       }, 600);
     }
 
-    // Every 3 bops, trigger the speed puzzle game
-    if (newBops % 3 === 0) {
+    // Trigger speed puzzle every N bops (configurable, default 10)
+    const speedPuzzleInterval = (window.__prismConfig || {}).speedPuzzleInterval ?? 10;
+    if (speedPuzzleInterval > 0 && newBops % speedPuzzleInterval === 0) {
       setTimeout(() => setShowSpeedGame(true), 2500);
     }
   }, [prismBops, clearBubble, runPortalExitSequence, exitConversation, showBubbleWithThinking, holiday, isBirthday, handleConversationPunch]);
@@ -5959,7 +5972,12 @@ export default function Home() {
                             maxWidth: `${cfg.bubbleMaxWidth || 260}px`,
                             padding: `${cfg.bubblePadding || 14}px ${(cfg.bubblePadding || 14) + 2}px`,
                             ...(holiday && holiday.tier >= 3 && !isBirthday ? { borderLeft: `2px solid ${holiday.accentPrimary}` } : {}),
+                            ...(conversationMode ? { pointerEvents: 'auto', cursor: 'pointer' } : {}),
                           }}
+                          onClick={conversationMode ? (ev) => {
+                            // Clicking the bubble body (not a pill) punches Glint
+                            handleConversationPunch(ev);
+                          } : undefined}
                         >
                           {prismBubble}
                           {/* Quick-reply pills (Glint Brain Tier 2) */}
@@ -6076,7 +6094,7 @@ export default function Home() {
               borderRadius: '50%', // overridden by rAF loop based on hitboxShape
               transform: 'translate(-50%, -50%)',
               cursor: 'grab',
-              pointerEvents: 'auto',
+              pointerEvents: conversationMode ? 'none' : 'auto',
               zIndex: 502,
               touchAction: 'none',
             }}

@@ -297,12 +297,17 @@ function applyAngularPhysics(groupRef, delta, t, musicRotBoost, angVelRef, porta
     window.__prismBopImpulse = null;
   }
 
-  // ── 4. Consume drag spin (velocity-based) ──
+  // ── 4. Consume drag spin (velocity-based, 3-axis) ──
   const drag = window.__prismDragSpin;
   if (drag) {
     const sens = cfg.angularDragSensitivity ?? 0.012;
-    av.y += drag.x * sens;
-    av.x += -drag.y * sens;
+    const sx = cfg.dragSensitivityX ?? 1.0;
+    const sy = cfg.dragSensitivityY ?? 1.0;
+    const sz = cfg.dragSensitivityZ ?? 0.3;
+    av.y += drag.x * sens * sy;
+    av.x += -drag.y * sens * sx;
+    // Z-axis roll from diagonal/cross drag
+    av.z += (drag.x * drag.y * 0.002) * sens * sz;
     window.__prismDragSpin = null;
   }
 

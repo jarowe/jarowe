@@ -488,6 +488,7 @@ export default function GlobeEditor({ editorParams, globeRef, globeShaderMateria
     dustFolder2.add(proxy, 'dustAmplitude', 0.0, 10.0, 0.1).name('Amplitude').onChange(updateShaderUniform(getParticleMat, 'dustAmplitude'));
     const mouseFolder = particleFolder.addFolder('Mouse');
     mouseFolder.add(proxy, 'mouseRippleRadius', 1.0, 30.0, 0.5).name('Ripple Radius').onChange(updateShaderUniform(getParticleMat, 'mouseRippleRadius'));
+    mouseFolder.add(proxy, 'mouseRippleStrength', 0.0, 3.0, 0.05).name('Ripple Strength').onChange(updateShaderUniform(getParticleMat, 'mouseRippleStrength'));
     const windFolder = particleFolder.addFolder('Wind Particles');
     windFolder.add(proxy, 'windParticlesVisible').name('Enabled').onChange(updateParam('windParticlesVisible'));
     windFolder.add(proxy, 'windParticleCount', 1000, 30000, 500).name('Particle Count').onChange(updateParam('windParticleCount'));
