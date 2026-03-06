@@ -26,35 +26,29 @@ function AdminUsersInner() {
   const [expandedId, setExpandedId] = useState(null);
   const [confirmToggle, setConfirmToggle] = useState(null); // { id, name, currentAdmin }
 
-  // Fetch all profiles with related data
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
-    async function loadUsers(attempt = 0) {
+  const loadUsers = useCallback(async function _load(attempt = 0) {
       setLoading(true);
       setError(null);
       try {
-        // Ensure valid session — getSession() only reads cached (possibly expired) tokens.
-        // refreshSession() validates with the server. Timeout after 5s to prevent hanging.
-        const refreshResult = await Promise.race([
-          supabase.auth.refreshSession(),
-          new Promise(resolve => setTimeout(() => resolve({ data: {}, error: { message: 'Session refresh timed out' } }), 5000)),
-        ]);
-        const { data: refreshData, error: refreshError } = refreshResult;
-        if (refreshError || !refreshData.session) {
-          setError('Session expired. Please sign out and sign back in.');
-          return;
-        }
+        // Don't call refreshSession() here — AuthContext already handles it.
+        // Redundant refresh calls race with AuthContext's and cause contention.
+        // Just query directly; the Supabase client auto-refreshes if needed.
 
-        // Fetch profiles first to avoid Supabase auth lock contention
         const profilesRes = await supabase
           .from('profiles').select('*').order('created_at', { ascending: false });
-        if (profilesRes.error) throw profilesRes.error;
 
-        // Now fetch related data (safe to parallelize after auth lock is released)
+        // If we get an auth error on first attempt, wait for AuthContext's
+        // refresh to settle, then retry once
+        if (profilesRes.error) {
+          const code = profilesRes.error.code || profilesRes.error.message || '';
+          if (attempt < 2 && (code.includes('JWT') || code.includes('401') || code === 'PGRST301')) {
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+            return _load(attempt + 1);
+          }
+          throw profilesRes.error;
+        }
+
+        // Fetch related data in parallel
         const [scoresRes, achievementsRes] = await Promise.all([
           supabase.from('high_scores').select('user_id, game_id, score'),
           supabase.from('achievements').select('user_id, achievement_id'),
@@ -81,19 +75,22 @@ function AdminUsersInner() {
 
         setProfiles(merged);
       } catch (err) {
-        // Retry on transient errors (AbortError, network issues, auth lock contention)
-        if (attempt < 2 && (err.name === 'AbortError' || err.message?.includes('JWT'))) {
+        // Retry on transient errors (AbortError, network issues)
+        if (attempt < 2 && (err.name === 'AbortError')) {
           await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-          return loadUsers(attempt + 1);
+          return _load(attempt + 1);
         }
         setError(`Failed to load users: ${err.message}`);
       } finally {
         setLoading(false);
       }
-    }
-
-    loadUsers();
   }, []);
+
+  // Load on mount
+  useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
+    loadUsers();
+  }, [loadUsers]);
 
   // Stats
   const stats = useMemo(() => {
@@ -232,7 +229,15 @@ function AdminUsersInner() {
           <Link to="/admin" className="back-link"><ArrowLeft size={16} /> Admin</Link>
           <h1>User Management</h1>
         </header>
-        <div className="admin-error-banner">{error}</div>
+        <div className="admin-error-banner">
+          {error}
+          <button
+            onClick={() => loadUsers()}
+            style={{ marginLeft: '1rem', padding: '0.4rem 1rem', background: 'rgba(100,160,255,0.2)', color: 'rgb(140,190,255)', border: '1px solid rgba(100,160,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
