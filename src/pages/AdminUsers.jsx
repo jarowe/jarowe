@@ -33,17 +33,20 @@ function AdminUsersInner() {
       return;
     }
 
-    async function loadUsers() {
+    async function loadUsers(attempt = 0) {
       setLoading(true);
       setError(null);
       try {
-        const [profilesRes, scoresRes, achievementsRes] = await Promise.all([
-          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        // Fetch profiles first to avoid Supabase auth lock contention
+        const profilesRes = await supabase
+          .from('profiles').select('*').order('created_at', { ascending: false });
+        if (profilesRes.error) throw profilesRes.error;
+
+        // Now fetch related data (safe to parallelize after auth lock is released)
+        const [scoresRes, achievementsRes] = await Promise.all([
           supabase.from('high_scores').select('user_id, game_id, score'),
           supabase.from('achievements').select('user_id, achievement_id'),
         ]);
-
-        if (profilesRes.error) throw profilesRes.error;
 
         // Group scores and achievements by user_id
         const scoresByUser = {};
@@ -66,6 +69,10 @@ function AdminUsersInner() {
 
         setProfiles(merged);
       } catch (err) {
+        // Retry once on Supabase auth lock contention (AbortError)
+        if (err.name === 'AbortError' && attempt < 2) {
+          return loadUsers(attempt + 1);
+        }
         setError(`Failed to load users: ${err.message}`);
       } finally {
         setLoading(false);

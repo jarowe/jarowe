@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
@@ -316,6 +316,7 @@ function HolidaysTab() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [localEdits, setLocalEdits] = useState({}); // { 'MM-DD': { field: value } }
+  const [viewMode, setViewMode] = useState('grid'); // grid | preview
 
   const entries = useMemo(() => {
     return Object.entries(HOLIDAY_CALENDAR).map(([key, val]) => ({
@@ -449,6 +450,11 @@ function HolidaysTab() {
             ))}
             <button className={`admin-pill ${gameOnly ? 'admin-pill-active' : ''}`} onClick={() => setGameOnly(!gameOnly)}>has game</button>
           </div>
+          {/* View toggle */}
+          <div className="admin-type-pills" style={{ marginLeft: 'auto' }}>
+            <button className={`admin-pill ${viewMode === 'grid' ? 'admin-pill-active' : ''}`} onClick={() => setViewMode('grid')} title="Grid view"><LayoutGrid size={14} /></button>
+            <button className={`admin-pill ${viewMode === 'preview' ? 'admin-pill-active' : ''}`} onClick={() => setViewMode('preview')} title="Banner preview"><List size={14} /></button>
+          </div>
         </div>
 
         {/* Category filter */}
@@ -470,33 +476,109 @@ function HolidaysTab() {
           ))}
         </div>
 
-        {/* Day grid by month */}
-        {Object.keys(byMonth).sort((a, b) => a - b).map(month => (
-          <div key={month} className="admin-holiday-month">
-            <h3 className="admin-holiday-month-title">{MONTHS[month - 1]}</h3>
-            <div className="admin-holiday-grid">
-              {byMonth[month].sort((a, b) => a.day - b.day).map(entry => {
-                const isEdited = !!localEdits[entry.key];
-                const m = getMerged(entry);
-                return (
-                  <button
-                    key={entry.key}
-                    className={`admin-holiday-card ${selectedDay === entry.key ? 'admin-holiday-card-selected' : ''} ${isEdited ? 'admin-holiday-card-edited' : ''}`}
-                    onClick={() => setSelectedDay(selectedDay === entry.key ? null : entry.key)}
-                  >
-                    <span className="admin-holiday-emoji">{m.emoji}</span>
-                    <span className="admin-holiday-day">{entry.day}</span>
-                    <span className="admin-holiday-name">{m.name}</span>
-                    <div className="admin-holiday-meta">
-                      <span className={`admin-game-tier admin-game-tier-${(m.tier === 4 ? 3 : m.tier)}`}>T{m.tier}</span>
-                      {m.game && <Gamepad2 size={10} style={{ opacity: 0.5 }} />}
+        {viewMode === 'grid' ? (
+          <>
+            {/* Day grid by month */}
+            {Object.keys(byMonth).sort((a, b) => a - b).map(month => (
+              <div key={month} className="admin-holiday-month">
+                <h3 className="admin-holiday-month-title">{MONTHS[month - 1]}</h3>
+                <div className="admin-holiday-grid">
+                  {byMonth[month].sort((a, b) => a.day - b.day).map(entry => {
+                    const isEdited = !!localEdits[entry.key];
+                    const m = getMerged(entry);
+                    return (
+                      <button
+                        key={entry.key}
+                        className={`admin-holiday-card ${selectedDay === entry.key ? 'admin-holiday-card-selected' : ''} ${isEdited ? 'admin-holiday-card-edited' : ''}`}
+                        onClick={() => setSelectedDay(selectedDay === entry.key ? null : entry.key)}
+                      >
+                        <span className="admin-holiday-emoji">{m.emoji}</span>
+                        <span className="admin-holiday-day">{entry.day}</span>
+                        <span className="admin-holiday-name">{m.name}</span>
+                        <div className="admin-holiday-meta">
+                          <span className={`admin-game-tier admin-game-tier-${(m.tier === 4 ? 3 : m.tier)}`}>T{m.tier}</span>
+                          {m.game && <Gamepad2 size={10} style={{ opacity: 0.5 }} />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          /* Banner preview mode */
+          <div className="admin-preview-list">
+            {Object.keys(byMonth).sort((a, b) => a - b).map(month => (
+              <div key={month} className="admin-holiday-month">
+                <h3 className="admin-holiday-month-title">{MONTHS[month - 1]}</h3>
+                {byMonth[month].sort((a, b) => a.day - b.day).map(entry => {
+                  const m = getMerged(entry);
+                  const cat = CATEGORIES[m.category] || {};
+                  const gameInfo = m.game ? GAMES[m.game] : null;
+                  return (
+                    <div
+                      key={entry.key}
+                      className={`admin-preview-card admin-preview-card-t${m.tier}`}
+                      style={{
+                        '--hb-primary': cat.accentPrimary || '#7c3aed',
+                        '--hb-secondary': cat.accentSecondary || '#06b6d4',
+                        '--hb-glow': cat.accentGlow || 'rgba(124,58,237,0.2)',
+                      }}
+                      onClick={() => { setSelectedDay(entry.key); setViewMode('grid'); }}
+                    >
+                      {/* T1: toast strip */}
+                      {m.tier === 1 && (
+                        <div className="admin-preview-t1">
+                          <span className="admin-preview-emoji">{m.emoji}</span>
+                          <div className="admin-preview-t1-body">
+                            <span className="admin-preview-date">{entry.key}</span>
+                            <span className="admin-preview-name" style={{ color: cat.accentPrimary }}>{m.name}</span>
+                            <span className="admin-preview-greeting">{m.greeting}</span>
+                          </div>
+                          {gameInfo && <span className="admin-preview-game-tag">🎮 {gameInfo.name}</span>}
+                        </div>
+                      )}
+                      {/* T2: glass panel */}
+                      {m.tier === 2 && (
+                        <div className="admin-preview-t2">
+                          <span className="admin-preview-emoji-hero">{m.emoji}</span>
+                          <div className="admin-preview-t2-body">
+                            <span className="admin-preview-date">{entry.key}</span>
+                            <span className="admin-preview-name" style={{ color: cat.accentPrimary }}>{m.name}</span>
+                            <span className="admin-preview-greeting">{m.greeting}</span>
+                            <div className="admin-preview-footer">
+                              <span className="admin-preview-cat-tag" style={{ color: cat.accentPrimary, borderColor: `${cat.accentPrimary}33` }}>{m.emoji} {m.category}</span>
+                              {gameInfo && <span className="admin-preview-game-tag">🎮 {gameInfo.name}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {/* T3+: celebration */}
+                      {m.tier >= 3 && (
+                        <div className="admin-preview-t3">
+                          <span className="admin-preview-emoji-large">{m.emoji}</span>
+                          <span className="admin-preview-date">{entry.key}</span>
+                          <span className="admin-preview-name admin-preview-name-t3" style={{
+                            background: `linear-gradient(90deg, ${cat.accentPrimary || '#7c3aed'}, ${cat.accentSecondary || '#06b6d4'})`,
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}>{m.name}</span>
+                          <span className="admin-preview-greeting">{m.greeting}</span>
+                          <div className="admin-preview-footer" style={{ justifyContent: 'center' }}>
+                            {gameInfo && <span className="admin-preview-game-tag admin-preview-game-cta" style={{
+                              background: `linear-gradient(135deg, ${cat.accentPrimary}, ${cat.accentSecondary})`,
+                            }}>🎮 {gameInfo.name}</span>}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
+        )}
 
         {filtered.length === 0 && (
           <div className="admin-empty">No holidays match your filters.</div>
