@@ -28,6 +28,7 @@ import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../util
 import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
+const GlintFab = lazy(() => import('../components/GlintFab'));
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import './Home.css';
 import * as THREE from 'three';
@@ -4756,6 +4757,21 @@ export default function Home() {
     if (aut) aut.resume();
   }, []);
 
+  // FAB click — toggle panel + summon Glint when opening
+  const handleFabClick = useCallback(() => {
+    if (chatPanelOpen) {
+      closeChatPanel();
+    } else {
+      openChatPanel();
+      // Summon Glint if not already peeking
+      if (!peekVisibleRef.current) {
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: { context: 'summoned', side: 'left', style: 'portal', duration: 15000, pinned: true }
+        }));
+      }
+    }
+  }, [chatPanelOpen, openChatPanel, closeChatPanel]);
+
   // Editor test events
   useEffect(() => {
     const handleTest = (e) => {
@@ -4789,7 +4805,7 @@ export default function Home() {
     };
   }, []);
 
-  // Ctrl+K to toggle chat panel
+  // Ctrl+K to toggle chat panel + summon Glint
   useEffect(() => {
     const handleKeys = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -4800,6 +4816,12 @@ export default function Home() {
           const next = !prev;
           const aut = getGlintAutonomy();
           if (aut) next ? aut.pause() : aut.resume();
+          // Summon Glint when opening
+          if (next && !peekVisibleRef.current) {
+            window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+              detail: { context: 'summoned', side: 'left', style: 'portal', duration: 15000, pinned: true }
+            }));
+          }
           return next;
         });
       }
@@ -6765,22 +6787,10 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* GLINT AI CHAT PANEL TAB — persistent prism trigger on right edge */}
-      <AnimatePresence>
-        {aiMessages.length > 0 && !chatPanelOpen && (
-          <motion.div
-            className="glint-panel-tab"
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 50, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            onClick={openChatPanel}
-            title="Open Glint chat"
-          >
-            <div className="glint-panel-tab-prism" />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* GLINT FAB — persistent prism button to open chat + summon Glint */}
+      <Suspense fallback={null}>
+        <GlintFab onClick={handleFabClick} isOpen={chatPanelOpen} isPeeking={peekVisible} />
+      </Suspense>
 
       {/* GLINT AI CHAT PANEL */}
       <Suspense fallback={null}>

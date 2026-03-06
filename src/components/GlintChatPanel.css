@@ -371,89 +371,6 @@
     transform: scale(0.95);
 }
 
-/* ── Persistent Panel Tab (prism edge trigger) ── */
-.glint-panel-tab {
-    position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 505;
-    cursor: pointer;
-    padding: 12px 6px 12px 10px;
-    background: rgba(10, 10, 18, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(124, 58, 237, 0.2);
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.3s ease, border-color 0.3s ease;
-}
-
-.glint-panel-tab:hover {
-    background: rgba(20, 15, 40, 0.85);
-    border-color: rgba(124, 58, 237, 0.5);
-}
-
-/* CSS-only prism triangle */
-.glint-panel-tab-prism {
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-bottom: 18px solid rgba(124, 58, 237, 0.5);
-    filter: drop-shadow(0 0 4px rgba(124, 58, 237, 0.3));
-    transition: filter 0.3s ease, border-bottom-color 0.3s ease;
-}
-
-.glint-panel-tab:hover .glint-panel-tab-prism {
-    border-bottom-color: rgba(124, 58, 237, 0.8);
-    filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5))
-           drop-shadow(0 0 16px rgba(56, 189, 248, 0.3));
-}
-
-/* Iridescent glow rays on hover */
-.glint-panel-tab::before,
-.glint-panel-tab::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 40px;
-    height: 2px;
-    transform: translate(-50%, -50%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.glint-panel-tab::before {
-    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), rgba(56, 189, 248, 0.3), transparent);
-    transform: translate(-50%, -50%) rotate(-30deg);
-}
-
-.glint-panel-tab::after {
-    background: linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.3), rgba(124, 58, 237, 0.4), transparent);
-    transform: translate(-50%, -50%) rotate(30deg);
-}
-
-.glint-panel-tab:hover::before,
-.glint-panel-tab:hover::after {
-    opacity: 1;
-}
-
-/* Subtle idle pulse */
-@keyframes glint-tab-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
-    50% { box-shadow: -2px 0 12px rgba(124, 58, 237, 0.15); }
-}
-
-.glint-panel-tab {
-    animation: glint-tab-pulse 3s ease-in-out infinite;
-}
-
 /* Mobile responsive */
 @media (max-width: 480px) {
     .glint-chat-panel {
@@ -465,7 +382,4 @@
         max-width: 100%;
     }
 
-    .glint-panel-tab {
-        padding: 10px 4px 10px 8px;
-    }
 }

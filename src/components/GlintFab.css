@@ -1,0 +1,83 @@
+.glint-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 505;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    background: rgba(15, 15, 18, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    animation: glint-fab-pulse 3s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+}
+
+.glint-fab:hover {
+    transform: scale(1.1);
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.3);
+    animation: none;
+}
+
+.glint-fab:active {
+    transform: scale(0.95);
+}
+
+/* Active state when panel is open */
+.glint-fab--open {
+    border-color: rgba(124, 58, 237, 0.6);
+    box-shadow: 0 0 24px rgba(124, 58, 237, 0.25), inset 0 0 12px rgba(124, 58, 237, 0.1);
+    animation: none;
+}
+
+/* Glint is peeking — brighter glow */
+.glint-fab--peeking {
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 28px rgba(124, 58, 237, 0.3), 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+/* Prism SVG icon */
+.glint-fab-prism {
+    width: 26px;
+    height: 26px;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: drop-shadow(0 0 4px rgba(124, 58, 237, 0.4));
+}
+
+.glint-fab--open .glint-fab-prism {
+    transform: rotate(15deg);
+    filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.6));
+}
+
+.glint-fab:hover .glint-fab-prism {
+    filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5))
+           drop-shadow(0 0 16px rgba(56, 189, 248, 0.3));
+}
+
+/* Subtle pulse animation */
+@keyframes glint-fab-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(124, 58, 237, 0.12); }
+    50% { box-shadow: 0 0 24px rgba(124, 58, 237, 0.25), 0 0 8px rgba(56, 189, 248, 0.1); }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .glint-fab {
+        width: 48px;
+        height: 48px;
+        bottom: 16px;
+        right: 16px;
+    }
+
+    .glint-fab-prism {
+        width: 22px;
+        height: 22px;
+    }
+}
