@@ -387,8 +387,8 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         useConstellationStore.getState().setTunnelY(node.y);
         isFlyingRef.current = false;
       } else {
-        // Compute camera offset: above-right looking at node
-        const camTarget = { x: node.x + 15, y: node.y + 5, z: node.z + 15 };
+        // Compute camera offset: above-right looking at node (pulled back enough to see helix context)
+        const camTarget = { x: node.x + 35, y: node.y + 8, z: node.z + 35 };
 
         // Shorter duration for stepping between nodes, longer for first focus
         const prevNode = prevFocusRef.current;

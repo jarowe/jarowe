@@ -4,6 +4,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Calendar,
   MapPin,
   User,
@@ -280,6 +282,29 @@ export default function StoryPanel() {
                       </motion.div>
                     </AnimatePresence>
 
+                    {/* Prev/Next arrows */}
+                    {media.length > 1 && (
+                      <>
+                        <button
+                          className="story-panel__hero-arrow story-panel__hero-arrow--left"
+                          onClick={() => setHeroIdx((i) => (i - 1 + media.length) % media.length)}
+                          aria-label="Previous photo"
+                        >
+                          <ChevronLeft size={22} />
+                        </button>
+                        <button
+                          className="story-panel__hero-arrow story-panel__hero-arrow--right"
+                          onClick={() => setHeroIdx((i) => (i + 1) % media.length)}
+                          aria-label="Next photo"
+                        >
+                          <ChevronRight size={22} />
+                        </button>
+                        <span className="story-panel__hero-counter">
+                          {heroIdx + 1} / {media.length}
+                        </span>
+                      </>
+                    )}
+
                     {/* Gradient overlay with title */}
                     <div className="story-panel__hero-overlay">
                       <Badges node={node} />
@@ -391,6 +416,29 @@ export default function StoryPanel() {
                         )}
                       </motion.div>
                     </AnimatePresence>
+
+                    {/* Prev/Next arrows */}
+                    {media.length > 1 && (
+                      <>
+                        <button
+                          className="story-panel__hero-arrow story-panel__hero-arrow--left"
+                          onClick={() => setHeroIdx((i) => (i - 1 + media.length) % media.length)}
+                          aria-label="Previous photo"
+                        >
+                          <ChevronLeft size={22} />
+                        </button>
+                        <button
+                          className="story-panel__hero-arrow story-panel__hero-arrow--right"
+                          onClick={() => setHeroIdx((i) => (i + 1) % media.length)}
+                          aria-label="Next photo"
+                        >
+                          <ChevronRight size={22} />
+                        </button>
+                        <span className="story-panel__hero-counter">
+                          {heroIdx + 1} / {media.length}
+                        </span>
+                      </>
+                    )}
                   </motion.div>
 
                   <div className="story-panel__body">

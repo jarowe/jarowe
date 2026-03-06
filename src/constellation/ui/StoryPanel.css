@@ -100,6 +100,62 @@
   display: block;
 }
 
+/* ─── Hero arrows + counter ─────────────────────────────────── */
+
+.story-panel__hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+
+.story-panel__hero:hover .story-panel__hero-arrow {
+  opacity: 1;
+}
+
+.story-panel__hero-arrow:hover {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.story-panel__hero-arrow--left {
+  left: 12px;
+}
+
+.story-panel__hero-arrow--right {
+  right: 12px;
+}
+
+.story-panel__hero-counter {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 /* Gradient overlay for Profile A (photo-only) */
 .story-panel__hero-overlay {
   position: absolute;
@@ -256,6 +312,16 @@
 
 .story-panel__gallery-thumb--active {
   border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.story-panel__gallery-thumb--active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
 }
 
 .story-panel__gallery-thumb img,
