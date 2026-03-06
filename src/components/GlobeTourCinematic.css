@@ -31,6 +31,23 @@
   animation-fill-mode: backwards;
 }
 
+/* Letterbox bars — retracting on exit */
+.tour-letterbox.top.retracting {
+  animation: letterbox-out-top 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.tour-letterbox.bottom.retracting {
+  animation: letterbox-out-bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes letterbox-out-top {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+@keyframes letterbox-out-bottom {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
 /* Wrapper for all content that fades in after FLIP expansion */
 .tour-overlay-content {
   position: absolute;

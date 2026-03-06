@@ -11,6 +11,7 @@ export default function GlobeTourCinematic({
   onPrev,
   onNext,
   onExit,
+  exiting = false,
 }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [showSweep, setShowSweep] = useState(false);
@@ -62,20 +63,20 @@ export default function GlobeTourCinematic({
 
   return (
     <div
-      className="tour-cinematic-overlay"
+      className={`tour-cinematic-overlay${exiting ? ' exiting' : ''}`}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Letterbox bars — always render, CSS handles delay */}
-      <div className="tour-letterbox top" />
-      <div className="tour-letterbox bottom" />
+      {/* Letterbox bars — slide in on mount, retract on exit */}
+      <div className={`tour-letterbox top${exiting ? ' retracting' : ''}`} />
+      <div className={`tour-letterbox bottom${exiting ? ' retracting' : ''}`} />
 
-      {/* All overlay content fades in when component mounts */}
+      {/* All overlay content fades in on mount, fades out on exit */}
       <motion.div
         className="tour-overlay-content"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
+        animate={{ opacity: exiting ? 0 : 1 }}
+        transition={{ duration: exiting ? 0.5 : 0.6, delay: exiting ? 0 : 0.3 }}
       >
         {/* Sweep line on chapter transition */}
         {showSweep && <div className="tour-sweep-line" key={`sweep-${chapterIndex}`} />}

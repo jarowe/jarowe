@@ -8,7 +8,7 @@ import instagramPosts from '../data/instagramPosts.json';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound, playTourTransitionSound, playTourCompleteSound, playTourEntranceSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound, playTourTransitionSound, playTourCompleteSound, playTourEntranceSound, playTourExitSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
@@ -197,6 +197,7 @@ export default function Home() {
   const [tourMode, setTourMode] = useState(false);
   const [tourCinematic, setTourCinematic] = useState(false);
   const [tourEntering, setTourEntering] = useState(false);
+  const [tourExiting, setTourExiting] = useState(false);
   const cellMapRef = useRef(null);
   const [tourChapter, setTourChapter] = useState(null);
   const [tourChapterIndex, setTourChapterIndex] = useState(-1);
@@ -4541,20 +4542,20 @@ export default function Home() {
     runPortalExitSequence();
   }, [clearBubble, runPortalExitSequence]);
 
-  // End globe tour and restore state with reverse FLIP animation
+  // End globe tour with cinematic phased exit animation (mirrors entrance)
   const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
 
-    // Phase 1: fade out overlay content
-    setTourEntering(true);
-    setTourChapter(null);
-    setTourChapterIndex(-1);
-    setTourNarration(null);
-    setTourDestination(null);
-    setTourIndex(-1);
-    setTourPhotos([]);
+    // Phase 1 (T+0): Play exit sound, begin overlay fade-out + letterbox retraction
+    playTourExitSound();
+    setTourExiting(true);
 
-    // Clean up conversation state manually (exitConversation guards against tour)
+    // Camera zoom-out synchronized with exit (pull back to normal altitude over 2s)
+    if (globeRef.current) {
+      globeRef.current.pointOfView({ altitude: 3.2 }, 2000);
+    }
+
+    // Clean up conversation state
     setConversationMode(false);
     setConversationNode(null);
     if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
@@ -4565,8 +4566,19 @@ export default function Home() {
 
     const el = cellMapRef.current;
 
-    // Phase 2: after overlay fades, reverse-FLIP the cell back to grid
+    // Phase 2 (T+700): Overlay has faded — unmount it and reverse-FLIP cell back to grid
     setTimeout(() => {
+      // Clear tour data state
+      setTourChapter(null);
+      setTourChapterIndex(-1);
+      setTourNarration(null);
+      setTourDestination(null);
+      setTourIndex(-1);
+      setTourPhotos([]);
+
+      // Unmount overlay component
+      setTourEntering(true);
+
       if (el) {
         // Capture fullscreen rect before removing cinematic class
         const fullRect = el.getBoundingClientRect();
@@ -4588,22 +4600,25 @@ export default function Home() {
           el.style.borderRadius = '0px';
           el.style.zIndex = '999';
           el.offsetHeight; // eslint-disable-line no-unused-expressions
-          // Animate back to grid position
-          el.style.transition = 'transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+          // Animate back to grid position with same cinematic easing as entrance
+          el.style.transition = 'transform 1s cubic-bezier(0.22, 1, 0.36, 1), border-radius 1s cubic-bezier(0.22, 1, 0.36, 1)';
           el.style.transform = 'none';
           el.style.borderRadius = '';
+          // Phase 3 (T+1800): Clean up after reverse-FLIP settles
           setTimeout(() => {
             el.style.transition = '';
             el.style.transform = '';
             el.style.borderRadius = '';
             el.style.zIndex = '';
             setTourEntering(false);
-          }, 850);
+            setTourExiting(false);
+          }, 1100);
         });
       } else {
         setTourCinematic(false);
         setTourMode(false);
         setTourEntering(false);
+        setTourExiting(false);
       }
 
       // Resume auto-cycle
@@ -4613,14 +4628,16 @@ export default function Home() {
       // Resume autonomy
       const autonomy = getGlintAutonomy();
       if (autonomy) autonomy.resume();
-    }, 400);
+    }, 700);
 
-    // Completion rewards
+    // Completion rewards — fire after exit animation completes for dramatic effect
     if (completed) {
-      playTourCompleteSound();
-      window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 50, reason: 'Globe Tour Complete' } }));
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      localStorage.setItem('jarowe_tour_completed', String(Date.now()));
+      setTimeout(() => {
+        playTourCompleteSound();
+        window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 50, reason: 'Globe Tour Complete' } }));
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        localStorage.setItem('jarowe_tour_completed', String(Date.now()));
+      }, 1800);
     }
   }, [startGlobeCycle, clearBubble, runPortalExitSequence]);
 
@@ -6493,6 +6510,7 @@ export default function Home() {
                     onPrev={() => prevChapter()}
                     onNext={() => nextChapter()}
                     onExit={() => endGlobeTour()}
+                    exiting={tourExiting}
                   />
                 </Suspense>
               )}
