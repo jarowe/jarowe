@@ -364,4 +364,15 @@ export const GLOBE_DEFAULTS = {
   badgePadding: 0.35,
   badgeBottom: 1.0,
   badgeInset: 1.0,
+
+  // ── Globe Glint ──
+  globeGlintEnabled: true,
+  globeGlintScale: 2.5,
+  globeGlintSurfaceAlt: 102,
+  globeGlintCruiseAlt: 112,
+  globeGlintFlightDuration: 4000,
+  globeGlintIdleOrbitSpeed: 0.5,
+  globeGlintIdleBobAmp: 0.5,
+  globeGlintSpinSpeed: 0.3,
+  globeGlintCostumesEnabled: true,
 };

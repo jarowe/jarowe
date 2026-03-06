@@ -34,6 +34,7 @@ import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
+import { createGlobeGlint, tickGlobeGlint, destroyGlobeGlint, flyToLocation, hideGlobeGlint } from '../utils/globeGlint';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -188,6 +189,7 @@ export default function Home() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [activeExpedition, setActiveExpedition] = useState(0);
+  const activeExpeditionRef = useRef(0);
 
   const globeRef = useRef();
   const mapContainerRef = useRef();
@@ -2640,6 +2642,18 @@ export default function Home() {
             globe.satellitesGroup.add(wisp);
           }
 
+          // Globe Glint — prism character on the globe
+          window.__globeExpeditions = expeditions;
+          createGlobeGlint({
+            satellitesGroup: globe.satellitesGroup,
+            pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
+            expeditions,
+            pauseCycle: () => { if (globeCycleTimer.current) clearInterval(globeCycleTimer.current); isUserInteracting.current = true; },
+            resumeCycle: () => { isUserInteracting.current = false; startGlobeCycle(); },
+            getActiveExpedition: () => activeExpeditionRef.current,
+            editorParams: editorParams.current,
+          });
+
           // Birthday "Find the 40" sprites at famous cities
           if (isBirthday && !globe._birthdaySprites) {
             globe._birthdaySprites = [];
@@ -3113,6 +3127,7 @@ export default function Home() {
               if (globe.satellitesGroup) {
                 globe.satellitesGroup.children.forEach(m => {
                   const ud = m.userData;
+                  if (ud.type === 'globe-glint') return; // managed by tickGlobeGlint
                   if (ud.type === 'plane') m.visible = ep.planesVisible;
                   else if (ud.type === 'car') m.visible = ep.carsVisible;
                   else if (ud.type === 'wisp') m.visible = ep.wispsVisible;
@@ -3342,6 +3357,7 @@ export default function Home() {
                 globe.satellitesGroup.children.forEach(m => {
                   if (!m.visible) return;
                   const ud = m.userData;
+                  if (ud.type === 'globe-glint') return; // managed by tickGlobeGlint
                   const speedMult = ud.type === 'plane' ? ep.planeSpeed
                     : ud.type === 'wisp' ? ep.wispSpeed
                     : ud.type === 'car' ? 1.0 : ep.satelliteSpeed;
@@ -3397,6 +3413,9 @@ export default function Home() {
                   }
                 });
               }
+
+              // Globe Glint tick (prism character flight + idle animation)
+              tickGlobeGlint(dt, elTs);
 
               // Wind particle physics (CPU-side fluid simulation with spin coupling)
               if (globe.windParticles && globe.windParticles.visible) {
@@ -3731,6 +3750,7 @@ export default function Home() {
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
       if (globeRef.current?._particleMouseCleanup) globeRef.current._particleMouseCleanup();
+      destroyGlobeGlint();
     };
   }, [globeMounted, startGlobeCycle]);
 
@@ -3908,6 +3928,9 @@ export default function Home() {
     setHoveredMarker(loc);
     playClickSound();
   }, [activeExpedition]);
+
+  // Sync activeExpedition to ref for globe glint closures
+  useEffect(() => { activeExpeditionRef.current = activeExpedition; }, [activeExpedition]);
 
   // Avatar click effects + photo cycling
   const [avatarEffect, setAvatarEffect] = useState(null);
@@ -5247,6 +5270,21 @@ export default function Home() {
     window.addEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
     window.addEventListener('glint-brain-test-conversation', brainTestConvoHandler);
 
+    // Globe Glint event listeners
+    const globeGlintFlyHandler = (e) => {
+      const { expedition, duration } = e.detail || {};
+      if (!expedition) return;
+      if (peekVisibleRef.current) {
+        window.dispatchEvent(new CustomEvent('hide-prism-peek'));
+        setTimeout(() => flyToLocation(expedition, { duration }), 800);
+      } else {
+        flyToLocation(expedition, { duration });
+      }
+    };
+    const globeGlintHideHandler = () => hideGlobeGlint();
+    window.addEventListener('globe-glint-fly', globeGlintFlyHandler);
+    window.addEventListener('globe-glint-hide', globeGlintHideHandler);
+
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
       window.removeEventListener('hide-prism-peek', hideHandler);
@@ -5257,6 +5295,8 @@ export default function Home() {
       window.removeEventListener('bop-plus-test', bopPlusTestHandler);
       window.removeEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
       window.removeEventListener('glint-brain-test-conversation', brainTestConvoHandler);
+      window.removeEventListener('globe-glint-fly', globeGlintFlyHandler);
+      window.removeEventListener('globe-glint-hide', globeGlintHideHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
   }, [spawnPoints, showBubbleWithThinking, clearBubble, exitConversation]);
