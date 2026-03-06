@@ -81,6 +81,9 @@ export default function GlobeTourCinematic({
         {/* Sweep line on chapter transition */}
         {showSweep && <div className="tour-sweep-line" key={`sweep-${chapterIndex}`} />}
 
+        {/* Sweep line on exit — reverse direction */}
+        {exiting && <div className="tour-sweep-line tour-sweep-exit" key="sweep-exit" />}
+
         {chapter && (
           <>
             {/* Chapter title */}

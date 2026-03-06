@@ -4542,17 +4542,17 @@ export default function Home() {
     runPortalExitSequence();
   }, [clearBubble, runPortalExitSequence]);
 
-  // End globe tour with cinematic phased exit animation (mirrors entrance)
+  // End globe tour with cinematic phased exit — overlapping phases for seamless feel
   const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
 
-    // Phase 1 (T+0): Play exit sound, begin overlay fade-out + letterbox retraction
+    // Phase 1 (T+0): Exit sound + overlay fade begins + camera pulls back
     playTourExitSound();
     setTourExiting(true);
 
-    // Camera zoom-out synchronized with exit (pull back to normal altitude over 2s)
+    // Camera zoom-out synchronized (slightly longer than FLIP so it keeps drifting)
     if (globeRef.current) {
-      globeRef.current.pointOfView({ altitude: 3.2 }, 2000);
+      globeRef.current.pointOfView({ altitude: 3.5 }, 1800);
     }
 
     // Clean up conversation state
@@ -4566,9 +4566,10 @@ export default function Home() {
 
     const el = cellMapRef.current;
 
-    // Phase 2 (T+700): Overlay has faded — unmount it and reverse-FLIP cell back to grid
+    // Phase 2 (T+400): Overlay mostly faded — begin reverse FLIP while still slightly visible
+    // This overlap creates the seamless "everything moves together" feeling
     setTimeout(() => {
-      // Clear tour data state
+      // Clear tour data
       setTourChapter(null);
       setTourChapterIndex(-1);
       setTourNarration(null);
@@ -4580,17 +4581,17 @@ export default function Home() {
       setTourEntering(true);
 
       if (el) {
-        // Capture fullscreen rect before removing cinematic class
         const fullRect = el.getBoundingClientRect();
+
+        // Add glass-restoring class BEFORE removing tour-cinematic
+        // This keeps glass overlays hidden so they don't snap to visible during FLIP
+        el.classList.add('tour-glass-restoring');
 
         // Remove cinematic — cell returns to grid layout
         setTourCinematic(false);
-        setTourMode(false);
 
         requestAnimationFrame(() => {
-          // Cell is now back in grid, get its natural position
           const gridRect = el.getBoundingClientRect();
-          // Apply inverse: make cell look like it's still fullscreen
           const scaleX = fullRect.width / gridRect.width;
           const scaleY = fullRect.height / gridRect.height;
           const translateX = fullRect.left + fullRect.width / 2 - (gridRect.left + gridRect.width / 2);
@@ -4600,11 +4601,20 @@ export default function Home() {
           el.style.borderRadius = '0px';
           el.style.zIndex = '999';
           el.offsetHeight; // eslint-disable-line no-unused-expressions
-          // Animate back to grid position with same cinematic easing as entrance
+
+          // Animate back to grid with cinematic easing (matches entrance)
           el.style.transition = 'transform 1s cubic-bezier(0.22, 1, 0.36, 1), border-radius 1s cubic-bezier(0.22, 1, 0.36, 1)';
           el.style.transform = 'none';
           el.style.borderRadius = '';
-          // Phase 3 (T+1800): Clean up after reverse-FLIP settles
+
+          // Phase 3 (T+600): Mid-FLIP — glass overlays start fading in + bento cells return
+          // Staggered 200ms after FLIP begins for cascading effect
+          setTimeout(() => {
+            el.classList.remove('tour-glass-restoring');
+            setTourMode(false); // removes .tour-dissolve → cells fade back in with stagger
+          }, 200);
+
+          // Phase 4 (T+1500): FLIP settled — clean up everything
           setTimeout(() => {
             el.style.transition = '';
             el.style.transform = '';
@@ -4628,16 +4638,16 @@ export default function Home() {
       // Resume autonomy
       const autonomy = getGlintAutonomy();
       if (autonomy) autonomy.resume();
-    }, 700);
+    }, 400); // 400ms — overlap with overlay fade for seamless feel
 
-    // Completion rewards — fire after exit animation completes for dramatic effect
+    // Completion rewards — fire after full exit animation settles
     if (completed) {
       setTimeout(() => {
         playTourCompleteSound();
         window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 50, reason: 'Globe Tour Complete' } }));
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         localStorage.setItem('jarowe_tour_completed', String(Date.now()));
-      }, 1800);
+      }, 1600);
     }
   }, [startGlobeCycle, clearBubble, runPortalExitSequence]);
 

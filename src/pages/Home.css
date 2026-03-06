@@ -530,6 +530,30 @@
     transition: opacity 0.4s ease;
 }
 
+/* Glass overlays hidden during reverse FLIP, then gracefully fade in as card re-forms */
+.cell-map.tour-glass-restoring::before,
+.cell-map.tour-glass-restoring::after {
+    opacity: 0 !important;
+    transition: opacity 0.7s ease 0.15s !important;
+}
+.cell-map.tour-glass-restoring .liquid-glass-edge {
+    opacity: 0 !important;
+    transition: opacity 0.7s ease 0.15s !important;
+}
+.cell-map.tour-glass-restoring .worldschool-badge {
+    opacity: 0 !important;
+    transition: opacity 0.7s ease 0.3s !important;
+}
+.cell-map.tour-glass-restoring .globe-tour-trigger {
+    opacity: 0 !important;
+    transition: opacity 0.7s ease 0.3s !important;
+}
+.cell-map.tour-glass-restoring .globe-fog-layer,
+.cell-map.tour-glass-restoring .globe-particles-layer {
+    opacity: 0 !important;
+    transition: opacity 0.5s ease !important;
+}
+
 /* Hide overlays in cinematic mode */
 .map-badge.tour-hidden {
     display: none !important;

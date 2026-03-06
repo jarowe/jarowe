@@ -375,20 +375,20 @@ export const playTourExitSound = () => {
         const c = getCtx();
         if (c.state === 'suspended') return;
         const t = c.currentTime;
-        // Descending cinematic whoosh — reverse of entrance (300→100Hz)
+        // Deep descending whoosh — sub-bass sweep 350→60Hz with longer tail
         const osc = c.createOscillator();
         const gain = c.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, t);
-        osc.frequency.exponentialRampToValueAtTime(100, t + 0.8);
-        gain.gain.setValueAtTime(0.12, t);
-        gain.gain.linearRampToValueAtTime(0.08, t + 0.3);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+        osc.frequency.setValueAtTime(350, t);
+        osc.frequency.exponentialRampToValueAtTime(60, t + 1.0);
+        gain.gain.setValueAtTime(0.14, t);
+        gain.gain.linearRampToValueAtTime(0.1, t + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
         osc.connect(gain).connect(c.destination);
         osc.start(t);
-        osc.stop(t + 0.95);
-        // Descending filtered noise whoosh (2500→600Hz bandpass sweep)
-        const bufferSize = Math.floor(c.sampleRate * 0.8);
+        osc.stop(t + 1.15);
+        // Descending filtered noise whoosh (3000→400Hz sweep — wider range)
+        const bufferSize = Math.floor(c.sampleRate * 1.0);
         const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
@@ -396,27 +396,39 @@ export const playTourExitSound = () => {
         noise.buffer = buffer;
         const bpf = c.createBiquadFilter();
         bpf.type = 'bandpass';
-        bpf.frequency.setValueAtTime(2500, t);
-        bpf.frequency.exponentialRampToValueAtTime(600, t + 0.7);
-        bpf.Q.value = 1.2;
+        bpf.frequency.setValueAtTime(3000, t);
+        bpf.frequency.exponentialRampToValueAtTime(400, t + 0.9);
+        bpf.Q.value = 1.0;
         const noiseGain = c.createGain();
-        noiseGain.gain.setValueAtTime(0.06, t);
-        noiseGain.gain.linearRampToValueAtTime(0.03, t + 0.4);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+        noiseGain.gain.setValueAtTime(0.07, t);
+        noiseGain.gain.linearRampToValueAtTime(0.04, t + 0.35);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
         noise.connect(bpf).connect(noiseGain).connect(c.destination);
         noise.start(t);
-        noise.stop(t + 0.85);
-        // Fading shimmer overtone (descending 2400→800Hz)
+        noise.stop(t + 1.05);
+        // Fading shimmer overtone (descending 2400→600Hz)
         const shimmer = c.createOscillator();
         const shimGain = c.createGain();
         shimmer.type = 'triangle';
         shimmer.frequency.setValueAtTime(2400, t);
-        shimmer.frequency.exponentialRampToValueAtTime(800, t + 0.8);
-        shimGain.gain.setValueAtTime(0.025, t);
-        shimGain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+        shimmer.frequency.exponentialRampToValueAtTime(600, t + 0.9);
+        shimGain.gain.setValueAtTime(0.03, t);
+        shimGain.gain.linearRampToValueAtTime(0.015, t + 0.4);
+        shimGain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
         shimmer.connect(shimGain).connect(c.destination);
         shimmer.start(t);
-        shimmer.stop(t + 0.9);
+        shimmer.stop(t + 1.05);
+        // Sub-bass resonance — felt more than heard, adds weight
+        const sub = c.createOscillator();
+        const subGain = c.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(80, t);
+        sub.frequency.exponentialRampToValueAtTime(40, t + 0.8);
+        subGain.gain.setValueAtTime(0.1, t + 0.1);
+        subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+        sub.connect(subGain).connect(c.destination);
+        sub.start(t + 0.1);
+        sub.stop(t + 0.95);
     } catch (e) { }
 };
 
