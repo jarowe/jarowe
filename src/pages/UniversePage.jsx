@@ -12,7 +12,7 @@ import { playHoverSound, playClickSound } from '../utils/sounds';
 import { loadConstellationData } from '../constellation/data/loader';
 import { resolveMediaUrl } from '../constellation/media/resolveMediaUrl';
 import { curateMemories } from './universe/curateMemories';
-import { layoutMemories, EPOCH_CENTERS } from './universe/layoutMemories';
+import { layoutMemories, getEpochCentroids } from './universe/layoutMemories';
 import './UniversePage.css';
 
 const MemoryDetailOverlay = lazy(() => import('./universe/MemoryDetailOverlay'));
@@ -152,23 +152,16 @@ function PolaroidPlaceholder({ position, rotation, epochColor }) {
   );
 }
 
-/* ─── Epoch Nebula (subtle cluster background) ─── */
-function EpochNebulae({ epochs }) {
+/* ─── Epoch Labels (positioned at centroid of each epoch's memories) ─── */
+function EpochLabels({ epochs, centroids }) {
   return (
     <>
       {epochs.map(epoch => {
-        const c = EPOCH_CENTERS[epoch.label];
-        if (!c) return null;
-        const center = [c.x, c.y, c.z];
+        const center = centroids[epoch.label];
+        if (!center) return null;
         return (
           <group key={epoch.id} position={center}>
-            {/* Subtle fog billboard */}
-            <mesh>
-              <planeGeometry args={[10, 10]} />
-              <meshBasicMaterial color={epoch.color} transparent opacity={0.035} depthWrite={false} />
-            </mesh>
-            {/* Epoch label */}
-            <Html position={[0, 5, 0]} center zIndexRange={[50, 0]}>
+            <Html position={[0, 3.5, 0]} center zIndexRange={[50, 0]}>
               <div className="epoch-label-pill" style={{ borderColor: epoch.color, color: epoch.color }}>
                 {epoch.label}
               </div>
@@ -324,6 +317,7 @@ export default function UniversePage() {
   const [memories, setMemories] = useState([]);
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [epochs, setEpochs] = useState([]);
+  const [epochCentroids, setEpochCentroids] = useState({});
   const [isMobile] = useState(() => window.innerWidth < 600);
 
   // Load constellation data and curate memories
@@ -333,6 +327,7 @@ export default function UniversePage() {
       const curated = curateMemories(data.nodes, { mobile: isMobile });
       const laid = layoutMemories(curated);
       setMemories(laid);
+      setEpochCentroids(getEpochCentroids(laid));
     });
   }, [isMobile]);
 
@@ -396,7 +391,7 @@ export default function UniversePage() {
           ))}
 
           {/* Epoch nebulae backgrounds */}
-          {epochs.length > 0 && <EpochNebulae epochs={epochs} />}
+          {epochs.length > 0 && <EpochLabels epochs={epochs} centroids={epochCentroids} />}
 
           {/* Memory polaroids — each with independent Suspense */}
           {memories.map(mem => (
