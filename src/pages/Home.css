@@ -369,6 +369,22 @@
     border-color: rgba(239, 68, 68, 0.6) !important;
 }
 
+/* Globe Tour trigger button */
+.globe-tour-trigger {
+    margin-left: 4px;
+    background: rgba(124, 58, 237, 0.15) !important;
+    border-color: rgba(124, 58, 237, 0.3) !important;
+    color: rgba(167, 139, 250, 0.9) !important;
+}
+.globe-tour-trigger:hover {
+    background: rgba(124, 58, 237, 0.35) !important;
+    border-color: rgba(124, 58, 237, 0.6) !important;
+    color: #fff !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 0 12px rgba(124, 58, 237, 0.4) !important;
+}
+
 /* Globe photo pin (Instagram markers) */
 .globe-photo-pin {
     width: 32px;

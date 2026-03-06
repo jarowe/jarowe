@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb } from 'lucide-react';
+import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb, Compass } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
@@ -33,6 +33,7 @@ const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 const GlintFab = lazy(() => import('../components/GlintFab'));
 const GlobeTourCinematic = lazy(() => import('../components/GlobeTourCinematic'));
+import { useAuth } from '../context/AuthContext';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import './Home.css';
 import * as THREE from 'three';
@@ -264,11 +265,12 @@ export default function Home() {
     if (el) setGlobeMounted(true);
   }, []);
 
-  // Check for editor mode via URL parameter
+  // Check for editor mode via URL parameter — requires admin auth
+  const { isAdmin } = useAuth() || {};
   const showEditor = useMemo(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined' || !isAdmin) return false;
     return new URLSearchParams(window.location.search).get('editor') === 'jarowe';
-  }, []);
+  }, [isAdmin]);
 
   // Master editor GUI panels (created via lil-gui dynamic import)
   const [editorGui, setEditorGui] = useState(null);
@@ -4661,7 +4663,58 @@ export default function Home() {
     // Enter conversation mode for tour
     setConversationMode(true);
 
+    // Helper: start the tour state machine (called after FLIP settles)
+    const launchTourStateMachine = () => {
+      const isRepeat = !!localStorage.getItem('jarowe_tour_completed');
+      const chapters = getTourChapters();
+
+      startTour({
+        chapters,
+        pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
+        onNarration: (line) => {
+          window.__prismExpression = line.expression;
+          setTourNarration(line);
+          showBubbleWithThinking(line.text);
+
+          // Build tour nav pills
+          const tourState = getTourState();
+          const pills = [];
+          if (tourState.activeChapter > 0) {
+            pills.push({ label: '\u25c0 Previous', nodeId: '__tour_prev__' });
+          }
+          if (tourState.activeChapter < tourState.total - 1) {
+            pills.push({ label: 'Next \u25b6', nodeId: '__tour_next__' });
+          }
+          pills.push({ label: 'End Tour', nodeId: '__tour_end__' });
+          setConversationNode({ text: line.text, expression: line.expression, replies: pills });
+        },
+        onChapterChange: (chapter, idx) => {
+          setTourChapter(chapter);
+          setTourChapterIndex(idx);
+          // Play transition sound between chapters (not on first)
+          if (idx > 0) playTourTransitionSound();
+          // Set hoveredMarker for globe marker if chapter has destinations
+          if (chapter.destinations.length > 0) {
+            const dest = chapter.destinations[0];
+            setTourDestination(dest);
+            setHoveredMarker(dest);
+          } else {
+            setTourDestination(null);
+            setHoveredMarker(null);
+          }
+        },
+        onComplete: () => {
+          endGlobeTour(true);
+        },
+        transitTime: ep.globeTourTransitTime ?? 3500,
+        autoAdvance: ep.globeTourAutoAdvance ?? true,
+        startChapter: startIndex,
+      });
+    };
+
     // Phase 3: FLIP expansion — cell is now position:fixed inset:0
+    // Delay tour start until FLIP completes so globe is at fullscreen size
+    // when camera begins moving (prevents zoom pop from size change)
     if (el && rect) {
       requestAnimationFrame(() => {
         const fullW = window.innerWidth;
@@ -4680,68 +4733,23 @@ export default function Home() {
         el.style.transition = 'transform 1s cubic-bezier(0.22, 1, 0.36, 1), border-radius 1s cubic-bezier(0.22, 1, 0.36, 1)';
         el.style.transform = 'none';
         el.style.borderRadius = '0px';
-        // After expansion completes, reveal overlay content
+        // After expansion completes, reveal overlay + start tour
         setTimeout(() => {
           setTourEntering(false);
           el.style.transition = '';
           el.style.transform = '';
           el.style.borderRadius = '';
+          // Now globe is at fullscreen size — safe to start camera movement
+          launchTourStateMachine();
         }, 1100);
       });
     } else {
       // Fallback: no FLIP, just show after short delay
-      setTimeout(() => setTourEntering(false), 800);
+      setTimeout(() => {
+        setTourEntering(false);
+        launchTourStateMachine();
+      }, 800);
     }
-
-    // Phase 5: Camera zoom starts immediately (synchronized with expansion)
-    globeRef.current?.pointOfView({ altitude: 2.0 }, 2500);
-
-    const isRepeat = !!localStorage.getItem('jarowe_tour_completed');
-    const chapters = getTourChapters();
-
-    // Start the chapter-based tour state machine
-    startTour({
-      chapters,
-      pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
-      onNarration: (line) => {
-        window.__prismExpression = line.expression;
-        setTourNarration(line);
-        showBubbleWithThinking(line.text);
-
-        // Build tour nav pills
-        const tourState = getTourState();
-        const pills = [];
-        if (tourState.activeChapter > 0) {
-          pills.push({ label: '\u25c0 Previous', nodeId: '__tour_prev__' });
-        }
-        if (tourState.activeChapter < tourState.total - 1) {
-          pills.push({ label: 'Next \u25b6', nodeId: '__tour_next__' });
-        }
-        pills.push({ label: 'End Tour', nodeId: '__tour_end__' });
-        setConversationNode({ text: line.text, expression: line.expression, replies: pills });
-      },
-      onChapterChange: (chapter, idx) => {
-        setTourChapter(chapter);
-        setTourChapterIndex(idx);
-        // Play transition sound between chapters (not on first)
-        if (idx > 0) playTourTransitionSound();
-        // Set hoveredMarker for globe marker if chapter has destinations
-        if (chapter.destinations.length > 0) {
-          const dest = chapter.destinations[0];
-          setTourDestination(dest);
-          setHoveredMarker(dest);
-        } else {
-          setTourDestination(null);
-          setHoveredMarker(null);
-        }
-      },
-      onComplete: () => {
-        endGlobeTour(true);
-      },
-      transitTime: ep.globeTourTransitTime ?? 3500,
-      autoAdvance: ep.globeTourAutoAdvance ?? true,
-      startChapter: startIndex,
-    });
   }, [tourMode, showBubbleWithThinking, endGlobeTour]);
 
   const handlePillClick = useCallback((reply) => {
@@ -6563,6 +6571,9 @@ export default function Home() {
                   </div>
                   <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('next'); }} aria-label="Next location">
                     <ChevronRight size={14} />
+                  </button>
+                  <button className="globe-nav-btn globe-tour-trigger" onClick={(e) => { e.stopPropagation(); startGlobeTour(0); }} aria-label="Start Globe Tour" title="Globe Tour">
+                    <Compass size={14} />
                   </button>
                 </>
               ) : null}
