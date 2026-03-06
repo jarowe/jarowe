@@ -173,9 +173,9 @@ export default function HelixBackbone({ positions, disabled }) {
         <Line
           points={strand0Points}
           color={[0.3, 0.6, 1.0]}
-          lineWidth={1.2}
+          lineWidth={1.8}
           transparent
-          opacity={0.12}
+          opacity={0.18}
           toneMapped={false}
         />
       )}
@@ -185,9 +185,9 @@ export default function HelixBackbone({ positions, disabled }) {
         <Line
           points={strand1Points}
           color={[1.0, 0.4, 0.7]}
-          lineWidth={1.2}
+          lineWidth={1.8}
           transparent
-          opacity={0.12}
+          opacity={0.18}
           toneMapped={false}
         />
       )}
@@ -198,9 +198,9 @@ export default function HelixBackbone({ positions, disabled }) {
           key={`rung-${i}`}
           points={pair}
           color={[0.7, 0.7, 1.0]}
-          lineWidth={0.6}
+          lineWidth={0.8}
           transparent
-          opacity={0.06}
+          opacity={0.08}
           toneMapped={false}
         />
       ))}

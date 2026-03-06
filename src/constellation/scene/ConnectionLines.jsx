@@ -128,9 +128,9 @@ export default function ConnectionLines({ positions }) {
       } else {
         // Default: tier-based visual hierarchy
         if (isHelixToHelix) {
-          // T2: helix-to-helix — moderate visibility
-          opacity = lerp(0.05, 0.15, w);
-          lineWidth = lerp(0.6, 1.5, w);
+          // T2: helix-to-helix — visible but secondary to backbone
+          opacity = lerp(0.03, 0.10, w);
+          lineWidth = lerp(0.4, 1.0, w);
         } else if (involvesParticle) {
           // T3: involves particle node — very subtle
           opacity = lerp(0.015, 0.04, w);

@@ -1,28 +1,26 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { useConstellationStore, selectPanelOpen } from '../store';
 import './TimelineScrubber.css';
 
 /**
- * Vertical timeline scrubber (v1 -- vertical rail, spiral minimap deferred).
- * Positioned on the right side of the viewport.
- * Drag thumb or click track to move camera along helix.
- * Shows epoch labels at proportional positions.
+ * Vertical timeline scrubber — glass card with gradient rail, epoch-colored
+ * accent bars, year ranges, and a glowing thumb.
+ * Positioned on the left side of the viewport.
  */
 export default function TimelineScrubber() {
-  const trackRef = useRef(null);
+  const containerRef = useRef(null);
+  const epochsRef = useRef(null);
   const [dragging, setDragging] = useState(false);
 
   const timelinePosition = useConstellationStore((s) => s.timelinePosition);
   const setTimelinePosition = useConstellationStore((s) => s.setTimelinePosition);
   const panelOpen = useConstellationStore(selectPanelOpen);
 
-  // Compute epoch label positions (proportional based on date ranges)
   const epochs = useConstellationStore((s) => s.epochs);
-  const epochPositions = useRef([]);
 
-  useEffect(() => {
-    if (!epochs.length) return;
-    // Parse year ranges from epoch data
+  // Compute epoch label positions and year ranges
+  const epochData = useMemo(() => {
+    if (!epochs.length) return [];
     const allYears = epochs.map((e) => {
       const [start, end] = e.range.split('-').map(Number);
       return { ...e, startYear: start, endYear: end };
@@ -31,30 +29,60 @@ export default function TimelineScrubber() {
     const globalEnd = Math.max(...allYears.map((e) => e.endYear));
     const totalSpan = globalEnd - globalStart;
 
-    epochPositions.current = allYears.map((e) => {
+    return allYears.map((e) => {
       const midYear = (e.startYear + e.endYear) / 2;
       const position = totalSpan > 0 ? (midYear - globalStart) / totalSpan : 0;
       return {
         label: e.label,
         position,
         color: e.color,
+        range: `${e.startYear}\u2013${e.endYear}`,
       };
     });
   }, [epochs]);
 
+  // Determine which epoch the thumb is currently in
+  const activeEpoch = useMemo(() => {
+    if (!epochData.length) return null;
+    let closest = epochData[0];
+    let closestDist = Infinity;
+    for (const ep of epochData) {
+      const dist = Math.abs(ep.position - timelinePosition);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = ep;
+      }
+    }
+    return closest;
+  }, [epochData, timelinePosition]);
+
+  // Build gradient string from epoch colors for the rail background
+  const railGradient = useMemo(() => {
+    if (!epochData.length) return 'rgba(255,255,255,0.15)';
+    // Epochs sorted bottom (0%) to top (100%) — CSS gradient top=0% so invert
+    const stops = epochData
+      .map((ep) => `${ep.color} ${(1 - ep.position) * 100}%`)
+      .sort((a, b) => {
+        const pA = parseFloat(a.split(' ')[1]);
+        const pB = parseFloat(b.split(' ')[1]);
+        return pA - pB;
+      });
+    return `linear-gradient(to bottom, ${stops.join(', ')})`;
+  }, [epochData]);
+
   // Convert pointer Y to normalized position (0 = bottom/oldest, 1 = top/newest)
-  // Inverted so top of slider = newest (high Y), bottom = oldest (low Y)
   const getPositionFromPointer = useCallback((clientY) => {
-    const track = trackRef.current;
-    if (!track) return 0;
-    const rect = track.getBoundingClientRect();
+    const el = epochsRef.current;
+    if (!el) return 0;
+    const rect = el.getBoundingClientRect();
     const y = clientY - rect.top;
-    const normalized = Math.max(0, Math.min(1, 1 - y / rect.height));
-    return normalized;
+    return Math.max(0, Math.min(1, 1 - y / rect.height));
   }, []);
 
   const handlePointerDown = useCallback(
     (e) => {
+      // Ignore if clicking an epoch button directly (those handle their own click)
+      if (e.target.closest('.timeline-scrubber__epoch')) return;
       e.preventDefault();
       setDragging(true);
       const pos = getPositionFromPointer(e.clientY);
@@ -91,38 +119,61 @@ export default function TimelineScrubber() {
   // Hide when detail panel is open (avoid overlap)
   if (panelOpen) return null;
 
+  const thumbColor = activeEpoch?.color || 'rgba(255,255,255,0.9)';
+  const fillHeight = `${timelinePosition * 100}%`;
+
   return (
-    <div className="timeline-scrubber" aria-label="Timeline navigation">
-      {/* Epoch labels */}
-      <div className="timeline-scrubber__labels">
-        {epochPositions.current.map((epoch, i) => (
+    <div
+      ref={containerRef}
+      className={`timeline-scrubber${dragging ? ' timeline-scrubber--dragging' : ''}`}
+      aria-label="Timeline navigation"
+      onPointerDown={handlePointerDown}
+    >
+      <div ref={epochsRef} className="timeline-scrubber__epochs">
+        {/* Gradient rail */}
+        <div className="timeline-scrubber__rail">
+          <div
+            className="timeline-scrubber__rail-bg"
+            style={{ background: railGradient }}
+          />
+          <div
+            className="timeline-scrubber__rail-fill"
+            style={{
+              height: fillHeight,
+              background: railGradient,
+            }}
+          />
+        </div>
+
+        {/* Glowing thumb */}
+        <div
+          className="timeline-scrubber__thumb"
+          style={{
+            top: `${(1 - timelinePosition) * 100}%`,
+            background: thumbColor,
+            boxShadow: `0 0 12px ${thumbColor}, 0 0 4px ${thumbColor}`,
+          }}
+        />
+
+        {/* Epoch labels with accent bars and year ranges */}
+        {epochData.map((epoch, i) => (
           <button
             key={i}
             className="timeline-scrubber__epoch"
             style={{ top: `${(1 - epoch.position) * 100}%` }}
             onClick={() => setTimelinePosition(epoch.position)}
-            title={epoch.label}
+            title={`${epoch.label} (${epoch.range})`}
           >
             <span
-              className="timeline-scrubber__dot"
+              className="timeline-scrubber__accent-bar"
               style={{ backgroundColor: epoch.color }}
             />
-            <span className="timeline-scrubber__epoch-label">{epoch.label}</span>
+            <span className="timeline-scrubber__epoch-text">
+              <span className="timeline-scrubber__epoch-label">{epoch.label}</span>
+              <span className="timeline-scrubber__epoch-range">{epoch.range}</span>
+            </span>
           </button>
         ))}
-      </div>
-
-      {/* Track */}
-      <div
-        ref={trackRef}
-        className={`timeline-scrubber__track${dragging ? ' timeline-scrubber__track--active' : ''}`}
-        onPointerDown={handlePointerDown}
-      >
-        <div className="timeline-scrubber__rail" />
-        <div
-          className="timeline-scrubber__thumb"
-          style={{ top: `${(1 - timelinePosition) * 100}%` }}
-        />
       </div>
     </div>
   );

@@ -4,51 +4,71 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  height: 60vh;
   user-select: none;
+
+  /* Glass card */
+  width: 140px;
+  background: rgba(10, 10, 20, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1rem 0.75rem;
+  touch-action: none;
+  cursor: pointer;
 }
 
-.timeline-scrubber__labels {
+/* ── Epoch rows ── */
+
+.timeline-scrubber__epochs {
   position: relative;
-  width: 100px;
-  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 52vh;
 }
 
 .timeline-scrubber__epoch {
   position: absolute;
   transform: translateY(-50%);
   left: 0;
+  right: 0;
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  align-items: flex-start;
+  gap: 0.5rem;
   background: none;
   border: none;
-  padding: 0.2rem 0.4rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
   cursor: pointer;
-  pointer-events: auto;
-  transition: opacity 0.2s;
+  transition: background 0.2s;
 }
 
 .timeline-scrubber__epoch:hover {
-  opacity: 1;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.timeline-scrubber__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.timeline-scrubber__accent-bar {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
   flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.timeline-scrubber__epoch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .timeline-scrubber__epoch-label {
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
   letter-spacing: 0.02em;
   font-weight: 500;
+  line-height: 1.2;
   transition: color 0.2s;
 }
 
@@ -56,47 +76,67 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
-.timeline-scrubber__track {
-  position: relative;
-  width: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
+.timeline-scrubber__epoch-range {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.03em;
+  line-height: 1.3;
 }
+
+/* ── Rail (inside epoch container) ── */
 
 .timeline-scrubber__rail {
-  width: 2px;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 1px;
+  position: absolute;
+  right: 6px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-.timeline-scrubber__track--active .timeline-scrubber__rail {
-  background: rgba(255, 255, 255, 0.25);
+.timeline-scrubber__rail-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  border-radius: 2px;
 }
+
+.timeline-scrubber__rail-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 2px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.timeline-scrubber--dragging .timeline-scrubber__rail-fill {
+  opacity: 0.7;
+}
+
+/* ── Thumb ── */
 
 .timeline-scrubber__thumb {
   position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
+  right: 6px;
+  transform: translate(50%, -50%);
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-  transition: box-shadow 0.2s;
   pointer-events: none;
+  transition: box-shadow 0.2s, width 0.15s, height 0.15s;
 }
 
-.timeline-scrubber__track--active .timeline-scrubber__thumb {
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.7);
-  width: 14px;
-  height: 14px;
+.timeline-scrubber--dragging .timeline-scrubber__thumb {
+  width: 18px;
+  height: 18px;
 }
 
-/* Hide on small screens where it would overlap */
+/* ── Mobile ── */
+
 @media (max-width: 768px) {
   .timeline-scrubber {
     display: none;
