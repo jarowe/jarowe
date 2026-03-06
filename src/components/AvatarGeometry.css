@@ -1,6 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    AVATAR GEOMETRY — Family Pentagon Frame
-   Elegant, contemplative sacred geometry.
+   Three-tier interaction:
+     Default  → thin rest ring
+     Card hover → geometry cascades in
+     Image hover → enhanced glows & brightness
    ═══════════════════════════════════════════════════════════════════════ */
 
 .avatar-geo-wrap {
@@ -24,9 +27,9 @@
   transition: filter 0.6s ease;
 }
 
-/* Hover: gentle brightening */
-.avatar-geo-wrap:hover .avatar-geo-svg {
-  filter: brightness(1.25) saturate(1.15);
+/* Image hover: enhanced brightness (class toggled by JS) */
+.avatar-geo-svg.image-hovered {
+  filter: brightness(1.35) saturate(1.25);
 }
 
 /* Burst ring */

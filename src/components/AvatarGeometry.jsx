@@ -1,13 +1,15 @@
 import { useEffect, useRef, useMemo } from 'react';
-import { animate, stagger, createTimeline, createDrawable } from 'animejs';
+import { animate, stagger, createDrawable } from 'animejs';
 import './AvatarGeometry.css';
 
 /* ═══════════════════════════════════════════════════════════════════════
    AVATAR GEOMETRY — Family Pentagon (anime.js v4)
 
-   Default: a single elegant thin ring around the avatar. Clean & minimal.
-   Hover: the sacred geometry cascades outward — harmony ring → bonds →
-   pentagon → family dots → pentagram → spiral → whiskers → motes.
+   Three-tier interaction:
+     1. Default  — single thin ring, clean & minimal
+     2. Card hover (.bento-cell ancestor) — geometry cascades outward
+     3. Image hover (.hero-avatar child) — enhanced pulses & brightness
+     4. Click — color burst (works in any state)
    ═══════════════════════════════════════════════════════════════════════ */
 
 const CX = 100, CY = 100;
@@ -90,12 +92,14 @@ const WHISKERS = whiskerData();
 
 export default function AvatarGeometry({ children, effect }) {
   const geoRef = useRef(null);
-  const loopsRef = useRef([]);
-  const hoveredRef = useRef(false);
-  const hoverAnimsRef = useRef([]);
+  const loopsRef = useRef([]);        // mount-time rotation loops (always)
+  const cardAnimsRef = useRef([]);    // card hover cascade
+  const imageAnimsRef = useRef([]);   // image hover enhancements
+  const cardHoveredRef = useRef(false);
+  const imageHoveredRef = useRef(false);
   const revealedRef = useRef(false);
 
-  /* ── Mount: only draw the thin resting ring + start rotation loops ── */
+  /* ── Mount: rest ring + rotation loops ── */
   useEffect(() => {
     const el = geoRef.current;
     if (!el) return;
@@ -107,7 +111,7 @@ export default function AvatarGeometry({ children, effect }) {
       animate(d, { draw: '0 1', duration: 1200, ease: 'inOutQuad' });
     }
 
-    // Start rotation loops (they run always, geometry just hidden)
+    // Rotation loops (always running, geometry hidden until card hover)
     const loops = loopsRef.current;
     loops.push(animate(el.querySelector('.fp-pent-group'), {
       rotate: [0, 360], duration: 120000, loop: true, ease: 'linear',
@@ -125,21 +129,25 @@ export default function AvatarGeometry({ children, effect }) {
     };
   }, []);
 
-  /* ── Hover: cascade reveal / retract ── */
+  /* ── TIER 2: Card hover → cascade reveal / retract ── */
   useEffect(() => {
     const el = geoRef.current;
     if (!el) return;
 
-    const onEnter = () => {
-      hoveredRef.current = true;
+    // Find the parent bento-cell card
+    const card = el.closest('.bento-cell');
+    if (!card) return;
+
+    const onCardEnter = () => {
+      cardHoveredRef.current = true;
       revealedRef.current = true;
 
       // Stop any ongoing retract anims
-      hoverAnimsRef.current.forEach(a => a.pause());
-      hoverAnimsRef.current = [];
+      cardAnimsRef.current.forEach(a => a.pause());
+      cardAnimsRef.current = [];
 
       // Fade out resting ring
-      hoverAnimsRef.current.push(
+      cardAnimsRef.current.push(
         animate(el.querySelector('.fp-rest-ring'), {
           opacity: [0.35, 0], duration: 300, ease: 'outQuad',
         })
@@ -151,38 +159,38 @@ export default function AvatarGeometry({ children, effect }) {
       const harmonyRing = el.querySelector('.fp-harmony-ring');
       if (harmonyRing) {
         const d = createDrawable(harmonyRing);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad' }));
-        hoverAnimsRef.current.push(animate(harmonyRing, { opacity: [0, 0.6], duration: 500, ease: 'outQuad' }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad' }));
+        cardAnimsRef.current.push(animate(harmonyRing, { opacity: [0, 0.6], duration: 500, ease: 'outQuad' }));
       }
 
       // 100ms — Bond lines reach outward
       el.querySelectorAll('.fp-bond').forEach((line, i) => {
         const d = createDrawable(line);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, ease: 'outQuad', delay: 100 + i * 60 }));
-        hoverAnimsRef.current.push(animate(line, { opacity: [0, 0.65], duration: 400, delay: 100 + i * 60 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, ease: 'outQuad', delay: 100 + i * 60 }));
+        cardAnimsRef.current.push(animate(line, { opacity: [0, 0.65], duration: 400, delay: 100 + i * 60 }));
       });
 
       // 200ms — Pentagon draws
       el.querySelectorAll('.fp-pentagon').forEach((p, i) => {
         const d = createDrawable(p);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 600, ease: 'inOutQuad', delay: 200 }));
-        hoverAnimsRef.current.push(animate(p, { opacity: [0, i === 0 ? 0.7 : 0.15], duration: 600, delay: 200 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 600, ease: 'inOutQuad', delay: 200 }));
+        cardAnimsRef.current.push(animate(p, { opacity: [0, i === 0 ? 0.7 : 0.15], duration: 600, delay: 200 }));
       });
 
       // 350ms — Family dots + stroke rings bloom
       el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-        hoverAnimsRef.current.push(animate(c, {
+        cardAnimsRef.current.push(animate(c, {
           r: [0, 1.3], opacity: [0, 1], duration: 400, ease: 'outBack(2)', delay: 350 + i * 70,
         }));
       });
       el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
         c.setAttribute('r', '5');
         const d = createDrawable(c);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad', delay: 380 + i * 70 }));
-        hoverAnimsRef.current.push(animate(c, { opacity: [0, 0.9], duration: 500, delay: 380 + i * 70 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad', delay: 380 + i * 70 }));
+        cardAnimsRef.current.push(animate(c, { opacity: [0, 0.9], duration: 500, delay: 380 + i * 70 }));
       });
       el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
-        hoverAnimsRef.current.push(animate(c, {
+        cardAnimsRef.current.push(animate(c, {
           r: [0, 7], opacity: [0, 0.2], duration: 500, ease: 'outQuad', delay: 400 + i * 70,
         }));
       });
@@ -190,85 +198,60 @@ export default function AvatarGeometry({ children, effect }) {
       // 550ms — Pentagram traces
       el.querySelectorAll('.fp-pentagram').forEach(p => {
         const d = createDrawable(p);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 700, ease: 'inOutSine', delay: 550 }));
-        hoverAnimsRef.current.push(animate(p, { opacity: [0, 0.55], duration: 700, delay: 550 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 700, ease: 'inOutSine', delay: 550 }));
+        cardAnimsRef.current.push(animate(p, { opacity: [0, 0.55], duration: 700, delay: 550 }));
       });
 
       // 700ms — Spiral traces
       const spiral = el.querySelector('.fp-spiral');
       if (spiral) {
         const d = createDrawable(spiral);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 800, ease: 'inOutQuad', delay: 700 }));
-        hoverAnimsRef.current.push(animate(spiral, { opacity: [0, 0.35], duration: 800, delay: 700 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 800, ease: 'inOutQuad', delay: 700 }));
+        cardAnimsRef.current.push(animate(spiral, { opacity: [0, 0.35], duration: 800, delay: 700 }));
       }
 
       // 800ms — Whiskers stroke in
       el.querySelectorAll('.fp-whisker').forEach((line, i) => {
         const d = createDrawable(line);
-        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, delay: 800 + i * 50 }));
-        hoverAnimsRef.current.push(animate(line, { opacity: [0, 0.55], duration: 400, delay: 800 + i * 50 }));
+        cardAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, delay: 800 + i * 50 }));
+        cardAnimsRef.current.push(animate(line, { opacity: [0, 0.55], duration: 400, delay: 800 + i * 50 }));
       });
 
       // 900ms — Motes + phi dots fade in
-      hoverAnimsRef.current.push(
+      cardAnimsRef.current.push(
         animate(el.querySelectorAll('.fp-mote'), {
           opacity: [0, 0.5], r: [0, 1.2], duration: 400, ease: 'outQuad',
           delay: stagger(25, { start: 900 }),
         })
       );
-      hoverAnimsRef.current.push(
+      cardAnimsRef.current.push(
         animate(el.querySelectorAll('.fp-phi-dot'), {
           r: [0, 1.5], opacity: [0, 0.7], duration: 400, ease: 'outBack(2)',
           delay: stagger(50, { start: 950 }),
         })
       );
 
-      // === CONTINUOUS HOVER LOOPS (start after cascade) ===
+      // === GENTLE CONTINUOUS LOOPS (card-level) ===
       const loopDelay = 1100;
 
       // Bond heartbeat
-      hoverAnimsRef.current.push(animate(el.querySelectorAll('.fp-bond'), {
+      cardAnimsRef.current.push(animate(el.querySelectorAll('.fp-bond'), {
         opacity: [0.5, 0.8, 0.5], strokeWidth: [0.5, 1, 0.5],
         duration: 4000, loop: true, ease: 'inOutSine', delay: stagger(200, { start: loopDelay }),
       }));
 
       // Harmony ring breathe
-      hoverAnimsRef.current.push(animate(el.querySelector('.fp-harmony-ring'), {
+      cardAnimsRef.current.push(animate(el.querySelector('.fp-harmony-ring'), {
         opacity: [0.4, 0.7, 0.4], strokeWidth: [0.6, 1.2, 0.6],
         duration: 5000, loop: true, ease: 'inOutSine', delay: loopDelay,
       }));
-
-      // Family dot pulse
-      el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-        hoverAnimsRef.current.push(animate(c, {
-          r: [1.3, 1.6, 1.3], opacity: [0.85, 1, 0.85],
-          duration: 2500 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
-        }));
-      });
-
-      // Stroke ring trim-path sweep
-      el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
-        const d = createDrawable(c);
-        hoverAnimsRef.current.push(animate(d, {
-          draw: ['0 1', '0.1 0.9', '0.3 0.7', '0.1 0.9', '0 1'],
-          duration: 1800 + i * 200, loop: true, ease: 'inOutSine', delay: loopDelay,
-        }));
-      });
-
-      // Glow soft pulse
-      el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
-        hoverAnimsRef.current.push(animate(c, {
-          r: [7, 10, 7], opacity: [0.12, 0.25, 0.12],
-          duration: 3000 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
-        }));
-      });
 
       // Mote flow
       el.querySelectorAll('.fp-mote').forEach((m, i) => {
         const edge = Math.floor(i / 2);
         const v1 = vertexAt(edge, VERT_R);
         const v2 = vertexAt((edge + 1) % 5, VERT_R);
-        hoverAnimsRef.current.push(animate(m, {
+        cardAnimsRef.current.push(animate(m, {
           cx: [v1.x, v2.x, v1.x], cy: [v1.y, v2.y, v1.y],
           opacity: [0.25, 0.6, 0.25],
           duration: 5000 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
@@ -278,40 +261,39 @@ export default function AvatarGeometry({ children, effect }) {
       // Whisker stroke breathe
       el.querySelectorAll('.fp-whisker').forEach((line, i) => {
         const d = createDrawable(line);
-        hoverAnimsRef.current.push(animate(d, {
+        cardAnimsRef.current.push(animate(d, {
           draw: ['0 0.5', '0.5 1', '0 0.5'],
           duration: 4000 + i * 500, loop: true, ease: 'inOutSine', delay: loopDelay,
         }));
-        hoverAnimsRef.current.push(animate(line, {
+        cardAnimsRef.current.push(animate(line, {
           opacity: [0.3, 0.6, 0.3],
           duration: 4000 + i * 500, loop: true, ease: 'inOutSine', delay: loopDelay,
         }));
       });
 
-      // Phi dot pulse
-      hoverAnimsRef.current.push(animate(el.querySelectorAll('.fp-phi-dot'), {
-        r: [1.5, 2.2, 1.5], opacity: [0.4, 0.8, 0.4],
-        duration: 3500, loop: true, ease: 'inOutSine', delay: stagger(150, { start: loopDelay }),
-      }));
-
       // Spiral breathe
-      hoverAnimsRef.current.push(animate(el.querySelector('.fp-spiral'), {
+      cardAnimsRef.current.push(animate(el.querySelector('.fp-spiral'), {
         opacity: [0.2, 0.45, 0.2], duration: 6000, loop: true, ease: 'inOutSine', delay: loopDelay,
       }));
     };
 
-    const onLeave = () => {
-      hoveredRef.current = false;
+    const onCardLeave = () => {
+      cardHoveredRef.current = false;
+      imageHoveredRef.current = false;
 
-      // Stop all hover anims
-      hoverAnimsRef.current.forEach(a => a.pause());
-      hoverAnimsRef.current = [];
+      // Stop all card + image hover anims
+      cardAnimsRef.current.forEach(a => a.pause());
+      cardAnimsRef.current = [];
+      imageAnimsRef.current.forEach(a => a.pause());
+      imageAnimsRef.current = [];
 
-      // === RETRACT: fade everything back to hidden ===
+      // Remove image-hovered class
+      el.querySelector('.avatar-geo-svg')?.classList.remove('image-hovered');
+
+      // === RETRACT: fade everything to hidden ===
       const dur = 500;
       const ease = 'inOutQuad';
 
-      // Fade geometry out
       animate(el.querySelectorAll('.fp-bond'), { opacity: 0, duration: dur, ease });
       animate(el.querySelectorAll('.fp-pentagon'), { opacity: 0, duration: dur, ease });
       animate(el.querySelectorAll('.fp-pentagram'), { opacity: 0, duration: dur, ease });
@@ -330,16 +312,120 @@ export default function AvatarGeometry({ children, effect }) {
       });
     };
 
-    el.addEventListener('mouseenter', onEnter);
-    el.addEventListener('mouseleave', onLeave);
+    card.addEventListener('mouseenter', onCardEnter);
+    card.addEventListener('mouseleave', onCardLeave);
     return () => {
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-      hoverAnimsRef.current.forEach(a => a.pause());
+      card.removeEventListener('mouseenter', onCardEnter);
+      card.removeEventListener('mouseleave', onCardLeave);
+      cardAnimsRef.current.forEach(a => a.pause());
+      imageAnimsRef.current.forEach(a => a.pause());
     };
   }, []);
 
-  /* ── Click bursts (work whether hovered or not) ── */
+  /* ── TIER 3: Image hover → enhanced effects ── */
+  useEffect(() => {
+    const el = geoRef.current;
+    if (!el) return;
+
+    // Find the hero-avatar child (the image area)
+    const imageEl = el.querySelector('.hero-avatar');
+    if (!imageEl) return;
+    const svgEl = el.querySelector('.avatar-geo-svg');
+
+    const onImageEnter = () => {
+      if (!cardHoveredRef.current) return; // only enhance if card is hovered
+      imageHoveredRef.current = true;
+
+      // Stop any ongoing image anims
+      imageAnimsRef.current.forEach(a => a.pause());
+      imageAnimsRef.current = [];
+
+      // CSS class for brightness/saturation boost
+      svgEl?.classList.add('image-hovered');
+
+      // Enhanced family dot pulse (faster, bigger)
+      el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
+        imageAnimsRef.current.push(animate(c, {
+          r: [1.3, 2.0, 1.3], opacity: [0.85, 1, 0.85],
+          duration: 1500 + i * 200, loop: true, ease: 'inOutSine',
+        }));
+      });
+
+      // Enhanced stroke ring trim-path sweep
+      el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+        const d = createDrawable(c);
+        imageAnimsRef.current.push(animate(d, {
+          draw: ['0 1', '0.15 0.85', '0.35 0.65', '0.15 0.85', '0 1'],
+          duration: 1400 + i * 150, loop: true, ease: 'inOutSine',
+        }));
+      });
+
+      // Enhanced glow pulse
+      el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
+        imageAnimsRef.current.push(animate(c, {
+          r: [7, 12, 7], opacity: [0.15, 0.35, 0.15],
+          duration: 2000 + i * 300, loop: true, ease: 'inOutSine',
+        }));
+      });
+
+      // Phi dot active pulse
+      imageAnimsRef.current.push(animate(el.querySelectorAll('.fp-phi-dot'), {
+        r: [1.5, 2.5, 1.5], opacity: [0.5, 1, 0.5],
+        duration: 2000, loop: true, ease: 'inOutSine', delay: stagger(100),
+      }));
+
+      // Pentagon brightens
+      imageAnimsRef.current.push(animate(el.querySelectorAll('.fp-pentagon'), {
+        opacity: [null, 0.9], strokeWidth: [null, 1.2],
+        duration: 400, ease: 'outQuad',
+      }));
+
+      // Pentagram brightens
+      imageAnimsRef.current.push(animate(el.querySelectorAll('.fp-pentagram'), {
+        opacity: [null, 0.75], strokeWidth: [null, 1.0],
+        duration: 400, ease: 'outQuad',
+      }));
+    };
+
+    const onImageLeave = () => {
+      imageHoveredRef.current = false;
+
+      // Stop enhanced anims
+      imageAnimsRef.current.forEach(a => a.pause());
+      imageAnimsRef.current = [];
+
+      // Remove brightness class
+      svgEl?.classList.remove('image-hovered');
+
+      if (!cardHoveredRef.current) return; // card left too, main retract handles it
+
+      // Return to card-hover baseline values
+      animate(el.querySelectorAll('.fp-family-circle'), {
+        r: 1.3, opacity: 1, duration: 400, ease: 'outQuad',
+      });
+      animate(el.querySelectorAll('.fp-family-glow'), {
+        r: 7, opacity: 0.2, duration: 400, ease: 'outQuad',
+      });
+      el.querySelectorAll('.fp-pentagon').forEach((p, i) => {
+        animate(p, { opacity: i === 0 ? 0.7 : 0.15, strokeWidth: 0.8, duration: 400, ease: 'outQuad' });
+      });
+      animate(el.querySelectorAll('.fp-pentagram'), {
+        opacity: 0.55, strokeWidth: 0.7, duration: 400, ease: 'outQuad',
+      });
+      animate(el.querySelectorAll('.fp-phi-dot'), {
+        r: 1.5, opacity: 0.7, duration: 400, ease: 'outQuad',
+      });
+    };
+
+    imageEl.addEventListener('mouseenter', onImageEnter);
+    imageEl.addEventListener('mouseleave', onImageLeave);
+    return () => {
+      imageEl.removeEventListener('mouseenter', onImageEnter);
+      imageEl.removeEventListener('mouseleave', onImageLeave);
+    };
+  }, []);
+
+  /* ── Click bursts (work in any state) ── */
   useEffect(() => {
     if (!effect || !geoRef.current) return;
     const el = geoRef.current;
@@ -350,45 +436,45 @@ export default function AvatarGeometry({ children, effect }) {
     }
 
     // Flash family circles to full color
+    const isCard = cardHoveredRef.current;
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      const isVis = hoveredRef.current;
       animate(c, {
-        r: [isVis ? 1.3 : 0, 4, isVis ? 1.3 : 0],
+        r: [isCard ? 1.3 : 0, 4, isCard ? 1.3 : 0],
         fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'],
-        opacity: [isVis ? 1 : 0, 1, isVis ? 1 : 0],
+        opacity: [isCard ? 1 : 0, 1, isCard ? 1 : 0],
         duration: 800, ease: 'outQuad', delay: i * 50,
       });
     });
     animate(el.querySelectorAll('.fp-family-stroke'), {
-      r: [5, 8, 5], opacity: [0.8, 1, hoveredRef.current ? 0.8 : 0],
+      r: [5, 8, 5], opacity: [0.8, 1, isCard ? 0.8 : 0],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [5, 14, 5], opacity: [0.1, 0.4, hoveredRef.current ? 0.1 : 0],
+      r: [5, 14, 5], opacity: [0.1, 0.4, isCard ? 0.1 : 0],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
 
     // Bond lines flash
     animate(el.querySelectorAll('.fp-bond'), {
-      opacity: [0.3, 1, hoveredRef.current ? 0.6 : 0],
+      opacity: [0.3, 1, isCard ? 0.6 : 0],
       strokeWidth: [0.5, 2, 0.5], duration: 600, delay: stagger(50),
     });
 
     // Pentagon flash
     animate(el.querySelectorAll('.fp-pentagon'), {
-      opacity: [0.3, 0.9, hoveredRef.current ? 0.7 : 0],
+      opacity: [0.3, 0.9, isCard ? 0.7 : 0],
       strokeWidth: [0.8, 2, 0.8], duration: 600,
     });
 
     if (effect === 'float') {
-      animate(el.querySelector('.fp-spiral'), { opacity: [0.1, 0.7, hoveredRef.current ? 0.3 : 0], strokeWidth: [0.5, 2, 0.5], duration: 1000 });
+      animate(el.querySelector('.fp-spiral'), { opacity: [0.1, 0.7, isCard ? 0.3 : 0], strokeWidth: [0.5, 2, 0.5], duration: 1000 });
     } else if (effect === 'glitch') {
-      animate(el.querySelectorAll('.fp-pentagram'), { strokeWidth: [0.7, 2.5, 0.7], opacity: [0.2, 0.9, hoveredRef.current ? 0.5 : 0], duration: 500 });
+      animate(el.querySelectorAll('.fp-pentagram'), { strokeWidth: [0.7, 2.5, 0.7], opacity: [0.2, 0.9, isCard ? 0.5 : 0], duration: 500 });
     } else if (effect === 'spin') {
-      animate(el.querySelector('.fp-harmony-ring'), { opacity: [0.2, 0.9, hoveredRef.current ? 0.5 : 0], strokeWidth: [0.6, 2, 0.6], duration: 700 });
+      animate(el.querySelector('.fp-harmony-ring'), { opacity: [0.2, 0.9, isCard ? 0.5 : 0], strokeWidth: [0.6, 2, 0.6], duration: 700 });
     } else if (effect === 'ripple') {
-      animate(el.querySelectorAll('.fp-whisker'), { opacity: [0.2, 1, hoveredRef.current ? 0.5 : 0], strokeWidth: [0.5, 1.5, 0.5], duration: 500, delay: stagger(40) });
-      animate(el.querySelectorAll('.fp-phi-dot'), { r: [0.5, 3.5, hoveredRef.current ? 1.5 : 0], opacity: [0.3, 1, hoveredRef.current ? 0.6 : 0], duration: 600, delay: stagger(60) });
+      animate(el.querySelectorAll('.fp-whisker'), { opacity: [0.2, 1, isCard ? 0.5 : 0], strokeWidth: [0.5, 1.5, 0.5], duration: 500, delay: stagger(40) });
+      animate(el.querySelectorAll('.fp-phi-dot'), { r: [0.5, 3.5, isCard ? 1.5 : 0], opacity: [0.3, 1, isCard ? 0.6 : 0], duration: 600, delay: stagger(60) });
     }
   }, [effect]);
 
@@ -466,7 +552,7 @@ export default function AvatarGeometry({ children, effect }) {
         <circle cx={CX} cy={CY} r="46" className="fp-rest-ring"
           fill="none" stroke="rgba(168,85,247,0.35)" strokeWidth="0.6" />
 
-        {/* === HOVER GEOMETRY (all starts hidden, opacity 0) === */}
+        {/* === GEOMETRY (all hidden until card hover) === */}
         <g mask="url(#fp-feather-mask)">
           <g className="fp-spiral-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
             <path d={goldenSpiralPath(18, 70, 2.5)} className="fp-spiral"
@@ -496,10 +582,10 @@ export default function AvatarGeometry({ children, effect }) {
           {whiskers}
         </g>
 
-        {/* Family circles — outside mask, starts hidden */}
+        {/* Family circles — outside mask, hidden until card hover */}
         {familyCircles}
 
-        {/* Harmony ring — hidden until hover */}
+        {/* Harmony ring — hidden until card hover */}
         <circle cx={CX} cy={CY} r="42" className="fp-harmony-ring"
           fill="none" stroke="rgba(168,85,247,0.4)" strokeWidth="0.6" opacity="0" />
 
