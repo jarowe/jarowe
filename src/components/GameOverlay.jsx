@@ -12,6 +12,7 @@ export default function GameOverlay() {
     const [level, setLevel] = useState(1);
     const [recentGain, setRecentGain] = useState(null);
     const [holidayToast, setHolidayToast] = useState(null);
+    const [xpBarVisible, setXpBarVisible] = useState(true);
     const [achievementToast, setAchievementToast] = useState(null);
     const [signupDismissed, setSignupDismissed] = useState(() => sessionStorage.getItem('jarowe_signup_dismissed') === 'true');
     const location = useLocation();
@@ -31,6 +32,13 @@ export default function GameOverlay() {
         setXp(savedXp);
         setLevel(Math.floor(savedXp / 100) + 1);
     }, []);
+
+    // Auto-hide XP bar after 8 seconds, re-show on XP gain or page nav
+    useEffect(() => {
+        setXpBarVisible(true);
+        const timer = setTimeout(() => setXpBarVisible(false), 8000);
+        return () => clearTimeout(timer);
+    }, [xp, location.pathname]);
 
     // Check achievements and show toast for new unlocks
     const runAchievementCheck = useCallback((currentXp) => {
@@ -211,7 +219,7 @@ export default function GameOverlay() {
 
     return (
         <div className="game-overlay">
-            <div className="xp-container glass-panel">
+            <div className={`xp-container glass-panel${xpBarVisible ? '' : ' xp-container--hidden'}`}>
                 <div className="level-badge">LVL {level}</div>
                 <div className="xp-bar-wrapper">
                     <div className="xp-bar" style={{ width: `${(xp % 100)}%` }}></div>

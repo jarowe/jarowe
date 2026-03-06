@@ -186,9 +186,7 @@ export default function ConstellationCanvas() {
         disabled={gpuConfig.starParticles === 0}
       />
 
-      {cameraMode !== 'tunnel' && (
-        <ConnectionLines positions={layoutNodes} />
-      )}
+      <ConnectionLines positions={layoutNodes} />
 
       {helixNodes.length > 0 && (
         <NodeCloud

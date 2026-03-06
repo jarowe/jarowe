@@ -10,8 +10,11 @@ function lerp(a, b, t) {
 /**
  * Connection lines between related constellation nodes.
  *
- * Renders thin luminous threads between nodes connected by edges.
- * Edge weight drives baseline opacity and width.
+ * Three visual tiers:
+ * T1 = helix backbone (handled by HelixBackbone component)
+ * T2 = helix-to-helix connections (brighter, thicker)
+ * T3 = connections involving particle nodes (very subtle)
+ *
  * Focus-aware: connected lines brighten, non-connected lines fade.
  * Entity-filter-aware: only edges involving the filtered entity are visible.
  */
@@ -29,6 +32,17 @@ export default function ConnectionLines({ positions }) {
     }
     return map;
   }, [positions]);
+
+  // Build a set of helix node IDs for tier classification
+  const helixNodeIds = useMemo(() => {
+    const set = new Set();
+    for (const node of storeNodes) {
+      if (node.tier !== 'particle') {
+        set.add(node.id);
+      }
+    }
+    return set;
+  }, [storeNodes]);
 
   // Pre-compute connected IDs for focused node
   const connectedToFocus = useMemo(() => {
@@ -79,32 +93,48 @@ export default function ConnectionLines({ positions }) {
       const targetPos = positionMap.get(edge.target);
       if (!sourcePos || !targetPos) continue;
 
+      // Classify connection tier
+      const sourceIsHelix = helixNodeIds.has(edge.source);
+      const targetIsHelix = helixNodeIds.has(edge.target);
+      const isHelixToHelix = sourceIsHelix && targetIsHelix;
+      const involvesParticle = !sourceIsHelix || !targetIsHelix;
+
       // Weight-driven baseline opacity and width
-      const w = (edge.weight || 1) / 2.0; // normalize: typical range 0.5-2.0
-      let opacity = lerp(0.04, 0.15, w);
-      let lineWidth = lerp(0.5, 1.5, w);
+      const w = (edge.weight || 1) / 2.0;
+
+      let opacity, lineWidth;
 
       if (focusedNodeId) {
         // Focus mode: brighten connected, dim non-connected
         const isConnected =
           edge.source === focusedNodeId || edge.target === focusedNodeId;
         if (isConnected) {
-          opacity = lerp(0.5, 0.9, w);
-          lineWidth = lerp(1.0, 2.0, w);
+          opacity = isHelixToHelix ? lerp(0.5, 0.9, w) : lerp(0.2, 0.4, w);
+          lineWidth = isHelixToHelix ? lerp(1.0, 2.0, w) : lerp(0.5, 1.0, w);
         } else {
-          opacity = 0.03;
-          lineWidth = 0.5;
+          opacity = 0.015;
+          lineWidth = 0.3;
         }
       } else if (filteredNodeIds) {
-        // Entity filter mode: show only edges involving filtered entity
         const sourceMatch = filteredNodeIds.has(edge.source);
         const targetMatch = filteredNodeIds.has(edge.target);
         if (sourceMatch && targetMatch) {
-          opacity = lerp(0.4, 0.7, w);
-          lineWidth = lerp(1.0, 2.0, w);
+          opacity = isHelixToHelix ? lerp(0.4, 0.7, w) : lerp(0.15, 0.3, w);
+          lineWidth = isHelixToHelix ? lerp(1.0, 2.0, w) : lerp(0.5, 1.0, w);
         } else {
-          opacity = 0.02;
-          lineWidth = 0.5;
+          opacity = 0.01;
+          lineWidth = 0.3;
+        }
+      } else {
+        // Default: tier-based visual hierarchy
+        if (isHelixToHelix) {
+          // T2: helix-to-helix — moderate visibility
+          opacity = lerp(0.05, 0.15, w);
+          lineWidth = lerp(0.6, 1.5, w);
+        } else if (involvesParticle) {
+          // T3: involves particle node — very subtle
+          opacity = lerp(0.015, 0.04, w);
+          lineWidth = lerp(0.3, 0.6, w);
         }
       }
 
@@ -117,7 +147,7 @@ export default function ConnectionLines({ positions }) {
     }
 
     return result;
-  }, [positionMap, focusedNodeId, filteredNodeIds, storeEdges]);
+  }, [positionMap, helixNodeIds, focusedNodeId, filteredNodeIds, storeEdges]);
 
   return (
     <group>

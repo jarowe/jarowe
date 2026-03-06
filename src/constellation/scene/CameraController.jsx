@@ -131,20 +131,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         onUpdate: () => controls.update(),
         onComplete: () => {
           isFlyingRef.current = false;
-          // In tunnel: left-drag = look around (rotate), right-drag = zoom
-          controls.enableRotate = true;
-          controls.enablePan = false;
-          controls.enableZoom = true;
+          // Disable ALL OrbitControls in tunnel — we handle everything manually
+          controls.enabled = false;
           controls.autoRotate = false;
-          // Remap: left button rotates, right button zooms (dolly)
-          controls.mouseButtons = {
-            LEFT: THREE.MOUSE.ROTATE,
-            MIDDLE: THREE.MOUSE.DOLLY,
-            RIGHT: THREE.MOUSE.DOLLY,
-          };
-          // Limit rotation range in tunnel so you can't flip upside down
-          controls.minPolarAngle = Math.PI * 0.2;
-          controls.maxPolarAngle = Math.PI * 0.8;
         },
       });
 
@@ -175,16 +164,12 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       }
 
       isFlyingRef.current = true;
+      tunnelVelocity.current = 0;
+      // Re-enable OrbitControls with default settings
+      controls.enabled = true;
       controls.enableRotate = true;
       controls.enablePan = false;
       controls.enableZoom = true;
-      tunnelVelocity.current = 0;
-      // Restore default mouse buttons and polar angles
-      controls.mouseButtons = {
-        LEFT: THREE.MOUSE.ROTATE,
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.PAN,
-      };
       controls.minPolarAngle = Math.PI * (15 / 180);
       controls.maxPolarAngle = Math.PI * (165 / 180);
 
@@ -241,8 +226,8 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       // Tunnel mode: smooth gentle scroll along Y axis
       if (state.cameraMode === 'tunnel') {
         e.preventDefault();
-        // Gentle velocity accumulation — small impulse for smooth feel
-        const impulse = e.deltaY * 0.012;
+        // Negate: scroll-down (deltaY>0) = move down (lower Y = older)
+        const impulse = -e.deltaY * 0.012;
         tunnelVelocity.current += impulse;
         // Clamp max velocity to prevent overshooting
         tunnelVelocity.current = Math.max(-3, Math.min(3, tunnelVelocity.current));
