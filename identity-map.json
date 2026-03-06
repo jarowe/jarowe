@@ -2,16 +2,22 @@
   "identities": {
     "self": {
       "canonicalName": "Jared Rowe",
-      "aliases": ["jarowe", "jaredrowe"],
+      "aliases": ["jarowe", "jaredrowe", "jared rowe", "jared"],
       "tier": "public",
       "relationship": "self"
     },
     "maria": {
       "canonicalName": "Maria",
-      "aliases": ["rowetogether"],
+      "aliases": ["rowetogether", "maria rowe", "maria"],
       "tier": "public",
       "relationship": "wife"
+    },
+    "derek": {
+      "canonicalName": "Derek",
+      "aliases": ["derek rowe", "derek"],
+      "tier": "public",
+      "relationship": "brother"
     }
   },
-  "selfAliases": ["jarowe", "jaredrowe"]
+  "selfAliases": ["jarowe", "jaredrowe", "jared rowe", "jared"]
 }

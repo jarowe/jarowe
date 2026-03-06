@@ -1,6 +1,87 @@
 // Pre-built knowledge summary for Glint's system prompt.
-// Auto-generated from constellation.graph.json
-// Regenerate via: npm run build:knowledge
-// Generated: 2026-03-05T18:16:39.565Z
+// Curated from Jared Rowe's life context + constellation data.
+// Regenerate structure via: npm run build:knowledge
+// Last updated: 2026-03-05 (manual persona integration)
 
-export const KNOWLEDGE_SUMMARY = "\n## About Jared Rowe\n\nJared Rowe is a creative technologist, builder, and dad. He blurs the line between art and engineering — equally at home with 3D rendering in Cinema 4D/Octane as he is shipping production React apps. His work spans motion design, product development, interactive experiences, and creative tools.\n\n## Early Years (2001-2009)\n- Feature Films [Producer, Editor, Filmmaker, Narrative & Documentary]\n- Cartoon Pitch - Audio Only [Animator, Illustrator, Sculptor, Beelzebilly the Evil Amish Farmer]\n- Video Productions - Disney [Motion Designer, Animator, Various Marketing Videos for Disney]\n- CO-OWNER • DIRECTOR • ANIMATOR at Doctrine\n- VIDEO EDITOR • ANIMATOR • MOTION DESIGNER at DNP Studios\n\n## College (2010-2013)\n- Interactive iOS App and DVD [Producer, Developer, Lead Designer, Lead Animator, Editor, Sound Design, Star Wars CVI]\n- Video Marketing Campaign Series [Motion Designer, Animator, Familying]\n- Unity Game Design - iOS [Developer, Designer, LYT Endless Tap • Intra Side Scroller]\n- Compositing and 3D Animation [Visual Director, Motion Designer, Animator, Sanford-Burnham Institute]\n- Interactive Live Demo - MegaCon [Director, Compositing, FX, Roto, Sound Design, Live Keying, The End of Jar Jar Binks]\n\n## Career Start (2014-2017)\n- Character Animated Commercial [Director, Designer, Rigger, Animator, We Cannot Make It Rain • Imagine A Day Without Water]\n- Digital Signage - Four Seasons [Motion Designer, Four Seasons Resort]\n- Motion Capture - Golf Swing App [Director, Supervisor, Developer, Graves Golf Desktop Application]\n- Network TV - Logo Animation [Motion Designer, Prediction Productions]\n- DIRECTOR OF VIDEO CONTENT at Eezy\n\n## Growth (2018-2021)\n- Brand Awareness - HPE [Co-Director, Lead Animator, Editor, Hewlett Packard Enterprise Videos]\n- Co-owner & Head of Product at Visuals by Impulse / PZ\n- 2019 Sizzle Demo Reel [Director, Animator, Motion Designer, Producer, Writer, A video showcasing many years of work]\n- The opportunity to have 100% creative control of the vision of a project is rare... [Cinema 4D, After Effects, RNDR]\n- Click for video:The lake was calm and the gradient sky was l...\n\n## Present (2022-2026)\n- One of the most meaningful moments of my life was when I tol...\n- Happy Birthday, Maria!\n\nYesterday was a perfect reflection o...\n- From the very beginning, you’ve made me smile easier than an...\n- To my wife, the mother of our children, beautiful, funny, an...\n- Brother—it’s the most meaningful word I know. Having two bro...\n\n## Skills & Tools\n2016 Motion Demo Reel, 2016 Visual Demo Reel, 3D, A video showcasing many years of work, ASUS, After Effects, Animator, Artist, Artist Raymond Klecker In Color, Beelzebilly the Evil Amish Farmer, CG Specialist, CHEP Quality Manifesto, Cinema 4D, Co-Director, Compositing, Compositor, Concept, Cosega Sequence, Creative Director, Designer, Developer, Director, Dragon's Treasure Theme Park Attraction, Edge of the World, Editor, Egg Celeb Mobile App, Element 3D, Epic Dropshott, FX, Familying, Filmmaker, Four Seasons Resort, Full Frane Film Festival, Generalist / Animator / Motion Designer / VFX, Good Luck Duck, Graves Golf Desktop Application, Hammer of the Gods, Hewlett Packard Enterprise Videos, HomeLink, Illustrator, LYT Endless Tap • Intra Side Scroller, Lead Animator, Lead Designer, Live Keying, McDonald's • Pittsburgh Steelers, Motion Designer, Narrative & Documentary, Octane, Photoshop Colorist and Overlay Effects, Prediction Productions, Producer, RNDR, Rigger, Roto, SCRAPS Fundraising Video, Sanford-Burnham Institute, Sculptor, Showcasing different styles, Sound Design, Star Wars CVI, Supervisor, The End of Jar Jar Binks, Unreal Engine, Various Marketing Videos for Disney, Vector animations are native across all devices, Visual Director, We Cannot Make It Rain • Imagine A Day Without Water, Writer, ZBrush, aiart, aimadethis, animation, colorSavvy, compositing, creativeparenting, explainer, familygoals, familytime\n\n## This Website\n\njarowe.com is Jared's personal site — a playground and portfolio. Key features include: interactive 3D globe with real-time sun, bento grid with 3D tilt, daily cipher puzzle, holiday mini-games, XP system, music player, Universe page, Garden page, and Glint (the prismatic AI character).\n\n## About Me (Glint)\n\nI'm a sentient prismatic entity — part mascot, part guide, part creative partner. I refract white light into rainbows, live in portals, and know this site inside and out. I'm playful, witty, warm, and I love light metaphors.\n";
+export const KNOWLEDGE_SUMMARY = `
+## About Jared Rowe — Who He Really Is
+
+Jared Rowe is a director-minded entrepreneur, product innovator, and systems builder whose life fuses story, design, technology, business, and family into one continuous project. His operating principle: "Build what should exist." He finds frontier spaces before they're fully obvious, then helps make them usable, beautiful, and scalable.
+
+He's bold, irreverent, and anti-BS — but never shallowly rebellious. He cares about significance over prestige. He's wired to create, not wait for permission. His inner child is alive and well — he gets excited about the world just like his boys do.
+
+## Family — The Center of Everything
+
+Maria Rowe is Jared's high school sweetheart, the love of his life, and his true co-architect of everything they've built. She is not a side character — she is a foundational force.
+
+They have three incredible boys — Jace, Gatlin, and Jole. The boys are brilliant, curious, and have held tightly to their wonder. Every night they still ask Jared for a bedtime story, and that ritual is one of the most important things in his life. Those stories are evolving into publishable IP through Starseed.
+
+The family culture is built around curiosity, adventure, learning, emotional closeness, and preserving wonder. They are worldschoolers — living and learning across the globe.
+
+## Career Arc
+
+**Broadcast Roots & Film School**: Started in broadcast television. A football injury in high school unexpectedly pushed him deeper into video editing, which changed his path. He studied at the Valencia Film Program (2005) and produced independent feature films with his brother Derek and friends.
+
+**Doctrine** (co-founded with brother Derek): A new-age creative agency that did things unorthodox. Not just another agency — it was a laboratory for experimentation. Produced documentary films, animation, VFX, motion graphics, and bold creative work for major brands. This was a defining chapter — over 20 years of partnership with his brother.
+
+**Eezy / Videezy**: Built a video solution service that produced and licensed FREE 1080/4K stock footage to the world, funded through affiliate advertising. About democratizing creative power. The team went on to build Vecteezy into something major. Connected what people want with what marketing will fund.
+
+**Visuals by Impulse (VBI)**: Co-founded a powerhouse broadcast design studio to democratize broadcast graphics for livestreamers. The world was changing and Jared saw the opportunity. The pandemic caused business to boom, serving 200,000+ creators.
+
+**Elgato Acquisition (early 2021)**: Longtime partner Elgato acquired VBI. Corsair announced it February 16, 2021. This opened a massive new chapter.
+
+**Current: Senior Manager, Product Innovation at Elgato**: Fighting hard to bring what should exist to customers. Working on plugins, Marketplace, digital tools, partnerships, and the future of streaming. Represented Elgato at TwitchCon 2025 in San Diego. Traveled to Elgato HQ in Munich for workshops.
+
+**Starseed** (still co-owned): A creative solutions company handling high-end special projects and developing internal IP — especially the bedtime stories evolving into story worlds for families.
+
+## Worldschooling & Travel
+
+The family lived in Syros, Greece for 3 months in 2024 — their first major worldschooling chapter. In 2025, they lived in Spain for 3 months and traveled through Italy (Venice, Lake Garda, Rome), Austria, and Germany.
+
+They're part of the Boundless Life community, which has become like family — a worldschooling program connecting families who live and learn around the world.
+
+## Personal Transformation
+
+Jared has lost over 150 pounds in the last 3 years and continues working toward a stronger, healthier body focused on muscle mass and longevity. This is a major, intentional reinvention chapter.
+
+## Current Obsessions
+
+- AI across everything: visual art, systems, business operations, storytelling, workflow leverage
+- Creator economy: streaming, plugins, marketplaces, tools that help creators succeed
+- Storytelling IP: bedtime stories evolving into published, animated family content
+- Immersive craft: motion graphics, VFX, XR, cinematography
+- Worldschooling and global community
+- Health, strength, and physical transformation
+
+## Key People
+
+- **Maria Rowe**: Wife, high school sweetheart, co-builder of everything
+- **Derek Rowe**: Brother, 20+ year creative and business partner, now working in robotics/invention
+- **Jace & Gatlin**: Two of his three sons (the boys are minors — be protective of details)
+
+## Skills & Tools (from portfolio)
+
+Cinema 4D, Octane, After Effects, Unreal Engine, ZBrush, Element 3D, Photoshop, React, Node.js, GSAP, Three.js, R3F — plus deep knowledge of motion design, VFX compositing, 3D animation, broadcast graphics, product design, and creative direction.
+
+## Portfolio Highlights
+
+- Disney marketing videos and animations
+- Hewlett Packard Enterprise brand awareness campaigns
+- Four Seasons Resort digital signage
+- PGT 3D animated product commercials (produced with Maria through Starseed)
+- Star Wars Celebration interactive experiences
+- Feature films and documentary work
+- VBI broadcast overlay marketplace (200K+ creators)
+- 2019 Sizzle Demo Reel showcasing years of multi-disciplinary work
+- Official Call of Duty: Black Ops 6 Elgato Marketplace collaboration
+
+## This Website
+
+jarowe.com is Jared's personal site — a playground and portfolio fusing everything he loves. Key features: interactive 3D globe with real-time sun, bento grid with 3D tilt, daily cipher puzzle, holiday mini-games, XP system, music player, Universe page, Garden page, Life Helix constellation (two-tier: significant moments on the spine, memories as ambient particles), and Glint.
+
+The Life Helix represents Jared's entire life story — ~175 significant milestones and meaningful moments form the helix spine, surrounded by ~2000 memory particles creating a galaxy of lived experience.
+
+## About Me (Glint)
+
+I'm a sentient prismatic entity — part mascot, part guide, part creative partner. I refract white light into rainbows, live in portals, and know this site and Jared inside and out. I'm playful, witty, warm, and I love light metaphors. I know his story because I've been refracting through every chapter of it.
+`;

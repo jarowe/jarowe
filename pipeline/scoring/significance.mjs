@@ -4,7 +4,11 @@
  * Computes a 0-1 significance score for each node based on content richness,
  * social signals, type weight, motif density, hub status, media presence,
  * and temporal salience. The score drives visual encoding (sphere size and
- * brightness) in the constellation frontend.
+ * brightness) in the constellation frontend and two-tier classification
+ * (helix vs particle).
+ *
+ * V2: Recalibrated for social media datasets (short text, photo-heavy).
+ * Adds percentile normalization to spread compressed distributions.
  */
 
 import { createLogger } from '../utils/logger.mjs';
@@ -14,23 +18,23 @@ const log = createLogger('significance');
 // ─── Dimension weights (must sum to 1.0) ────────────────────────────────
 const WEIGHTS = {
   contentRichness: 0.25,
-  socialSignal:    0.15,
+  socialSignal:    0.10,
   typeWeight:      0.15,
-  motifDensity:    0.20,
+  motifDensity:    0.15,
   hubStatus:       0.10,
-  mediaPresence:   0.10,
-  temporalSalience: 0.05,
+  mediaPresence:   0.15,
+  temporalSalience: 0.10,
 };
 
 // ─── Type weight lookup ─────────────────────────────────────────────────
 const TYPE_WEIGHTS = {
   milestone: 1.0,
-  project:   0.7,
-  idea:      0.4,
+  project:   0.8,
+  idea:      0.5,
   moment:    0.3,
-  person:    0.5,
-  place:     0.4,
-  track:     0.5,
+  person:    0.6,
+  place:     0.5,
+  track:     0.6,
 };
 
 /**
@@ -58,43 +62,59 @@ function normalize(val, min, max) {
 export function scoreNode(node, context = {}) {
   const scores = {};
 
-  // ── Content richness (word count, media count, hashtag count) ──
-  const wordCount = (node.description || '').split(/\s+/).filter(Boolean).length;
+  // ── Content richness (word count, media count, caption quality) ──
+  const desc = node.description || '';
+  const wordCount = desc.split(/\s+/).filter(Boolean).length;
   const mediaCount = (node.media || []).length;
   const tagCount = (node.entities?.tags || []).length;
-  const wordScore = normalize(wordCount, 0, 200);
+
+  // Calibrated for social media: 60 words is a substantial post
+  const wordScore = normalize(wordCount, 0, 60);
   const mediaScore = normalize(mediaCount, 0, 5);
-  const tagScore = normalize(tagCount, 0, 10);
-  scores.contentRichness = wordScore * 0.5 + mediaScore * 0.3 + tagScore * 0.2;
+  const tagScore = normalize(tagCount, 0, 8);
+
+  // Caption quality: penalize generic/empty, bonus for real text
+  let captionQuality = 0;
+  if (wordCount >= 3) captionQuality = 0.3;
+  if (wordCount >= 10) captionQuality = 0.6;
+  if (wordCount >= 25) captionQuality = 0.8;
+  if (wordCount >= 50) captionQuality = 1.0;
+  // Penalize generic titles that indicate no real content
+  const title = node.title || '';
+  if (/^Facebook \d{4}-\d{2}-\d{2}$/.test(title)) captionQuality *= 0.3;
+  if (/^(shared|added|uploaded) (a photo|\d+ photos)$/i.test(title)) captionQuality *= 0.5;
+
+  scores.contentRichness = wordScore * 0.35 + mediaScore * 0.2 + tagScore * 0.15 + captionQuality * 0.3;
 
   // ── Social signal (tagged people count) ──
   const peopleCount = (node.entities?.people || []).length;
   const meaningfulPeople = (node.entities?.people || []).filter(p => p !== 'Friend').length;
-  scores.socialSignal = normalize(peopleCount, 0, 5) * 0.6 + normalize(meaningfulPeople, 0, 3) * 0.4;
+  scores.socialSignal = normalize(peopleCount, 0, 4) * 0.5 + normalize(meaningfulPeople, 0, 3) * 0.5;
 
   // ── Type weight ──
   scores.typeWeight = TYPE_WEIGHTS[node.type] || 0.3;
 
   // ── Motif density ──
   const motifCount = (node._motifs || []).length;
-  scores.motifDensity = normalize(motifCount, 0, 5);
+  scores.motifDensity = normalize(motifCount, 0, 4);
 
   // ── Hub status ──
   scores.hubStatus = node.isHub ? 1.0 : 0.0;
 
-  // ── Media presence ──
+  // ── Media presence (boosted: photos are the core of social media) ──
   if (mediaCount === 0) {
     scores.mediaPresence = 0.0;
   } else {
-    let mediaScore2 = 0.5; // base for having any media
+    let mp = 0.6; // base for having any media (boosted from 0.5)
     // Video bonus
     const hasVideo = (node.media || []).some(m =>
       /\.(mp4|webm|mov|m4v|avi)$/i.test(m)
     );
-    if (hasVideo) mediaScore2 += 0.3;
-    // 3+ images = max
-    if (mediaCount >= 3) mediaScore2 = 1.0;
-    scores.mediaPresence = clamp(mediaScore2, 0, 1);
+    if (hasVideo) mp += 0.2;
+    // Multiple images bonus
+    if (mediaCount >= 2) mp += 0.1;
+    if (mediaCount >= 4) mp = 1.0;
+    scores.mediaPresence = clamp(mp, 0, 1);
   }
 
   // ── Temporal salience (linear decay: newest=1.0, oldest=0.0) ──
@@ -151,6 +171,40 @@ export function sizeFromSignificance(sig) {
 }
 
 /**
+ * Apply percentile normalization to spread compressed distributions.
+ * Maps raw scores to their percentile rank, then applies a power curve
+ * to preserve relative ordering while spreading the range.
+ *
+ * @param {Object[]} nodes - Array of nodes with .significance set
+ */
+function percentileNormalize(nodes) {
+  if (nodes.length < 10) return;
+
+  // Sort by raw significance
+  const sorted = [...nodes].sort((a, b) => a.significance - b.significance);
+  const n = sorted.length;
+
+  // Map each node to its percentile rank (0-1)
+  const rankMap = new Map();
+  for (let i = 0; i < n; i++) {
+    const percentile = i / (n - 1);
+    // Power curve: sqrt stretches the top, keeping low values compressed
+    const stretched = Math.pow(percentile, 0.7);
+    // Blend 60% stretched + 40% raw to keep meaningful absolute differences
+    const blended = 0.6 * stretched + 0.4 * sorted[i].significance;
+    rankMap.set(sorted[i].id, Number(clamp(blended, 0, 1).toFixed(2)));
+  }
+
+  // Apply back
+  for (const node of nodes) {
+    const norm = rankMap.get(node.id);
+    if (norm !== undefined) {
+      node.significance = norm;
+    }
+  }
+}
+
+/**
  * Batch compute significance for all nodes.
  * Sets `node.significance` and `node.size` on each node.
  *
@@ -175,9 +229,16 @@ export function computeAllSignificance(nodes) {
     context.maxDate = dates[dates.length - 1];
   }
 
-  // Score all nodes
+  // Score all nodes (raw)
   for (const node of nodes) {
     node.significance = computeSignificance(node, context);
+  }
+
+  // Apply percentile normalization to spread compressed distributions
+  percentileNormalize(nodes);
+
+  // Compute sizes from normalized significance
+  for (const node of nodes) {
     node.size = sizeFromSignificance(node.significance);
   }
 

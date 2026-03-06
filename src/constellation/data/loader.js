@@ -52,6 +52,8 @@ export async function loadConstellationData() {
         const merged = { ...node, x: pos.x, y: pos.y, z: pos.z };
         if (pos.strand !== undefined) merged.strand = pos.strand;
         if (pos.phase !== undefined) merged.phase = pos.phase;
+        // Prefer layout tier (computed from positions), fall back to node tier
+        if (pos.tier) merged.tier = pos.tier;
         return merged;
       }
       return node;

@@ -93,6 +93,7 @@ export function createCanonicalNode(fields = {}) {
     significance: typeof fields.significance === 'number'
       ? Math.max(0, Math.min(1, fields.significance))
       : 0.5,
+    tier: fields.tier || 'particle', // 'helix' or 'particle' — set by significance scoring
     isHub: Boolean(fields.isHub),
     source: fields.source || '',
     sourceId: fields.sourceId || '',

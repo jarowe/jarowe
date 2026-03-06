@@ -32,6 +32,11 @@ export const PIPELINE_CONFIG = Object.freeze({
       dir: process.env.FACEBOOK_EXPORT_DIR || 'data-private/facebook',
       defaultVisibility: 'friends',
     },
+    /** Manual milestones (curated life events not in social exports) */
+    milestones: {
+      dir: process.env.MILESTONES_DIR || 'data-private/milestones',
+      defaultVisibility: 'public',
+    },
   },
 
   /** Output file paths (generated at build time into public/data/) */
@@ -68,6 +73,15 @@ export const PIPELINE_CONFIG = Object.freeze({
   publishRollup: {
     enabled: true,
     sources: ['instagram', 'facebook'],
+  },
+
+  /** Two-tier classification: helix spine vs ambient particle cloud */
+  tiers: {
+    /** Significance threshold for helix tier (0-1). Nodes >= threshold go on spine. */
+    helixThreshold: 0.70,
+    /** Particle cloud radius multiplier (relative to helix radius) */
+    particleRadiusMin: 1.2,
+    particleRadiusMax: 2.2,
   },
 
   /** Helix layout parameters (V2 — continuous angle, compact bands) */

@@ -1,11 +1,10 @@
 /**
- * Double-helix layout computation for pipeline data (V2).
+ * Double-helix layout computation for pipeline data (V3 — two-tier).
  *
- * V2 changes:
- * - Continuous angle progression across all nodes (no per-epoch reset).
- * - Compact epoch band separation instead of large hard jumps.
- * - Lower, directional jitter to preserve helix silhouette.
- * - Outputs strand/phase metadata per node.
+ * V3 changes:
+ * - Two-tier layout: helix-tier nodes on the spine, particle-tier as ambient cloud.
+ * - Particle positions: random cylinder around helix, Y matched to date.
+ * - Helix spine is denser with fewer nodes (better visual density).
  *
  * Uses mulberry32 PRNG from pipeline utils for deterministic jitter.
  */
@@ -31,26 +30,18 @@ function groupByEpoch(nodes) {
 }
 
 /**
- * Compute a double-helix layout for constellation nodes (V2).
+ * Compute a two-tier layout for constellation nodes.
  *
- * Nodes are sorted by date, grouped by epoch, then positioned along a
- * parametric double helix with continuous angle progression and seeded jitter.
+ * HELIX tier: Positioned along a parametric double helix (the spine).
+ * PARTICLE tier: Scattered in a cylindrical cloud around the helix,
+ *   with Y positions matching their temporal position.
  *
- * Output is a positions map { [nodeId]: { x, y, z, strand, phase } }
- * separate from node data, for constellation.layout.json.
- *
- * @param {Object[]} nodes - Array of canonical nodes with { id, date, epoch, isHub, size }
+ * @param {Object[]} nodes - Array of canonical nodes with { id, date, epoch, tier, size }
  * @param {Object} config - Layout configuration
- * @param {number} config.radius - Helix radius (default 34)
- * @param {number} config.turns - Total helix turns across all nodes (default 6)
- * @param {number} config.verticalStep - Y distance per node (default 1.35)
- * @param {number} config.epochBandGap - Extra Y gap between epochs (default 1.8)
- * @param {number} config.jitterRadial - Radial jitter magnitude (default 0.6)
- * @param {number} config.jitterAxial - Axial (Y) jitter magnitude (default 0.25)
- * @param {number} config.seed - Seed for deterministic PRNG (default 42)
+ * @param {Object} tierConfig - Tier configuration (particle radius, etc.)
  * @returns {{ positions: Object, helixParams: Object, bounds: { minY: number, maxY: number } }}
  */
-export function computePipelineLayout(nodes, config = {}) {
+export function computePipelineLayout(nodes, config = {}, tierConfig = {}) {
   const {
     radius = 34,
     turns = 6,
@@ -61,18 +52,30 @@ export function computePipelineLayout(nodes, config = {}) {
     seed = 42,
   } = config;
 
+  const {
+    particleRadiusMin = 1.2,
+    particleRadiusMax = 2.2,
+  } = tierConfig;
+
   const rng = mulberry32(seed);
 
-  // Sort nodes by date
-  const sorted = [...nodes].sort(
+  // Separate helix and particle tier nodes
+  const helixNodes = nodes.filter(n => n.tier === 'helix');
+  const particleNodes = nodes.filter(n => n.tier !== 'helix');
+
+  // Sort helix nodes by date
+  const sortedHelix = [...helixNodes].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   );
 
-  // Group by epoch (preserves date-sorted order within each epoch)
-  const epochs = groupByEpoch(sorted);
+  // Sort all nodes by date for temporal mapping (used for particle Y)
+  const allSorted = [...nodes].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
 
-  // Flatten to get total count for continuous angle distribution
-  const totalNodes = sorted.length;
+  // ─── HELIX SPINE LAYOUT ──────────────────────────────────────────
+  const epochs = groupByEpoch(sortedHelix);
+  const totalHelixNodes = sortedHelix.length;
   const totalAngle = turns * Math.PI * 2;
 
   const positions = {};
@@ -87,16 +90,13 @@ export function computePipelineLayout(nodes, config = {}) {
     }
 
     epochNodes.forEach((node) => {
-      // Continuous angle across all nodes
-      const baseAngle = totalNodes > 1
-        ? (globalIndex / (totalNodes - 1)) * totalAngle
+      const baseAngle = totalHelixNodes > 1
+        ? (globalIndex / (totalHelixNodes - 1)) * totalAngle
         : 0;
 
-      // Balanced strand assignment (hubs stay large via size, not strand-pinned)
       const strand = globalIndex % 2;
       const angle = baseAngle + strand * Math.PI;
 
-      // Seeded directional jitter (radial + axial)
       const radialOffset = (rng() - 0.5) * 2 * jitterRadial;
       const axialOffset = (rng() - 0.5) * 2 * jitterAxial;
 
@@ -111,6 +111,7 @@ export function computePipelineLayout(nodes, config = {}) {
         z,
         strand,
         phase: Number(baseAngle.toFixed(4)),
+        tier: 'helix',
       };
 
       if (y < minY) minY = y;
@@ -120,6 +121,71 @@ export function computePipelineLayout(nodes, config = {}) {
       globalIndex++;
     });
   });
+
+  // ─── PARTICLE CLOUD LAYOUT ───────────────────────────────────────
+  // Map particle nodes to Y positions based on their date relative to the
+  // overall helix time span, then scatter them in a cylindrical shell.
+
+  if (particleNodes.length > 0 && totalHelixNodes > 0) {
+    // Date range from helix nodes
+    const helixDates = sortedHelix.map(n => new Date(n.date).getTime());
+    const dateMin = helixDates[0];
+    const dateMax = helixDates[helixDates.length - 1];
+    const dateRange = dateMax - dateMin || 1;
+
+    // Y range from helix layout
+    const helixYMin = minY;
+    const helixYMax = maxY;
+    const yRange = helixYMax - helixYMin || 100;
+
+    for (const node of particleNodes) {
+      const nodeTime = new Date(node.date).getTime();
+      // Map date to normalized position (0-1)
+      const t = Math.max(0, Math.min(1, (nodeTime - dateMin) / dateRange));
+
+      // Y position matches temporal position on helix
+      const y = Number((helixYMin + t * yRange).toFixed(4));
+
+      // Random angle (full 360)
+      const angle = rng() * Math.PI * 2;
+
+      // Random radius in cylindrical shell around helix
+      const rMin = radius * particleRadiusMin;
+      const rMax = radius * particleRadiusMax;
+      const r = rMin + rng() * (rMax - rMin);
+
+      const x = Number((r * Math.cos(angle)).toFixed(4));
+      const z = Number((r * Math.sin(angle)).toFixed(4));
+
+      positions[node.id] = {
+        x,
+        y,
+        z,
+        strand: -1, // not on a strand
+        phase: 0,
+        tier: 'particle',
+      };
+
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  } else if (particleNodes.length > 0) {
+    // Edge case: only particle nodes, no helix nodes — scatter in a sphere
+    for (const node of particleNodes) {
+      const angle = rng() * Math.PI * 2;
+      const elevation = (rng() - 0.5) * Math.PI;
+      const r = radius * (0.5 + rng() * 1.5);
+
+      const x = Number((r * Math.cos(angle) * Math.cos(elevation)).toFixed(4));
+      const y = Number((r * Math.sin(elevation) * 50).toFixed(4));
+      const z = Number((r * Math.sin(angle) * Math.cos(elevation)).toFixed(4));
+
+      positions[node.id] = { x, y, z, strand: -1, phase: 0, tier: 'particle' };
+
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
 
   // Handle empty input
   if (Object.keys(positions).length === 0) {

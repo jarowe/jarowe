@@ -322,6 +322,7 @@ export async function parseFacebook(exportDir, options = {}) {
     parsed: 0,
     skipped: 0,
     reshared: 0,
+    empty: 0,
     files: 0,
     warnings: [],
   };
@@ -363,6 +364,14 @@ export async function parseFacebook(exportDir, options = {}) {
 
     for (const post of posts) {
       stats.total++;
+
+      // Drop empty posts: no caption AND no media = noise
+      if (!post.caption && post.media.length === 0) {
+        stats.empty++;
+        stats.skipped++;
+        continue;
+      }
+
       const sourceId = generateSourceId(post.dateStr, post.headerText, stats.total);
 
       if (seenSourceIds.has(sourceId)) {
@@ -390,9 +399,22 @@ export async function parseFacebook(exportDir, options = {}) {
     const paddedIndex = String(i + 1).padStart(padWidth, '0');
     const id = `fb-${paddedIndex}`;
 
-    const title = post.caption
-      ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '')
-      : `Facebook ${post.dateStr}`;
+    // Clean title: strip album pollution, generate meaningful fallbacks
+    let title;
+    const cleanCaption = (post.caption || '')
+      .replace(/^(Mobile Uploads|Timeline Photos|Cover Photos|Profile Pictures|Instagram Photos)\s*/i, '')
+      .trim();
+
+    if (cleanCaption.length > 5) {
+      title = cleanCaption.slice(0, 60) + (cleanCaption.length > 60 ? '...' : '');
+    } else if (post.media.length > 0) {
+      // Photo/video post without meaningful text — use context from header
+      const verb = post.headerText?.match(/(added|uploaded|posted|updated)/i)?.[1] || 'shared';
+      const mediaWord = post.media.length > 1 ? `${post.media.length} photos` : 'a photo';
+      title = `${verb} ${mediaWord}`;
+    } else {
+      title = `Facebook ${post.dateStr}`;
+    }
 
     const nodeType = post.fileType === 'life_event' ? 'milestone' : 'moment';
 
@@ -439,7 +461,7 @@ export async function parseFacebook(exportDir, options = {}) {
 
   log.info(
     `Facebook parse complete: ${stats.parsed} nodes from ${stats.total} posts ` +
-    `(${stats.reshared} reshared, ${stats.skipped} skipped)`
+    `(${stats.reshared} reshared, ${stats.empty} empty dropped, ${stats.skipped} total skipped)`
   );
 
   return { nodes, stats };

@@ -48,6 +48,7 @@ import { parseInstagram } from './parsers/instagram.mjs';
 import { parseCarbonmade } from './parsers/carbonmade.mjs';
 import { parseMusic } from './parsers/music.mjs';
 import { parseFacebook } from './parsers/facebook.mjs';
+import { parseMilestones } from './parsers/milestones.mjs';
 import { loadIdentityMap, resolvePeopleArray } from './identity/registry.mjs';
 import { computeAllSignificance, sizeFromSignificance } from './scoring/significance.mjs';
 import { generateEdges } from './edges/edge-generator.mjs';
@@ -165,12 +166,14 @@ async function main() {
   const carbonmadeDir = resolve(PIPELINE_CONFIG.sources.carbonmade.dir);
   const musicDir = resolve(PIPELINE_CONFIG.sources.music.dir);
   const facebookDir = resolve(PIPELINE_CONFIG.sources.facebook.dir);
+  const milestonesDir = resolve(PIPELINE_CONFIG.sources.milestones.dir);
 
-  const [instagramResult, carbonmadeResult, musicResult, facebookResult] = await Promise.all([
+  const [instagramResult, carbonmadeResult, musicResult, facebookResult, milestonesResult] = await Promise.all([
     parseInstagram(instagramDir),
     parseCarbonmade(carbonmadeDir),
     parseMusic(musicDir),
     parseFacebook(facebookDir),
+    parseMilestones(milestonesDir),
   ]);
 
   let allNodes = [
@@ -178,6 +181,7 @@ async function main() {
     ...carbonmadeResult.nodes,
     ...musicResult.nodes,
     ...facebookResult.nodes,
+    ...milestonesResult.nodes,
   ];
 
   // Apply source-level default visibility from pipeline config
@@ -187,6 +191,7 @@ async function main() {
     suno: PIPELINE_CONFIG.sources.music.defaultVisibility,
     soundcloud: PIPELINE_CONFIG.sources.music.defaultVisibility,
     facebook: PIPELINE_CONFIG.sources.facebook.defaultVisibility,
+    manual: PIPELINE_CONFIG.sources.milestones.defaultVisibility,
   };
   for (const node of allNodes) {
     const srcDefault = sourceVisDefaults[node.source];
@@ -198,7 +203,8 @@ async function main() {
   log.info(
     `Parsed ${allNodes.length} total nodes ` +
     `(Instagram: ${instagramResult.nodes.length}, Carbonmade: ${carbonmadeResult.nodes.length}, ` +
-    `Music: ${musicResult.nodes.length}, Facebook: ${facebookResult.nodes.length})`
+    `Music: ${musicResult.nodes.length}, Facebook: ${facebookResult.nodes.length}, ` +
+    `Milestones: ${milestonesResult.nodes.length})`
   );
 
   if (allNodes.length === 0) {
@@ -506,6 +512,37 @@ async function main() {
   const significanceStats = computeAllSignificance(allNodes);
 
   // ========================================================================
+  // Phase 6.8: TWO-TIER CLASSIFICATION (helix vs particle)
+  // ========================================================================
+  log.info('--- Phase 6.8: Tier Classification ---');
+
+  const helixThreshold = PIPELINE_CONFIG.tiers?.helixThreshold ?? 0.35;
+  let helixCount = 0;
+  let particleCount = 0;
+
+  for (const node of allNodes) {
+    // Manual milestones have tier pre-set by parser — respect it
+    if (node.tier === 'helix') {
+      helixCount++;
+    } else if (node.type === 'milestone' || node.type === 'project') {
+      // Milestones and projects always go on helix regardless of significance
+      node.tier = 'helix';
+      helixCount++;
+    } else if (node.significance >= helixThreshold) {
+      node.tier = 'helix';
+      helixCount++;
+    } else {
+      node.tier = 'particle';
+      particleCount++;
+    }
+  }
+
+  log.info(
+    `Tier classification: ${helixCount} helix, ${particleCount} particle ` +
+    `(threshold: ${helixThreshold})`
+  );
+
+  // ========================================================================
   // Phase 7: EDGE GENERATION
   // ========================================================================
   log.info('--- Phase 7: Edge Generation ---');
@@ -557,7 +594,8 @@ async function main() {
 
   const { positions, helixParams, bounds } = computePipelineLayout(
     allNodes,
-    PIPELINE_CONFIG.layout
+    PIPELINE_CONFIG.layout,
+    PIPELINE_CONFIG.tiers || {}
   );
 
   log.info(
@@ -709,6 +747,7 @@ async function main() {
         carbonmade: { status: carbonmadeResult.nodes.length > 0 ? 'active' : 'empty', count: carbonmadeResult.nodes.length },
         music: { status: musicResult.nodes.length > 0 ? 'active' : 'empty', count: musicResult.nodes.length },
         facebook: { status: facebookResult.nodes.length > 0 ? 'active' : 'empty', count: facebookResult.nodes.length },
+        milestones: { status: milestonesResult.nodes.length > 0 ? 'active' : 'empty', count: milestonesResult.nodes.length },
       },
       edgeQuality: {
         avgConnectionsPerNode: edgeStats.avgConnectionsPerNode,
@@ -724,6 +763,11 @@ async function main() {
         totalPromoted: rollupPromotions.totalPromoted,
         bySource: rollupPromotions.bySource,
         publishMode: PUBLISH_MODE,
+      },
+      byTier: {
+        helix: sortedNodes.filter(n => n.tier === 'helix').length,
+        particle: sortedNodes.filter(n => n.tier === 'particle').length,
+        helixThreshold,
       },
       motifs: motifStats.motifDistribution,
       privacyAudit: {

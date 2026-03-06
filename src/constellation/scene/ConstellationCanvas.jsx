@@ -7,6 +7,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import NodeCloud from './NodeCloud';
+import ParticleCloud from './ParticleCloud';
 import ConnectionLines from './ConnectionLines';
 import HoverLabel from './HoverLabel';
 import CameraController from './CameraController';
@@ -82,11 +83,28 @@ export default function ConstellationCanvas() {
     });
   }, [storeNodes]);
 
-  // Helix center for camera target
-  const center = useMemo(() => getHelixCenter(layoutNodes), [layoutNodes]);
+  // Split nodes by tier for two-mesh rendering
+  const { helixNodes, particleNodes } = useMemo(() => {
+    const helix = [];
+    const particle = [];
+    for (const node of layoutNodes) {
+      if (node.tier === 'particle') {
+        particle.push(node);
+      } else {
+        helix.push(node);
+      }
+    }
+    return { helixNodes: helix, particleNodes: particle };
+  }, [layoutNodes]);
 
-  // Helix vertical bounds for timeline scrubber
-  const helixBounds = useMemo(() => getHelixBounds(layoutNodes), [layoutNodes]);
+  // Helix center for camera target (based on helix nodes only)
+  const center = useMemo(() => getHelixCenter(helixNodes.length > 0 ? helixNodes : layoutNodes), [helixNodes, layoutNodes]);
+
+  // Helix vertical bounds for timeline scrubber (from helix nodes only)
+  const helixBounds = useMemo(
+    () => getHelixBounds(helixNodes.length > 0 ? helixNodes : layoutNodes),
+    [helixNodes, layoutNodes]
+  );
 
   // Adaptive camera distance based on helix extent
   const cameraFit = useMemo(() => {
@@ -96,11 +114,12 @@ export default function ConstellationCanvas() {
     // At 60° FOV, visible height at distance D ≈ 1.155 * D
     // Fill ~65% of viewport: D = maxExtent / (0.65 * 1.155)
     const idealZ = maxExtent / 0.75;
-    const z = Math.max(65, Math.min(180, idealZ));
+    // With particle cloud, allow more zoom out to see the full scene
+    const z = Math.max(65, Math.min(350, idealZ));
     return {
       z,
-      minDistance: Math.max(30, z * 0.45),
-      maxDistance: Math.min(250, z * 2.0),
+      minDistance: Math.max(30, z * 0.35),
+      maxDistance: Math.min(500, z * 2.5),
     };
   }, [helixBounds]);
 
@@ -156,25 +175,31 @@ export default function ConstellationCanvas() {
 
       <CameraController
         controlsRef={controlsRef}
-        positions={layoutNodes}
+        positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
         helixBounds={helixBounds}
       />
 
-      <HoverLabel nodes={layoutNodes} />
+      <HoverLabel nodes={helixNodes.length > 0 ? helixNodes : layoutNodes} />
 
       <ambientLight intensity={0.15} />
 
       <HelixBackbone
-        positions={layoutNodes}
+        positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
         disabled={gpuConfig.starParticles === 0}
       />
 
       <ConnectionLines positions={layoutNodes} />
 
-      <NodeCloud
-        nodes={layoutNodes}
-        gpuConfig={gpuConfig}
-      />
+      {helixNodes.length > 0 && (
+        <NodeCloud
+          nodes={helixNodes}
+          gpuConfig={gpuConfig}
+        />
+      )}
+
+      {particleNodes.length > 0 && (
+        <ParticleCloud nodes={particleNodes} />
+      )}
 
       <Starfield starCount={gpuConfig.starParticles} />
 
