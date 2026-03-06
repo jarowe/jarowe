@@ -5,14 +5,6 @@ const AuthContext = createContext(null);
 
 const ADMIN_EMAILS = ['rowe.jared@gmail.com'];
 
-/** Race a promise against a timeout. Returns the promise result or null on timeout. */
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise(resolve => setTimeout(() => resolve(null), ms)),
-  ]);
-}
-
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -26,12 +18,16 @@ export function AuthProvider({ children }) {
   // Fetch profile row from profiles table
   const fetchProfile = useCallback(async (userId) => {
     if (!supabase) return null;
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    return data;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      return data;
+    } catch {
+      return null;
+    }
   }, []);
 
   // Initial session + auth state listener
@@ -41,49 +37,20 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // getSession() only reads cached tokens — they may be expired.
-    // Use it for instant UI, then validate with the server.
+    // IMPORTANT: Do NOT call refreshSession() manually — it corrupts the
+    // Supabase client's internal auth lock. The client's autoRefreshToken
+    // (enabled by default) handles token refresh automatically. We only use
+    // getSession() for the initial cached state and onAuthStateChange for
+    // all subsequent updates (including automatic token refreshes).
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        // Validate session server-side and refresh if expired.
-        // Timeout after 5s to prevent hanging on stale refresh tokens.
-        let validSession = false;
-        try {
-          const refreshResult = await withTimeout(supabase.auth.refreshSession(), 5000);
-          if (refreshResult?.data?.session?.user) {
-            setUser(refreshResult.data.session.user);
-            validSession = true;
-          }
-        } catch (_) {
-          // Refresh threw an error
-        }
-
-        if (!validSession) {
-          // Check if the cached access token might still work (not expired yet)
-          const exp = session.expires_at; // Unix seconds
-          if (exp && Date.now() / 1000 < exp) {
-            // Token not yet expired — use cached session
-            setUser(session.user);
-            validSession = true;
-          } else {
-            // Token is expired AND refresh failed — force sign out.
-            // Leaving the user in this state causes all Supabase queries to hang
-            // because the client tries to auto-refresh the dead token on every call.
-            console.warn('[Auth] Session expired and refresh failed — signing out');
-            setUser(null);
-            setProfile(null);
-            try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
-          }
-        }
-
+        setUser(session.user);
         // Profile is optional — don't block auth on it
-        if (validSession) {
-          try {
-            const p = await fetchProfile(session.user.id);
-            if (p) setProfile(p);
-          } catch (_) {
-            // Profile fetch failed — user is still authenticated
-          }
+        try {
+          const p = await fetchProfile(session.user.id);
+          if (p) setProfile(p);
+        } catch {
+          // Profile fetch failed — user is still authenticated
         }
       }
       setLoading(false);
@@ -96,28 +63,32 @@ export function AuthProvider({ children }) {
     try {
       const result = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          if (session?.user) {
-            setUser(session.user);
-            setLoading(false); // Auth resolved — clear loading regardless of which path won the race
-            if (event === 'SIGNED_IN') {
-              window.dispatchEvent(new CustomEvent('auth-signed-in'));
-            }
-            try {
-              const p = await fetchProfile(session.user.id);
-              if (p) setProfile(p);
-            } catch (_) {
-              // Profile fetch failed — user is still authenticated
-            }
-          } else {
+          if (event === 'SIGNED_OUT' || !session?.user) {
             setUser(null);
             setProfile(null);
-            setLoading(false); // Auth resolved — no session
+            setLoading(false);
+            return;
+          }
+
+          setUser(session.user);
+          setLoading(false);
+
+          if (event === 'SIGNED_IN') {
+            window.dispatchEvent(new CustomEvent('auth-signed-in'));
+          }
+
+          try {
+            const p = await fetchProfile(session.user.id);
+            if (p) setProfile(p);
+          } catch {
+            // Profile fetch failed — user is still authenticated
           }
         }
       );
       subscription = result.data.subscription;
-    } catch (_) {
+    } catch {
       // Auth listener failed — continue as guest
+      setLoading(false);
     }
 
     return () => subscription?.unsubscribe();
