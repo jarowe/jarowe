@@ -28,7 +28,8 @@ const UniversePage = lazyRetry(() => import('./pages/UniversePage'));
 const ConstellationPage = lazyRetry(() => import('./pages/ConstellationPage'));
 const AdminPage = lazyRetry(() => import('./pages/Admin'));
 const AdminGames = lazyRetry(() => import('./pages/AdminGames'));
-const AdminStub = lazyRetry(() => import('./pages/AdminStub'));
+const AdminUsers = lazyRetry(() => import('./pages/AdminUsers'));
+const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -109,13 +110,13 @@ function App() {
                   </Suspense>
                 } />
                 <Route path="/admin/users" element={
-                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
-                    <AdminStub page="users" />
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Users...</div>}>
+                    <AdminUsers />
                   </Suspense>
                 } />
                 <Route path="/admin/content" element={
-                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
-                    <AdminStub page="content" />
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Content...</div>}>
+                    <AdminContent />
                   </Suspense>
                 } />
               </Routes>

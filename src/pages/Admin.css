@@ -614,3 +614,351 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ============================================================
+   Admin Users page
+   ============================================================ */
+
+.admin-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.admin-user-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(100, 160, 255, 0.15);
+  color: rgba(140, 190, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-user-name {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+}
+
+.admin-user-level {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.admin-user-row {
+  transition: background 0.12s;
+}
+
+.admin-user-row-expanded {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.admin-user-detail-row td {
+  padding: 0 !important;
+  border-top: none !important;
+}
+
+.admin-user-detail {
+  padding: 1rem 1.25rem 1.25rem;
+  background: rgba(255, 255, 255, 0.015);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.admin-user-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.admin-user-detail-section h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.admin-detail-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-detail-stats > div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-detail-stats .admin-status-label {
+  font-size: 0.72rem;
+}
+
+.admin-xp-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.admin-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(100, 160, 255, 0.6), rgba(167, 139, 250, 0.6));
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.admin-detail-flags {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.admin-badge-dim {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.admin-achievement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2em 0.5em;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  background: rgba(255, 200, 50, 0.08);
+  color: rgba(255, 210, 80, 0.9);
+}
+
+.admin-detail-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admin-score-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.15rem 0;
+}
+
+.admin-score-value {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.admin-detail-paths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.admin-confirm-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 1rem;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================================
+   Admin Content page -- tabs, holiday grid, detail panels
+   ============================================================ */
+
+.admin-tab-bar {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.admin-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-tab-active {
+  background: rgba(100, 160, 255, 0.15);
+  border-color: rgba(100, 160, 255, 0.25);
+  color: rgb(140, 190, 255);
+}
+
+/* Content stats row */
+.admin-content-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.admin-content-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Holiday calendar grid */
+.admin-holiday-month {
+  margin-bottom: 1.25rem;
+}
+
+.admin-holiday-month-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-holiday-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.4rem;
+}
+
+.admin-holiday-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.5rem 0.35rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.admin-holiday-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.admin-holiday-card-selected {
+  background: rgba(100, 160, 255, 0.1);
+  border-color: rgba(100, 160, 255, 0.25);
+}
+
+.admin-holiday-emoji {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.admin-holiday-day {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-holiday-name {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-holiday-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Detail panels */
+.admin-detail-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.admin-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.admin-detail-row .admin-status-label {
+  margin-bottom: 0.1rem;
+}
+
+.admin-detail-row > span:last-child {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive -- content page */
+@media (max-width: 768px) {
+  .admin-tab-bar {
+    flex-wrap: wrap;
+  }
+
+  .admin-holiday-grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+
+  .admin-detail-grid-2col {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-content-stats {
+    gap: 0.5rem;
+  }
+
+  .admin-user-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-holiday-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
