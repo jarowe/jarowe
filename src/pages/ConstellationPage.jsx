@@ -6,6 +6,7 @@ import ListView from '../constellation/fallback/ListView';
 import Toolbar from '../constellation/ui/Toolbar';
 import TimelineScrubber from '../constellation/ui/TimelineScrubber';
 import DetailPanel from '../constellation/ui/DetailPanel';
+import NodeCards from '../constellation/ui/NodeCards';
 import MediaLightbox from '../constellation/ui/MediaLightbox';
 import ThemeLegend from '../constellation/ui/ThemeLegend';
 import ViewToggle from '../constellation/ui/ViewToggle';
@@ -241,7 +242,7 @@ export default function ConstellationPage() {
           <Toolbar />
           <TimelineScrubber />
           <ThemeLegend />
-          <DetailPanel />
+          <NodeCards />
           <MediaLightbox />
           <AutoDetectPrompt />
         </>
