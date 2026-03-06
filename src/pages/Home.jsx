@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X } from 'lucide-react';
+import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
@@ -6184,7 +6184,7 @@ export default function Home() {
                     onLabelHover={(label) => setHoveredMarker(label)}
                     onRingHover={(ring) => setHoveredMarker(ring)}
 
-                    htmlElementsData={globePhotoMarkers}
+                    htmlElementsData={tourMode ? globePhotoMarkers : []}
                     htmlLat="lat"
                     htmlLng="lng"
                     htmlAltitude={0.01}
@@ -6192,12 +6192,6 @@ export default function Home() {
                       const BASE = import.meta.env.BASE_URL;
                       const pin = document.createElement('div');
                       pin.className = 'globe-photo-pin';
-                      // Check if near tour destination for highlight
-                      if (tourMode && tourDestination) {
-                        const dlat = Math.abs(d.lat - tourDestination.lat);
-                        const dlng = Math.abs(d.lng - tourDestination.lng);
-                        if (dlat < 1 && dlng < 1) pin.classList.add('tour-highlight');
-                      }
                       if (d.thumbnail) {
                         const img = document.createElement('img');
                         img.src = BASE + d.thumbnail.replace(/^\//, '');
@@ -6205,29 +6199,6 @@ export default function Home() {
                         img.loading = 'lazy';
                         pin.appendChild(img);
                       }
-                      // Tooltip on hover
-                      const tooltip = document.createElement('div');
-                      tooltip.className = 'photo-tooltip';
-                      if (d.thumbnail) {
-                        const tImg = document.createElement('img');
-                        tImg.src = BASE + d.thumbnail.replace(/^\//, '');
-                        tImg.alt = '';
-                        tImg.loading = 'lazy';
-                        tooltip.appendChild(tImg);
-                      }
-                      if (d.caption) {
-                        const cap = document.createElement('div');
-                        cap.className = 'photo-caption';
-                        cap.textContent = d.caption;
-                        tooltip.appendChild(cap);
-                      }
-                      if (d.date) {
-                        const dt = document.createElement('div');
-                        dt.className = 'photo-date';
-                        dt.textContent = d.date;
-                        tooltip.appendChild(dt);
-                      }
-                      pin.appendChild(tooltip);
                       return pin;
                     }}
 
@@ -6842,7 +6813,63 @@ export default function Home() {
                             handleConversationPunch(ev);
                           } : undefined}
                         >
+                          {/* Dismiss X button */}
+                          <button
+                            className="bubble-dismiss"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              if (tourMode) endGlobeTour();
+                              else if (conversationMode) exitConversation();
+                              else {
+                                window.dispatchEvent(new CustomEvent('hide-prism-peek'));
+                              }
+                            }}
+                            aria-label="Dismiss"
+                          >
+                            <X size={10} />
+                          </button>
                           {prismBubble}
+                          {/* Mode nav bar — quick switch between Glint interaction types */}
+                          {conversationMode && !tourMode && (
+                            <div className="glint-mode-nav">
+                              <button
+                                className="glint-mode-btn"
+                                title="Globe Tour"
+                                onClick={(ev) => { ev.stopPropagation(); startGlobeTour(0); }}
+                              >
+                                <Globe2 size={12} />
+                              </button>
+                              <button
+                                className="glint-mode-btn"
+                                title="AI Chat"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  if (!aiChatMode) {
+                                    setAiChatMode(true);
+                                    setConversationNode(null);
+                                  }
+                                }}
+                              >
+                                <MessageCircle size={12} />
+                              </button>
+                              <button
+                                className="glint-mode-btn"
+                                title="Tips & Secrets"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  const ctx = buildContext();
+                                  const node = getDialogueNode('tips-start', ctx);
+                                  if (node) {
+                                    setConversationNode(node);
+                                    window.__prismExpression = node.expression || 'happy';
+                                    showBubbleWithThinking(node.text);
+                                  }
+                                }}
+                              >
+                                <Lightbulb size={12} />
+                              </button>
+                            </div>
+                          )}
                           {/* Quick-reply pills (Glint Brain Tier 2 + AI Tier 4) */}
                           {conversationMode && conversationNode?.replies && !aiStreaming && (!aiChatMode || aiMessages.length === 0) && (
                             <div className="glint-reply-pills">
