@@ -45,27 +45,45 @@ export function AuthProvider({ children }) {
     // Use it for instant UI, then validate with the server.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        // Set user IMMEDIATELY so email-based checks (isAdmin) work right away
-        setUser(session.user);
-
         // Validate session server-side and refresh if expired.
-        // This ensures downstream Supabase queries use a valid token.
         // Timeout after 5s to prevent hanging on stale refresh tokens.
+        let validSession = false;
         try {
           const refreshResult = await withTimeout(supabase.auth.refreshSession(), 5000);
           if (refreshResult?.data?.session?.user) {
             setUser(refreshResult.data.session.user);
+            validSession = true;
           }
         } catch (_) {
-          // Refresh failed — cached session may still work for some calls
+          // Refresh threw an error
+        }
+
+        if (!validSession) {
+          // Check if the cached access token might still work (not expired yet)
+          const exp = session.expires_at; // Unix seconds
+          if (exp && Date.now() / 1000 < exp) {
+            // Token not yet expired — use cached session
+            setUser(session.user);
+            validSession = true;
+          } else {
+            // Token is expired AND refresh failed — force sign out.
+            // Leaving the user in this state causes all Supabase queries to hang
+            // because the client tries to auto-refresh the dead token on every call.
+            console.warn('[Auth] Session expired and refresh failed — signing out');
+            setUser(null);
+            setProfile(null);
+            try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
+          }
         }
 
         // Profile is optional — don't block auth on it
-        try {
-          const p = await fetchProfile(session.user.id);
-          if (p) setProfile(p);
-        } catch (_) {
-          // Profile fetch failed — user is still authenticated
+        if (validSession) {
+          try {
+            const p = await fetchProfile(session.user.id);
+            if (p) setProfile(p);
+          } catch (_) {
+            // Profile fetch failed — user is still authenticated
+          }
         }
       }
       setLoading(false);

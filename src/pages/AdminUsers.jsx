@@ -30,28 +30,33 @@ function AdminUsersInner() {
       setLoading(true);
       setError(null);
       try {
-        // Don't call refreshSession() here — AuthContext already handles it.
-        // Redundant refresh calls race with AuthContext's and cause contention.
-        // Just query directly; the Supabase client auto-refreshes if needed.
+        // Query directly — AuthContext handles session refresh.
+        // Timeout after 10s to prevent hanging on dead sessions.
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out. Try signing out and back in.')), 10000));
 
-        const profilesRes = await supabase
-          .from('profiles').select('*').order('created_at', { ascending: false });
+        const profilesRes = await Promise.race([
+          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+          timeout,
+        ]);
 
-        // If we get an auth error on first attempt, wait for AuthContext's
-        // refresh to settle, then retry once
+        // If we get an auth error on first attempt, wait and retry once
         if (profilesRes.error) {
           const code = profilesRes.error.code || profilesRes.error.message || '';
-          if (attempt < 2 && (code.includes('JWT') || code.includes('401') || code === 'PGRST301')) {
-            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          if (attempt < 1 && (code.includes('JWT') || code.includes('401') || code === 'PGRST301')) {
+            await new Promise(r => setTimeout(r, 2000));
             return _load(attempt + 1);
           }
           throw profilesRes.error;
         }
 
-        // Fetch related data in parallel
-        const [scoresRes, achievementsRes] = await Promise.all([
-          supabase.from('high_scores').select('user_id, game_id, score'),
-          supabase.from('achievements').select('user_id, achievement_id'),
+        // Fetch related data in parallel (also with timeout)
+        const [scoresRes, achievementsRes] = await Promise.race([
+          Promise.all([
+            supabase.from('high_scores').select('user_id, game_id, score'),
+            supabase.from('achievements').select('user_id, achievement_id'),
+          ]),
+          timeout,
         ]);
 
         // Group scores and achievements by user_id
@@ -75,12 +80,7 @@ function AdminUsersInner() {
 
         setProfiles(merged);
       } catch (err) {
-        // Retry on transient errors (AbortError, network issues)
-        if (attempt < 2 && (err.name === 'AbortError')) {
-          await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-          return _load(attempt + 1);
-        }
-        setError(`Failed to load users: ${err.message}`);
+        setError(err.message || 'Failed to load users');
       } finally {
         setLoading(false);
       }
