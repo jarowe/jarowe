@@ -1553,6 +1553,179 @@
   background: rgba(100, 160, 255, 0.08) !important;
 }
 
+/* ---- Save status indicators ---- */
+
+.admin-save-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.admin-save-dot-saving {
+  background: rgb(251, 191, 36);
+  animation: admin-pulse 0.8s ease-in-out infinite;
+}
+
+.admin-save-dot-saved {
+  background: rgb(100, 210, 140);
+}
+
+.admin-save-dot-error {
+  background: rgb(255, 100, 100);
+}
+
+@keyframes admin-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.admin-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+}
+
+.admin-save-status-saving {
+  color: rgb(251, 191, 36);
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.admin-save-status-saved {
+  color: rgb(100, 210, 140);
+  background: rgba(80, 200, 120, 0.1);
+}
+
+.admin-save-status-error {
+  color: rgb(255, 120, 120);
+  background: rgba(255, 80, 80, 0.1);
+}
+
+/* ---- Connection warning ---- */
+
+.admin-curation-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  background: rgba(255, 150, 80, 0.06);
+  border: 1px solid rgba(255, 150, 80, 0.15);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: rgba(255, 170, 110, 0.9);
+}
+
+.admin-curation-warning code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+/* ---- Inline editable fields ---- */
+
+.admin-node-title-editable {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+  transition: color 0.15s;
+}
+
+.admin-node-title-editable:hover {
+  color: rgb(140, 190, 255);
+}
+
+.admin-inline-edit-icon {
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-node-title-editable:hover .admin-inline-edit-icon {
+  opacity: 1;
+}
+
+.admin-inline-edit {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(100, 160, 255, 0.4);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  color: white;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+
+.admin-inline-edit-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin-inline-edit-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-node-description-editable {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.admin-node-description-editable:hover {
+  border-color: rgba(100, 160, 255, 0.3);
+}
+
+/* ---- Significance control ---- */
+
+.admin-sig-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-sig-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: rgb(140, 190, 255);
+  cursor: pointer;
+}
+
+.admin-sig-input {
+  width: 60px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+  color: white;
+  font-size: 0.82rem;
+  text-align: center;
+  outline: none;
+}
+
+.admin-sig-input:focus {
+  border-color: rgba(100, 160, 255, 0.5);
+}
+
+.admin-sig-original {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .admin-node-detail-body {
     grid-template-columns: 1fr;

@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
+import { supabase } from '../lib/supabase';
+import { useCurationSync } from '../hooks/useCurationSync';
 import './Admin.css';
 
 const GameLauncher = lazy(() => import('../components/GameLauncher'));
@@ -74,17 +76,16 @@ function NodesTab() {
   const [epochFilter, setEpochFilter] = useState(null);
   const [sourceFilter, setSourceFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [flagFilter, setFlagFilter] = useState(null); // null | 'flagged' | 'unflagged' | specific type
-  const [visFilter, setVisFilter] = useState(null); // null | 'public' | 'friends' | 'private'
-  const [localHidden, setLocalHidden] = useState(new Set());
-  const [localVisOverrides, setLocalVisOverrides] = useState({});
-  const [localFlags, setLocalFlags] = useState({}); // nodeId → flag[]
-  const [sigOverrides, setSigOverrides] = useState({}); // preserve on export
-  const [hasChanges, setHasChanges] = useState(false);
+  const [flagFilter, setFlagFilter] = useState(null);
+  const [visFilter, setVisFilter] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
-  // Add-flag form state
   const [newFlagType, setNewFlagType] = useState(FLAG_TYPES[0]);
   const [newFlagNote, setNewFlagNote] = useState('');
+
+  // Supabase curation state
+  const [curationMap, setCurationMap] = useState(new Map()); // nodeId → curation row
+  const [supabaseConnected, setSupabaseConnected] = useState(!!supabase);
+  const { fetchAll, saveNodeImmediate, saveNode, deleteOverride, savingState } = useCurationSync();
 
   useEffect(() => {
     async function load() {
@@ -94,25 +95,96 @@ function NodesTab() {
         const graphRes = await fetch(`${base}data/constellation.graph.json`);
         if (graphRes.ok) setGraphData(await graphRes.json());
 
-        try {
-          const curationRes = await fetch(`${base}curation.json`);
-          if (curationRes.ok) {
-            const curation = await curationRes.json();
-            setLocalHidden(new Set(curation.hidden || []));
-            setLocalVisOverrides(curation.visibility_overrides || {});
-            setLocalFlags(curation.flags || {});
-            setSigOverrides(curation.significance_overrides || {});
-          }
-        } catch { /* curation.json not available */ }
+        // Load curation from Supabase
+        if (supabase) {
+          const map = await fetchAll();
+          setCurationMap(map);
+          setSupabaseConnected(true);
+        } else {
+          setSupabaseConnected(false);
+        }
       } catch { /* ignore */ }
       setLoading(false);
     }
     load();
-  }, []);
+  }, [fetchAll]);
 
   const nodes = graphData?.nodes || [];
 
-  // Collect unique epochs, sources, and flag stats
+  // Get curation data for a node
+  const getCuration = useCallback((nodeId) => {
+    return curationMap.get(nodeId) || {};
+  }, [curationMap]);
+
+  // Effective visibility for a node
+  const getNodeVis = useCallback((node) => {
+    const cur = getCuration(node.id);
+    return cur.visibility || node.visibility || 'public';
+  }, [getCuration]);
+
+  // Is node hidden?
+  const isNodeHidden = useCallback((nodeId) => {
+    return getCuration(nodeId).hidden === true;
+  }, [getCuration]);
+
+  // Get flags for a node
+  const getNodeFlags = useCallback((nodeId) => {
+    const cur = getCuration(nodeId);
+    return cur.flags || [];
+  }, [getCuration]);
+
+  // Update local curation map + save to Supabase
+  const updateCuration = useCallback((nodeId, updates, immediate = false) => {
+    setCurationMap(prev => {
+      const next = new Map(prev);
+      const existing = next.get(nodeId) || { node_id: nodeId };
+      next.set(nodeId, { ...existing, ...updates });
+      return next;
+    });
+    if (immediate) {
+      saveNodeImmediate(nodeId, updates);
+    } else {
+      saveNode(nodeId, updates);
+    }
+  }, [saveNode, saveNodeImmediate]);
+
+  const toggleNodeHidden = useCallback((nodeId) => {
+    const cur = getCuration(nodeId);
+    const newHidden = !cur.hidden;
+    updateCuration(nodeId, { hidden: newHidden }, true);
+  }, [getCuration, updateCuration]);
+
+  const changeNodeVis = useCallback((nodeId, vis) => {
+    updateCuration(nodeId, { visibility: vis }, true);
+  }, [updateCuration]);
+
+  const addFlag = useCallback((nodeId, type, note) => {
+    const cur = getCuration(nodeId);
+    const existing = cur.flags || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const newFlags = [...existing, { type, note, createdAt: today, source: 'manual' }];
+    updateCuration(nodeId, { flags: newFlags }, true);
+  }, [getCuration, updateCuration]);
+
+  const removeFlag = useCallback((nodeId, index) => {
+    const cur = getCuration(nodeId);
+    const existing = [...(cur.flags || [])];
+    existing.splice(index, 1);
+    updateCuration(nodeId, { flags: existing }, true);
+  }, [getCuration, updateCuration]);
+
+  const handleResetNode = useCallback(async (nodeId) => {
+    const ok = await deleteOverride(nodeId);
+    if (ok) {
+      setCurationMap(prev => {
+        const next = new Map(prev);
+        next.delete(nodeId);
+        return next;
+      });
+    }
+  }, [deleteOverride]);
+
+  // Stats
   const { epochs, sources, typeCounts, flaggedCount, flagTypeCounts } = useMemo(() => {
     const epochSet = new Set();
     const sourceSet = new Set();
@@ -123,7 +195,7 @@ function NodesTab() {
       if (n.epoch) epochSet.add(n.epoch);
       if (n.source) sourceSet.add(n.source);
       tc[n.type] = (tc[n.type] || 0) + 1;
-      const flags = localFlags[n.id];
+      const flags = getNodeFlags(n.id);
       if (flags?.length) {
         fc++;
         for (const f of flags) ftc[f.type] = (ftc[f.type] || 0) + 1;
@@ -136,12 +208,7 @@ function NodesTab() {
       flaggedCount: fc,
       flagTypeCounts: ftc,
     };
-  }, [nodes, localFlags]);
-
-  // Effective visibility for a node (override > original)
-  const getNodeVis = useCallback((node) => {
-    return localVisOverrides[node.id] || node.visibility || 'public';
-  }, [localVisOverrides]);
+  }, [nodes, getNodeFlags]);
 
   const filteredNodes = useMemo(() => {
     let result = [...nodes];
@@ -151,10 +218,9 @@ function NodesTab() {
     if (sourceFilter) result = result.filter(n => n.source === sourceFilter);
     if (visFilter) result = result.filter(n => getNodeVis(n) === visFilter);
 
-    // Flag filtering
-    if (flagFilter === 'flagged') result = result.filter(n => localFlags[n.id]?.length);
-    else if (flagFilter === 'unflagged') result = result.filter(n => !localFlags[n.id]?.length);
-    else if (flagFilter && FLAG_TYPES.includes(flagFilter)) result = result.filter(n => localFlags[n.id]?.some(f => f.type === flagFilter));
+    if (flagFilter === 'flagged') result = result.filter(n => getNodeFlags(n.id)?.length);
+    else if (flagFilter === 'unflagged') result = result.filter(n => !getNodeFlags(n.id)?.length);
+    else if (flagFilter && FLAG_TYPES.includes(flagFilter)) result = result.filter(n => getNodeFlags(n.id)?.some(f => f.type === flagFilter));
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -171,63 +237,7 @@ function NodesTab() {
     });
 
     return result;
-  }, [nodes, typeFilter, epochFilter, sourceFilter, visFilter, flagFilter, searchQuery, sortKey, sortDir, localFlags, getNodeVis]);
-
-  const toggleNodeVisibility = useCallback((nodeId) => {
-    setLocalHidden(prev => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId); else next.add(nodeId);
-      return next;
-    });
-    setHasChanges(true);
-  }, []);
-
-  const changeNodeVis = useCallback((nodeId, vis) => {
-    setLocalVisOverrides(prev => ({ ...prev, [nodeId]: vis }));
-    setHasChanges(true);
-  }, []);
-
-  const addFlag = useCallback((nodeId, type, note) => {
-    const today = new Date().toISOString().slice(0, 10);
-    setLocalFlags(prev => {
-      const existing = prev[nodeId] || [];
-      return { ...prev, [nodeId]: [...existing, { type, note, createdAt: today, source: 'manual' }] };
-    });
-    setHasChanges(true);
-  }, []);
-
-  const removeFlag = useCallback((nodeId, index) => {
-    setLocalFlags(prev => {
-      const existing = [...(prev[nodeId] || [])];
-      existing.splice(index, 1);
-      const next = { ...prev };
-      if (existing.length === 0) delete next[nodeId]; else next[nodeId] = existing;
-      return next;
-    });
-    setHasChanges(true);
-  }, []);
-
-  function handleExportCuration() {
-    // Build curation patch with visibility_overrides, flags, and hidden
-    const hidden = [...localHidden];
-    // Also add nodes set to 'private' visibility to hidden
-    for (const [id, vis] of Object.entries(localVisOverrides)) {
-      if (vis === 'private' && !hidden.includes(id)) hidden.push(id);
-    }
-    const patch = {
-      _comment: 'Node curation state. Pipeline reads this to apply publish/hide. Managed via admin UI. Pipeline NEVER writes to this file.',
-      hidden: hidden.sort(),
-      visibility_overrides: localVisOverrides,
-      flags: localFlags,
-      significance_overrides: sigOverrides,
-    };
-    const blob = new Blob([JSON.stringify(patch, null, 2) + '\n'], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'curation.json'; a.click();
-    URL.revokeObjectURL(url);
-    setHasChanges(false);
-  }
+  }, [nodes, typeFilter, epochFilter, sourceFilter, visFilter, flagFilter, searchQuery, sortKey, sortDir, getNodeFlags, getNodeVis]);
 
   function handleSort(key) {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -240,6 +250,16 @@ function NodesTab() {
 
   return (
     <>
+      {/* Connection status */}
+      {!supabaseConnected && (
+        <section className="admin-section">
+          <div className="admin-curation-warning">
+            <CloudOff size={16} />
+            Supabase not connected. Changes will not persist. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable live CMS.
+          </div>
+        </section>
+      )}
+
       {/* Stats bar */}
       <section className="admin-section">
         <div className="admin-content-stats">
@@ -259,10 +279,11 @@ function NodesTab() {
               <span style={{ color: 'rgb(251,191,36)', fontWeight: 600 }}>{flaggedCount} flagged</span>
             </span>
           )}
-          {hasChanges && (
-            <button className="admin-edits-badge" onClick={handleExportCuration}>
-              Export Curation
-            </button>
+          {supabaseConnected && (
+            <span className="admin-content-stat">
+              <Cloud size={14} style={{ color: 'rgb(100,210,140)' }} />
+              <span style={{ color: 'rgb(100,210,140)', fontSize: '0.78rem' }}>Live</span>
+            </span>
           )}
         </div>
       </section>
@@ -273,18 +294,7 @@ function NodesTab() {
             Nodes ({filteredNodes.length})
             {flaggedCount > 0 && <span className="admin-flag-count-badge">{flaggedCount}</span>}
           </h2>
-          {hasChanges && (
-            <button className="admin-btn admin-btn-save" onClick={handleExportCuration}>
-              <Download size={16} /> Export Curation
-            </button>
-          )}
         </div>
-
-        {hasChanges && (
-          <div className="admin-save-instructions">
-            Download updated <code>curation.json</code>, replace in project root, and run <code>npm run pipeline</code>.
-          </div>
-        )}
 
         {nodes.length === 0 ? (
           <div className="admin-empty">
@@ -305,7 +315,6 @@ function NodesTab() {
               </div>
             </div>
 
-            {/* Epoch + Source filters */}
             {(epochs.length > 1 || sources.length > 1) && (
               <div className="admin-filters" style={{ marginTop: '-0.25rem' }}>
                 {epochs.length > 1 && (
@@ -329,7 +338,6 @@ function NodesTab() {
               </div>
             )}
 
-            {/* Flag + Visibility filters */}
             <div className="admin-filters" style={{ marginTop: '-0.25rem' }}>
               <div className="admin-type-pills">
                 <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>Flags</span>
@@ -370,17 +378,19 @@ function NodesTab() {
                       </th>
                     ))}
                     <th>Published</th>
+                    {supabaseConnected && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredNodes.map(node => {
-                    const isHidden = localHidden.has(node.id);
-                    const isFlagged = localFlags[node.id]?.length > 0;
+                    const hidden = isNodeHidden(node.id);
+                    const isFlagged = getNodeFlags(node.id)?.length > 0;
                     const vis = getNodeVis(node);
+                    const saveState = savingState.get(node.id);
                     return (
                       <tr
                         key={node.id}
-                        className={`admin-node-clickable ${isHidden ? 'admin-row-hidden' : ''} ${isFlagged ? 'admin-node-row-flagged' : ''} ${selectedNode === node.id ? 'admin-node-selected' : ''}`}
+                        className={`admin-node-clickable ${hidden ? 'admin-row-hidden' : ''} ${isFlagged ? 'admin-node-row-flagged' : ''} ${selectedNode === node.id ? 'admin-node-selected' : ''}`}
                         onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
                       >
                         <td className="admin-td-title" title={node.id}>{node.title || node.id}</td>
@@ -392,13 +402,18 @@ function NodesTab() {
                         <td><span className={`admin-vis-tag admin-vis-${vis}`}>{vis}</span></td>
                         <td>
                           <button
-                            className={`admin-toggle ${isHidden ? 'admin-toggle-off' : 'admin-toggle-on'}`}
-                            onClick={e => { e.stopPropagation(); toggleNodeVisibility(node.id); }}
-                            title={isHidden ? 'Hidden — click to publish' : 'Published — click to hide'}
+                            className={`admin-toggle ${hidden ? 'admin-toggle-off' : 'admin-toggle-on'}`}
+                            onClick={e => { e.stopPropagation(); toggleNodeHidden(node.id); }}
+                            title={hidden ? 'Hidden — click to publish' : 'Published — click to hide'}
                           >
-                            {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                            {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </td>
+                        {supabaseConnected && (
+                          <td>
+                            <span className={`admin-save-dot ${saveState === 'saving' ? 'admin-save-dot-saving' : saveState === 'saved' ? 'admin-save-dot-saved' : saveState === 'error' ? 'admin-save-dot-error' : ''}`} />
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -413,11 +428,17 @@ function NodesTab() {
       {detail && (
         <NodeDetailPanel
           node={detail}
+          curation={getCuration(detail.id)}
           vis={getNodeVis(detail)}
-          flags={localFlags[detail.id] || []}
+          flags={getNodeFlags(detail.id)}
+          saveState={savingState.get(detail.id)}
+          supabaseConnected={supabaseConnected}
           onChangeVis={(vis) => changeNodeVis(detail.id, vis)}
-          onAddFlag={(type, note) => { addFlag(detail.id, type, note); }}
+          onToggleHidden={() => toggleNodeHidden(detail.id)}
+          onAddFlag={(type, note) => addFlag(detail.id, type, note)}
           onRemoveFlag={(idx) => removeFlag(detail.id, idx)}
+          onUpdateCuration={(updates, immediate) => updateCuration(detail.id, updates, immediate)}
+          onReset={() => handleResetNode(detail.id)}
           onClose={() => setSelectedNode(null)}
           newFlagType={newFlagType}
           setNewFlagType={setNewFlagType}
@@ -430,7 +451,7 @@ function NodesTab() {
 }
 
 // ─── NODE DETAIL PANEL ──────────────────────────────────────────────────
-function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFlag, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote }) {
+function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnected, onChangeVis, onToggleHidden, onAddFlag, onRemoveFlag, onUpdateCuration, onReset, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote }) {
   const base = import.meta.env.BASE_URL || '/';
   const media = node.media || [];
   const entities = node.entities || {};
@@ -440,26 +461,105 @@ function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFla
     ...(entities.places || []).map(p => ({ label: p, type: 'places' })),
   ];
 
+  // Inline edit state
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [titleVal, setTitleVal] = useState(curation.title_override || '');
+  const [descVal, setDescVal] = useState(curation.description_override || '');
+  const [sigVal, setSigVal] = useState(curation.significance_override ?? node.significance ?? 0.5);
+  const titleRef = useRef(null);
+  const descRef = useRef(null);
+
+  // Sync local state when curation changes (e.g. different node selected)
+  useEffect(() => {
+    setTitleVal(curation.title_override || '');
+    setDescVal(curation.description_override || '');
+    setSigVal(curation.significance_override ?? node.significance ?? 0.5);
+    setEditingTitle(false);
+    setEditingDesc(false);
+  }, [node.id, curation]);
+
+  function handleTitleSave() {
+    setEditingTitle(false);
+    const val = titleVal.trim();
+    onUpdateCuration({ title_override: val || null }, true);
+  }
+
+  function handleDescSave() {
+    setEditingDesc(false);
+    const val = descVal.trim();
+    onUpdateCuration({ description_override: val || null }, true);
+  }
+
+  function handleSigChange(val) {
+    const num = parseFloat(val);
+    if (isNaN(num)) return;
+    setSigVal(num);
+    onUpdateCuration({ significance_override: num }, false); // debounced
+  }
+
   function handleAddFlag() {
     if (!newFlagType) return;
     onAddFlag(newFlagType, newFlagNote.trim());
     setNewFlagNote('');
   }
 
+  const hasOverrides = curation.node_id != null;
+
   return (
     <section className="admin-section admin-node-detail">
       <div className="admin-node-detail-header">
         <div>
-          <h3>{node.title || node.id}</h3>
+          {/* Inline-editable title */}
+          {editingTitle ? (
+            <input
+              ref={titleRef}
+              className="admin-inline-edit admin-inline-edit-title"
+              value={titleVal}
+              placeholder={node.title || node.id}
+              onChange={e => setTitleVal(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={e => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') { setEditingTitle(false); setTitleVal(curation.title_override || ''); } }}
+              autoFocus
+            />
+          ) : (
+            <h3
+              className="admin-node-title-editable"
+              onClick={() => { if (supabaseConnected) { setEditingTitle(true); setTitleVal(curation.title_override || node.title || ''); } }}
+              title={supabaseConnected ? 'Click to edit title' : node.title}
+            >
+              {curation.title_override || node.title || node.id}
+              {supabaseConnected && <Pencil size={12} className="admin-inline-edit-icon" />}
+            </h3>
+          )}
           <div className="admin-node-detail-badges">
             <span className={`admin-type-tag admin-type-${node.type}`}>{node.type}</span>
             <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.source}</span>
             {node.date && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.date}</span>}
             {node.epoch && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.epoch}</span>}
-            <span className="admin-pill" style={{ fontSize: '0.7rem' }}>sig: {node.significance?.toFixed(2) ?? '--'}</span>
+            {/* Save status */}
+            {saveState && (
+              <span className={`admin-save-status admin-save-status-${saveState}`}>
+                {saveState === 'saving' && 'Saving...'}
+                {saveState === 'saved' && <><Check size={12} /> Saved</>}
+                {saveState === 'error' && 'Error'}
+              </span>
+            )}
           </div>
         </div>
-        <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={onClose}>Close</button>
+        <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+          {hasOverrides && supabaseConnected && (
+            <button
+              className="admin-btn"
+              style={{ background: 'rgba(255,150,80,0.1)', color: 'rgb(255,170,110)', border: '1px solid rgba(255,150,80,0.2)', fontSize: '0.78rem' }}
+              onClick={onReset}
+              title="Remove all overrides and revert to pipeline defaults"
+            >
+              <RotateCcw size={14} /> Reset
+            </button>
+          )}
+          <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={onClose}>Close</button>
+        </div>
       </div>
 
       <div className="admin-node-detail-body">
@@ -487,12 +587,27 @@ function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFla
             </>
           )}
 
-          {/* Description */}
-          {node.description && (
-            <>
-              <h4>Description</h4>
-              <div className="admin-node-description">{node.description}</div>
-            </>
+          {/* Description — inline editable */}
+          <h4>Description</h4>
+          {editingDesc ? (
+            <textarea
+              ref={descRef}
+              className="admin-inline-edit admin-inline-edit-desc"
+              value={descVal}
+              placeholder={node.description || 'Add description...'}
+              onChange={e => setDescVal(e.target.value)}
+              onBlur={handleDescSave}
+              rows={4}
+              autoFocus
+            />
+          ) : (
+            <div
+              className={`admin-node-description ${supabaseConnected ? 'admin-node-description-editable' : ''}`}
+              onClick={() => { if (supabaseConnected) { setEditingDesc(true); setDescVal(curation.description_override || node.description || ''); } }}
+              title={supabaseConnected ? 'Click to edit description' : undefined}
+            >
+              {curation.description_override || node.description || <span style={{ color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No description</span>}
+            </div>
           )}
 
           {/* Entities */}
@@ -510,6 +625,36 @@ function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFla
 
         {/* Right column */}
         <div className="admin-node-detail-section">
+          {/* Significance override */}
+          {supabaseConnected && (
+            <>
+              <h4>Significance Override</h4>
+              <div className="admin-sig-control">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={sigVal}
+                  onChange={e => handleSigChange(e.target.value)}
+                  className="admin-sig-slider"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={sigVal}
+                  onChange={e => handleSigChange(e.target.value)}
+                  className="admin-sig-input"
+                />
+                <span className="admin-sig-original" title="Pipeline value">
+                  orig: {node.significance?.toFixed(2) ?? '--'}
+                </span>
+              </div>
+            </>
+          )}
+
           {/* Visibility control */}
           <h4>Visibility</h4>
           <select className="admin-vis-select" value={vis} onChange={e => onChangeVis(e.target.value)}>
@@ -517,6 +662,19 @@ function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFla
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
+
+          {/* Hidden toggle */}
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              className={`admin-toggle ${curation.hidden ? 'admin-toggle-off' : 'admin-toggle-on'}`}
+              onClick={onToggleHidden}
+            >
+              {curation.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
+              {curation.hidden ? 'Hidden from visitors' : 'Published'}
+            </span>
+          </div>
 
           {/* Flags */}
           <h4 style={{ marginTop: '0.75rem' }}>
@@ -527,7 +685,7 @@ function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFla
               {flags.map((f, i) => (
                 <div key={i} className="admin-flag-entry">
                   <span className="admin-flag-badge">{f.type}</span>
-                  <span className="admin-flag-note" title={f.note}>{f.note || '—'}</span>
+                  <span className="admin-flag-note" title={f.note}>{f.note || '\u2014'}</span>
                   <span className="admin-flag-date">{f.createdAt}</span>
                   <span className="admin-flag-source">{f.source}</span>
                   <button className="admin-flag-remove" onClick={() => onRemoveFlag(i)} title="Remove flag">

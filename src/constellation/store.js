@@ -93,4 +93,11 @@ const useConstellationStore = create((set, get) => ({
 // Selector for panelOpen (derived state)
 export const selectPanelOpen = (state) => state.focusedNodeId !== null;
 
+// Listen for admin curation changes and reload data
+if (typeof window !== 'undefined') {
+  window.addEventListener('constellation-data-changed', () => {
+    useConstellationStore.getState().loadData({ force: true });
+  });
+}
+
 export { useConstellationStore };
