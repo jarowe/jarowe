@@ -44,29 +44,25 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       base[i * 3 + 1] = y;
       base[i * 3 + 2] = z;
 
-      // Color: theme-based, dimmed by significance
+      // Color: theme-based with type fallback, dimmed by significance
       const sig = node.significance ?? 0.2;
       const brightness = 0.2 + sig * 0.6; // subtle: range 0.2 to 0.8
       const themeColors = {
-        love:        '#f472b6',
-        family:      '#fb923c',
-        fatherhood:  '#fb923c',
-        career:      '#60a5fa',
-        craft:       '#38bdf8',
-        growth:      '#a78bfa',
-        reflection:  '#c084fc',
-        adventure:   '#2dd4bf',
-        travel:      '#2dd4bf',
-        greece:      '#2dd4bf',
-        celebration: '#fbbf24',
-        friendship:  '#818cf8',
-        nature:      '#34d399',
-        food:        '#f97316',
-        nostalgia:   '#d4a574',
-        faith:       '#e2c6ff',
-        home:        '#86efac',
+        love: '#f472b6', family: '#fb923c', fatherhood: '#fb923c',
+        career: '#60a5fa', craft: '#38bdf8', growth: '#a78bfa',
+        reflection: '#c084fc', adventure: '#2dd4bf', travel: '#2dd4bf',
+        greece: '#2dd4bf', celebration: '#fbbf24', friendship: '#818cf8',
+        nature: '#34d399', food: '#f97316', nostalgia: '#d4a574',
+        faith: '#e2c6ff', home: '#86efac',
       };
-      tempColor.set(themeColors[node.theme] || '#94a3b8').multiplyScalar(brightness);
+      const typeColors = {
+        project: '#f59e0b', moment: '#f87171', person: '#a78bfa',
+        place: '#2dd4bf', idea: '#22d3ee', milestone: '#fbbf24',
+        track: '#34d399',
+      };
+      const color = (node.theme && themeColors[node.theme])
+        || typeColors[node.type] || '#94a3b8';
+      tempColor.set(color).multiplyScalar(brightness);
       col[i * 3] = tempColor.r;
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;

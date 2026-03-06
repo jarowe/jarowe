@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import gsap from 'gsap';
 import * as THREE from 'three';
@@ -32,6 +32,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
   // Tunnel mode scroll handling
   const tunnelScrollRef = useRef(null);
+
+  // Track previous focus for stepping detection
+  const prevFocusRef = useRef(null);
 
   // Capture initial camera state on mount
   useEffect(() => {
@@ -195,25 +198,62 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     prevCameraMode.current = cameraMode;
   }, [cameraMode, controlsRef, helixBounds, camera, setTunnelY]);
 
-  // ---- Tunnel scroll navigation (wheel event) ----
+  // ---- Pre-compute sorted helix node list for scroll-to-next ----
+  const sortedHelixNodes = useMemo(() => {
+    if (!positions || positions.length === 0) return [];
+    return [...positions].sort((a, b) => a.y - b.y);
+  }, [positions]);
+
+  // Debounce ref for scroll-to-next (prevent rapid-fire scrolling)
+  const scrollCooldownRef = useRef(false);
+
+  // ---- Scroll navigation: next/prev node when focused, tunnel scroll otherwise ----
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
 
     const handleWheel = (e) => {
-      const { cameraMode: mode } = useConstellationStore.getState();
-      if (mode !== 'tunnel') return;
-
-      e.preventDefault();
       const state = useConstellationStore.getState();
-      const speed = 2;
-      const delta = e.deltaY * speed * 0.01;
-      const newY = Math.max(
-        helixBounds?.minY ?? -200,
-        Math.min(helixBounds?.maxY ?? 200, state.tunnelY + delta)
-      );
 
-      state.setTunnelY(newY);
+      // Tunnel mode: free scroll along Y axis
+      if (state.cameraMode === 'tunnel') {
+        e.preventDefault();
+        const speed = 2;
+        const delta = e.deltaY * speed * 0.01;
+        const newY = Math.max(
+          helixBounds?.minY ?? -200,
+          Math.min(helixBounds?.maxY ?? 200, state.tunnelY + delta)
+        );
+        state.setTunnelY(newY);
+        return;
+      }
+
+      // Helix mode with focused node: scroll-to-next/prev node on the rail
+      if (state.focusedNodeId && sortedHelixNodes.length > 1) {
+        e.preventDefault();
+
+        // Cooldown to prevent rapid jumping
+        if (scrollCooldownRef.current) return;
+        scrollCooldownRef.current = true;
+        setTimeout(() => { scrollCooldownRef.current = false; }, 600);
+
+        const currentIdx = sortedHelixNodes.findIndex(
+          (n) => n.id === state.focusedNodeId
+        );
+        if (currentIdx === -1) return;
+
+        // Scroll down (deltaY > 0) = move forward in time (higher Y)
+        // Scroll up (deltaY < 0) = move backward in time (lower Y)
+        const direction = e.deltaY > 0 ? 1 : -1;
+        const nextIdx = currentIdx + direction;
+
+        if (nextIdx >= 0 && nextIdx < sortedHelixNodes.length) {
+          state.focusNode(sortedHelixNodes[nextIdx].id);
+        }
+        return;
+      }
+
+      // No focus: let default orbit controls handle zoom
     };
 
     const canvas = controls.domElement;
@@ -226,31 +266,47 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         canvas.removeEventListener('wheel', handleWheel);
       }
     };
-  }, [controlsRef, helixBounds]);
+  }, [controlsRef, helixBounds, sortedHelixNodes]);
 
-  // ---- Tunnel keyboard navigation ----
+  // ---- Keyboard navigation: tunnel + focused node stepping ----
   useEffect(() => {
     const handleKeyDown = (e) => {
-      const { cameraMode: mode } = useConstellationStore.getState();
-      if (mode !== 'tunnel') return;
-
       const state = useConstellationStore.getState();
-      const step = 5;
 
-      if (e.key === 'ArrowUp' || e.key === 'w') {
-        e.preventDefault();
-        const newY = Math.min(helixBounds?.maxY ?? 200, state.tunnelY + step);
-        state.setTunnelY(newY);
-      } else if (e.key === 'ArrowDown' || e.key === 's') {
-        e.preventDefault();
-        const newY = Math.max(helixBounds?.minY ?? -200, state.tunnelY - step);
-        state.setTunnelY(newY);
+      // Tunnel mode: free Y movement
+      if (state.cameraMode === 'tunnel') {
+        const step = 5;
+        if (e.key === 'ArrowUp' || e.key === 'w') {
+          e.preventDefault();
+          state.setTunnelY(Math.min(helixBounds?.maxY ?? 200, state.tunnelY + step));
+        } else if (e.key === 'ArrowDown' || e.key === 's') {
+          e.preventDefault();
+          state.setTunnelY(Math.max(helixBounds?.minY ?? -200, state.tunnelY - step));
+        }
+        return;
+      }
+
+      // Helix mode with focused node: arrow keys step through nodes
+      if (state.focusedNodeId && sortedHelixNodes.length > 1) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const currentIdx = sortedHelixNodes.findIndex(
+            (n) => n.id === state.focusedNodeId
+          );
+          if (currentIdx === -1) return;
+
+          const direction = e.key === 'ArrowUp' ? 1 : -1;
+          const nextIdx = currentIdx + direction;
+          if (nextIdx >= 0 && nextIdx < sortedHelixNodes.length) {
+            state.focusNode(sortedHelixNodes[nextIdx].id);
+          }
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [helixBounds]);
+  }, [helixBounds, sortedHelixNodes]);
 
   // ---- Smooth tunnel camera follow ----
   useFrame(() => {
@@ -309,6 +365,12 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         // Compute camera offset: above-right looking at node
         const camTarget = { x: node.x + 15, y: node.y + 5, z: node.z + 15 };
 
+        // Shorter duration for stepping between nodes, longer for first focus
+        const prevNode = prevFocusRef.current;
+        const isStepping = prevNode && sortedHelixNodes.length > 1;
+        const duration = isStepping ? 0.8 : 1.5;
+        const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
+
         // Animate BOTH camera.position AND controls.target simultaneously
         const tl = gsap.timeline({
           onUpdate: () => controls.update(),
@@ -318,29 +380,20 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         });
         tl.to(
           camera.position,
-          {
-            x: camTarget.x,
-            y: camTarget.y,
-            z: camTarget.z,
-            duration: 1.5,
-            ease: 'power2.inOut',
-          },
+          { x: camTarget.x, y: camTarget.y, z: camTarget.z, duration, ease },
           0
         );
         tl.to(
           controls.target,
-          {
-            x: node.x,
-            y: node.y,
-            z: node.z,
-            duration: 1.5,
-            ease: 'power2.inOut',
-          },
+          { x: node.x, y: node.y, z: node.z, duration, ease },
           0
         );
         flyTimeline.current = tl;
       }
+      prevFocusRef.current = focusedNodeId;
     } else {
+      prevFocusRef.current = null;
+
       if (mode === 'tunnel') {
         // In tunnel mode: no fly-back, just stay where we are
         isFlyingRef.current = false;

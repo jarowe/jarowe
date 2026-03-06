@@ -27,6 +27,24 @@ const THEME_COLORS = {
   home:        '#86efac',   // light green
 };
 
+/** Fallback: type-based colors when theme is not yet in the data */
+const TYPE_COLORS = {
+  project:   '#f59e0b',   // amber
+  moment:    '#f87171',   // coral
+  person:    '#a78bfa',   // violet
+  place:     '#2dd4bf',   // teal
+  idea:      '#22d3ee',   // cyan
+  milestone: '#fbbf24',   // gold
+  track:     '#34d399',   // emerald
+};
+
+/** Get the best color for a node: theme first, type fallback, then grey */
+function getNodeColor(node) {
+  if (node.theme && THEME_COLORS[node.theme]) return THEME_COLORS[node.theme];
+  if (node.type && TYPE_COLORS[node.type]) return TYPE_COLORS[node.type];
+  return '#94a3b8';
+}
+
 /**
  * Get IDs of nodes connected to a given node (from edges).
  */
@@ -114,7 +132,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
       const brightness = 0.3 + sig * 1.5; // range 0.3 to 1.8
-      tempColor.set(THEME_COLORS[node.theme] || '#94a3b8').multiplyScalar(brightness);
+      tempColor.set(getNodeColor(node)).multiplyScalar(brightness);
       mesh.setColorAt(i, tempColor);
     });
 
@@ -150,7 +168,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
       const sig = nodes[i].significance ?? 0.5;
       const brightness = 0.3 + sig * 1.5;
-      tempColor.set(THEME_COLORS[nodes[i].theme] || '#94a3b8');
+      tempColor.set(getNodeColor(nodes[i]));
       tempColor.multiplyScalar(dimFactor * brightness);
       mesh.setColorAt(i, tempColor);
     }
