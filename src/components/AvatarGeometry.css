@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   AVATAR GEOMETRY — Sacred Geometry Frame
+   AVATAR GEOMETRY — Family Pentagon Frame
+   Larger, slower, more contemplative than the AuthModal portal.
    ═══════════════════════════════════════════════════════════════════════ */
 
 .avatar-geo-wrap {
@@ -15,26 +16,26 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 200px;
-  height: 200px;
+  width: 230px;
+  height: 230px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
-  transition: filter 0.4s;
+  transition: filter 0.6s ease;
 }
 
-/* Hover: brighten geometry */
+/* Hover: gentle brightening */
 .avatar-geo-wrap:hover .avatar-geo-svg {
-  filter: brightness(1.4) saturate(1.3);
+  filter: brightness(1.3) saturate(1.2);
 }
 
-/* Burst rings */
-.ag-burst, .ag-burst-2 { pointer-events: none; }
+/* Burst ring */
+.fp-burst { pointer-events: none; }
 
 /* Responsive — scale down geometry on smaller screens */
 @media (max-width: 640px) {
   .avatar-geo-svg {
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 180px;
   }
 }
