@@ -5,12 +5,31 @@ import Patcher from './pages/Patcher';
 import BeamyProject from './pages/BeamyProject';
 import React, { Suspense } from 'react';
 import StarseedProject from './pages/StarseedProject';
-const UniversePage = React.lazy(() => import('./pages/UniversePage'));
-const ConstellationPage = React.lazy(() => import('./pages/ConstellationPage'));
-const AdminPage = React.lazy(() => import('./pages/Admin'));
-const AdminGames = React.lazy(() => import('./pages/AdminGames'));
-const AdminStub = React.lazy(() => import('./pages/AdminStub'));
-const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+
+// Retry wrapper for lazy imports — handles stale chunks after deployments
+function lazyRetry(importFn) {
+  return React.lazy(() =>
+    importFn().catch(() => {
+      // First import failed (likely stale chunk) — reload once
+      const key = 'jarowe_chunk_reload';
+      const last = sessionStorage.getItem(key);
+      if (!last || Date.now() - parseInt(last, 10) > 10000) {
+        sessionStorage.setItem(key, String(Date.now()));
+        window.location.reload();
+        return new Promise(() => {}); // Never resolves — page is reloading
+      }
+      // Already tried reloading — let error propagate to boundary
+      return importFn();
+    })
+  );
+}
+
+const UniversePage = lazyRetry(() => import('./pages/UniversePage'));
+const ConstellationPage = lazyRetry(() => import('./pages/ConstellationPage'));
+const AdminPage = lazyRetry(() => import('./pages/Admin'));
+const AdminGames = lazyRetry(() => import('./pages/AdminGames'));
+const AdminStub = lazyRetry(() => import('./pages/AdminStub'));
+const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
 import Now from './pages/Now';
