@@ -154,15 +154,21 @@ export default function AvatarGeometry({ children, effect }) {
       tl.add(d, { draw: '0 1', duration: 1400, ease: 'inOutQuad' }, 600);
     });
 
-    // 1.0s — Family circles bloom at each vertex
+    // 1.0s — Family circles bloom at each vertex (white fill, colored stroke)
     tl.add(el.querySelectorAll('.fp-family-circle'), {
-      r: [0, 5], opacity: [0, 0.85], duration: 700, ease: 'outBack(2)',
+      r: [0, 3.5], opacity: [0, 1], duration: 700, ease: 'outBack(2)',
       delay: stagger(150),
     }, 1000);
 
+    // 1.1s — Family stroke rings appear
+    tl.add(el.querySelectorAll('.fp-family-stroke'), {
+      r: [0, 6], opacity: [0, 0.9], duration: 700, ease: 'outBack(2)',
+      delay: stagger(150),
+    }, 1100);
+
     // 1.2s — Family glows appear
     tl.add(el.querySelectorAll('.fp-family-glow'), {
-      r: [0, 10], opacity: [0, 0.3], duration: 800, ease: 'outQuad',
+      r: [0, 9], opacity: [0, 0.2], duration: 800, ease: 'outQuad',
       delay: stagger(150),
     }, 1200);
 
@@ -214,18 +220,26 @@ export default function AvatarGeometry({ children, effect }) {
       rotate: [0, 360], duration: 90000, loop: true, ease: 'linear',
     }));
 
-    // Family circles — each has its own gentle heartbeat pulse
+    // Family circles — subtle pulse (white dots)
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [5, 6.2, 5], opacity: [0.85, 1, 0.85],
+        r: [3.5, 4.2, 3.5], opacity: [0.9, 1, 0.9],
         duration: 3000 + i * 500, loop: true, ease: 'inOutSine',
+      }));
+    });
+
+    // Family stroke rings — gentle breathe
+    el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+      anims.push(animate(c, {
+        r: [6, 7, 6], opacity: [0.7, 1, 0.7],
+        duration: 3500 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
 
     // Family glows — slower pulse, out of phase with circles
     el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [10, 14, 10], opacity: [0.2, 0.4, 0.2],
+        r: [9, 12, 9], opacity: [0.15, 0.3, 0.15],
         duration: 4000 + i * 700, loop: true, ease: 'inOutSine',
       }));
     });
@@ -315,13 +329,22 @@ export default function AvatarGeometry({ children, effect }) {
       });
     }
 
-    // All family circles flash in unison (family unity moment)
-    animate(el.querySelectorAll('.fp-family-circle'), {
-      r: [5, 9, 5], opacity: [0.85, 1, 0.85],
-      duration: 600, ease: 'outQuad', delay: stagger(50),
+    // Family circles flash to FULL COLOR on click (unity moment)
+    el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
+      const col = FAMILY[i]?.color || '#fff';
+      animate(c, {
+        r: [3.5, 7, 3.5], fill: ['#fff', col, '#fff'],
+        duration: 800, ease: 'outQuad',
+        delay: i * 60,
+      });
+    });
+    animate(el.querySelectorAll('.fp-family-stroke'), {
+      r: [6, 10, 6], strokeWidth: [1.2, 2.5, 1.2],
+      opacity: [0.8, 1, 0.8],
+      duration: 700, ease: 'outQuad', delay: stagger(50),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [10, 22, 10], opacity: [0.3, 0.7, 0.3],
+      r: [9, 20, 9], opacity: [0.2, 0.6, 0.2],
       duration: 700, ease: 'outQuad', delay: stagger(50),
     });
 
@@ -372,17 +395,20 @@ export default function AvatarGeometry({ children, effect }) {
 
   /* ── Pre-compute SVG elements ── */
 
-  // Pentagon vertices for family circles
+  // Pentagon vertices for family circles (white core + colored stroke ring)
   const familyCircles = useMemo(() => FAMILY.map((f, i) => {
     const v = vertexAt(i, 68);
     return (
       <g key={i}>
-        {/* Outer glow */}
-        <circle cx={v.x} cy={v.y} r="10" className="fp-family-glow"
+        {/* Soft glow behind */}
+        <circle cx={v.x} cy={v.y} r="9" className="fp-family-glow"
           fill={f.glow} opacity="0" />
-        {/* Core circle */}
+        {/* Colored stroke ring */}
+        <circle cx={v.x} cy={v.y} r="0" className="fp-family-stroke"
+          fill="none" stroke={f.color} strokeWidth="1.2" opacity="0" />
+        {/* White core dot */}
         <circle cx={v.x} cy={v.y} r="0" className="fp-family-circle"
-          fill={f.color} opacity="0" />
+          fill="#fff" opacity="0" />
       </g>
     );
   }), []);
