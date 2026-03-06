@@ -206,6 +206,8 @@ export default function Home() {
   const [tourIndex, setTourIndex] = useState(-1);
   const [tourPhotos, setTourPhotos] = useState([]); // nearby Instagram photos at current tour stop
   const preTourPositionRef = useRef(null);
+  const tourExitPulseRef = useRef(0);
+  const [tourExitFlash, setTourExitFlash] = useState(false);
 
   // Instagram photo markers for globe (geo-tagged posts only, deduplicated by location)
   const globePhotoMarkers = useMemo(() => {
@@ -3238,6 +3240,33 @@ export default function Home() {
                 }
               }
 
+              // Tour exit cinematic pulse — drives PP effects during exit
+              if (tourExitPulseRef.current > 0) {
+                const p = tourExitPulseRef.current;
+                tourExitPulseRef.current = Math.max(0, p - dt * 0.9); // ~1.1s full decay
+
+                if (globe.ppPass) {
+                  const ppu = globe.ppPass.uniforms;
+                  // Chromatic aberration spike (cubic — sharp peak, fast decay)
+                  ppu.chromaticAberration.value = ep.ppChromaticAberration + 0.05 * p * p * p;
+                  // Vignette tightening (linear — sustained cinematic feel)
+                  ppu.vignetteStrength.value = ep.ppVignetteStrength + 0.4 * p;
+                  // Brightness flash (quartic — very sharp peak, instant decay)
+                  ppu.brightness.value = ep.ppBrightness + 0.22 * p * p * p * p;
+                  // Film grain boost (linear)
+                  ppu.filmGrain.value = ep.ppFilmGrain + 0.06 * p;
+                  // Saturation drain (quadratic — noticeable dip)
+                  ppu.saturation.value = ep.ppSaturation - 0.3 * p * p;
+                }
+
+                // FOV punch (elastic — punches wide, eases back)
+                const cam = globe.camera();
+                if (cam) {
+                  cam.fov = 50 + 5 * p * p;
+                  cam.updateProjectionMatrix();
+                }
+              }
+
               // Read audio data from global analyser (set up by AudioContext.jsx)
               if (window.globalAnalyser) {
                 window.globalAnalyser.getByteFrequencyData(audioDataArray);
@@ -4546,9 +4575,12 @@ export default function Home() {
   const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
 
-    // Phase 1 (T+0): Exit sound + overlay fade begins + dramatic camera pullback
+    // Phase 1 (T+0): Exit sound + overlay fade begins + dramatic camera pullback + VFX
     playTourExitSound();
     setTourExiting(true);
+    tourExitPulseRef.current = 1.0; // triggers PP chromatic/vignette/brightness/grain/saturation
+    setTourExitFlash(true); // CSS radial flash overlay
+    setTimeout(() => setTourExitFlash(false), 600);
 
     // Dramatic camera zoom-out: pull from tour altitude (~1.5) to overshoot (5.0)
     // This creates a "pulling away from the world" effect that compounds with FLIP shrink
@@ -6541,6 +6573,8 @@ export default function Home() {
               <span className="ws-dot" />
               WORLDSCHOOLING FAMILY
             </div>
+            {/* Cinematic flash on tour exit */}
+            {tourExitFlash && <div className="tour-exit-flash" />}
             {/* Text message blurbs */}
             <AnimatePresence>
               {globeMessage && (
