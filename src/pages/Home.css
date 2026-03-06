@@ -2344,3 +2344,38 @@
     border-color: rgba(255, 255, 255, 0.3);
     opacity: 1;
 }
+
+/* ── Prism Dash Counter ── */
+.prism-dash-counter {
+    position: fixed;
+    bottom: 72px;
+    left: 20px;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 14px;
+    font-family: var(--font-display);
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+}
+
+.prism-dash-counter .dash-bolt {
+    font-size: 0.8rem;
+}
+
+.prism-dash-counter .dash-nums {
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: #fbbf24;
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.prism-dash-counter .dash-label {
+    font-size: 0.7rem;
+    color: rgba(251, 191, 36, 0.7);
+    letter-spacing: 0.02em;
+}

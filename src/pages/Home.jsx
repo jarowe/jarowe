@@ -4043,6 +4043,9 @@ export default function Home() {
   const [peekStyle, setPeekStyle] = useState('slide');
   const [portalExitAnim, setPortalExitAnim] = useState(false); // true = shrinking in-place via framer-motion
   const [prismBops, setPrismBops] = useState(0);
+  const bopModeRef = useRef(0); // cycles: scripted → ai → globe → thought
+  const [dashProgress, setDashProgress] = useState(null); // { current, total, id } — Prism Dash counter
+  const dashTimerRef = useRef(null);
   const [prismBubble, setPrismBubble] = useState(null);
   const [bubblePhase, setBubblePhase] = useState(null); // null | 'thinking' | 'speaking'
   const bubbleThinkTimerRef = useRef(null);
@@ -5708,59 +5711,81 @@ export default function Home() {
       setTimeout(() => bento.classList.remove('screen-shake'), 400);
     }
 
-    // ── After impact (600ms): enter AI chat, scripted convo, or portal exit ──
+    // ── After impact (600ms): cycle between interaction modes ──
     const convoEnabled = bpCfg.brainConversationEnabled !== false && bpCfg.brainEnabled !== false;
-    const aiChatOnBop = bpCfg.aiChatEnabled && bpCfg.brainEnabled !== false;
+    const aiEnabled = bpCfg.aiChatEnabled && bpCfg.brainEnabled !== false;
 
-    if (aiChatOnBop) {
-      // Bop → AI chat mode directly
+    if (convoEnabled || aiEnabled) {
+      // Build available modes based on config
+      const modes = [];
+      if (convoEnabled) modes.push('scripted');
+      if (aiEnabled) modes.push('ai');
+      if (convoEnabled) modes.push('globe');
+      modes.push('thought');
+      const mode = modes[bopModeRef.current % modes.length];
+      bopModeRef.current += 1;
+
       setTimeout(() => {
         setBopPhase(null);
         window.__currentHoliday = holiday;
         window.__isBirthday = isBirthday;
         const ctx = buildContext();
         ctx.bopsThisSession = sb + 1;
-        const root = getConversationRoot(ctx);
-        conversationRootKeyRef.current = root.rootKey || null;
-        setConversationMode(true);
-        setConversationNode(root); // show root pills (Globe Tour, AI, Reroll) before AI takes over
-        setAiChatMode(true);
-        // Pause autonomy during conversation
         const aut = getGlintAutonomy();
         if (aut) aut.pause();
-        window.__prismExpression = root.expression || 'happy';
-        showBubbleWithThinking(root.text);
 
-        // Longer timeout for AI chat — user needs time to type
-        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
-        conversationTimeoutRef.current = setTimeout(() => {
-          exitConversation();
+        if (mode === 'scripted') {
+          // SCRIPTED — dialogue pills (Globe Tour, secrets, AI, reroll)
+          const root = getConversationRoot(ctx);
+          conversationRootKeyRef.current = root.rootKey || null;
+          setConversationMode(true);
+          setConversationNode(root);
           setAiChatMode(false);
-        }, 60 * 1000);
-      }, 600);
-    } else if (convoEnabled) {
-      // Enter scripted conversation mode (fallback when AI disabled)
-      setTimeout(() => {
-        setBopPhase(null);
-        window.__currentHoliday = holiday;
-        window.__isBirthday = isBirthday;
-        const ctx = buildContext();
-        ctx.bopsThisSession = sb + 1;
-        const root = getConversationRoot(ctx);
-        conversationRootKeyRef.current = root.rootKey || null;
-        setConversationMode(true);
-        setConversationNode(root);
-        // Pause autonomy during conversation
-        const aut = getGlintAutonomy();
-        if (aut) aut.pause();
-        window.__prismExpression = root.expression || 'happy';
-        showBubbleWithThinking(root.text);
+          window.__prismExpression = root.expression || 'happy';
+          showBubbleWithThinking(root.text);
+          if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+          conversationTimeoutRef.current = setTimeout(() => exitConversation(), (bpCfg.brainConversationTimeout ?? 15) * 1000);
 
-        // Start conversation timeout
-        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
-        conversationTimeoutRef.current = setTimeout(() => {
-          exitConversation();
-        }, (bpCfg.brainConversationTimeout ?? 15) * 1000);
+        } else if (mode === 'ai') {
+          // AI CHAT — text input mode
+          const root = getConversationRoot(ctx);
+          conversationRootKeyRef.current = root.rootKey || null;
+          setConversationMode(true);
+          setConversationNode(null);
+          setAiChatMode(true);
+          window.__prismExpression = root.expression || 'happy';
+          showBubbleWithThinking(root.text);
+          if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+          conversationTimeoutRef.current = setTimeout(() => { exitConversation(); setAiChatMode(false); }, 60 * 1000);
+
+        } else if (mode === 'globe') {
+          // GLOBE TOUR — direct destination menu
+          const globeNode = getDialogueNode('globe-tour-start', ctx);
+          if (globeNode) {
+            setConversationMode(true);
+            setConversationNode(globeNode);
+            setAiChatMode(false);
+            window.__prismExpression = globeNode.expression || 'excited';
+            showBubbleWithThinking(globeNode.text);
+            if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+            conversationTimeoutRef.current = setTimeout(() => exitConversation(), (bpCfg.brainConversationTimeout ?? 15) * 1000);
+          }
+
+        } else if (mode === 'thought') {
+          // THOUGHT — ambient line, no conversation, auto-dismiss
+          const line = getAmbientLine(ctx);
+          if (line) {
+            window.__prismExpression = line.expression || 'thinking';
+            showBubbleWithThinking(line.text);
+          }
+          // Auto-exit after 8 seconds — no conversation mode
+          autoExitTimerRef.current = setTimeout(() => {
+            clearBubble();
+            window.__prismBopExit = true;
+            runPortalExitSequence();
+          }, 8000);
+          if (aut) setTimeout(() => aut.resume(), 500);
+        }
       }, 600);
     } else {
       // Original behavior: immediate portal exit
@@ -5777,6 +5802,14 @@ export default function Home() {
     const speedPuzzleInterval = (window.__prismConfig || {}).speedPuzzleInterval ?? 10;
     if (speedPuzzleInterval > 0 && newBops % speedPuzzleInterval === 0) {
       setTimeout(() => setShowSpeedGame(true), 2500);
+    }
+
+    // Show Prism Dash progress counter
+    if (speedPuzzleInterval > 0) {
+      const progress = newBops % speedPuzzleInterval;
+      if (dashTimerRef.current) clearTimeout(dashTimerRef.current);
+      setDashProgress({ current: progress, total: speedPuzzleInterval, id: Date.now() });
+      dashTimerRef.current = setTimeout(() => setDashProgress(null), 8000);
     }
   }, [prismBops, clearBubble, runPortalExitSequence, exitConversation, showBubbleWithThinking, holiday, isBirthday, handleConversationPunch]);
 
@@ -6473,6 +6506,24 @@ export default function Home() {
               </motion.div>
             );
           })()}
+        </AnimatePresence>
+
+        {/* PRISM DASH COUNTER — shows bop progress toward speed puzzle */}
+        <AnimatePresence>
+          {dashProgress && (
+            <motion.div
+              key={dashProgress.id}
+              className="prism-dash-counter"
+              initial={{ opacity: 0, y: 16, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.9 }}
+              transition={{ type: 'spring', bounce: 0.3, duration: 0.4 }}
+            >
+              <span className="dash-bolt">⚡</span>
+              <span className="dash-nums">{dashProgress.current}/{dashProgress.total}</span>
+              <span className="dash-label">Prism Dash</span>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* DYNAMIC BUBBLE CONNECTOR — SVG line between bubble and character, updates every frame */}
