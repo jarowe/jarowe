@@ -131,7 +131,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
       // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
-      const brightness = 0.3 + sig * 1.5; // range 0.3 to 1.8
+      const brightness = 0.5 + sig * 0.8; // range 0.5 to 1.3
       tempColor.set(getNodeColor(node)).multiplyScalar(brightness);
       mesh.setColorAt(i, tempColor);
     });
@@ -175,10 +175,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
     mesh.instanceColor.needsUpdate = true;
 
-    // Update emissive intensity scaled by focus state
-    if (materialRef.current) {
-      materialRef.current.emissiveIntensity = focusedNodeId ? 2.0 : 1.0;
-    }
+    // No emissive needed with meshBasicMaterial
   }, [focusedNodeId, filterEntity, nodes, count, storeEdges, storeNodes]);
 
   // Breathing pulse animation
@@ -234,11 +231,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       <sphereGeometry
         args={[1, gpuConfig.sphereSegments, gpuConfig.sphereSegments]}
       />
-      <meshStandardMaterial
+      <meshBasicMaterial
         ref={materialRef}
         color="#ffffff"
-        emissive="#ffffff"
-        emissiveIntensity={0.4}
         toneMapped={false}
       />
     </instancedMesh>

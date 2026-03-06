@@ -42,13 +42,14 @@ export default function TimelineScrubber() {
     });
   }, [epochs]);
 
-  // Convert pointer Y to normalized position (0 = top/oldest, 1 = bottom/newest)
+  // Convert pointer Y to normalized position (0 = bottom/oldest, 1 = top/newest)
+  // Inverted so top of slider = newest (high Y), bottom = oldest (low Y)
   const getPositionFromPointer = useCallback((clientY) => {
     const track = trackRef.current;
     if (!track) return 0;
     const rect = track.getBoundingClientRect();
     const y = clientY - rect.top;
-    const normalized = Math.max(0, Math.min(1, y / rect.height));
+    const normalized = Math.max(0, Math.min(1, 1 - y / rect.height));
     return normalized;
   }, []);
 
@@ -98,7 +99,7 @@ export default function TimelineScrubber() {
           <button
             key={i}
             className="timeline-scrubber__epoch"
-            style={{ top: `${epoch.position * 100}%` }}
+            style={{ top: `${(1 - epoch.position) * 100}%` }}
             onClick={() => setTimelinePosition(epoch.position)}
             title={epoch.label}
           >
@@ -120,7 +121,7 @@ export default function TimelineScrubber() {
         <div className="timeline-scrubber__rail" />
         <div
           className="timeline-scrubber__thumb"
-          style={{ top: `${timelinePosition * 100}%` }}
+          style={{ top: `${(1 - timelinePosition) * 100}%` }}
         />
       </div>
     </div>

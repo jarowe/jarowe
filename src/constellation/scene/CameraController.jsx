@@ -131,11 +131,20 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         onUpdate: () => controls.update(),
         onComplete: () => {
           isFlyingRef.current = false;
-          // In tunnel: disable full orbit rotation but allow limited panning
-          controls.enableRotate = false;
-          controls.enablePan = true;
-          controls.enableZoom = false;
+          // In tunnel: left-drag = look around (rotate), right-drag = zoom
+          controls.enableRotate = true;
+          controls.enablePan = false;
+          controls.enableZoom = true;
           controls.autoRotate = false;
+          // Remap: left button rotates, right button zooms (dolly)
+          controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.DOLLY,
+          };
+          // Limit rotation range in tunnel so you can't flip upside down
+          controls.minPolarAngle = Math.PI * 0.2;
+          controls.maxPolarAngle = Math.PI * 0.8;
         },
       });
 
@@ -170,6 +179,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       controls.enablePan = false;
       controls.enableZoom = true;
       tunnelVelocity.current = 0;
+      // Restore default mouse buttons and polar angles
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      };
+      controls.minPolarAngle = Math.PI * (15 / 180);
+      controls.maxPolarAngle = Math.PI * (165 / 180);
 
       const currentY = camera.position.y;
       const exitZ = initialCameraPos.current?.z || 110;
@@ -221,14 +238,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const handleWheel = (e) => {
       const state = useConstellationStore.getState();
 
-      // Tunnel mode: smooth momentum-based scroll along Y axis
+      // Tunnel mode: smooth gentle scroll along Y axis
       if (state.cameraMode === 'tunnel') {
         e.preventDefault();
-        // Accumulate velocity for momentum scrolling
-        const impulse = e.deltaY * 0.08;
+        // Gentle velocity accumulation — small impulse for smooth feel
+        const impulse = e.deltaY * 0.012;
         tunnelVelocity.current += impulse;
-        // Clamp max velocity
-        tunnelVelocity.current = Math.max(-15, Math.min(15, tunnelVelocity.current));
+        // Clamp max velocity to prevent overshooting
+        tunnelVelocity.current = Math.max(-3, Math.min(3, tunnelVelocity.current));
         return;
       }
 
@@ -276,15 +293,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const handleKeyDown = (e) => {
       const state = useConstellationStore.getState();
 
-      // Tunnel mode: free Y movement
+      // Tunnel mode: gentle Y movement
       if (state.cameraMode === 'tunnel') {
-        const step = 5;
         if (e.key === 'ArrowUp' || e.key === 'w') {
           e.preventDefault();
-          tunnelVelocity.current += step * 0.5;
+          tunnelVelocity.current += 0.8;
         } else if (e.key === 'ArrowDown' || e.key === 's') {
           e.preventDefault();
-          tunnelVelocity.current -= step * 0.5;
+          tunnelVelocity.current -= 0.8;
         }
         return;
       }
