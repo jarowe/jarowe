@@ -957,6 +957,98 @@
   }
 }
 
+/* ---- Holiday edit fields ---- */
+
+.admin-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+}
+
+.admin-edit-field {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  color: white;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+
+.admin-edit-field:focus {
+  border-color: rgba(100, 160, 255, 0.5);
+}
+
+.admin-edit-field option {
+  background: #1a1a2e;
+  color: white;
+}
+
+.admin-edits-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 20px;
+  color: rgb(251, 191, 36);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-edits-badge:hover {
+  background: rgba(251, 191, 36, 0.2);
+}
+
+.admin-holiday-card-edited {
+  position: relative;
+}
+
+.admin-holiday-card-edited::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(251, 191, 36);
+}
+
+.admin-preview-banner {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.75rem;
+}
+
+/* ---- Game play button ---- */
+
+.admin-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.admin-play-btn:hover {
+  background: rgba(80, 200, 120, 0.12);
+  color: rgb(100, 210, 140);
+  border-color: rgba(80, 200, 120, 0.25);
+}
+
 @media (max-width: 480px) {
   .admin-holiday-grid {
     grid-template-columns: repeat(3, 1fr);

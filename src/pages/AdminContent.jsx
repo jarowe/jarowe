@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
 import './Admin.css';
+
+const GameLauncher = lazy(() => import('../components/GameLauncher'));
 
 const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person', 'track'];
 const TABS = [
@@ -302,6 +304,9 @@ function NodesTab() {
 }
 
 // ─── HOLIDAYS TAB ───────────────────────────────────────────────────────
+const CATEGORY_KEYS = Object.keys(CATEGORIES).sort();
+const GAME_KEYS = Object.keys(GAMES).sort();
+
 function HolidaysTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState(null);
@@ -309,6 +314,8 @@ function HolidaysTab() {
   const [gameOnly, setGameOnly] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [localEdits, setLocalEdits] = useState({}); // { 'MM-DD': { field: value } }
 
   const entries = useMemo(() => {
     return Object.entries(HOLIDAY_CALENDAR).map(([key, val]) => ({
@@ -333,6 +340,48 @@ function HolidaysTab() {
   }, [entries]);
 
   const categoryKeys = useMemo(() => Object.keys(stats.byCat).sort(), [stats]);
+
+  const editCount = Object.keys(localEdits).length;
+
+  function getEditedField(key, field) {
+    return localEdits[key]?.[field];
+  }
+
+  function getMerged(entry) {
+    const edits = localEdits[entry.key];
+    return edits ? { ...entry, ...edits } : entry;
+  }
+
+  function handleFieldEdit(key, field, value) {
+    setLocalEdits(prev => {
+      const existing = prev[key] || {};
+      const updated = { ...existing, [field]: value };
+      // If value matches original, remove the field override
+      const original = HOLIDAY_CALENDAR[key];
+      if (original && original[field] === value) {
+        delete updated[field];
+      }
+      if (Object.keys(updated).length === 0) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: updated };
+    });
+  }
+
+  function handleExport() {
+    const changes = Object.entries(localEdits).map(([key, edits]) => ({
+      key,
+      ...HOLIDAY_CALENDAR[key],
+      ...edits,
+    }));
+    const blob = new Blob([JSON.stringify(changes, null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'holiday-edits.json'; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Filter
   const filtered = useMemo(() => {
@@ -379,6 +428,11 @@ function HolidaysTab() {
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem' }}>total</span>
             <span>{stats.total}</span>
           </span>
+          {editCount > 0 && (
+            <button className="admin-edits-badge" onClick={handleExport}>
+              {editCount} edit{editCount !== 1 ? 's' : ''} — Export
+            </button>
+          )}
         </div>
       </section>
 
@@ -421,21 +475,25 @@ function HolidaysTab() {
           <div key={month} className="admin-holiday-month">
             <h3 className="admin-holiday-month-title">{MONTHS[month - 1]}</h3>
             <div className="admin-holiday-grid">
-              {byMonth[month].sort((a, b) => a.day - b.day).map(entry => (
-                <button
-                  key={entry.key}
-                  className={`admin-holiday-card ${selectedDay === entry.key ? 'admin-holiday-card-selected' : ''}`}
-                  onClick={() => setSelectedDay(selectedDay === entry.key ? null : entry.key)}
-                >
-                  <span className="admin-holiday-emoji">{entry.emoji}</span>
-                  <span className="admin-holiday-day">{entry.day}</span>
-                  <span className="admin-holiday-name">{entry.name}</span>
-                  <div className="admin-holiday-meta">
-                    <span className={`admin-game-tier admin-game-tier-${entry.tier === 4 ? 3 : entry.tier}`}>T{entry.tier}</span>
-                    {entry.game && <Gamepad2 size={10} style={{ opacity: 0.5 }} />}
-                  </div>
-                </button>
-              ))}
+              {byMonth[month].sort((a, b) => a.day - b.day).map(entry => {
+                const isEdited = !!localEdits[entry.key];
+                const m = getMerged(entry);
+                return (
+                  <button
+                    key={entry.key}
+                    className={`admin-holiday-card ${selectedDay === entry.key ? 'admin-holiday-card-selected' : ''} ${isEdited ? 'admin-holiday-card-edited' : ''}`}
+                    onClick={() => setSelectedDay(selectedDay === entry.key ? null : entry.key)}
+                  >
+                    <span className="admin-holiday-emoji">{m.emoji}</span>
+                    <span className="admin-holiday-day">{entry.day}</span>
+                    <span className="admin-holiday-name">{m.name}</span>
+                    <div className="admin-holiday-meta">
+                      <span className={`admin-game-tier admin-game-tier-${(m.tier === 4 ? 3 : m.tier)}`}>T{m.tier}</span>
+                      {m.game && <Gamepad2 size={10} style={{ opacity: 0.5 }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -446,24 +504,128 @@ function HolidaysTab() {
       </section>
 
       {/* Detail panel */}
-      {detail && (
-        <section className="admin-section admin-glass">
-          <div className="admin-table-header">
-            <h2>{detail.emoji} {detail.name}</h2>
-            <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={() => setSelectedDay(null)}>Close</button>
-          </div>
-          <div className="admin-detail-grid-2col">
-            <div>
-              <div className="admin-detail-row"><span className="admin-status-label">Date</span><span>{selectedDay}</span></div>
-              <div className="admin-detail-row"><span className="admin-status-label">Tier</span><span className={`admin-game-tier admin-game-tier-${detail.tier === 4 ? 3 : detail.tier}`}>{TIER_NAMES[detail.tier]}</span></div>
-              <div className="admin-detail-row"><span className="admin-status-label">Category</span><span style={{ color: CATEGORIES[detail.category]?.accentPrimary }}>{detail.category}</span></div>
-              <div className="admin-detail-row"><span className="admin-status-label">Greeting</span><span style={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>{detail.greeting}</span></div>
-              {detail.greetingAlt && <div className="admin-detail-row"><span className="admin-status-label">Alt Greeting</span><span style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{detail.greetingAlt}</span></div>}
-              {detail.fact && <div className="admin-detail-row"><span className="admin-status-label">Fact</span><span style={{ color: 'rgba(255,255,255,0.6)' }}>{detail.fact}</span></div>}
-              {detail.game && <div className="admin-detail-row"><span className="admin-status-label">Game</span><span>{GAMES[detail.game]?.name || detail.game}</span></div>}
-              {detail.bgEffect && <div className="admin-detail-row"><span className="admin-status-label">BG Effect</span><span>{detail.bgEffect}</span></div>}
-            </div>
-            <div>
+      {detail && <HolidayDetail
+        detail={detail}
+        selectedDay={selectedDay}
+        editMode={editMode}
+        setEditMode={setEditMode}
+        localEdits={localEdits}
+        getMerged={getMerged}
+        handleFieldEdit={handleFieldEdit}
+        onClose={() => { setSelectedDay(null); setEditMode(false); }}
+      />}
+    </>
+  );
+}
+
+// ─── HOLIDAY DETAIL PANEL ────────────────────────────────────────────────
+function HolidayDetail({ detail, selectedDay, editMode, setEditMode, localEdits, getMerged, handleFieldEdit, onClose }) {
+  const m = getMerged(detail);
+  const catColor = CATEGORIES[m.category]?.accentPrimary || '#fff';
+
+  return (
+    <section className="admin-section admin-glass">
+      <div className="admin-table-header">
+        <h2>{m.emoji} {m.name}</h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className={`admin-btn ${editMode ? 'admin-btn-primary' : ''}`}
+            style={editMode ? {} : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}
+            onClick={() => setEditMode(!editMode)}
+          >
+            <Pencil size={14} /> {editMode ? 'Editing' : 'Edit'}
+          </button>
+          <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={onClose}>Close</button>
+        </div>
+      </div>
+
+      <div className="admin-detail-grid-2col">
+        <div>
+          <div className="admin-detail-row"><span className="admin-status-label">Date</span><span>{selectedDay}</span></div>
+
+          {editMode ? (
+            <>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Name</span>
+                <input className="admin-edit-field" value={m.name} onChange={e => handleFieldEdit(selectedDay, 'name', e.target.value)} />
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Emoji</span>
+                <input className="admin-edit-field" value={m.emoji} onChange={e => handleFieldEdit(selectedDay, 'emoji', e.target.value)} style={{ width: '4rem' }} />
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Tier</span>
+                <select className="admin-edit-field" value={m.tier} onChange={e => handleFieldEdit(selectedDay, 'tier', Number(e.target.value))}>
+                  {[1, 2, 3, 4].map(t => <option key={t} value={t}>{TIER_NAMES[t]} (T{t})</option>)}
+                </select>
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Category</span>
+                <select className="admin-edit-field" value={m.category} onChange={e => handleFieldEdit(selectedDay, 'category', e.target.value)}>
+                  {CATEGORY_KEYS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Greeting</span>
+                <textarea className="admin-edit-field" rows={2} value={m.greeting || ''} onChange={e => handleFieldEdit(selectedDay, 'greeting', e.target.value)} />
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Alt Greeting</span>
+                <textarea className="admin-edit-field" rows={2} value={m.greetingAlt || ''} onChange={e => handleFieldEdit(selectedDay, 'greetingAlt', e.target.value)} />
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Game</span>
+                <select className="admin-edit-field" value={m.game || ''} onChange={e => handleFieldEdit(selectedDay, 'game', e.target.value || undefined)}>
+                  <option value="">None</option>
+                  {GAME_KEYS.map(g => <option key={g} value={g}>{GAMES[g]?.name || g}</option>)}
+                </select>
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">BG Effect</span>
+                <input className="admin-edit-field" value={m.bgEffect || ''} onChange={e => handleFieldEdit(selectedDay, 'bgEffect', e.target.value || undefined)} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="admin-detail-row"><span className="admin-status-label">Tier</span><span className={`admin-game-tier admin-game-tier-${m.tier === 4 ? 3 : m.tier}`}>{TIER_NAMES[m.tier]}</span></div>
+              <div className="admin-detail-row"><span className="admin-status-label">Category</span><span style={{ color: catColor }}>{m.category}</span></div>
+              <div className="admin-detail-row"><span className="admin-status-label">Greeting</span><span style={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>{m.greeting}</span></div>
+              {m.greetingAlt && <div className="admin-detail-row"><span className="admin-status-label">Alt Greeting</span><span style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{m.greetingAlt}</span></div>}
+              {m.fact && <div className="admin-detail-row"><span className="admin-status-label">Fact</span><span style={{ color: 'rgba(255,255,255,0.6)' }}>{m.fact}</span></div>}
+              {m.game && <div className="admin-detail-row"><span className="admin-status-label">Game</span><span>{GAMES[m.game]?.name || m.game}</span></div>}
+              {m.bgEffect && <div className="admin-detail-row"><span className="admin-status-label">BG Effect</span><span>{m.bgEffect}</span></div>}
+            </>
+          )}
+        </div>
+        <div>
+          {editMode ? (
+            <>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Glint Ideas (one per line)</span>
+                <textarea
+                  className="admin-edit-field"
+                  rows={4}
+                  value={(m.glintIdeas || []).join('\n')}
+                  onChange={e => {
+                    const lines = e.target.value.split('\n').filter(l => l.trim());
+                    handleFieldEdit(selectedDay, 'glintIdeas', lines.length ? lines : undefined);
+                  }}
+                />
+              </div>
+              <div className="admin-edit-row">
+                <span className="admin-status-label">Cipher Words (comma-separated)</span>
+                <input
+                  className="admin-edit-field"
+                  value={(m.cipherWords || []).join(', ')}
+                  onChange={e => {
+                    const words = e.target.value.split(',').map(w => w.trim().toUpperCase()).filter(Boolean);
+                    handleFieldEdit(selectedDay, 'cipherWords', words.length ? words : undefined);
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <>
               {detail.trivia && (
                 <div>
                   <span className="admin-status-label">Trivia ({detail.trivia.length} questions)</span>
@@ -475,29 +637,52 @@ function HolidaysTab() {
                   ))}
                 </div>
               )}
-              {detail.glintIdeas && (
+              {m.glintIdeas && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <span className="admin-status-label">Glint Ideas</span>
-                  {detail.glintIdeas.map((idea, i) => (
+                  {m.glintIdeas.map((idea, i) => (
                     <div key={i} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', margin: '0.2rem 0' }}>{idea}</div>
                   ))}
                 </div>
               )}
-              {detail.cipherWords && (
+              {m.cipherWords && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <span className="admin-status-label">Cipher Words</span>
                   <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem' }}>
-                    {detail.cipherWords.map(w => (
+                    {m.cipherWords.map(w => (
                       <span key={w} className="admin-pill">{w}</span>
                     ))}
                   </div>
                 </div>
               )}
+            </>
+          )}
+
+          {/* Preview banner */}
+          <div className="admin-preview-banner" style={{ marginTop: '1rem' }}>
+            <span className="admin-status-label">Preview</span>
+            <div style={{
+              marginTop: '0.5rem',
+              padding: '0.75rem 1rem',
+              background: `linear-gradient(135deg, ${CATEGORIES[m.category]?.accentGlow || 'rgba(255,255,255,0.05)'}, transparent)`,
+              borderRadius: '10px',
+              border: `1px solid ${catColor}33`,
+            }}>
+              <div style={{ fontSize: '1.3rem', marginBottom: '0.25rem' }}>{m.emoji}</div>
+              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: catColor }}>{m.name}</div>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                {m.greeting}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', alignItems: 'center' }}>
+                <span className={`admin-game-tier admin-game-tier-${m.tier === 4 ? 3 : m.tier}`}>{TIER_NAMES[m.tier]}</span>
+                <span style={{ fontSize: '0.72rem', color: catColor }}>{m.category}</span>
+                {m.game && <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>+ {GAMES[m.game]?.name || m.game}</span>}
+              </div>
             </div>
           </div>
-        </section>
-      )}
-    </>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -506,6 +691,7 @@ function GamesTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState(null);
   const [expandedGame, setExpandedGame] = useState(null);
+  const [showGame, setShowGame] = useState(null);
 
   // Build game list with holiday counts
   const gameList = useMemo(() => {
@@ -621,6 +807,7 @@ function GamesTab() {
                 <th>Duration</th>
                 <th>Variant</th>
                 <th>Holidays</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -632,6 +819,15 @@ function GamesTab() {
                   <td>{g.duration}</td>
                   <td>{g.variant ? <span className="admin-game-variant">{g.variant}</span> : '--'}</td>
                   <td>{g.holidayCount > 0 ? g.holidayCount : <span style={{ opacity: 0.3 }}>0</span>}</td>
+                  <td>
+                    <button
+                      className="admin-play-btn"
+                      onClick={e => { e.stopPropagation(); setShowGame(g.id); }}
+                      title={`Play ${g.name}`}
+                    >
+                      <Play size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -655,6 +851,17 @@ function GamesTab() {
           ))}
         </div>
       </section>
+
+      {/* GameLauncher overlay */}
+      {showGame && (
+        <Suspense fallback={null}>
+          <GameLauncher
+            gameId={showGame}
+            holiday={{ name: 'Content Test', tier: 3, category: 'tech', emoji: '🎮' }}
+            onClose={() => setShowGame(null)}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

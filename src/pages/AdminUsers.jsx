@@ -37,17 +37,34 @@ function AdminUsersInner() {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: fetchErr } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            high_scores(game_id, score),
-            achievements(achievement_id)
-          `)
-          .order('created_at', { ascending: false });
+        const [profilesRes, scoresRes, achievementsRes] = await Promise.all([
+          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+          supabase.from('high_scores').select('user_id, game_id, score'),
+          supabase.from('achievements').select('user_id, achievement_id'),
+        ]);
 
-        if (fetchErr) throw fetchErr;
-        setProfiles(data || []);
+        if (profilesRes.error) throw profilesRes.error;
+
+        // Group scores and achievements by user_id
+        const scoresByUser = {};
+        for (const s of (scoresRes.data || [])) {
+          if (!scoresByUser[s.user_id]) scoresByUser[s.user_id] = [];
+          scoresByUser[s.user_id].push({ game_id: s.game_id, score: s.score });
+        }
+        const achievementsByUser = {};
+        for (const a of (achievementsRes.data || [])) {
+          if (!achievementsByUser[a.user_id]) achievementsByUser[a.user_id] = [];
+          achievementsByUser[a.user_id].push({ achievement_id: a.achievement_id });
+        }
+
+        // Attach to each profile
+        const merged = (profilesRes.data || []).map(p => ({
+          ...p,
+          high_scores: scoresByUser[p.id] || [],
+          achievements: achievementsByUser[p.id] || [],
+        }));
+
+        setProfiles(merged);
       } catch (err) {
         setError(`Failed to load users: ${err.message}`);
       } finally {
