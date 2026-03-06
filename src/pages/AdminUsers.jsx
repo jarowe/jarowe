@@ -38,8 +38,12 @@ function AdminUsersInner() {
       setError(null);
       try {
         // Ensure valid session — getSession() only reads cached (possibly expired) tokens.
-        // refreshSession() actually validates with the server and gets fresh tokens.
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        // refreshSession() validates with the server. Timeout after 5s to prevent hanging.
+        const refreshResult = await Promise.race([
+          supabase.auth.refreshSession(),
+          new Promise(resolve => setTimeout(() => resolve({ data: {}, error: { message: 'Session refresh timed out' } }), 5000)),
+        ]);
+        const { data: refreshData, error: refreshError } = refreshResult;
         if (refreshError || !refreshData.session) {
           setError('Session expired. Please sign out and sign back in.');
           return;

@@ -94,17 +94,27 @@ function NodesTab() {
         const base = import.meta.env.BASE_URL || '/';
         const graphRes = await fetch(`${base}data/constellation.graph.json`);
         if (graphRes.ok) setGraphData(await graphRes.json());
+      } catch { /* ignore */ }
+      // Always finish loading — don't let Supabase block the page
+      setLoading(false);
 
-        // Load curation from Supabase
-        if (supabase) {
-          const map = await fetchAll();
-          setCurationMap(map);
-          setSupabaseConnected(true);
-        } else {
+      // Load curation from Supabase in background (non-blocking)
+      if (supabase) {
+        try {
+          const timeout = new Promise(resolve => setTimeout(() => resolve(null), 8000));
+          const result = await Promise.race([fetchAll(), timeout]);
+          if (result) {
+            setCurationMap(result);
+            setSupabaseConnected(true);
+          } else {
+            setSupabaseConnected(false);
+          }
+        } catch {
           setSupabaseConnected(false);
         }
-      } catch { /* ignore */ }
-      setLoading(false);
+      } else {
+        setSupabaseConnected(false);
+      }
     }
     load();
   }, [fetchAll]);

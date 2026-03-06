@@ -30,13 +30,13 @@ export function useCurationSync() {
     }
   }, []);
 
-  // Fetch all curation rows
+  // Fetch all curation rows (with timeout to prevent hanging on stale sessions)
   const fetchAll = useCallback(async () => {
     if (!supabase) return new Map();
     try {
-      const { data, error } = await supabase
-        .from('node_curation')
-        .select('*');
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+      const query = supabase.from('node_curation').select('*');
+      const { data, error } = await Promise.race([query, timeout]);
       if (error) throw error;
       const map = new Map();
       for (const row of data || []) {

@@ -5,6 +5,14 @@ const AuthContext = createContext(null);
 
 const ADMIN_EMAILS = ['rowe.jared@gmail.com'];
 
+/** Race a promise against a timeout. Returns the promise result or null on timeout. */
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -42,10 +50,11 @@ export function AuthProvider({ children }) {
 
         // Validate session server-side and refresh if expired.
         // This ensures downstream Supabase queries use a valid token.
+        // Timeout after 5s to prevent hanging on stale refresh tokens.
         try {
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          if (refreshData?.session?.user) {
-            setUser(refreshData.session.user);
+          const refreshResult = await withTimeout(supabase.auth.refreshSession(), 5000);
+          if (refreshResult?.data?.session?.user) {
+            setUser(refreshResult.data.session.user);
           }
         } catch (_) {
           // Refresh failed — cached session may still work for some calls
