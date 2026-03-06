@@ -2,7 +2,7 @@ import { useState, useMemo, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowLeft } from 'lucide-react';
 import { GAMES } from '../data/gameRegistry';
-import { useAdminGuard } from '../hooks/useAdminGuard';
+import AdminGate from '../components/AdminGate';
 import './Admin.css';
 
 const GameLauncher = lazy(() => import('../components/GameLauncher'));
@@ -11,7 +11,14 @@ const TIER_LABELS = { 1: 'T1', 2: 'T2', 3: 'T3' };
 const VARIANT_FILTER = { all: 'All', base: 'Base Only', variants: 'Variants Only' };
 
 export default function AdminGames() {
-  const { allowed, loading: authLoading } = useAdminGuard();
+  return (
+    <AdminGate>
+      <AdminGamesInner />
+    </AdminGate>
+  );
+}
+
+function AdminGamesInner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState(null);
   const [variantFilter, setVariantFilter] = useState('all');
@@ -62,16 +69,6 @@ export default function AdminGames() {
     }
     return c;
   }, [gameList]);
-
-  if (authLoading) {
-    return (
-      <div className="admin-page">
-        <div className="admin-loading">Checking access...</div>
-      </div>
-    );
-  }
-
-  if (!allowed) return null;
 
   return (
     <div className="admin-page">

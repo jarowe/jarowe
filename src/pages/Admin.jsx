@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff, Download, ArrowUpDown, Search, Gamepad2, Settings, Globe2, Sparkles, Users, FileText } from 'lucide-react';
-import { useAdminGuard } from '../hooks/useAdminGuard';
+import AdminGate from '../components/AdminGate';
 import './Admin.css';
 
 const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person', 'track'];
@@ -14,8 +14,14 @@ const DASHBOARD_CARDS = [
 ];
 
 export default function Admin() {
-  const { allowed, loading: authLoading } = useAdminGuard();
+  return (
+    <AdminGate>
+      <AdminInner />
+    </AdminGate>
+  );
+}
 
+function AdminInner() {
   // Data state
   const [pipelineStatus, setPipelineStatus] = useState(null);
   const [graphData, setGraphData] = useState(null);
@@ -34,11 +40,9 @@ export default function Admin() {
   const [hasChanges, setHasChanges] = useState(false);
 
   // -----------------------------------------------------------------------
-  // Data fetching -- runs when admin access is granted
+  // Data fetching -- AdminGate guarantees we're admin by this point
   // -----------------------------------------------------------------------
   useEffect(() => {
-    if (!allowed) return;
-
     async function loadData() {
       setLoading(true);
       setError(null);
@@ -74,7 +78,7 @@ export default function Admin() {
     }
 
     loadData();
-  }, [allowed]);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Node list with sorting and filtering
@@ -168,19 +172,6 @@ export default function Admin() {
       setSortDir('asc');
     }
   }
-
-  // -----------------------------------------------------------------------
-  // Render: Auth loading / guard
-  // -----------------------------------------------------------------------
-  if (authLoading) {
-    return (
-      <div className="admin-page">
-        <div className="admin-loading">Checking access...</div>
-      </div>
-    );
-  }
-
-  if (!allowed) return null; // useAdminGuard redirects
 
   if (loading) {
     return (
