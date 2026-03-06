@@ -21,12 +21,24 @@
 .tour-letterbox.top {
   top: 0;
   transform: translateY(-100%);
-  animation: letterbox-in-top 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: letterbox-in-top 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+  animation-fill-mode: backwards;
 }
 .tour-letterbox.bottom {
   bottom: 0;
   transform: translateY(100%);
-  animation: letterbox-in-bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: letterbox-in-bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards;
+  animation-fill-mode: backwards;
+}
+
+/* Wrapper for all content that fades in after FLIP expansion */
+.tour-overlay-content {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tour-overlay-content > * {
+  pointer-events: auto;
 }
 
 @keyframes letterbox-in-top {

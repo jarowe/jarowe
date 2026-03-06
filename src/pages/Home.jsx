@@ -8,7 +8,7 @@ import instagramPosts from '../data/instagramPosts.json';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound, playTourTransitionSound, playTourCompleteSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound, playTourTransitionSound, playTourCompleteSound, playTourEntranceSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
@@ -195,6 +195,8 @@ export default function Home() {
   const activeExpeditionRef = useRef(0);
   const [tourMode, setTourMode] = useState(false);
   const [tourCinematic, setTourCinematic] = useState(false);
+  const [tourEntering, setTourEntering] = useState(false);
+  const cellMapRef = useRef(null);
   const [tourChapter, setTourChapter] = useState(null);
   const [tourChapterIndex, setTourChapterIndex] = useState(-1);
   const [tourNarration, setTourNarration] = useState(null);
@@ -4537,25 +4539,18 @@ export default function Home() {
     runPortalExitSequence();
   }, [clearBubble, runPortalExitSequence]);
 
-  // End globe tour and restore state
+  // End globe tour and restore state with reverse FLIP animation
   const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
-    setTourMode(false);
-    setTourCinematic(false);
+
+    // Phase 1: fade out overlay content
+    setTourEntering(true);
     setTourChapter(null);
     setTourChapterIndex(-1);
     setTourNarration(null);
     setTourDestination(null);
     setTourIndex(-1);
     setTourPhotos([]);
-
-    // Resume auto-cycle
-    isUserInteracting.current = false;
-    startGlobeCycle();
-
-    // Resume autonomy
-    const autonomy = getGlintAutonomy();
-    if (autonomy) autonomy.resume();
 
     // Clean up conversation state manually (exitConversation guards against tour)
     setConversationMode(false);
@@ -4566,6 +4561,58 @@ export default function Home() {
     window.__prismBopExit = true;
     runPortalExitSequence();
 
+    const el = cellMapRef.current;
+
+    // Phase 2: after overlay fades, reverse-FLIP the cell back to grid
+    setTimeout(() => {
+      if (el) {
+        // Capture fullscreen rect before removing cinematic class
+        const fullRect = el.getBoundingClientRect();
+
+        // Remove cinematic — cell returns to grid layout
+        setTourCinematic(false);
+        setTourMode(false);
+
+        requestAnimationFrame(() => {
+          // Cell is now back in grid, get its natural position
+          const gridRect = el.getBoundingClientRect();
+          // Apply inverse: make cell look like it's still fullscreen
+          const scaleX = fullRect.width / gridRect.width;
+          const scaleY = fullRect.height / gridRect.height;
+          const translateX = fullRect.left + fullRect.width / 2 - (gridRect.left + gridRect.width / 2);
+          const translateY = fullRect.top + fullRect.height / 2 - (gridRect.top + gridRect.height / 2);
+          el.style.transition = 'none';
+          el.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+          el.style.borderRadius = '0px';
+          el.style.zIndex = '999';
+          el.offsetHeight; // eslint-disable-line no-unused-expressions
+          // Animate back to grid position
+          el.style.transition = 'transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.8s cubic-bezier(0.22, 1, 0.36, 1)';
+          el.style.transform = 'none';
+          el.style.borderRadius = '';
+          setTimeout(() => {
+            el.style.transition = '';
+            el.style.transform = '';
+            el.style.borderRadius = '';
+            el.style.zIndex = '';
+            setTourEntering(false);
+          }, 850);
+        });
+      } else {
+        setTourCinematic(false);
+        setTourMode(false);
+        setTourEntering(false);
+      }
+
+      // Resume auto-cycle
+      isUserInteracting.current = false;
+      startGlobeCycle();
+
+      // Resume autonomy
+      const autonomy = getGlintAutonomy();
+      if (autonomy) autonomy.resume();
+    }, 400);
+
     // Completion rewards
     if (completed) {
       playTourCompleteSound();
@@ -4575,13 +4622,19 @@ export default function Home() {
     }
   }, [startGlobeCycle, clearBubble, runPortalExitSequence]);
 
-  // Globe Tour — start cinematic chapter-based tour
+  // Globe Tour — start cinematic chapter-based tour with FLIP animation
   const startGlobeTour = useCallback((startIndex = 0) => {
     if (tourMode) return;
     const ep = editorParams.current;
     if (!(ep.globeTourEnabled ?? true)) return;
 
+    // Phase 1: Prepare — play entrance sound, capture cell rect
+    playTourEntranceSound();
+    const el = cellMapRef.current;
+    const rect = el ? el.getBoundingClientRect() : null;
+
     setTourMode(true);
+    setTourEntering(true);
     setTourCinematic(true);
 
     // Kill any existing conversation timeout so it doesn't hide Glint mid-tour
@@ -4607,6 +4660,41 @@ export default function Home() {
 
     // Enter conversation mode for tour
     setConversationMode(true);
+
+    // Phase 3: FLIP expansion — cell is now position:fixed inset:0
+    if (el && rect) {
+      requestAnimationFrame(() => {
+        const fullW = window.innerWidth;
+        const fullH = window.innerHeight;
+        // Invert: calculate transform to keep cell visually in original position
+        const scaleX = rect.width / fullW;
+        const scaleY = rect.height / fullH;
+        const translateX = rect.left + rect.width / 2 - fullW / 2;
+        const translateY = rect.top + rect.height / 2 - fullH / 2;
+        el.style.transition = 'none';
+        el.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scaleX}, ${scaleY})`;
+        el.style.borderRadius = '28px';
+        // Force reflow
+        el.offsetHeight; // eslint-disable-line no-unused-expressions
+        // Play: animate to identity (smooth expansion to fullscreen)
+        el.style.transition = 'transform 1s cubic-bezier(0.22, 1, 0.36, 1), border-radius 1s cubic-bezier(0.22, 1, 0.36, 1)';
+        el.style.transform = 'none';
+        el.style.borderRadius = '0px';
+        // After expansion completes, reveal overlay content
+        setTimeout(() => {
+          setTourEntering(false);
+          el.style.transition = '';
+          el.style.transform = '';
+          el.style.borderRadius = '';
+        }, 1100);
+      });
+    } else {
+      // Fallback: no FLIP, just show after short delay
+      setTimeout(() => setTourEntering(false), 800);
+    }
+
+    // Phase 5: Camera zoom starts immediately (synchronized with expansion)
+    globeRef.current?.pointOfView({ altitude: 2.0 }, 2500);
 
     const isRepeat = !!localStorage.getItem('jarowe_tour_completed');
     const chapters = getTourChapters();
@@ -6232,7 +6320,7 @@ export default function Home() {
           </div>
 
           {/* WORLD MAP CELL */}
-          <div className={`bento-cell cell-map${tourCinematic ? ' tour-cinematic' : ''}${editorParams.current.globeBreakout ? ' globe-breakout' : ''}${!editorParams.current.glassSweepEnabled ? ' glass-sweep-off' : ''}${!editorParams.current.glassShimmerEnabled ? ' glass-shimmer-off' : ''}${!editorParams.current.innerGlowEnabled ? ' inner-glow-off' : ''}`}
+          <div ref={cellMapRef} className={`bento-cell cell-map${tourCinematic ? ' tour-cinematic' : ''}${editorParams.current.globeBreakout ? ' globe-breakout' : ''}${!editorParams.current.glassSweepEnabled ? ' glass-sweep-off' : ''}${!editorParams.current.glassShimmerEnabled ? ' glass-shimmer-off' : ''}${!editorParams.current.innerGlowEnabled ? ' inner-glow-off' : ''}`}
             style={{
               ...(editorParams.current.globeBreakout ? { '--globe-breakout-px': `${editorParams.current.globeBreakoutPx}px` } : {}),
               ...(editorParams.current.glassSweepOpacity !== undefined ? { '--glass-sweep-opacity': editorParams.current.glassSweepOpacity } : {}),
@@ -6387,13 +6475,14 @@ export default function Home() {
             </AnimatePresence>
             {/* Cinematic tour overlay — fullscreen UI on top of expanded globe */}
             <AnimatePresence>
-              {tourCinematic && tourChapter && (
+              {tourCinematic && (
                 <Suspense fallback={null}>
                   <GlobeTourCinematic
                     chapter={tourChapter}
                     chapterIndex={tourChapterIndex}
                     totalChapters={TOTAL_CHAPTERS}
                     narration={tourNarration}
+                    entering={tourEntering}
                     onPrev={() => prevChapter()}
                     onNext={() => nextChapter()}
                     onExit={() => endGlobeTour()}

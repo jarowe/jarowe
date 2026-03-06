@@ -315,6 +315,60 @@ export const playTourCompleteSound = () => {
     } catch (e) { }
 };
 
+export const playTourEntranceSound = () => {
+    if (isMuted) return;
+    try {
+        const c = getCtx();
+        if (c.state === 'suspended') c.resume();
+        const t = c.currentTime;
+        // Deep cinematic whoosh — low sine sweep 100→300Hz
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(100, t);
+        osc.frequency.exponentialRampToValueAtTime(300, t + 0.8);
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.2);
+        gain.gain.linearRampToValueAtTime(0.08, t + 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t);
+        osc.stop(t + 1.05);
+        // Filtered white noise whoosh (bandpass sweep)
+        const bufferSize = Math.floor(c.sampleRate * 0.9);
+        const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = c.createBufferSource();
+        noise.buffer = buffer;
+        const bpf = c.createBiquadFilter();
+        bpf.type = 'bandpass';
+        bpf.frequency.setValueAtTime(800, t);
+        bpf.frequency.exponentialRampToValueAtTime(2500, t + 0.7);
+        bpf.Q.value = 1.2;
+        const noiseGain = c.createGain();
+        noiseGain.gain.setValueAtTime(0.001, t);
+        noiseGain.gain.linearRampToValueAtTime(0.07, t + 0.15);
+        noiseGain.gain.linearRampToValueAtTime(0.04, t + 0.5);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+        noise.connect(bpf).connect(noiseGain).connect(c.destination);
+        noise.start(t);
+        noise.stop(t + 0.95);
+        // Rising shimmer overtone
+        const shimmer = c.createOscillator();
+        const shimGain = c.createGain();
+        shimmer.type = 'triangle';
+        shimmer.frequency.setValueAtTime(1200, t + 0.2);
+        shimmer.frequency.exponentialRampToValueAtTime(2400, t + 0.9);
+        shimGain.gain.setValueAtTime(0.001, t + 0.2);
+        shimGain.gain.linearRampToValueAtTime(0.03, t + 0.4);
+        shimGain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+        shimmer.connect(shimGain).connect(c.destination);
+        shimmer.start(t + 0.2);
+        shimmer.stop(t + 1.05);
+    } catch (e) { }
+};
+
 export const playBalloonPopSound = () => {
     if (isMuted) return;
     try {
