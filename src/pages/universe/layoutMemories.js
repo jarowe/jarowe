@@ -1,8 +1,8 @@
 /**
  * 3D layout for curated memory polaroids on the Universe page.
  *
- * Arranges epoch clusters in an arc through 3D space, with each
- * memory scattered within its epoch cluster. Uses seeded PRNG
+ * Distributes 5 epoch clusters spherically around the origin so
+ * memories surround the viewer in all directions. Uses seeded PRNG
  * for deterministic, reproducible positioning.
  */
 
@@ -17,16 +17,20 @@ function mulberry32(seed) {
   };
 }
 
-// Five epoch cluster centers arranged in an arc
+// Five epoch clusters distributed spherically around the origin
+// Placed on a sphere of radius ~16, spread across all directions
 const EPOCH_CENTERS = {
-  'Early Years': { x: -14, y: 2, z: -10 },
-  'College': { x: -7, y: -1, z: -12 },
-  'Career Start': { x: 0, y: 3, z: -14 },
-  'Growth': { x: 7, y: 0, z: -12 },
-  'Present': { x: 14, y: 2, z: -10 },
+  'Early Years': { x: 0, y: 14, z: -8 },      // above + slightly behind
+  'College': { x: -13, y: -4, z: -7 },         // left + below
+  'Career Start': { x: 10, y: 6, z: 10 },      // right front + above
+  'Growth': { x: -6, y: -10, z: 11 },          // left below + behind viewer
+  'Present': { x: 8, y: -2, z: -14 },          // right + far back
 };
 
-const SCATTER_RADIUS = 3.5;
+// Also export for EpochNebulae in the main page
+export { EPOCH_CENTERS };
+
+const SCATTER_RADIUS = 4;
 
 /**
  * @param {Array} memories - Output from curateMemories()

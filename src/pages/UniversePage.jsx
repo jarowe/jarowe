@@ -12,7 +12,7 @@ import { playHoverSound, playClickSound } from '../utils/sounds';
 import { loadConstellationData } from '../constellation/data/loader';
 import { resolveMediaUrl } from '../constellation/media/resolveMediaUrl';
 import { curateMemories } from './universe/curateMemories';
-import { layoutMemories } from './universe/layoutMemories';
+import { layoutMemories, EPOCH_CENTERS } from './universe/layoutMemories';
 import './UniversePage.css';
 
 const MemoryDetailOverlay = lazy(() => import('./universe/MemoryDetailOverlay'));
@@ -153,20 +153,13 @@ function PolaroidPlaceholder({ position, rotation, epochColor }) {
 }
 
 /* ─── Epoch Nebula (subtle cluster background) ─── */
-const EPOCH_CENTERS = {
-  'Early Years': [-14, 2, -10],
-  'College': [-7, -1, -12],
-  'Career Start': [0, 3, -14],
-  'Growth': [7, 0, -12],
-  'Present': [14, 2, -10],
-};
-
 function EpochNebulae({ epochs }) {
   return (
     <>
       {epochs.map(epoch => {
-        const center = EPOCH_CENTERS[epoch.label];
-        if (!center) return null;
+        const c = EPOCH_CENTERS[epoch.label];
+        if (!c) return null;
+        const center = [c.x, c.y, c.z];
         return (
           <group key={epoch.id} position={center}>
             {/* Subtle fog billboard */}
