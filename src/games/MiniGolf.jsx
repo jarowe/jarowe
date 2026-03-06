@@ -2,6 +2,16 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useHighScore, playGameSound } from './shared';
 import confetti from 'canvas-confetti';
 
+const VARIANTS_GOLF = {
+  stpatrick: {
+    feltColor: '#1a6b2a',
+    ballColor: '#fbbf24',
+    holeColor: '#4ade80',
+    wallColor: '#16a34a',
+    borderColor: '#22c55e',
+  },
+};
+
 const W = 300;
 const H = 380;
 const BALL_R = 6;
@@ -50,7 +60,8 @@ const COURSES = [
   },
 ];
 
-export default function MiniGolf({ onComplete, holiday, theme }) {
+export default function MiniGolf({ onComplete, holiday, theme, variant }) {
+  const golfCfg = variant ? VARIANTS_GOLF[variant] : null;
   const canvasRef = useRef(null);
   const [holeIndex, setHoleIndex] = useState(0);
   const [strokes, setStrokes] = useState(0);

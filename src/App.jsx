@@ -8,6 +8,8 @@ import StarseedProject from './pages/StarseedProject';
 const UniversePage = React.lazy(() => import('./pages/UniversePage'));
 const ConstellationPage = React.lazy(() => import('./pages/ConstellationPage'));
 const AdminPage = React.lazy(() => import('./pages/Admin'));
+const AdminGames = React.lazy(() => import('./pages/AdminGames'));
+const AdminStub = React.lazy(() => import('./pages/AdminStub'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -80,6 +82,21 @@ function App() {
                 <Route path="/admin" element={
                   <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Admin...</div>}>
                     <AdminPage />
+                  </Suspense>
+                } />
+                <Route path="/admin/games" element={
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading Game Lab...</div>}>
+                    <AdminGames />
+                  </Suspense>
+                } />
+                <Route path="/admin/users" element={
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                    <AdminStub page="users" />
+                  </Suspense>
+                } />
+                <Route path="/admin/content" element={
+                  <Suspense fallback={<div style={{ color: 'white', padding: '2rem', textAlign: 'center' }}>Loading...</div>}>
+                    <AdminStub page="content" />
                   </Suspense>
                 } />
               </Routes>

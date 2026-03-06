@@ -1,19 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Eye, EyeOff, Download, ArrowUpDown, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Eye, EyeOff, Download, ArrowUpDown, Search, Gamepad2, Settings, Globe2, Sparkles, Users, FileText } from 'lucide-react';
+import { useAdminGuard } from '../hooks/useAdminGuard';
 import './Admin.css';
-
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY;
 
 const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person', 'track'];
 
-/**
- * Thin admin page: pipeline status + node publish/hide controls.
- * Auth gate via VITE_ADMIN_KEY env var. Session-only (no localStorage).
- */
+const DASHBOARD_CARDS = [
+  { to: '/admin/games', icon: Gamepad2, label: 'Game Lab', desc: 'Test all 64 games', color: '#a78bfa' },
+  { to: '/?editor=jarowe', icon: Settings, label: 'Editors', desc: 'Globe + Glint editors', color: '#60a5fa', external: true },
+  { to: '/admin/users', icon: Users, label: 'Users', desc: 'Coming soon', color: '#f472b6', stub: true },
+  { to: '/admin/content', icon: FileText, label: 'Content', desc: 'Coming soon', color: '#34d399', stub: true },
+];
+
 export default function Admin() {
-  const [authed, setAuthed] = useState(false);
-  const [keyInput, setKeyInput] = useState('');
-  const [authError, setAuthError] = useState('');
+  const { allowed, loading: authLoading } = useAdminGuard();
 
   // Data state
   const [pipelineStatus, setPipelineStatus] = useState(null);
@@ -33,10 +34,10 @@ export default function Admin() {
   const [hasChanges, setHasChanges] = useState(false);
 
   // -----------------------------------------------------------------------
-  // Data fetching -- runs when authed changes to true
+  // Data fetching -- runs when admin access is granted
   // -----------------------------------------------------------------------
   useEffect(() => {
-    if (!authed || !ADMIN_KEY) return;
+    if (!allowed) return;
 
     async function loadData() {
       setLoading(true);
@@ -45,21 +46,16 @@ export default function Admin() {
       try {
         const base = import.meta.env.BASE_URL || '/';
 
-        // Fetch pipeline status
         const statusRes = await fetch(`${base}data/pipeline-status.json`);
         if (statusRes.ok) {
           setPipelineStatus(await statusRes.json());
         }
 
-        // Fetch graph data
         const graphRes = await fetch(`${base}data/constellation.graph.json`);
         if (graphRes.ok) {
           setGraphData(await graphRes.json());
         }
 
-        // Fetch curation.json for current toggle state
-        // In dev, this may not be served (it's in project root, not public/).
-        // Defaults are used if unavailable.
         try {
           const curationRes = await fetch(`${base}curation.json`);
           if (curationRes.ok) {
@@ -78,7 +74,7 @@ export default function Admin() {
     }
 
     loadData();
-  }, [authed]);
+  }, [allowed]);
 
   // -----------------------------------------------------------------------
   // Node list with sorting and filtering
@@ -88,18 +84,15 @@ export default function Admin() {
   const filteredNodes = useMemo(() => {
     let result = [...nodes];
 
-    // Type filter
     if (typeFilter) {
       result = result.filter((n) => n.type === typeFilter);
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((n) => n.title?.toLowerCase().includes(q));
     }
 
-    // Sorting
     result.sort((a, b) => {
       let aVal = a[sortKey] ?? '';
       let bVal = b[sortKey] ?? '';
@@ -177,54 +170,17 @@ export default function Admin() {
   }
 
   // -----------------------------------------------------------------------
-  // Auth handler
+  // Render: Auth loading / guard
   // -----------------------------------------------------------------------
-  function handleAuth(e) {
-    e.preventDefault();
-    if (keyInput === ADMIN_KEY) {
-      setAuthed(true);
-      setAuthError('');
-    } else {
-      setAuthError('Invalid key');
-    }
-  }
-
-  // -----------------------------------------------------------------------
-  // Render: Auth gates (after all hooks)
-  // -----------------------------------------------------------------------
-
-  if (!ADMIN_KEY) {
+  if (authLoading) {
     return (
       <div className="admin-page">
-        <div className="admin-auth-gate">
-          <h1>Admin Disabled</h1>
-          <p>Set <code>VITE_ADMIN_KEY</code> in environment variables to enable admin access.</p>
-        </div>
+        <div className="admin-loading">Checking access...</div>
       </div>
     );
   }
 
-  if (!authed) {
-    return (
-      <div className="admin-page">
-        <div className="admin-auth-gate">
-          <h1>Admin Access</h1>
-          <form onSubmit={handleAuth}>
-            <input
-              type="password"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="Enter admin key"
-              className="admin-input"
-              autoFocus
-            />
-            <button type="submit" className="admin-btn admin-btn-primary">Authenticate</button>
-            {authError && <p className="admin-error">{authError}</p>}
-          </form>
-        </div>
-      </div>
-    );
-  }
+  if (!allowed) return null; // useAdminGuard redirects
 
   if (loading) {
     return (
@@ -249,9 +205,33 @@ export default function Admin() {
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <h1>Pipeline Admin</h1>
-        <p className="admin-subtitle">Read-only pipeline status and node publish/hide controls</p>
+        <h1>Admin Dashboard</h1>
+        <p className="admin-subtitle">Pipeline status, game lab, editors, and site management</p>
       </header>
+
+      {/* ---- Dashboard Hub Cards ---- */}
+      <section className="admin-section">
+        <div className="admin-hub-grid">
+          {DASHBOARD_CARDS.map((card) => {
+            const Icon = card.icon;
+            const inner = (
+              <div className="admin-hub-card admin-glass" style={{ '--hub-color': card.color }}>
+                <Icon size={24} className="admin-hub-icon" />
+                <span className="admin-hub-label">{card.label}</span>
+                <span className="admin-hub-desc">{card.desc}</span>
+                {card.stub && <span className="admin-badge admin-badge-warning" style={{ fontSize: '0.65rem', marginTop: '0.25rem' }}>Soon</span>}
+              </div>
+            );
+            if (card.stub) {
+              return <div key={card.to} style={{ opacity: 0.5, cursor: 'default' }}>{inner}</div>;
+            }
+            if (card.external) {
+              return <a key={card.to} href={card.to} className="admin-hub-link">{inner}</a>;
+            }
+            return <Link key={card.to} to={card.to} className="admin-hub-link">{inner}</Link>;
+          })}
+        </div>
+      </section>
 
       {/* ---- Pipeline Status ---- */}
       <section className="admin-section admin-glass">

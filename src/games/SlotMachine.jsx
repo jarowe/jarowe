@@ -50,8 +50,16 @@ function evaluatePayline(middleSymbols) {
 }
 
 // ─── Component ───────────────────────────────────────────────────────
-export default function SlotMachine({ onComplete, holiday, theme }) {
-  const pool = getPool(holiday?.category);
+const SM_VARIANTS = {
+  casino: {
+    pool: ['🍾', '🥂', '🎆', '💰', '🎊', '👑', '💎'],
+    bgGlow: '#fbbf24',
+  },
+};
+
+export default function SlotMachine({ onComplete, holiday, theme, variant }) {
+  const smCfg = variant ? SM_VARIANTS[variant] : null;
+  const pool = smCfg?.pool || getPool(holiday?.category);
   const { best, submit } = useHighScore('slot-machine');
 
   // Build initial reel strips

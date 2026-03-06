@@ -81,7 +81,16 @@ function generateChart(durationMs) {
   return notes;
 }
 
-export default function RhythmTap({ onComplete, holiday, theme }) {
+const RT_VARIANTS = {
+  summer: {
+    laneColors: ['#f59e0b', '#06b6d4', '#22c55e'],
+    noteEmoji: '🏄',
+    bgGradient: 'linear-gradient(180deg, #0a2e4a 0%, #1a4a6a 100%)',
+  },
+};
+
+export default function RhythmTap({ onComplete, holiday, theme, variant }) {
+  const rtCfg = variant ? RT_VARIANTS[variant] : null;
   const canvasRef = useRef(null);
   const loopRef = useRef(null);
   const stateRef = useRef(null);

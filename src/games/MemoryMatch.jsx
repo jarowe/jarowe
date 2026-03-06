@@ -29,8 +29,28 @@ function buildDeck(category) {
   return pairs.map((emoji, id) => ({ id, emoji, flipped: false, matched: false }));
 }
 
-export default function MemoryMatch({ onComplete, holiday, theme }) {
-  const [cards, setCards] = useState(() => buildDeck(holiday?.category));
+const VARIANTS = {
+  mothers: {
+    pool: ['🌸', '💐', '🌹', '🌷', '💝', '🎀', '👩‍👧', '💕'],
+    matchText: 'Love Match!',
+    backLabel: '💖',
+  },
+};
+
+export default function MemoryMatch({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
+  const [cards, setCards] = useState(() => {
+    if (cfg?.pool) {
+      const selected = cfg.pool.slice(0, 8);
+      const pairs = [...selected, ...selected];
+      for (let i = pairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+      }
+      return pairs.map((emoji, id) => ({ id, emoji, flipped: false, matched: false }));
+    }
+    return buildDeck(holiday?.category);
+  });
   const [selected, setSelected] = useState([]);
   const [matches, setMatches] = useState(0);
   const [flips, setFlips] = useState(0);
@@ -138,7 +158,7 @@ export default function MemoryMatch({ onComplete, holiday, theme }) {
             {(card.flipped || card.matched) ? (
               <span style={{ transform: 'rotateY(180deg)' }}>{card.emoji}</span>
             ) : (
-              <span style={{ opacity: 0.3, fontSize: '1.2rem' }}>?</span>
+              <span style={{ opacity: 0.3, fontSize: '1.2rem' }}>{cfg?.backLabel || '?'}</span>
             )}
           </motion.button>
         ))}

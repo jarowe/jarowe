@@ -27,7 +27,24 @@ function getToppingInfo(id) {
   return ALL_TOPPINGS.find(t => t.id === id) || { id, emoji: '❓', name: id };
 }
 
-export default function PizzaMaker({ onComplete, holiday, theme }) {
+const VARIANTS = {
+  birthday: {
+    title: 'Pizza Perfection!',
+    toppings: [
+      { id: 'sauce', emoji: '🍅', name: 'Sauce' },
+      { id: 'cheese', emoji: '🧀', name: 'Gold Cheese' },
+      { id: 'pepperoni', emoji: '🔴', name: 'Pepperoni' },
+      { id: 'mushroom', emoji: '🍄', name: 'Truffles' },
+      { id: 'pepper', emoji: '🫑', name: 'Peppers' },
+      { id: 'olive', emoji: '🫒', name: 'Olives' },
+      { id: 'onion', emoji: '🧅', name: 'Onions' },
+      { id: 'basil', emoji: '🌿', name: 'Fresh Basil' },
+    ],
+  },
+};
+
+export default function PizzaMaker({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
   const [orders] = useState(() => [generateOrder(), generateOrder(), generateOrder()]);
   const [currentOrder, setCurrentOrder] = useState(0);
   const [placed, setPlaced] = useState([]);

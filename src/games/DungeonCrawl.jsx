@@ -144,9 +144,17 @@ function isAdjacent(r1, c1, r2, c2) {
 }
 
 /* ─── Component ────────────────────────────────────────────────────── */
-export default function DungeonCrawl({ onComplete, holiday, theme }) {
+const DC_VARIANTS = {
+  alien: {
+    enemy: ['🦑', '👾', '🧫'], boss: '👽', env: '🛸', stairs: '🚪', floor: '⬡',
+    treasure: '💎', wall: '🔩', player: '🧑‍🚀',
+  },
+};
+
+export default function DungeonCrawl({ onComplete, holiday, theme, variant }) {
+  const dcCfg = variant ? DC_VARIANTS[variant] : null;
   const cat = holiday?.category || 'default';
-  const t = THEMES[cat] || THEMES.default;
+  const t = dcCfg || THEMES[cat] || THEMES.default;
   const { best, submit } = useHighScore('dungeon-crawl');
   const containerRef = useRef(null);
 

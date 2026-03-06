@@ -99,9 +99,19 @@ function getFeedback(distance) {
   return { label: 'Freezing!', emoji: '❄️', color: '#90caf9' };
 }
 
-export default function ScavengerHunt({ onComplete, holiday, theme }) {
+const SH_VARIANTS = {
+  treasure: {
+    objects: ['🗽', '🎆', '🦅', '🔔', '⭐'],
+    bg: 'linear-gradient(170deg, #1a0a2e 0%, #0d1040 50%, #050520 100%)',
+    dots: 'radial-gradient(1px 1px at 50px 40px, rgba(255,200,100,0.5) 0%, transparent 100%), radial-gradient(1px 1px at 150px 100px, rgba(255,200,100,0.4) 0%, transparent 100%)',
+    label: 'Treasure Trove',
+  },
+};
+
+export default function ScavengerHunt({ onComplete, holiday, theme, variant }) {
+  const shCfg = variant ? SH_VARIANTS[variant] : null;
   const category = holiday?.category || 'default';
-  const sceneTheme = getTheme(category);
+  const sceneTheme = shCfg || getTheme(category);
   const primary = theme?.primary || '#7c3aed';
   const secondary = theme?.secondary || '#06b6d4';
 

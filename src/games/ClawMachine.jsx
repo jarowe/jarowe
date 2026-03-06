@@ -79,7 +79,16 @@ function spawnPopup(state, x, y, text, color) {
   state.popups.push({ x, y, text, color, life: 1.0 });
 }
 
-export default function ClawMachine({ onComplete, holiday, theme }) {
+const CLAW_VARIANTS = {
+  presents: {
+    prizes: ['🎁', '🧸', '🎄', '🎅', '⭐', '🔔', '❄️', '🦌'],
+    clawColor: '#ef4444',
+    bgGradient: 'linear-gradient(180deg, #1a0a0a 0%, #2d1010 100%)',
+  },
+};
+
+export default function ClawMachine({ onComplete, holiday, theme, variant }) {
+  const clawCfg = variant ? CLAW_VARIANTS[variant] : null;
   const canvasRef = useRef(null);
   const loopRef = useRef(null);
   const stateRef = useRef(null);
@@ -91,7 +100,7 @@ export default function ClawMachine({ onComplete, holiday, theme }) {
   const primary = theme?.primary || '#7c3aed';
   const secondary = theme?.secondary || '#06b6d4';
   const cat = holiday?.category || 'default';
-  const pool = PRIZE_POOLS[cat] || PRIZE_POOLS.default;
+  const pool = clawCfg?.prizes || PRIZE_POOLS[cat] || PRIZE_POOLS.default;
 
   // ─── Initialize game state ──────────────────────────────────────
   const initState = useCallback(() => {

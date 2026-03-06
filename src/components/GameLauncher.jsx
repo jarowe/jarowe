@@ -94,6 +94,7 @@ export default function GameLauncher({ gameId, holiday, onClose }) {
               onClose={onClose}
               holiday={holiday}
               theme={theme}
+              variant={game.variant || null}
             />
           </Suspense>
         )}

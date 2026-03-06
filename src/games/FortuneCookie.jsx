@@ -78,7 +78,22 @@ function getFortune(category) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export default function FortuneCookie({ onComplete, holiday, theme }) {
+const VARIANTS = {
+  valentine: {
+    cookieEmoji: '💝',
+    crackEmoji: '💕',
+    revealEmoji: '💌',
+    fortunes: [
+      "Love is the best algorithm—no bugs, infinite loops of joy.",
+      "Someone is thinking about you right now. Seriously.",
+      "Your heart compiles without errors today.",
+      "Roses are red, violets deploy, your love life's about to bring infinite joy.",
+    ],
+  },
+};
+
+export default function FortuneCookie({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
   const [phase, setPhase] = useState('whole'); // whole → cracking → revealed
   const [fortune, setFortune] = useState('');
 
@@ -88,7 +103,9 @@ export default function FortuneCookie({ onComplete, holiday, theme }) {
     playGameSound('pop');
 
     setTimeout(() => {
-      setFortune(getFortune(holiday?.category));
+      setFortune(cfg?.fortunes
+        ? cfg.fortunes[Math.floor(Math.random() * cfg.fortunes.length)]
+        : getFortune(holiday?.category));
       setPhase('revealed');
       playGameSound('win');
 
@@ -119,7 +136,7 @@ export default function FortuneCookie({ onComplete, holiday, theme }) {
             whileHover={{ scale: 1.1, rotate: [-2, 2, -2] }}
             whileTap={{ scale: 0.9 }}
           >
-            🥠
+            {cfg?.cookieEmoji || '🥠'}
           </motion.div>
         )}
 
@@ -131,7 +148,7 @@ export default function FortuneCookie({ onComplete, holiday, theme }) {
             transition={{ duration: 0.5 }}
             style={{ fontSize: '6rem', userSelect: 'none' }}
           >
-            💫
+            {cfg?.crackEmoji || '💫'}
           </motion.div>
         )}
 
@@ -153,7 +170,7 @@ export default function FortuneCookie({ onComplete, holiday, theme }) {
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
               style={{ fontSize: '4rem' }}
             >
-              🥠
+              {cfg?.revealEmoji || '🥠'}
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10, scaleY: 0 }}

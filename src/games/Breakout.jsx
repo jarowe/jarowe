@@ -29,8 +29,8 @@ function getColors(category) {
   return BRICK_COLORS[category] || BRICK_COLORS.default;
 }
 
-function buildBricks(category) {
-  const colors = getColors(category);
+function buildBricks(category, overrideColors) {
+  const colors = overrideColors || getColors(category);
   const bricks = [];
   for (let r = 0; r < BRICK_ROWS; r++) {
     for (let c = 0; c < BRICK_COLS; c++) {
@@ -47,12 +47,22 @@ function buildBricks(category) {
   return bricks;
 }
 
-export default function Breakout({ onComplete, holiday, theme }) {
+const VARIANTS = {
+  space: {
+    colors: ['#4a00e0', '#3b82f6', '#06b6d4', '#7c3aed', '#6366f1'],
+    bgColor: '#050510',
+    paddleColor: '#ef4444',
+    ballColor: '#fbbf24',
+  },
+};
+
+export default function Breakout({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
   const canvasRef = useRef(null);
   const stateRef = useRef({
     paddle: W / 2 - PADDLE_W / 2,
     ball: { x: W / 2, y: H - 40, dx: 2.5, dy: -3 },
-    bricks: buildBricks(holiday?.category),
+    bricks: buildBricks(cfg ? null : holiday?.category, cfg?.colors),
     score: 0,
     lives: 3,
     running: false,

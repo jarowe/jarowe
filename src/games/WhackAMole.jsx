@@ -21,8 +21,16 @@ function getTargets(category) {
 
 const GRID_SIZE = 9; // 3x3
 
-export default function WhackAMole({ onComplete, holiday, theme }) {
-  const targets = getTargets(holiday?.category);
+const VARIANTS = {
+  alien: {
+    targets: ['👽', '🛸', '🌀', '🪐'],
+    instructionText: 'Zap the aliens!',
+  },
+};
+
+export default function WhackAMole({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
+  const targets = cfg?.targets || getTargets(holiday?.category);
   const [score, setScore] = useState(0);
   const [holes, setHoles] = useState(Array(GRID_SIZE).fill(null));
   const [gameStarted, setGameStarted] = useState(false);
@@ -88,7 +96,7 @@ export default function WhackAMole({ onComplete, holiday, theme }) {
     return (
       <div style={{ textAlign: 'center', padding: '1rem' }}>
         <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-          Tap the {targets[0]} as fast as you can! 15 seconds.
+          {cfg?.instructionText || `Tap the ${targets[0]} as fast as you can!`} 15 seconds.
         </p>
         <button
           onClick={handleStart}

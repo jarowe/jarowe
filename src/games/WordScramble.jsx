@@ -39,8 +39,26 @@ function pickWords(category, count = 5) {
   return pool.slice(0, count);
 }
 
-export default function WordScramble({ onComplete, holiday, theme }) {
-  const [words] = useState(() => pickWords(holiday?.category));
+const VARIANTS = {
+  pi: {
+    words: ['EULER', 'PRIME', 'THETA', 'SIGMA', 'PROOF', 'RATIO', 'GRAPH', 'AXIOM', 'LIMIT', 'COSINE'],
+    headerText: '3.14159...',
+  },
+};
+
+export default function WordScramble({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
+  const [words] = useState(() => {
+    if (cfg?.words) {
+      const pool = [...cfg.words];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, 5);
+    }
+    return pickWords(holiday?.category);
+  });
   const [current, setCurrent] = useState(0);
   const [scrambled, setScrambled] = useState(() => scramble(words[0]));
   const [guess, setGuess] = useState('');

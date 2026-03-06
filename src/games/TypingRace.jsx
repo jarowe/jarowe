@@ -25,8 +25,26 @@ function pickWords(category, count = 20) {
   return pool.slice(0, count);
 }
 
-export default function TypingRace({ onComplete, holiday, theme }) {
-  const [words] = useState(() => pickWords(holiday?.category));
+const VARIANTS = {
+  music: {
+    words: ['rhythm', 'melody', 'chorus', 'treble', 'tempo', 'guitar', 'drums', 'harmony', 'verse', 'bridge', 'encore', 'lyric', 'chord', 'album', 'vinyl', 'remix', 'dance', 'blues', 'jazz', 'soul'],
+    headerText: 'Type the beat!',
+  },
+};
+
+export default function TypingRace({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
+  const [words] = useState(() => {
+    if (cfg?.words) {
+      const pool = [...cfg.words];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, 20);
+    }
+    return pickWords(holiday?.category);
+  });
   const [activeWords, setActiveWords] = useState([]);
   const [input, setInput] = useState('');
   const [score, setScore] = useState(0);

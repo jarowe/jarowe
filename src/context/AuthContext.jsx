@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
+const ADMIN_EMAILS = ['rowe.jared@gmail.com'];
+
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -140,10 +142,16 @@ export function AuthProvider({ children }) {
   const openAuthModal = useCallback(() => setShowAuthModal(true), []);
   const closeAuthModal = useCallback(() => setShowAuthModal(false), []);
 
+  const isAdmin = useMemo(() => {
+    if (profile?.is_admin === true) return true;
+    return ADMIN_EMAILS.includes(user?.email);
+  }, [profile, user]);
+
   const value = useMemo(() => ({
     user,
     profile,
     loading,
+    isAdmin,
     showAuthModal,
     signInWithGoogle,
     signInWithGitHub,
@@ -153,7 +161,7 @@ export function AuthProvider({ children }) {
     updateProfile,
     openAuthModal,
     closeAuthModal,
-  }), [user, profile, loading, showAuthModal, signInWithGoogle, signInWithGitHub,
+  }), [user, profile, loading, isAdmin, showAuthModal, signInWithGoogle, signInWithGitHub,
     signInWithEmail, signUp, signOut, updateProfile, openAuthModal, closeAuthModal]);
 
   return (

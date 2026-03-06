@@ -482,3 +482,135 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Dashboard Hub Cards ---- */
+
+.admin-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.admin-hub-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  transition: transform 0.15s, border-color 0.2s;
+  cursor: pointer;
+}
+
+.admin-hub-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--hub-color, rgba(255, 255, 255, 0.15));
+}
+
+.admin-hub-icon {
+  color: var(--hub-color, rgba(255, 255, 255, 0.6));
+}
+
+.admin-hub-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.admin-hub-desc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Game Grid (AdminGames page) ---- */
+
+.admin-game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.2s;
+}
+
+.admin-game-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.admin-game-card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.admin-game-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-game-tier {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.admin-game-tier-1 { background: rgba(52, 211, 153, 0.15); color: rgb(52, 211, 153); }
+.admin-game-tier-2 { background: rgba(96, 165, 250, 0.15); color: rgb(96, 165, 250); }
+.admin-game-tier-3 { background: rgba(251, 191, 36, 0.15); color: rgb(251, 191, 36); }
+
+.admin-game-xp {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.admin-game-variant {
+  display: inline-block;
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  background: rgba(167, 139, 250, 0.12);
+  color: rgb(167, 139, 250);
+}
+
+.admin-game-duration {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .admin-hub-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-game-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-hub-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-game-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -28,8 +28,17 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export default function EmojiSlots({ onComplete, holiday, theme }) {
-  const pool = getPool(holiday?.category);
+const VARIANTS = {
+  vegas: {
+    pool: ['🎰', '💰', '💎', '7️⃣', '🍒', '🃏', '👑', '🎲'],
+    jackpotText: '🎰 JACKPOT! 🎰',
+    pairText: 'Lucky Pair!',
+  },
+};
+
+export default function EmojiSlots({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
+  const pool = cfg?.pool || getPool(holiday?.category);
   const [reels, setReels] = useState([pool[0], pool[1], pool[2]]);
   const [spinning, setSpinning] = useState(false);
   const [spinsLeft, setSpinsLeft] = useState(3);
@@ -63,12 +72,12 @@ export default function EmojiSlots({ onComplete, holiday, theme }) {
         let msg = '';
         if (final[0] === final[1] && final[1] === final[2]) {
           pts = 100;
-          msg = 'JACKPOT! 🎉';
+          msg = cfg?.jackpotText || 'JACKPOT! 🎉';
           playGameSound('win');
           confetti({ particleCount: 120, spread: 70, origin: { y: 0.5 }, colors: [theme.primary, theme.secondary, '#fbbf24'] });
         } else if (final[0] === final[1] || final[1] === final[2] || final[0] === final[2]) {
           pts = 25;
-          msg = 'Pair! Nice!';
+          msg = cfg?.pairText || 'Pair! Nice!';
           playGameSound('correct');
         } else {
           msg = 'No match';

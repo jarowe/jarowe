@@ -32,14 +32,25 @@ function spawnFood(snake) {
 
 const DIR = { ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 } };
 
-export default function SnakeGame({ onComplete, holiday, theme }) {
+const VARIANTS = {
+  halloween: {
+    food: ['🎃', '🍬', '🍭', '🧙', '🕯️'],
+    snakeColor: '#22c55e',
+    trailColor: '#16a34a',
+    bgColor: 'rgba(10, 5, 15, 1)',
+    gridColor: 'rgba(100, 50, 0, 0.05)',
+  },
+};
+
+export default function SnakeGame({ onComplete, holiday, theme, variant }) {
+  const cfg = variant ? VARIANTS[variant] : null;
   const canvasRef = useRef(null);
   const stateRef = useRef({
     snake: [{ x: 7, y: 7 }],
     dir: { x: 1, y: 0 },
     nextDir: { x: 1, y: 0 },
     food: { x: 3, y: 3 },
-    foodEmoji: getFood(holiday?.category),
+    foodEmoji: cfg?.food ? cfg.food[Math.floor(Math.random() * cfg.food.length)] : getFood(holiday?.category),
     score: 0,
     alive: true,
     speed: 150,
@@ -125,7 +136,7 @@ export default function SnakeGame({ onComplete, holiday, theme }) {
       if (head.x === s.food.x && head.y === s.food.y) {
         s.score += 10;
         s.food = spawnFood(s.snake);
-        s.foodEmoji = getFood(holiday?.category);
+        s.foodEmoji = cfg?.food ? cfg.food[Math.floor(Math.random() * cfg.food.length)] : getFood(holiday?.category);
         s.speed = Math.max(60, s.speed - 3);
         setScore(s.score);
         playGameSound('correct');
@@ -134,10 +145,10 @@ export default function SnakeGame({ onComplete, holiday, theme }) {
       }
 
       // Draw
-      ctx.fillStyle = 'rgba(10, 10, 30, 1)';
+      ctx.fillStyle = cfg?.bgColor || 'rgba(10, 10, 30, 1)';
       ctx.fillRect(0, 0, W, H);
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.strokeStyle = cfg?.gridColor || 'rgba(255,255,255,0.03)';
       for (let x = 0; x <= W; x += CELL) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
@@ -147,7 +158,7 @@ export default function SnakeGame({ onComplete, holiday, theme }) {
 
       s.snake.forEach((seg, i) => {
         const alpha = 1 - (i / s.snake.length) * 0.6;
-        ctx.fillStyle = i === 0 ? theme.primary : `${theme.secondary}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.fillStyle = i === 0 ? (cfg?.snakeColor || theme.primary) : `${cfg?.trailColor || theme.secondary}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
         ctx.beginPath();
         ctx.roundRect(seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2, 4);
         ctx.fill();

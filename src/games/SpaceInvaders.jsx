@@ -22,6 +22,15 @@ const ENEMY_EMOJI = {
   family: '\u{1F9F8}', default: '\u{1F47E}',
 };
 
+const SI_VARIANTS = {
+  startrek: {
+    enemyEmoji: '🛸',
+    shipEmoji: '🚀',
+    bulletColor: '#ef4444',
+    bgStarColor: 'rgba(100,150,255,0.4)',
+  },
+};
+
 const POWERUP_TYPES = [
   { type: 'shield', emoji: '\u{1F6E1}\u{FE0F}', dur: 0, color: '#38bdf8' },
   { type: 'rapid',  emoji: '\u{26A1}', dur: 3000, color: '#fbbf24' },
@@ -53,7 +62,8 @@ function buildEnemies(wave) {
   return enemies;
 }
 
-export default function SpaceInvaders({ onComplete, holiday, theme }) {
+export default function SpaceInvaders({ onComplete, holiday, theme, variant }) {
+  const siCfg = variant ? SI_VARIANTS[variant] : null;
   const canvasRef = useRef(null);
   const emoji = ENEMY_EMOJI[holiday?.category] || ENEMY_EMOJI.default;
 
