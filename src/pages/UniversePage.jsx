@@ -163,6 +163,22 @@ function MemoryPolaroid({ memory, onDiscover, onClick }) {
             </mesh>
           )}
         </mesh>
+
+        {/* Caption below polaroid — screen-space HTML so it stays readable */}
+        {hovered && (
+          <Html position={[0, -(height + 0.55) / 2 - 0.15, 0]} center zIndexRange={[100, 0]}>
+            <div className="memory-hover-caption">
+              <span className="memory-hover-epoch" style={{ color: memory.epochColor }}>
+                {memory.epoch}
+              </span>
+              <span className="memory-hover-title">
+                {(memory.title || '').length > 35
+                  ? (memory.title || '').substring(0, 35) + '...'
+                  : (memory.title || '')}
+              </span>
+            </div>
+          </Html>
+        )}
       </Float>
     </group>
   );
