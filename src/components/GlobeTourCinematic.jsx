@@ -8,7 +8,6 @@ export default function GlobeTourCinematic({
   chapterIndex,
   totalChapters,
   narration,
-  entering = false,
   onPrev,
   onNext,
   onExit,
@@ -71,12 +70,12 @@ export default function GlobeTourCinematic({
       <div className="tour-letterbox top" />
       <div className="tour-letterbox bottom" />
 
-      {/* All overlay content fades in after FLIP expansion completes */}
+      {/* All overlay content fades in when component mounts */}
       <motion.div
         className="tour-overlay-content"
         initial={{ opacity: 0 }}
-        animate={{ opacity: entering ? 0 : 1 }}
-        transition={{ duration: 0.6, delay: entering ? 0 : 0.2 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
       >
         {/* Sweep line on chapter transition */}
         {showSweep && <div className="tour-sweep-line" key={`sweep-${chapterIndex}`} />}

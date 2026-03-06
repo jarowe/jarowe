@@ -166,7 +166,7 @@ export const GLOBE_DEFAULTS = {
   shaderSunMult: 1.15,
 
   // ── Scene Lights ──
-  ambientIntensity: 0.0,
+  ambientIntensity: 0.4,
   sunIntensity: 5.8,
 
   // ── Particles: Stars ──

@@ -42,9 +42,11 @@
 }
 
 @keyframes letterbox-in-top {
+  from { transform: translateY(-100%); }
   to { transform: translateY(0); }
 }
 @keyframes letterbox-in-bottom {
+  from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
 

@@ -6442,7 +6442,7 @@ export default function Home() {
             </div>
             {/* Expedition photo card — anchored to cell-map, not map-container */}
             <AnimatePresence>
-              {hoveredMarker && (
+              {hoveredMarker && !tourCinematic && (
                 <motion.div
                   className="expedition-photo-card"
                   initial={{ opacity: 0, scale: 0.9, y: 5 }}
@@ -6481,16 +6481,15 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Cinematic tour overlay — fullscreen UI on top of expanded globe */}
+            {/* Cinematic tour overlay — only mount after FLIP expansion completes */}
             <AnimatePresence>
-              {tourCinematic && (
+              {tourCinematic && !tourEntering && (
                 <Suspense fallback={null}>
                   <GlobeTourCinematic
                     chapter={tourChapter}
                     chapterIndex={tourChapterIndex}
                     totalChapters={TOTAL_CHAPTERS}
                     narration={tourNarration}
-                    entering={tourEntering}
                     onPrev={() => prevChapter()}
                     onNext={() => nextChapter()}
                     onExit={() => endGlobeTour()}
@@ -6572,12 +6571,15 @@ export default function Home() {
                   <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('next'); }} aria-label="Next location">
                     <ChevronRight size={14} />
                   </button>
-                  <button className="globe-nav-btn globe-tour-trigger" onClick={(e) => { e.stopPropagation(); startGlobeTour(0); }} aria-label="Start Globe Tour" title="Globe Tour">
-                    <Compass size={14} />
-                  </button>
                 </>
               ) : null}
             </div>
+            {/* Globe Tour trigger — separate floating button */}
+            {!tourCinematic && (
+              <button className="globe-tour-trigger" onClick={(e) => { e.stopPropagation(); startGlobeTour(0); }} aria-label="Start Globe Tour" title="Globe Tour">
+                <Compass size={13} />
+              </button>
+            )}
             {/* Liquid glass edge overlay */}
             <div className="liquid-glass-edge" />
           </div>
