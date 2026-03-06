@@ -187,6 +187,54 @@ const HOME_LINES = [
   { text: "Every cell in this grid tells a different story.", expression: 'thinking' },
   { text: "The globe has satellites, planes, and even cars. Can you spot them?", expression: 'excited' },
   { text: "That cipher puzzle in the corner? Crack it for a surprise.", expression: 'mischief' },
+  { text: "Want a world tour? Bop me and I'll fly inside the globe!", expression: 'excited' },
+  { text: "I can actually teleport inside that globe. Bop me and ask for a tour!", expression: 'mischief' },
+  { text: "See those travel pins on the globe? I can fly you to any of them!", expression: 'curious' },
+];
+
+// ── Globe Tour Lines (shown when Glint offers or reacts to globe flights) ──
+
+const GLOBE_OFFER_LINES = [
+  { text: "Want me to fly you somewhere on the globe? I know all Jared's travel spots!", expression: 'excited' },
+  { text: "See that globe? I can portal inside it and show you around the world!", expression: 'mischief' },
+  { text: "I've got a secret power... I can teleport inside the globe! Want a tour?", expression: 'curious' },
+  { text: "Fun fact: I can fly around that globe down there. Say the word and I'll take you places!", expression: 'happy' },
+  { text: "That globe isn't just for looking! Bop me and I'll give you a world tour.", expression: 'excited' },
+  { text: "Psst... I can shrink down and fly inside the globe. Wanna see?", expression: 'mischief' },
+];
+
+const GLOBE_ARRIVAL_LINES = {
+  europe: [
+    { text: "We made it! Europe is where the family lived for months. Gelato and cobblestones!", expression: 'excited' },
+    { text: "Bonjour! Or should I say... *adjusts beret*... magnifique!", expression: 'happy' },
+    { text: "European vibes! Jared's family worldschooled here. The Alps, Greece, Spain...", expression: 'love' },
+    { text: "Ah, Europe! Where every street corner has a thousand years of history.", expression: 'thinking' },
+  ],
+  caribbean: [
+    { text: "Island time! Sint Maarten is one of Jared's favorite spots. Can you feel the breeze?", expression: 'happy' },
+    { text: "Caribbean paradise! The water is actually that blue. Not a filter.", expression: 'excited' },
+    { text: "Welcome to the islands! Time moves differently here. In a good way.", expression: 'love' },
+    { text: "Tropical vibes activated! I look great in a sunhat, don't I?", expression: 'mischief' },
+  ],
+  us: [
+    { text: "Home sweet home! Well, one of them. Jared's family is based in the US.", expression: 'happy' },
+    { text: "America! Mountains, theme parks, and infinite possibilities.", expression: 'excited' },
+    { text: "Yeehaw! ...Is that appropriate? I'm a prism, I don't know regional customs.", expression: 'mischief' },
+    { text: "The US of A! From the Smokies to Orlando, this family covers ground.", expression: 'happy' },
+  ],
+  default: [
+    { text: "We're here! Another pin on the map of adventures.", expression: 'happy' },
+    { text: "Arrived! Every place has a story. This one's no different.", expression: 'curious' },
+    { text: "Touch down! I love the view from here.", expression: 'excited' },
+  ],
+};
+
+const GLOBE_FLIGHT_LINES = [
+  { text: "Wheeeee! Here we go!", expression: 'excited' },
+  { text: "Hold on tight! Portal jump in 3... 2... 1...", expression: 'excited' },
+  { text: "Off we fly! The view from inside the globe is amazing.", expression: 'happy' },
+  { text: "Engaging flight mode! *swoosh*", expression: 'excited' },
+  { text: "Let's gooo! I love this part!", expression: 'happy' },
 ];
 
 const PUNCH_REACTION_LINES = [
@@ -313,10 +361,20 @@ const REACTIVE_POOLS = {
   'welcome-back': WELCOME_BACK_LINES,
   'idle-nudge': IDLE_NUDGE_LINES,
   'scroll-reaction': SCROLL_BOTTOM_LINES,
+  'globe-flight': GLOBE_FLIGHT_LINES,
   'periodic': null, // uses ambient line system
 };
 
 export function getReactiveLine(context, data) {
+  // Globe arrival uses region-specific lines
+  if (context === 'globe-arrival') {
+    const region = data?.region || 'default';
+    const pool = GLOBE_ARRIVAL_LINES[region] || GLOBE_ARRIVAL_LINES.default;
+    const line = pick(pool);
+    log('Reactive: globe-arrival', region, line.text);
+    return line;
+  }
+
   const pool = REACTIVE_POOLS[context];
   if (!pool) {
     // For periodic peeks, use the ambient system
@@ -472,6 +530,8 @@ export function getAmbientLine(context) {
 
 // AI pill — bridges Tier 2 dialogue → Tier 4 AI chat
 const AI_CHAT_PILL = { label: "\u2728 Ask me anything", nodeId: '__ai__' };
+// Globe tour pill — appears in conversation roots on home page
+const GLOBE_TOUR_PILL = { label: "\uD83C\uDF0D Globe tour!", nodeId: 'globe-tour-start' };
 
 const DIALOGUE_TREES = {
   // ── Tour tree ──
@@ -796,6 +856,44 @@ const DIALOGUE_TREES = {
       AI_CHAT_PILL,
     ],
   },
+
+  // ── Globe Tour tree ──
+  'globe-tour-start': {
+    text: "I can portal inside the globe and fly you to any of Jared's travel spots! Where do you want to go?",
+    expression: 'excited',
+    replies: [
+      { label: "Spain!", nodeId: '__globe__:0' },
+      { label: "Greek Islands!", nodeId: '__globe__:2' },
+      { label: "Show me all spots", nodeId: 'globe-tour-menu' },
+    ],
+  },
+  'globe-tour-menu': {
+    text: "The Rowe family has been EVERYWHERE. Pick a destination and I'll fly us there!",
+    expression: 'happy',
+    replies: [
+      { label: "Austrian Alps", nodeId: '__globe__:1' },
+      { label: "Sint Maarten", nodeId: '__globe__:3' },
+      { label: "Orlando, FL", nodeId: '__globe__:6' },
+    ],
+  },
+  'globe-tour-more': {
+    text: "Want to keep exploring? There's more to see!",
+    expression: 'curious',
+    replies: [
+      { label: "Smoky Mountains", nodeId: '__globe__:4' },
+      { label: "Blue Ridge", nodeId: '__globe__:5' },
+      { label: "That's enough flying!", nodeId: null },
+    ],
+  },
+  'globe-tour-arrived': {
+    text: "We made it! Want to fly somewhere else, or are you good?",
+    expression: 'happy',
+    replies: [
+      { label: "More destinations!", nodeId: 'globe-tour-menu' },
+      { label: "Even more spots!", nodeId: 'globe-tour-more' },
+      { label: "That was awesome!", nodeId: null },
+    ],
+  },
 };
 
 // ── Conversation Root Selection ──
@@ -809,6 +907,11 @@ const CONVERSATION_ROOTS = {
       { label: "Tell me a secret", nodeId: 'secret-1' },
       AI_CHAT_PILL,
     ],
+    homeReplies: [
+      { label: "What is this site?", nodeId: 'tour-start' },
+      GLOBE_TOUR_PILL,
+      AI_CHAT_PILL,
+    ],
   },
   'repeat-bop': {
     text: "Bop! Never gets old. Well, for YOU maybe. What's up?",
@@ -818,12 +921,22 @@ const CONVERSATION_ROOTS = {
       { label: "What are you?", nodeId: 'tour-glint' },
       AI_CHAT_PILL,
     ],
+    homeReplies: [
+      GLOBE_TOUR_PILL,
+      { label: "Tell me a secret", nodeId: 'secret-1' },
+      AI_CHAT_PILL,
+    ],
   },
   'veteran-bop': {
     text: "You again! At this point we're basically best friends. What do you wanna chat about?",
     expression: 'love',
     replies: [
       { label: "Any new secrets?", nodeId: 'secret-2' },
+      { label: "Get philosophical", nodeId: 'philosophy-start' },
+      AI_CHAT_PILL,
+    ],
+    homeReplies: [
+      GLOBE_TOUR_PILL,
       { label: "Get philosophical", nodeId: 'philosophy-start' },
       AI_CHAT_PILL,
     ],
@@ -872,9 +985,11 @@ function getHolidayInfoNode(ctx) {
 
 export function getConversationRoot(context) {
   const ctx = context;
+  const isHome = !ctx.page || ctx.page === '/' || ctx.page === '';
   const clone = (key) => {
     const r = CONVERSATION_ROOTS[key];
-    return { ...r, replies: [...r.replies] };
+    const replies = (isHome && r.homeReplies) ? [...r.homeReplies] : [...r.replies];
+    return { ...r, replies };
   };
 
   // Holiday-specific root
@@ -927,4 +1042,22 @@ export function getDialogueNode(nodeId, context) {
     return DIALOGUE_TREES['tour-activities'] || null;
   }
   return DIALOGUE_TREES[nodeId] || null;
+}
+
+/**
+ * Get a region-specific arrival line for globe glint flights.
+ * @param {string} region - 'europe', 'caribbean', 'us', or null
+ * @returns {{ text: string, expression: string }}
+ */
+export function getGlobeArrivalLine(region) {
+  const pool = GLOBE_ARRIVAL_LINES[region] || GLOBE_ARRIVAL_LINES.default;
+  return pick(pool);
+}
+
+/**
+ * Get a flight-start line for globe glint.
+ * @returns {{ text: string, expression: string }}
+ */
+export function getGlobeFlightLine() {
+  return pick(GLOBE_FLIGHT_LINES);
 }

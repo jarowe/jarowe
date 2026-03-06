@@ -316,6 +316,19 @@ class EventReactionManager {
       }
     };
 
+    // Globe Glint flight start — set expression + trigger flight line peek
+    this._handlers['globe-glint-flight-start'] = (e) => {
+      if (!getCfg('autonomyEventReactions', true)) return;
+      this.autonomy.triggerPeek('globe-flight', { destination: e.detail?.destination });
+    };
+
+    // Globe Glint arrival — trigger arrival peek with region-specific line
+    this._handlers['globe-glint-arrived'] = (e) => {
+      if (!getCfg('autonomyEventReactions', true)) return;
+      const d = e.detail || {};
+      this.autonomy.triggerPeek('globe-arrival', { region: d.region, name: d.name, destination: d.destination });
+    };
+
     // Register listeners
     window.addEventListener('add-xp', this._handlers['add-xp']);
     window.addEventListener('game-complete', this._handlers['game-complete']);
@@ -323,6 +336,8 @@ class EventReactionManager {
     window.addEventListener('music-stopped', this._handlers['music-stopped']);
     document.addEventListener('visibilitychange', this._handlers['visibilitychange']);
     window.addEventListener('scroll', this._handlers['scroll'], { passive: true });
+    window.addEventListener('globe-glint-flight-start', this._handlers['globe-glint-flight-start']);
+    window.addEventListener('globe-glint-arrived', this._handlers['globe-glint-arrived']);
 
     log('EventReactionManager started');
   }
@@ -334,6 +349,8 @@ class EventReactionManager {
     window.removeEventListener('music-stopped', this._handlers['music-stopped']);
     document.removeEventListener('visibilitychange', this._handlers['visibilitychange']);
     window.removeEventListener('scroll', this._handlers['scroll']);
+    window.removeEventListener('globe-glint-flight-start', this._handlers['globe-glint-flight-start']);
+    window.removeEventListener('globe-glint-arrived', this._handlers['globe-glint-arrived']);
     if (this._scrollDebounceTimer) clearTimeout(this._scrollDebounceTimer);
     this._handlers = {};
     log('EventReactionManager stopped');

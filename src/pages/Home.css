@@ -2310,3 +2310,24 @@
     border-color: rgba(124, 58, 237, 0.6);
     box-shadow: 0 2px 12px rgba(124, 58, 237, 0.35);
 }
+
+.glint-pill-globe {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(16, 185, 129, 0.15), rgba(251, 191, 36, 0.2));
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    position: relative;
+    overflow: hidden;
+}
+
+.glint-pill-globe::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: glint-pill-shimmer 2.5s ease-in-out infinite;
+}
+
+.glint-pill-globe:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(16, 185, 129, 0.25), rgba(251, 191, 36, 0.35));
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 2px 12px rgba(56, 189, 248, 0.35);
+}

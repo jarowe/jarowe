@@ -23,7 +23,7 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
-import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine } from '../utils/glintBrain';
+import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getGlobeFlightLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
@@ -4491,6 +4491,60 @@ export default function Home() {
       exitConversation();
       return;
     }
+
+    // Globe action pills: __globe__:expeditionIndex
+    if (reply.nodeId.startsWith('__globe__:')) {
+      const idx = parseInt(reply.nodeId.split(':')[1], 10);
+      const expedition = expeditions[idx];
+      if (expedition) {
+        // Show flight line in bubble
+        const flightLine = getGlobeFlightLine();
+        window.__prismExpression = flightLine.expression;
+        showBubbleWithThinking(flightLine.text);
+
+        // Dispatch the fly event (with delay for the bubble to show)
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('globe-glint-fly', {
+            detail: { expedition, duration: 4000 }
+          }));
+        }, 600);
+
+        // Set up arrival follow-up: show arrival node after flight
+        const onArrival = (e) => {
+          window.removeEventListener('globe-glint-arrived', onArrival);
+          const d = e.detail || {};
+          const arrivalLine = getGlobeArrivalLine(d.region);
+          const arrivalNode = {
+            text: arrivalLine.text,
+            expression: arrivalLine.expression,
+            replies: [
+              { label: "More destinations!", nodeId: 'globe-tour-menu' },
+              { label: "Even more spots!", nodeId: 'globe-tour-more' },
+              { label: "That was awesome!", nodeId: null },
+            ],
+          };
+          setConversationNode(arrivalNode);
+          window.__prismExpression = arrivalNode.expression;
+          showBubbleWithThinking(arrivalNode.text);
+
+          // Show peek character for arrival reaction
+          if (!peekVisibleRef.current) {
+            window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+              detail: { autonomous: true, pinned: true, duration: 15000 }
+            }));
+          }
+
+          if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+          const cfg2 = window.__prismConfig || {};
+          conversationTimeoutRef.current = setTimeout(() => {
+            exitConversation();
+          }, (cfg2.brainConversationTimeout ?? 15) * 1000);
+        };
+        window.addEventListener('globe-glint-arrived', onArrival, { once: true });
+      }
+      return;
+    }
+
     window.__currentHoliday = holiday;
     window.__isBirthday = isBirthday;
     const ctx = buildContext();
@@ -6569,7 +6623,7 @@ export default function Home() {
                               {conversationNode.replies.map((reply, i) => (
                                 <motion.button
                                   key={reply.label}
-                                  className={`glint-pill${reply.nodeId === '__ai__' ? ' glint-pill-ai' : ''}`}
+                                  className={`glint-pill${reply.nodeId === '__ai__' ? ' glint-pill-ai' : ''}${reply.nodeId?.startsWith?.('__globe__:') ? ' glint-pill-globe' : ''}`}
                                   initial={{ opacity: 0, y: 8 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: 0.3 + i * (cfg.brainPillAnimDelay ?? 0.1) }}

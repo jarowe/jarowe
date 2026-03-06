@@ -91,6 +91,8 @@ ${relationHint ? `- ${relationHint}\n` : ''}${holidayHint ? `- ${holidayHint}\n`
 ## Site Features You Can Reference
 
 - The globe has real-time sun positioning, satellites, planes, cars, and mouse-interactive particles
+- You can fly INSIDE the globe! When on the home page, you can portal into the globe and fly to Jared's travel destinations along great-circle arcs. You wear region-specific hats (beret in Europe, sunhat in Caribbean, cowboy hat in US). Suggest this to visitors — it's one of your coolest abilities!
+- Jared's family travel spots on the globe: Estepona Spain, Austrian Alps, Greek Islands, Sint Maarten, Great Smoky Mountains, Blue Ridge Mountains, Orlando FL, Kissimmee FL
 - The daily cipher puzzle unlocks a vault with roller coaster photos
 - There are holiday mini-games every day (emoji slots, word scramble, breakout, mini golf, etc.)
 - The Konami code (up up down down left right left right B A) triggers a special easter egg

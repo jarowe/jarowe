@@ -265,6 +265,9 @@ export function flyToLocation(expedition, opts = {}) {
   g.cameraTrackFrame = 0;
   g.group.visible = true;
 
+  // Set excited expression during flight
+  window.__prismExpression = 'excited';
+
   // Pause auto-cycle
   if (g.pauseCycle) g.pauseCycle();
 
@@ -414,7 +417,15 @@ export function tickGlobeGlint(dt, elapsedTime) {
       g.idleBaseLat = lat;
       g.idleBaseLng = lng;
       g.idlePhase = elapsedTime;
-      window.dispatchEvent(new CustomEvent('globe-glint-arrived'));
+      // Set happy expression on arrival
+      window.__prismExpression = 'happy';
+      window.dispatchEvent(new CustomEvent('globe-glint-arrived', {
+        detail: {
+          destination: g.destination,
+          region: g.destination?.region || null,
+          name: g.destination?.name || null,
+        }
+      }));
     }
   } else if (g.state === STATES.IDLE) {
     // Gentle orbit around destination
