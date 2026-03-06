@@ -33,10 +33,24 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // getSession() only reads cached tokens — they may be expired.
+    // Use it for instant UI, then validate with the server.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         // Set user IMMEDIATELY so email-based checks (isAdmin) work right away
         setUser(session.user);
+
+        // Validate session server-side and refresh if expired.
+        // This ensures downstream Supabase queries use a valid token.
+        try {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData?.session?.user) {
+            setUser(refreshData.session.user);
+          }
+        } catch (_) {
+          // Refresh failed — cached session may still work for some calls
+        }
+
         // Profile is optional — don't block auth on it
         try {
           const p = await fetchProfile(session.user.id);

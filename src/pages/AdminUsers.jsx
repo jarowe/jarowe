@@ -37,6 +37,14 @@ function AdminUsersInner() {
       setLoading(true);
       setError(null);
       try {
+        // Ensure valid session — getSession() only reads cached (possibly expired) tokens.
+        // refreshSession() actually validates with the server and gets fresh tokens.
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData.session) {
+          setError('Session expired. Please sign out and sign back in.');
+          return;
+        }
+
         // Fetch profiles first to avoid Supabase auth lock contention
         const profilesRes = await supabase
           .from('profiles').select('*').order('created_at', { ascending: false });
@@ -69,8 +77,9 @@ function AdminUsersInner() {
 
         setProfiles(merged);
       } catch (err) {
-        // Retry once on Supabase auth lock contention (AbortError)
-        if (err.name === 'AbortError' && attempt < 2) {
+        // Retry on transient errors (AbortError, network issues, auth lock contention)
+        if (attempt < 2 && (err.name === 'AbortError' || err.message?.includes('JWT'))) {
+          await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
           return loadUsers(attempt + 1);
         }
         setError(`Failed to load users: ${err.message}`);
