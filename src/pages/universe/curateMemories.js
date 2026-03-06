@@ -1,5 +1,5 @@
 /**
- * Curate ~25 best memory moments from constellation data for the Universe page.
+ * Curate memories from constellation data for the Universe page.
  *
  * Filters to nodes with image media, applies per-epoch quotas,
  * and ensures theme diversity within each epoch.
@@ -16,14 +16,12 @@ function isImage(path) {
 
 function hasImageMedia(node) {
   if (!node.media || node.media.length === 0) return false;
-  // cm-p nodes always have local copies even though media[] has external URLs
   if (node.id.startsWith('cm-p-') && CM_LOCAL_FILES[node.id]) return true;
   return node.media.some(m => isImage(m));
 }
 
 function getFirstImage(node) {
   if (!node.media) return null;
-  // For cm-p nodes, use the actual local file manifest (correct extensions)
   const localFiles = CM_LOCAL_FILES[node.id];
   if (node.id.startsWith('cm-p-') && localFiles && localFiles.length > 0) {
     return `/data/media/${node.id}/${localFiles[0]}`;
@@ -34,13 +32,13 @@ function getFirstImage(node) {
   return null;
 }
 
-// Epoch quotas — balanced representation across life chapters
+// Generous epoch quotas for a rich, explorable universe
 const EPOCH_QUOTAS = {
-  'Early Years': 4,
-  'College': 5,
-  'Career Start': 6,
-  'Growth': 5,
-  'Present': 5,
+  'Early Years': 8,
+  'College': 14,
+  'Career Start': 14,
+  'Growth': 12,
+  'Present': 12,
 };
 
 const EPOCH_COLORS = {
@@ -54,17 +52,15 @@ const EPOCH_COLORS = {
 /**
  * @param {Array} nodes - Constellation graph nodes
  * @param {Object} [opts]
- * @param {number} [opts.maxTotal=25] - Max total memories
- * @param {boolean} [opts.mobile=false] - If true, reduce to ~15 (3 per epoch)
- * @returns {Array<{id, title, description, date, epoch, epochColor, theme, significance, heroImage, allImages, type}>}
+ * @param {number} [opts.maxTotal=60] - Max total memories
+ * @param {boolean} [opts.mobile=false] - If true, reduce to ~25 (5 per epoch)
+ * @returns {Array}
  */
 export function curateMemories(nodes, opts = {}) {
-  const { maxTotal = 25, mobile = false } = opts;
+  const { maxTotal = 60, mobile = false } = opts;
 
-  // Filter to nodes that have at least one image
   const candidates = nodes.filter(hasImageMedia);
 
-  // Group by epoch
   const byEpoch = {};
   for (const node of candidates) {
     const epoch = node.epoch || 'Unknown';
@@ -72,31 +68,27 @@ export function curateMemories(nodes, opts = {}) {
     byEpoch[epoch].push(node);
   }
 
-  // Sort each epoch by significance descending
   for (const epoch of Object.keys(byEpoch)) {
     byEpoch[epoch].sort((a, b) => b.significance - a.significance);
   }
 
   const selected = [];
 
-  // Pick per-epoch quota with theme diversity
   for (const [epoch, quota] of Object.entries(EPOCH_QUOTAS)) {
     const pool = byEpoch[epoch] || [];
-    const epochQuota = mobile ? Math.min(3, quota) : quota;
+    const epochQuota = mobile ? Math.min(5, quota) : quota;
     const themesUsed = new Set();
     let picked = 0;
 
     for (const node of pool) {
       if (picked >= epochQuota) break;
 
-      // Prefer theme diversity: skip if we already have 2 of this theme
       const theme = node.theme || 'misc';
       const themeCount = [...themesUsed].filter(t => t === theme).length;
-      if (themeCount >= 2 && pool.length > epochQuota) continue;
+      if (themeCount >= 3 && pool.length > epochQuota) continue;
 
       themesUsed.add(theme);
       const heroImage = getFirstImage(node);
-      // For cm-p nodes, use actual local file paths from manifest
       let allImages;
       const localFiles = CM_LOCAL_FILES[node.id];
       if (node.id.startsWith('cm-p-') && localFiles) {
@@ -124,6 +116,5 @@ export function curateMemories(nodes, opts = {}) {
     }
   }
 
-  // Trim to maxTotal if somehow over
   return selected.slice(0, maxTotal);
 }
