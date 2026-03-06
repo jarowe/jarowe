@@ -57,6 +57,7 @@ export function AuthProvider({ children }) {
         async (event, session) => {
           if (session?.user) {
             setUser(session.user);
+            setLoading(false); // Auth resolved — clear loading regardless of which path won the race
             if (event === 'SIGNED_IN') {
               window.dispatchEvent(new CustomEvent('auth-signed-in'));
             }
@@ -69,6 +70,7 @@ export function AuthProvider({ children }) {
           } else {
             setUser(null);
             setProfile(null);
+            setLoading(false); // Auth resolved — no session
           }
         }
       );
