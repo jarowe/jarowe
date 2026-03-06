@@ -6,15 +6,25 @@ import { useConstellationStore } from '../store';
 const dummy = new THREE.Object3D();
 const tempColor = new THREE.Color();
 
-/** Node type color palette */
-const NODE_COLORS = {
-  project: '#f59e0b',   // amber
-  moment: '#f87171',    // coral
-  person: '#a78bfa',    // violet
-  place: '#2dd4bf',     // teal
-  idea: '#22d3ee',      // cyan
-  milestone: '#fbbf24', // gold
-  track: '#34d399',     // emerald
+/** Theme-based color palette (primary motif → color) */
+const THEME_COLORS = {
+  love:        '#f472b6',   // pink
+  family:      '#fb923c',   // orange
+  fatherhood:  '#fb923c',   // orange (family group)
+  career:      '#60a5fa',   // blue
+  craft:       '#38bdf8',   // sky blue
+  growth:      '#a78bfa',   // purple
+  reflection:  '#c084fc',   // lavender
+  adventure:   '#2dd4bf',   // teal
+  travel:      '#2dd4bf',   // teal (adventure group)
+  greece:      '#2dd4bf',   // teal (adventure group)
+  celebration: '#fbbf24',   // gold
+  friendship:  '#818cf8',   // indigo
+  nature:      '#34d399',   // emerald
+  food:        '#f97316',   // amber
+  nostalgia:   '#d4a574',   // warm tan
+  faith:       '#e2c6ff',   // soft purple
+  home:        '#86efac',   // light green
 };
 
 /**
@@ -32,17 +42,32 @@ function getConnectedIds(nodeId, edges) {
 
 /**
  * Get IDs of nodes matching a filter entity.
+ * Supports theme filter (type='theme') and title-based entity filter.
  */
 function getFilteredNodeIds(filterEntity, nodes, edges) {
   if (!filterEntity) return null;
   const matching = new Set();
 
+  // Theme-based aliases for grouping related themes
+  const themeAliases = { adventure: ['adventure', 'travel', 'greece'], family: ['family', 'fatherhood'] };
+
   for (const node of nodes) {
-    if (node.title === filterEntity.value) {
+    let isMatch = false;
+    if (filterEntity.type === 'theme') {
+      const group = themeAliases[filterEntity.value] || [filterEntity.value];
+      isMatch = group.includes(node.theme);
+    } else {
+      isMatch = node.title === filterEntity.value;
+    }
+
+    if (isMatch) {
       matching.add(node.id);
-      for (const edge of edges) {
-        if (edge.source === node.id) matching.add(edge.target);
-        if (edge.target === node.id) matching.add(edge.source);
+      // For non-theme filters, also include connected nodes
+      if (filterEntity.type !== 'theme') {
+        for (const edge of edges) {
+          if (edge.source === node.id) matching.add(edge.target);
+          if (edge.target === node.id) matching.add(edge.source);
+        }
       }
     }
   }
@@ -89,7 +114,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
       const brightness = 0.3 + sig * 1.5; // range 0.3 to 1.8
-      tempColor.set(NODE_COLORS[node.type] || '#ffffff').multiplyScalar(brightness);
+      tempColor.set(THEME_COLORS[node.theme] || '#94a3b8').multiplyScalar(brightness);
       mesh.setColorAt(i, tempColor);
     });
 
@@ -125,7 +150,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
       const sig = nodes[i].significance ?? 0.5;
       const brightness = 0.3 + sig * 1.5;
-      tempColor.set(NODE_COLORS[nodes[i].type] || '#ffffff');
+      tempColor.set(THEME_COLORS[nodes[i].theme] || '#94a3b8');
       tempColor.multiplyScalar(dimFactor * brightness);
       mesh.setColorAt(i, tempColor);
     }

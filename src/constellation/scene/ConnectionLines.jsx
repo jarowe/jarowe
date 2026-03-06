@@ -46,12 +46,24 @@ export default function ConnectionLines({ positions }) {
   const filteredNodeIds = useMemo(() => {
     if (!filterEntity) return null;
     const matching = new Set();
+    const themeAliases = { adventure: ['adventure', 'travel', 'greece'], family: ['family', 'fatherhood'] };
+
     for (const node of storeNodes) {
-      if (node.title === filterEntity.value) {
+      let isMatch = false;
+      if (filterEntity.type === 'theme') {
+        const group = themeAliases[filterEntity.value] || [filterEntity.value];
+        isMatch = group.includes(node.theme);
+      } else {
+        isMatch = node.title === filterEntity.value;
+      }
+
+      if (isMatch) {
         matching.add(node.id);
-        for (const edge of storeEdges) {
-          if (edge.source === node.id) matching.add(edge.target);
-          if (edge.target === node.id) matching.add(edge.source);
+        if (filterEntity.type !== 'theme') {
+          for (const edge of storeEdges) {
+            if (edge.source === node.id) matching.add(edge.target);
+            if (edge.target === node.id) matching.add(edge.source);
+          }
         }
       }
     }

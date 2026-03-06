@@ -52,6 +52,12 @@ const useConstellationStore = create((set, get) => ({
     set({ viewMode: mode });
   },
 
+  // Camera mode: 'helix' (side view) | 'tunnel' (inside the helix looking along axis)
+  cameraMode: 'helix',
+  tunnelY: 0,
+  setCameraMode: (mode) => set({ cameraMode: mode }),
+  setTunnelY: (y) => set({ tunnelY: y }),
+
   // GPU tier (set once on mount by GPUDetector)
   gpuTier: null,
   setGpuTier: (tier) => set({ gpuTier: tier }),

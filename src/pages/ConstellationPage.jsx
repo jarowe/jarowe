@@ -7,6 +7,8 @@ import Toolbar from '../constellation/ui/Toolbar';
 import TimelineScrubber from '../constellation/ui/TimelineScrubber';
 import DetailPanel from '../constellation/ui/DetailPanel';
 import MediaLightbox from '../constellation/ui/MediaLightbox';
+import ThemeLegend from '../constellation/ui/ThemeLegend';
+import ViewToggle from '../constellation/ui/ViewToggle';
 import './ConstellationPage.css';
 
 /** Error boundary to catch R3F Canvas crashes gracefully */
@@ -135,6 +137,13 @@ export default function ConstellationPage() {
         return;
       }
 
+      // Layer 2.5: If in tunnel mode -> return to helix
+      if (state.cameraMode === 'tunnel') {
+        e.preventDefault();
+        state.setCameraMode('helix');
+        return;
+      }
+
       // Layer 3: Nothing open -> navigate away from constellation
       e.preventDefault();
       navigate(-1);
@@ -228,8 +237,10 @@ export default function ConstellationPage() {
               <ConstellationCanvas />
             </CanvasErrorBoundary>
           )}
+          <ViewToggle />
           <Toolbar />
           <TimelineScrubber />
+          <ThemeLegend />
           <DetailPanel />
           <MediaLightbox />
           <AutoDetectPrompt />

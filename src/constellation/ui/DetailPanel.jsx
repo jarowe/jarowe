@@ -27,6 +27,27 @@ const TYPE_COLORS = {
   track: { bg: 'rgba(52, 211, 153, 0.2)', text: '#34d399' },
 };
 
+/** Theme color mapping for theme badges */
+const THEME_COLORS = {
+  love:        '#f472b6',
+  family:      '#fb923c',
+  fatherhood:  '#fb923c',
+  career:      '#60a5fa',
+  craft:       '#38bdf8',
+  growth:      '#a78bfa',
+  reflection:  '#c084fc',
+  adventure:   '#2dd4bf',
+  travel:      '#2dd4bf',
+  greece:      '#2dd4bf',
+  celebration: '#fbbf24',
+  friendship:  '#818cf8',
+  nature:      '#34d399',
+  food:        '#f97316',
+  nostalgia:   '#d4a574',
+  faith:       '#e2c6ff',
+  home:        '#86efac',
+};
+
 /** Evidence type icon components */
 const EVIDENCE_ICON_MAP = {
   temporal: Calendar,
@@ -232,6 +253,27 @@ export default function DetailPanel() {
               >
                 {node.type}
               </span>
+              {node.theme && THEME_COLORS[node.theme] && (
+                <span
+                  className="detail-panel__type-badge"
+                  style={{
+                    backgroundColor: `${THEME_COLORS[node.theme]}22`,
+                    color: THEME_COLORS[node.theme],
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: THEME_COLORS[node.theme],
+                      marginRight: 4,
+                    }}
+                  />
+                  {node.theme}
+                </span>
+              )}
               {node.source && (
                 <span
                   className="detail-panel__type-badge"

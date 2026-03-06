@@ -116,5 +116,10 @@ export function createCanonicalNode(fields = {}) {
     node.sourceMeta = fields.sourceMeta;
   }
 
+  // Theme (primary motif) — set by pipeline Phase 9 from _motifs extraction
+  if (fields.theme) {
+    node.theme = fields.theme;
+  }
+
   return node;
 }

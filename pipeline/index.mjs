@@ -622,8 +622,9 @@ async function main() {
   // ========================================================================
   log.info('--- Phase 9: Build Output ---');
 
-  // Strip internal fields before serialization
+  // Strip internal fields before serialization, persist primary motif as theme
   for (const node of allNodes) {
+    node.theme = node._motifs?.[0]?.id || null;
     delete node._motifs;
     delete node._isMinor;
   }

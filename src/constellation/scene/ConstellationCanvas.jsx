@@ -1,9 +1,6 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-// Bloom disabled — EffectComposer creates ~15 render target textures which
-// causes WebGL context loss during React StrictMode double-mount.
-// TODO: Re-enable after adding production-only bloom or custom glow shader.
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import NodeCloud from './NodeCloud';
@@ -57,6 +54,7 @@ export default function ConstellationCanvas() {
   const setGpuTier = useConstellationStore((s) => s.setGpuTier);
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const storeNodes = useConstellationStore((s) => s.nodes);
+  const cameraMode = useConstellationStore((s) => s.cameraMode);
   const [gpuConfig] = useState(() => {
     const tier = detectGPUTier();
     setGpuTier(tier);
@@ -188,7 +186,9 @@ export default function ConstellationCanvas() {
         disabled={gpuConfig.starParticles === 0}
       />
 
-      <ConnectionLines positions={layoutNodes} />
+      {cameraMode !== 'tunnel' && (
+        <ConnectionLines positions={layoutNodes} />
+      )}
 
       {helixNodes.length > 0 && (
         <NodeCloud
@@ -198,12 +198,10 @@ export default function ConstellationCanvas() {
       )}
 
       {particleNodes.length > 0 && (
-        <ParticleCloud nodes={particleNodes} />
+        <ParticleCloud nodes={particleNodes} tunnelMode={cameraMode === 'tunnel'} />
       )}
 
       <Starfield starCount={gpuConfig.starParticles} />
-
-      {/* Bloom disabled — see import comment. Nodes use emissive glow instead. */}
     </Canvas>
   );
 }

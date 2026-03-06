@@ -38,6 +38,17 @@ import { createLogger } from '../utils/logger.mjs';
 
 const log = createLogger('facebook');
 
+// ─── Album / junk prefixes to strip from captions ────────────────────
+const ALBUM_PREFIX_RE = /^(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?)\s*/i;
+
+/**
+ * Clean Facebook mention markup: @[57204844:2048:Maria] → Maria
+ */
+function cleanFbMentions(text) {
+  if (!text) return text;
+  return text.replace(/@\[\d+:\d+:([^\]]+)\]/g, '$1');
+}
+
 // ─── Date formats used in Meta HTML exports ──────────────────────────
 const DATE_FORMATS = [
   'MMM d, yyyy h:mm:ss a',        // "Sep 03, 2009 5:11:57 am" (actual format)
@@ -251,27 +262,38 @@ function extractFbPosts($, exportDir, fileType) {
     if (!dateStr) return; // Skip undateable posts
 
     // Extract content text from _2pin divs (skip media-only and date-only blocks)
-    let caption = '';
+    // Collect ALL candidate captions, then pick the best (longest meaningful text)
+    const captionCandidates = [];
     $post.find('div._2pin').each((_, div) => {
-      if (caption) return;
       const divText = $(div).clone().children('div, img, a').remove().end()
         .text()?.trim() || '';
       // Skip if it's just a date, URL, or album name
       if (divText.length > 10 &&
           !/^(Updated|http|Photos$)/i.test(divText) &&
           !/^\w+ \d{1,2}, \d{4}/.test(divText)) {
-        caption = divText;
+        // Strip album-name prefix before evaluating
+        const cleaned = divText.replace(ALBUM_PREFIX_RE, '').trim();
+        if (cleaned.length > 5) {
+          captionCandidates.push(cleaned);
+        }
       }
     });
     // Broader fallback: any _2pin text
-    if (!caption) {
+    if (captionCandidates.length === 0) {
       $post.find('div._2pin').each((_, div) => {
-        if (caption) return;
         const divText = $(div).text()?.trim() || '';
         if (divText.length > 15 && !/^(Updated|http)/i.test(divText)) {
-          caption = divText;
+          const cleaned = divText.replace(ALBUM_PREFIX_RE, '').trim();
+          if (cleaned.length > 5) {
+            captionCandidates.push(cleaned);
+          }
         }
       });
+    }
+    // Pick the BEST candidate (longest meaningful text), not the first
+    let caption = '';
+    if (captionCandidates.length > 0) {
+      caption = captionCandidates.reduce((a, b) => b.length > a.length ? b : a, '');
     }
 
     // Extract media (local images/videos only)
@@ -289,14 +311,18 @@ function extractFbPosts($, exportDir, fileType) {
       }
     });
 
+    // Clean Facebook mention markup from caption and header
+    caption = cleanFbMentions(caption);
+    const cleanedHeader = cleanFbMentions(headerText);
+
     // Classify authorship
-    const ownership = classifyFbAuthorship(headerText);
+    const ownership = classifyFbAuthorship(cleanedHeader);
 
     // Extract people
-    const people = extractPeople(headerText);
+    const people = extractPeople(cleanedHeader);
 
     posts.push({
-      headerText,
+      headerText: cleanedHeader,
       caption: (caption || '').slice(0, 500),
       dateStr,
       media,
@@ -401,24 +427,33 @@ export async function parseFacebook(exportDir, options = {}) {
 
     // Clean title: strip album pollution, generate meaningful fallbacks
     let title;
-    const cleanCaption = (post.caption || '')
-      .replace(/^(Mobile Uploads|Timeline Photos|Cover Photos|Profile Pictures|Instagram Photos)\s*/i, '')
+    let cleanCaption = (post.caption || '')
+      .replace(ALBUM_PREFIX_RE, '')
       .trim();
+
+    // Strip old FB status "is " prefix (e.g. "is Owning chris in halo3")
+    if (/^is\s+[a-z]/i.test(cleanCaption)) {
+      cleanCaption = cleanCaption.slice(3).trim();
+      // Capitalize first char
+      if (cleanCaption.length > 0) {
+        cleanCaption = cleanCaption[0].toUpperCase() + cleanCaption.slice(1);
+      }
+    }
 
     if (cleanCaption.length > 5) {
       title = cleanCaption.slice(0, 60) + (cleanCaption.length > 60 ? '...' : '');
     } else if (post.media.length > 0) {
-      // Photo/video post without meaningful text — try description as title
-      const desc = (post.caption || '').trim();
-      if (desc.length > 5) {
-        title = desc.slice(0, 60) + (desc.length > 60 ? '...' : '');
-      } else {
-        const verb = post.headerText?.match(/(added|uploaded|posted|updated)/i)?.[1] || 'shared';
-        const mediaWord = post.media.length > 1 ? `${post.media.length} photos` : 'a photo';
-        title = `${verb} ${mediaWord}`;
-      }
+      const verb = post.headerText?.match(/(added|uploaded|posted|updated)/i)?.[1] || 'shared';
+      const mediaWord = post.media.length > 1 ? `${post.media.length} photos` : 'a photo';
+      title = `${verb} ${mediaWord}`;
     } else {
       title = `Facebook ${post.dateStr}`;
+    }
+
+    // Fix title/description redundancy: don't repeat the same text
+    let description = post.caption || '';
+    if (title === description || title === description.slice(0, 60) + '...') {
+      description = '';
     }
 
     const nodeType = post.fileType === 'life_event' ? 'milestone' : 'moment';
@@ -437,7 +472,7 @@ export async function parseFacebook(exportDir, options = {}) {
       title,
       date: post.dateStr,
       epoch: assignEpoch(post.dateStr),
-      description: post.caption || '',
+      description,
       media,
       source: 'facebook',
       sourceId: post.sourceId,

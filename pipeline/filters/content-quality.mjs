@@ -69,12 +69,37 @@ function checkEmptyShare(node) {
   return { drop: false };
 }
 
+function checkGenericTitle(node) {
+  const title = (node.title || '').trim();
+  const descLen = (node.description || '').length;
+  if (/^(Mobile uploads?|Click for video:?|Photos?)$/i.test(title) && descLen < 20) {
+    return { drop: true, reason: 'generic-title' };
+  }
+  return { drop: false };
+}
+
+function checkTitleIsDescription(node) {
+  const title = (node.title || '').trim();
+  const desc = (node.description || '').trim();
+  if (
+    title && desc &&
+    title === desc &&
+    title.length < 30 &&
+    (node.media || []).length === 0
+  ) {
+    return { drop: true, reason: 'title-is-description' };
+  }
+  return { drop: false };
+}
+
 const RULES = [
   checkBirthdaySpam,
   checkThinNode,
   checkProfileUpdate,
   checkWallPost,
   checkEmptyShare,
+  checkGenericTitle,
+  checkTitleIsDescription,
 ];
 
 /**

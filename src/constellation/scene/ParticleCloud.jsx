@@ -14,7 +14,7 @@ import { useConstellationStore } from '../store';
  * Particles are clickable via raycasting threshold.
  * Gentle floating drift animation gives the cloud life.
  */
-export default function ParticleCloud({ nodes }) {
+export default function ParticleCloud({ nodes, tunnelMode = false }) {
   const pointsRef = useRef();
   const focusNode = useConstellationStore((s) => s.focusNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
@@ -44,19 +44,29 @@ export default function ParticleCloud({ nodes }) {
       base[i * 3 + 1] = y;
       base[i * 3 + 2] = z;
 
-      // Color: soft pastel version of type color, dimmed
+      // Color: theme-based, dimmed by significance
       const sig = node.significance ?? 0.2;
       const brightness = 0.2 + sig * 0.6; // subtle: range 0.2 to 0.8
-      const typeColors = {
-        project: '#f59e0b',
-        moment: '#f87171',
-        person: '#a78bfa',
-        place: '#2dd4bf',
-        idea: '#22d3ee',
-        milestone: '#fbbf24',
-        track: '#34d399',
+      const themeColors = {
+        love:        '#f472b6',
+        family:      '#fb923c',
+        fatherhood:  '#fb923c',
+        career:      '#60a5fa',
+        craft:       '#38bdf8',
+        growth:      '#a78bfa',
+        reflection:  '#c084fc',
+        adventure:   '#2dd4bf',
+        travel:      '#2dd4bf',
+        greece:      '#2dd4bf',
+        celebration: '#fbbf24',
+        friendship:  '#818cf8',
+        nature:      '#34d399',
+        food:        '#f97316',
+        nostalgia:   '#d4a574',
+        faith:       '#e2c6ff',
+        home:        '#86efac',
       };
-      tempColor.set(typeColors[node.type] || '#888888').multiplyScalar(brightness);
+      tempColor.set(themeColors[node.theme] || '#94a3b8').multiplyScalar(brightness);
       col[i * 3] = tempColor.r;
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;
@@ -78,17 +88,19 @@ export default function ParticleCloud({ nodes }) {
     geo.computeBoundingSphere();
   }, [positions, colors, sizes]);
 
-  // Focus dimming: when a helix node is focused, dim all particles
+  // Focus dimming + tunnel mode dimming
   useEffect(() => {
     if (!pointsRef.current) return;
     const mat = pointsRef.current.material;
-    if (focusedNodeId) {
+    if (tunnelMode) {
+      mat.opacity = 0.1; // Reduced in tunnel to prevent visual clutter
+    } else if (focusedNodeId) {
       mat.opacity = 0.08; // Nearly invisible when focusing on helix node
     } else {
       mat.opacity = 0.35; // Default ambient opacity
     }
     mat.needsUpdate = true;
-  }, [focusedNodeId]);
+  }, [focusedNodeId, tunnelMode]);
 
   // Gentle floating drift animation
   useFrame(({ clock }) => {
