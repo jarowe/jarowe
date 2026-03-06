@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb, Compass } from 'lucide-react';
+import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb, Play } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
@@ -6577,7 +6577,7 @@ export default function Home() {
             {/* Globe Tour trigger — separate floating button */}
             {!tourCinematic && (
               <button className="globe-tour-trigger" onClick={(e) => { e.stopPropagation(); startGlobeTour(0); }} aria-label="Start Globe Tour" title="Globe Tour">
-                <Compass size={13} />
+                <Play size={12} fill="currentColor" />
               </button>
             )}
             {/* Liquid glass edge overlay */}
