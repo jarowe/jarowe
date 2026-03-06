@@ -119,23 +119,23 @@ export default function AvatarGeometry({ children, effect }) {
       tl.add(d, { draw: '0 1', duration: 1400, ease: 'inOutQuad' }, 600);
     });
 
-    // 1.0s — White dots
+    // 1.0s — Tiny white dots (barely visible at rest)
     tl.add(el.querySelectorAll('.fp-family-circle'), {
-      r: [0, 1.2], opacity: [0, 1], duration: 600, ease: 'outBack(2)',
+      r: [0, 0.7], opacity: [0, 0.5], duration: 600, ease: 'outBack(2)',
       delay: stagger(120),
     }, 1000);
 
-    // 1.1s — Stroke rings draw on
+    // 1.1s — Small stroke rings draw on (subtle at rest)
     el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
-      c.setAttribute('r', '5');
-      c.style.opacity = '0.9';
+      c.setAttribute('r', '2.5');
+      c.style.opacity = '0.35';
       const d = createDrawable(c);
       tl.add(d, { draw: '0 1', duration: 700, ease: 'inOutQuad' }, 1100 + i * 120);
     });
 
-    // 1.3s — Glows
+    // 1.3s — Faint glows
     tl.add(el.querySelectorAll('.fp-family-glow'), {
-      r: [0, 8], opacity: [0, 0.25], duration: 800, ease: 'outQuad',
+      r: [0, 5], opacity: [0, 0.1], duration: 800, ease: 'outQuad',
       delay: stagger(120),
     }, 1300);
 
@@ -184,26 +184,26 @@ export default function AvatarGeometry({ children, effect }) {
       rotate: [0, 360], duration: 90000, loop: true, ease: 'linear',
     }));
 
-    // White dots pulse
+    // White dots — barely-there twinkle at rest
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [1.2, 1.6, 1.2], opacity: [0.85, 1, 0.85],
+        r: [0.7, 0.9, 0.7], opacity: [0.35, 0.6, 0.35],
         duration: 3000 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Stroke rings breathe
+    // Stroke rings — faint breathe at rest
     el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
       anims.push(animate(c, {
-        opacity: [0.6, 0.95, 0.6],
+        opacity: [0.25, 0.45, 0.25],
         duration: 3500 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Glows
+    // Glows — very subtle at rest
     el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [8, 12, 8], opacity: [0.15, 0.35, 0.15],
+        r: [5, 7, 5], opacity: [0.06, 0.15, 0.06],
         duration: 4000 + i * 700, loop: true, ease: 'inOutSine',
       }));
     });
@@ -278,8 +278,19 @@ export default function AvatarGeometry({ children, effect }) {
       hoverAnimsRef.current.forEach(a => a.pause());
       hoverAnimsRef.current = [];
 
-      // Stroke rings: trim-path sweep
+      // Dots bloom to visible on hover
+      hoverAnimsRef.current.push(
+        animate(el.querySelectorAll('.fp-family-circle'), {
+          r: [0.7, 1.3], opacity: [0.5, 1],
+          duration: 350, ease: 'outQuad',
+        })
+      );
+
+      // Stroke rings expand + trim-path sweep
       el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+        hoverAnimsRef.current.push(
+          animate(c, { r: [2.5, 5], opacity: [0.35, 0.9], duration: 350, ease: 'outQuad' })
+        );
         const d = createDrawable(c);
         hoverAnimsRef.current.push(
           animate(d, {
@@ -289,11 +300,11 @@ export default function AvatarGeometry({ children, effect }) {
         );
       });
 
-      // Family glows: small soft pulse (not big blobs)
+      // Glows: gentle soft pulse
       el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
         hoverAnimsRef.current.push(
           animate(c, {
-            r: [6, 9, 6], opacity: [0.15, 0.3, 0.15],
+            r: [5, 8, 5], opacity: [0.1, 0.25, 0.1],
             duration: 1200 + i * 200, loop: true, ease: 'inOutSine',
           })
         );
@@ -353,15 +364,21 @@ export default function AvatarGeometry({ children, effect }) {
       hoverAnimsRef.current.forEach(a => a.pause());
       hoverAnimsRef.current = [];
 
-      // Restore stroke rings
+      // Dots shrink back to tiny
+      animate(el.querySelectorAll('.fp-family-circle'), {
+        r: 0.7, opacity: 0.5, duration: 500, ease: 'outQuad',
+      });
+
+      // Stroke rings shrink back + restore full draw
       el.querySelectorAll('.fp-family-stroke').forEach(c => {
+        animate(c, { r: 2.5, opacity: 0.35, duration: 500, ease: 'outQuad' });
         const d = createDrawable(c);
         animate(d, { draw: '0 1', duration: 400, ease: 'outQuad' });
       });
 
-      // Ease everything back
+      // Glows back to faint
       animate(el.querySelectorAll('.fp-family-glow'), {
-        r: 8, opacity: 0.15, duration: 500, ease: 'outQuad',
+        r: 5, opacity: 0.06, duration: 500, ease: 'outQuad',
       });
       animate(el.querySelectorAll('.fp-pentagon'), {
         strokeWidth: 0.8, opacity: 0.5, duration: 500, ease: 'outQuad',
@@ -402,16 +419,16 @@ export default function AvatarGeometry({ children, effect }) {
       animate(ring, { r: [12, 85], opacity: [0.7, 0], strokeWidth: [2, 0.2], duration: 800, ease: 'outCubic' });
     }
 
-    // Circles flash full color
+    // Circles flash full color from tiny to big and back
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      animate(c, { r: [1.2, 4, 1.2], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], duration: 800, ease: 'outQuad', delay: i * 50 });
+      animate(c, { r: [0.7, 3, 0.7], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], opacity: [0.5, 1, 0.5], duration: 800, ease: 'outQuad', delay: i * 50 });
     });
     animate(el.querySelectorAll('.fp-family-stroke'), {
-      r: [5, 8, 5], strokeWidth: [0.7, 1.5, 0.7], opacity: [0.8, 1, 0.8],
+      r: [2.5, 7, 2.5], strokeWidth: [0.7, 1.3, 0.7], opacity: [0.35, 1, 0.35],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [8, 18, 8], opacity: [0.2, 0.6, 0.2],
+      r: [5, 14, 5], opacity: [0.06, 0.4, 0.06],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
 
