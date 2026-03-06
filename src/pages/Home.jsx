@@ -4546,13 +4546,14 @@ export default function Home() {
   const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
 
-    // Phase 1 (T+0): Exit sound + overlay fade begins + camera pulls back
+    // Phase 1 (T+0): Exit sound + overlay fade begins + dramatic camera pullback
     playTourExitSound();
     setTourExiting(true);
 
-    // Camera zoom-out synchronized (slightly longer than FLIP so it keeps drifting)
+    // Dramatic camera zoom-out: pull from tour altitude (~1.5) to overshoot (5.0)
+    // This creates a "pulling away from the world" effect that compounds with FLIP shrink
     if (globeRef.current) {
-      globeRef.current.pointOfView({ altitude: 3.5 }, 1800);
+      globeRef.current.pointOfView({ altitude: 5.0 }, 1200);
     }
 
     // Clean up conversation state
@@ -4567,7 +4568,7 @@ export default function Home() {
     const el = cellMapRef.current;
 
     // Phase 2 (T+400): Overlay mostly faded — begin reverse FLIP while still slightly visible
-    // This overlap creates the seamless "everything moves together" feeling
+    // Camera is mid-pullback, creating compound zoom-out with canvas shrink
     setTimeout(() => {
       // Clear tour data
       setTourChapter(null);
@@ -4608,13 +4609,12 @@ export default function Home() {
           el.style.borderRadius = '';
 
           // Phase 3 (T+600): Mid-FLIP — glass overlays start fading in + bento cells return
-          // Staggered 200ms after FLIP begins for cascading effect
           setTimeout(() => {
             el.classList.remove('tour-glass-restoring');
             setTourMode(false); // removes .tour-dissolve → cells fade back in with stagger
           }, 200);
 
-          // Phase 4 (T+1500): FLIP settled — clean up everything
+          // Phase 4 (T+1500): FLIP settled — ease camera to normal altitude (soft landing)
           setTimeout(() => {
             el.style.transition = '';
             el.style.transform = '';
@@ -4622,6 +4622,10 @@ export default function Home() {
             el.style.zIndex = '';
             setTourEntering(false);
             setTourExiting(false);
+            // Gently ease camera from overshoot (5.0) back to normal browsing altitude
+            if (globeRef.current) {
+              globeRef.current.pointOfView({ altitude: 3.2 }, 1500);
+            }
           }, 1100);
         });
       } else {
