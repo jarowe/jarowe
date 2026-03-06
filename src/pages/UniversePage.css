@@ -1,76 +1,132 @@
 .universe-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #000;
-    z-index: 9999;
-    overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 9999;
+  overflow: hidden;
 }
 
 .canvas-wrapper {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .universe-ui {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 1.5rem 2rem;
-    z-index: 10;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
 }
 
 .universe-ui .back-link {
-    pointer-events: auto;
-    background: rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
 }
 
 .universe-title {
-    text-align: right;
-    pointer-events: auto;
+  text-align: right;
+  pointer-events: auto;
 }
 
 .universe-title h1 {
-    font-size: 2rem;
-    background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 0.3rem;
+  font-size: 2rem;
+  background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 0.3rem;
 }
 
 .universe-title p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .discovery-counter {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: #7c3aed;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #7c3aed;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+  display: flex;
+  gap: 0;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.discovery-sep {
+  margin: 0 0.5rem;
+  opacity: 0.4;
+}
+
+/* ─── Memory Polaroid Captions ─── */
+.memory-polaroid-caption {
+  max-width: 160px;
+  text-align: center;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.memory-polaroid-epoch {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.memory-polaroid-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* ─── Epoch Label Pills ─── */
+.epoch-label-pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 @media (max-width: 600px) {
-    .universe-ui {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: flex-start;
-    }
+  .universe-ui {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
 
-    .universe-title {
-        text-align: left;
-    }
+  .universe-title {
+    text-align: left;
+  }
+
+  .discovery-counter {
+    justify-content: flex-start;
+  }
 }
