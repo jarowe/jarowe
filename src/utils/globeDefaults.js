@@ -365,14 +365,13 @@ export const GLOBE_DEFAULTS = {
   badgeBottom: 1.0,
   badgeInset: 1.0,
 
-  // ── Globe Glint ──
-  globeGlintEnabled: true,
-  globeGlintScale: 2.5,
-  globeGlintSurfaceAlt: 102,
-  globeGlintCruiseAlt: 112,
-  globeGlintFlightDuration: 4000,
-  globeGlintIdleOrbitSpeed: 0.5,
-  globeGlintIdleBobAmp: 0.5,
-  globeGlintSpinSpeed: 0.3,
-  globeGlintCostumesEnabled: true,
+  // ── Globe Tour ──
+  globeTourEnabled: true,
+  globeTourDwellTime: 6000,
+  globeTourTransitTime: 2000,
+  globeTourAltitude: 1.5,
+  globeTourAutoAdvance: true,
+  globeTourMarkerScale: 1.5,
+  globeTourGlintOffsetX: -60,
+  globeTourGlintOffsetY: 100,
 };

@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote } from 'lucide-react';
+import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { photos } from '../data/photos';
+import instagramPosts from '../data/instagramPosts.json';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
@@ -23,8 +24,9 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
-import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getGlobeFlightLine } from '../utils/glintBrain';
+import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getTourIntroLine, getTourDestinationLine, getTourOutroLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+import { startTour, endTour, nextDestination, prevDestination, getTourState, isTourActive } from '../utils/globeTour';
 import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
@@ -34,7 +36,6 @@ import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
-import { createGlobeGlint, tickGlobeGlint, destroyGlobeGlint, flyToLocation, hideGlobeGlint } from '../utils/globeGlint';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -190,6 +191,31 @@ export default function Home() {
   const [hoveredMarker, setHoveredMarker] = useState(null);
   const [activeExpedition, setActiveExpedition] = useState(0);
   const activeExpeditionRef = useRef(0);
+  const [tourMode, setTourMode] = useState(false);
+  const [tourDestination, setTourDestination] = useState(null);
+  const [tourIndex, setTourIndex] = useState(-1);
+  const preTourPositionRef = useRef(null);
+
+  // Instagram photo markers for globe (geo-tagged posts only, deduplicated by location)
+  const globePhotoMarkers = useMemo(() => {
+    const seen = new Set();
+    return instagramPosts
+      .filter(p => p.lat && p.lng)
+      .filter(p => {
+        const key = `${p.lat.toFixed(3)},${p.lng.toFixed(3)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map(p => ({
+        lat: p.lat,
+        lng: p.lng,
+        caption: (p.caption || '').substring(0, 80),
+        thumbnail: p.images?.[0] || null,
+        images: p.images || [],
+        date: p.date,
+      }));
+  }, []);
 
   const globeRef = useRef();
   const mapContainerRef = useRef();
@@ -2642,17 +2668,6 @@ export default function Home() {
             globe.satellitesGroup.add(wisp);
           }
 
-          // Globe Glint — prism character on the globe
-          window.__globeExpeditions = expeditions;
-          createGlobeGlint({
-            satellitesGroup: globe.satellitesGroup,
-            pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
-            expeditions,
-            pauseCycle: () => { if (globeCycleTimer.current) clearInterval(globeCycleTimer.current); isUserInteracting.current = true; },
-            resumeCycle: () => { isUserInteracting.current = false; startGlobeCycle(); },
-            getActiveExpedition: () => activeExpeditionRef.current,
-            editorParams: editorParams.current,
-          });
 
           // Birthday "Find the 40" sprites at famous cities
           if (isBirthday && !globe._birthdaySprites) {
@@ -3127,7 +3142,6 @@ export default function Home() {
               if (globe.satellitesGroup) {
                 globe.satellitesGroup.children.forEach(m => {
                   const ud = m.userData;
-                  if (ud.type === 'globe-glint') return; // managed by tickGlobeGlint
                   if (ud.type === 'plane') m.visible = ep.planesVisible;
                   else if (ud.type === 'car') m.visible = ep.carsVisible;
                   else if (ud.type === 'wisp') m.visible = ep.wispsVisible;
@@ -3357,7 +3371,6 @@ export default function Home() {
                 globe.satellitesGroup.children.forEach(m => {
                   if (!m.visible) return;
                   const ud = m.userData;
-                  if (ud.type === 'globe-glint') return; // managed by tickGlobeGlint
                   const speedMult = ud.type === 'plane' ? ep.planeSpeed
                     : ud.type === 'wisp' ? ep.wispSpeed
                     : ud.type === 'car' ? 1.0 : ep.satelliteSpeed;
@@ -3414,8 +3427,6 @@ export default function Home() {
                 });
               }
 
-              // Globe Glint tick (prism character flight + idle animation)
-              tickGlobeGlint(dt, elTs);
 
               // Wind particle physics (CPU-side fluid simulation with spin coupling)
               if (globe.windParticles && globe.windParticles.visible) {
@@ -3750,7 +3761,7 @@ export default function Home() {
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
       if (globeRef.current?._particleMouseCleanup) globeRef.current._particleMouseCleanup();
-      destroyGlobeGlint();
+      if (isTourActive()) endTour();
     };
   }, [globeMounted, startGlobeCycle]);
 
@@ -3929,7 +3940,7 @@ export default function Home() {
     playClickSound();
   }, [activeExpedition]);
 
-  // Sync activeExpedition to ref for globe glint closures
+  // Sync activeExpedition to ref for tour closures
   useEffect(() => { activeExpeditionRef.current = activeExpedition; }, [activeExpedition]);
 
   // Avatar click effects + photo cycling
@@ -4490,6 +4501,91 @@ export default function Home() {
     runPortalExitSequence();
   }, [clearBubble, runPortalExitSequence]);
 
+  // End globe tour and restore state
+  const endGlobeTour = useCallback(() => {
+    if (isTourActive()) endTour();
+    setTourMode(false);
+    setTourDestination(null);
+    setTourIndex(-1);
+
+    // Resume auto-cycle
+    isUserInteracting.current = false;
+    startGlobeCycle();
+
+    // Resume autonomy
+    const autonomy = getGlintAutonomy();
+    if (autonomy) autonomy.resume();
+
+    // Exit conversation
+    exitConversation();
+  }, [startGlobeCycle, exitConversation]);
+
+  // Globe Tour — start guided tour with Glint as tour guide
+  const startGlobeTour = useCallback((startIndex = 0) => {
+    if (tourMode) return;
+    const ep = editorParams.current;
+    if (!(ep.globeTourEnabled ?? true)) return;
+
+    setTourMode(true);
+
+    // Pause auto-cycle
+    isUserInteracting.current = true;
+    if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
+
+    // Pause autonomy
+    const autonomy = getGlintAutonomy();
+    if (autonomy) autonomy.pause();
+
+    // Show Glint with excited expression + pin him
+    if (!peekVisibleRef.current) {
+      window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+        detail: { autonomous: true, pinned: true, duration: 999999 }
+      }));
+    }
+
+    // Enter conversation mode for tour
+    setConversationMode(true);
+
+    // Start the tour state machine
+    startTour({
+      destinations: expeditions,
+      pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
+      onNarration: (line) => {
+        window.__prismExpression = line.expression;
+        showBubbleWithThinking(line.text);
+
+        // Build tour nav pills
+        const tourState = getTourState();
+        const pills = [];
+        if (tourState.activeIndex > 0) {
+          pills.push({ label: '\u25c0 Previous', nodeId: '__tour_prev__' });
+        }
+        if (tourState.activeIndex < tourState.total - 1) {
+          pills.push({ label: 'Next \u25b6', nodeId: '__tour_next__' });
+        }
+        pills.push({ label: 'End Tour', nodeId: '__tour_end__' });
+        setConversationNode({ text: line.text, expression: line.expression, replies: pills });
+      },
+      onDestinationChange: (dest, idx) => {
+        setTourDestination(dest);
+        setTourIndex(idx);
+        setActiveExpedition(expeditions.indexOf(dest));
+        setHoveredMarker(dest);
+      },
+      onComplete: () => {
+        endGlobeTour();
+      },
+      getIntroLine: getTourIntroLine,
+      getDestinationLine: getTourDestinationLine,
+      getOutroLine: getTourOutroLine,
+      dwellTime: ep.globeTourDwellTime ?? 6000,
+      transitTime: ep.globeTourTransitTime ?? 2000,
+      altitude: ep.globeTourAltitude ?? 1.5,
+      autoAdvance: ep.globeTourAutoAdvance ?? true,
+      startIndex,
+    });
+  }, [tourMode, showBubbleWithThinking, endGlobeTour]);
+
   const handlePillClick = useCallback((reply) => {
     if (reply.nodeId === null) {
       exitConversation();
@@ -4515,55 +4611,17 @@ export default function Home() {
       return;
     }
 
-    // Globe action pills: __globe__:expeditionIndex
+    // Tour navigation pills
+    if (reply.nodeId === '__tour_prev__') { prevDestination(); return; }
+    if (reply.nodeId === '__tour_next__') { nextDestination(); return; }
+    if (reply.nodeId === '__tour_end__') { endGlobeTour(); return; }
+
+    // Globe action pills: __globe__:expeditionIndex — start tour at specific destination
     if (reply.nodeId.startsWith('__globe__:')) {
       const idx = parseInt(reply.nodeId.split(':')[1], 10);
       const expedition = expeditions[idx];
       if (expedition) {
-        // Show flight line in bubble
-        const flightLine = getGlobeFlightLine();
-        window.__prismExpression = flightLine.expression;
-        showBubbleWithThinking(flightLine.text);
-
-        // Dispatch the fly event (with delay for the bubble to show)
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('globe-glint-fly', {
-            detail: { expedition, duration: 4000 }
-          }));
-        }, 600);
-
-        // Set up arrival follow-up: show arrival node after flight
-        const onArrival = (e) => {
-          window.removeEventListener('globe-glint-arrived', onArrival);
-          const d = e.detail || {};
-          const arrivalLine = getGlobeArrivalLine(d.region);
-          const arrivalNode = {
-            text: arrivalLine.text,
-            expression: arrivalLine.expression,
-            replies: [
-              { label: "More destinations!", nodeId: 'globe-tour-menu' },
-              { label: "Even more spots!", nodeId: 'globe-tour-more' },
-              { label: "That was awesome!", nodeId: null },
-            ],
-          };
-          setConversationNode(arrivalNode);
-          window.__prismExpression = arrivalNode.expression;
-          showBubbleWithThinking(arrivalNode.text);
-
-          // Show peek character for arrival reaction
-          if (!peekVisibleRef.current) {
-            window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
-              detail: { autonomous: true, pinned: true, duration: 15000 }
-            }));
-          }
-
-          if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
-          const cfg2 = window.__prismConfig || {};
-          conversationTimeoutRef.current = setTimeout(() => {
-            exitConversation();
-          }, (cfg2.brainConversationTimeout ?? 15) * 1000);
-        };
-        window.addEventListener('globe-glint-arrived', onArrival, { once: true });
+        startGlobeTour(idx);
       }
       return;
     }
@@ -4587,7 +4645,7 @@ export default function Home() {
     conversationTimeoutRef.current = setTimeout(() => {
       exitConversation();
     }, (cfg.brainConversationTimeout ?? 15) * 1000);
-  }, [exitConversation, showBubbleWithThinking, holiday, isBirthday, aiChatMode]);
+  }, [exitConversation, showBubbleWithThinking, holiday, isBirthday, aiChatMode, startGlobeTour, endGlobeTour]);
 
   // Escape key exits conversation
   useEffect(() => {
@@ -5350,20 +5408,12 @@ export default function Home() {
     window.addEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
     window.addEventListener('glint-brain-test-conversation', brainTestConvoHandler);
 
-    // Globe Glint event listeners
-    const globeGlintFlyHandler = (e) => {
-      const { expedition, duration } = e.detail || {};
-      if (!expedition) return;
-      if (peekVisibleRef.current) {
-        window.dispatchEvent(new CustomEvent('hide-prism-peek'));
-        setTimeout(() => flyToLocation(expedition, { duration }), 800);
-      } else {
-        flyToLocation(expedition, { duration });
-      }
+    // Globe Tour start listener
+    const globeTourStartHandler = (e) => {
+      const idx = e.detail?.startIndex ?? 0;
+      startGlobeTour(idx);
     };
-    const globeGlintHideHandler = () => hideGlobeGlint();
-    window.addEventListener('globe-glint-fly', globeGlintFlyHandler);
-    window.addEventListener('globe-glint-hide', globeGlintHideHandler);
+    window.addEventListener('globe-tour-start', globeTourStartHandler);
 
     return () => {
       window.removeEventListener('trigger-prism-peek', showHandler);
@@ -5375,11 +5425,10 @@ export default function Home() {
       window.removeEventListener('bop-plus-test', bopPlusTestHandler);
       window.removeEventListener('glint-brain-test-bubble', brainTestBubbleHandler);
       window.removeEventListener('glint-brain-test-conversation', brainTestConvoHandler);
-      window.removeEventListener('globe-glint-fly', globeGlintFlyHandler);
-      window.removeEventListener('globe-glint-hide', globeGlintHideHandler);
+      window.removeEventListener('globe-tour-start', globeTourStartHandler);
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
-  }, [spawnPoints, showBubbleWithThinking, clearBubble, exitConversation]);
+  }, [spawnPoints, showBubbleWithThinking, clearBubble, exitConversation, startGlobeTour]);
 
   // Dynamic bubble-to-character connector — rAF loop updates SVG path directly (no re-renders)
   const connectorPathRef = useRef(null); // main curved path
@@ -6134,6 +6183,85 @@ export default function Home() {
                     labelResolution={2}
                     onLabelHover={(label) => setHoveredMarker(label)}
                     onRingHover={(ring) => setHoveredMarker(ring)}
+
+                    htmlElementsData={globePhotoMarkers}
+                    htmlLat="lat"
+                    htmlLng="lng"
+                    htmlAltitude={0.01}
+                    htmlElement={(d) => {
+                      const BASE = import.meta.env.BASE_URL;
+                      const pin = document.createElement('div');
+                      pin.className = 'globe-photo-pin';
+                      // Check if near tour destination for highlight
+                      if (tourMode && tourDestination) {
+                        const dlat = Math.abs(d.lat - tourDestination.lat);
+                        const dlng = Math.abs(d.lng - tourDestination.lng);
+                        if (dlat < 1 && dlng < 1) pin.classList.add('tour-highlight');
+                      }
+                      if (d.thumbnail) {
+                        const img = document.createElement('img');
+                        img.src = BASE + d.thumbnail.replace(/^\//, '');
+                        img.alt = d.caption || 'Photo';
+                        img.loading = 'lazy';
+                        pin.appendChild(img);
+                      }
+                      // Tooltip on hover
+                      const tooltip = document.createElement('div');
+                      tooltip.className = 'photo-tooltip';
+                      if (d.thumbnail) {
+                        const tImg = document.createElement('img');
+                        tImg.src = BASE + d.thumbnail.replace(/^\//, '');
+                        tImg.alt = '';
+                        tImg.loading = 'lazy';
+                        tooltip.appendChild(tImg);
+                      }
+                      if (d.caption) {
+                        const cap = document.createElement('div');
+                        cap.className = 'photo-caption';
+                        cap.textContent = d.caption;
+                        tooltip.appendChild(cap);
+                      }
+                      if (d.date) {
+                        const dt = document.createElement('div');
+                        dt.className = 'photo-date';
+                        dt.textContent = d.date;
+                        tooltip.appendChild(dt);
+                      }
+                      pin.appendChild(tooltip);
+                      return pin;
+                    }}
+
+                    customLayerData={tourMode && tourDestination ? [tourDestination] : []}
+                    customThreeObject={(d) => {
+                      const group = new THREE.Group();
+                      const scale = editorParams.current.globeTourMarkerScale ?? 1.5;
+                      // Glowing octahedron marker
+                      const geo = new THREE.OctahedronGeometry(scale, 0);
+                      const mat = new THREE.MeshBasicMaterial({
+                        color: d.color || '#7c3aed',
+                        transparent: true,
+                        opacity: 0.7,
+                        blending: THREE.AdditiveBlending,
+                      });
+                      const mesh = new THREE.Mesh(geo, mat);
+                      group.add(mesh);
+                      // Wireframe edges
+                      const edgeMat = new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.5 });
+                      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 15), edgeMat);
+                      group.add(edges);
+                      group.userData._mat = mat;
+                      return group;
+                    }}
+                    customThreeObjectUpdate={(obj, d) => {
+                      const t = Date.now() * 0.003;
+                      obj.rotation.y = t;
+                      obj.rotation.x = Math.sin(t * 0.5) * 0.3;
+                      obj.position.y = Math.sin(t * 1.5) * 0.5 + 2; // bob above surface
+                      // Pulse opacity
+                      if (obj.userData._mat) {
+                        obj.userData._mat.opacity = 0.5 + Math.sin(t * 2) * 0.3;
+                      }
+                    }}
                   />
                 )}
               </Suspense>
@@ -6220,19 +6348,41 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="map-badge">
-              <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('prev'); }} aria-label="Previous location">
-                <ChevronLeft size={14} />
-              </button>
-              <div className="map-badge-center">
-                <Globe2 size={14} />
-                <span className="map-badge-location">
-                  {hoveredMarker ? hoveredMarker.name : expeditions[activeExpedition].name}
-                </span>
-              </div>
-              <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('next'); }} aria-label="Next location">
-                <ChevronRight size={14} />
-              </button>
+            <div className={`map-badge${tourMode ? ' tour-active' : ''}`}>
+              {tourMode ? (
+                <>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); prevDestination(); }} aria-label="Previous destination" disabled={tourIndex <= 0}>
+                    <ChevronLeft size={14} />
+                  </button>
+                  <div className="map-badge-center">
+                    <Globe2 size={14} />
+                    <span className="map-badge-location">
+                      {tourDestination ? tourDestination.name : 'Tour'} ({tourIndex + 1}/{expeditions.length})
+                    </span>
+                  </div>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); nextDestination(); }} aria-label="Next destination" disabled={tourIndex >= expeditions.length - 1}>
+                    <ChevronRight size={14} />
+                  </button>
+                  <button className="globe-nav-btn tour-exit-btn" onClick={(e) => { e.stopPropagation(); endGlobeTour(); }} aria-label="End tour">
+                    <X size={14} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('prev'); }} aria-label="Previous location">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <div className="map-badge-center">
+                    <Globe2 size={14} />
+                    <span className="map-badge-location">
+                      {hoveredMarker ? hoveredMarker.name : expeditions[activeExpedition].name}
+                    </span>
+                  </div>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('next'); }} aria-label="Next location">
+                    <ChevronRight size={14} />
+                  </button>
+                </>
+              )}
             </div>
             {/* Liquid glass edge overlay */}
             <div className="liquid-glass-edge" />

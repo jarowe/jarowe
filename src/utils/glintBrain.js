@@ -195,12 +195,12 @@ const HOME_LINES = [
 // ── Globe Tour Lines (shown when Glint offers or reacts to globe flights) ──
 
 const GLOBE_OFFER_LINES = [
-  { text: "Want me to fly you somewhere on the globe? I know all Jared's travel spots!", expression: 'excited' },
-  { text: "See that globe? I can portal inside it and show you around the world!", expression: 'mischief' },
-  { text: "I've got a secret power... I can teleport inside the globe! Want a tour?", expression: 'curious' },
-  { text: "Fun fact: I can fly around that globe down there. Say the word and I'll take you places!", expression: 'happy' },
-  { text: "That globe isn't just for looking! Bop me and I'll give you a world tour.", expression: 'excited' },
-  { text: "Psst... I can shrink down and fly inside the globe. Wanna see?", expression: 'mischief' },
+  { text: "Want a globe tour? I know all of Jared's travel spots!", expression: 'excited' },
+  { text: "See that globe? I can give you a guided tour of everywhere the family has been!", expression: 'mischief' },
+  { text: "Fun fact: I'm basically a world-class tour guide. Want me to show you around?", expression: 'curious' },
+  { text: "That globe has so many stories! Bop me and I'll give you the grand tour.", expression: 'happy' },
+  { text: "Tour guide mode: activated! Want to spin the globe with me?", expression: 'excited' },
+  { text: "I've got the inside scoop on every destination down there. Want a tour?", expression: 'mischief' },
 ];
 
 const GLOBE_ARRIVAL_LINES = {
@@ -235,6 +235,65 @@ const GLOBE_FLIGHT_LINES = [
   { text: "Off we fly! The view from inside the globe is amazing.", expression: 'happy' },
   { text: "Engaging flight mode! *swoosh*", expression: 'excited' },
   { text: "Let's gooo! I love this part!", expression: 'happy' },
+];
+
+// ── Globe Tour Guide Lines (Glint narrates as tour guide beside the globe) ──
+
+const TOUR_INTRO_LINES = [
+  { text: "Tour time! Let me show you where the Rowe family has been!", expression: 'excited' },
+  { text: "Buckle up! Globe tour starting now!", expression: 'happy' },
+  { text: "Ooh, a world tour! Follow me, I know all the spots!", expression: 'excited' },
+  { text: "Ready for an adventure? Let's spin this globe!", expression: 'mischief' },
+];
+
+const TOUR_DESTINATION_LINES = {
+  'Estepona, Spain': [
+    { text: "Three months in southern Spain! The sunsets from the terrace were unreal.", expression: 'love' },
+    { text: "Estepona! Cobblestone streets, murals everywhere, and the best tapas.", expression: 'happy' },
+    { text: "Spain was magical. The boys learned to surf here!", expression: 'excited' },
+  ],
+  'Austrian Alps': [
+    { text: "The Alps! Snow-capped peaks and cozy mountain villages.", expression: 'excited' },
+    { text: "Austria was breathtaking. The family explored the Alps together.", expression: 'love' },
+    { text: "Mountain air, stunning views, and the best hot chocolate in the world.", expression: 'happy' },
+  ],
+  'Greek Islands': [
+    { text: "Greece! Syros was home for three months. Crystal clear waters!", expression: 'love' },
+    { text: "The Greek Islands changed everything. Jace even wrote a poem here.", expression: 'happy' },
+    { text: "Sailing the Aegean, exploring ancient caves... pure magic.", expression: 'excited' },
+  ],
+  'Sint Maarten': [
+    { text: "Sint Maarten! Caribbean vibes and the bluest water you've ever seen.", expression: 'happy' },
+    { text: "Island life hits different. The family recharged here.", expression: 'love' },
+    { text: "Turquoise waters, warm breezes, and zero worries.", expression: 'excited' },
+  ],
+  'Great Smoky Mountains': [
+    { text: "The Smokies! Nature at its finest. The boys loved hiking here.", expression: 'happy' },
+    { text: "Great Smoky Mountains — misty trails and mountain adventures.", expression: 'curious' },
+    { text: "Nothing beats a family hike through ancient forests.", expression: 'love' },
+  ],
+  'Blue Ridge Mountains': [
+    { text: "Blue Ridge! Rolling mountains as far as the eye can see.", expression: 'happy' },
+    { text: "The Blue Ridge Parkway — one of America's most scenic drives.", expression: 'excited' },
+    { text: "Mountain living, front porch vibes, and firefly evenings.", expression: 'love' },
+  ],
+  'Orlando, FL': [
+    { text: "Orlando! Theme parks, roller coasters, and family fun!", expression: 'excited' },
+    { text: "The theme park capital! The Rowe boys went wild here.", expression: 'happy' },
+    { text: "Orlando is where the vault photos come from. So many coasters!", expression: 'mischief' },
+  ],
+  'Kissimmee, FL': [
+    { text: "Kissimmee! Right next to the magic of Orlando.", expression: 'happy' },
+    { text: "Home base for Florida adventures. Close to everything fun!", expression: 'excited' },
+    { text: "Kissimmee sunsets and family pool time. Good vibes.", expression: 'love' },
+  ],
+};
+
+const TOUR_OUTRO_LINES = [
+  { text: "And that's the tour! More adventures are always on the horizon.", expression: 'happy' },
+  { text: "What a ride! The Rowe family sure knows how to explore.", expression: 'love' },
+  { text: "Tour complete! Hope you enjoyed the journey as much as I did.", expression: 'excited' },
+  { text: "That's a wrap! Want to explore anything else?", expression: 'happy' },
 ];
 
 const PUNCH_REACTION_LINES = [
@@ -861,7 +920,7 @@ const DIALOGUE_TREES = {
 
   // ── Globe Tour tree ──
   'globe-tour-start': {
-    text: "I can portal inside the globe and fly you to any of Jared's travel spots! Where do you want to go?",
+    text: "Want a guided tour? I'll spin the globe and show you everywhere the Rowe family has been!",
     expression: 'excited',
     replies: [
       { label: "Spain!", nodeId: '__globe__:0' },
@@ -870,7 +929,7 @@ const DIALOGUE_TREES = {
     ],
   },
   'globe-tour-menu': {
-    text: "The Rowe family has been EVERYWHERE. Pick a destination and I'll fly us there!",
+    text: "The Rowe family has been EVERYWHERE. Pick a destination and I'll take you there!",
     expression: 'happy',
     replies: [
       { label: "Austrian Alps", nodeId: '__globe__:1' },
@@ -884,16 +943,7 @@ const DIALOGUE_TREES = {
     replies: [
       { label: "Smoky Mountains", nodeId: '__globe__:4' },
       { label: "Blue Ridge", nodeId: '__globe__:5' },
-      { label: "That's enough flying!", nodeId: null },
-    ],
-  },
-  'globe-tour-arrived': {
-    text: "We made it! Want to fly somewhere else, or are you good?",
-    expression: 'happy',
-    replies: [
-      { label: "More destinations!", nodeId: 'globe-tour-menu' },
-      { label: "Even more spots!", nodeId: 'globe-tour-more' },
-      { label: "That was awesome!", nodeId: null },
+      { label: "That's enough touring!", nodeId: null },
     ],
   },
 };
@@ -1103,4 +1153,30 @@ export function getGlobeArrivalLine(region) {
  */
 export function getGlobeFlightLine() {
   return pick(GLOBE_FLIGHT_LINES);
+}
+
+/**
+ * Get a tour intro line.
+ * @returns {{ text: string, expression: string }}
+ */
+export function getTourIntroLine() {
+  return pick(TOUR_INTRO_LINES);
+}
+
+/**
+ * Get a destination-specific tour narration line.
+ * @param {string} name - Destination name (e.g. 'Estepona, Spain')
+ * @returns {{ text: string, expression: string }}
+ */
+export function getTourDestinationLine(name) {
+  const pool = TOUR_DESTINATION_LINES[name] || GLOBE_ARRIVAL_LINES.default;
+  return pick(pool);
+}
+
+/**
+ * Get a tour outro line.
+ * @returns {{ text: string, expression: string }}
+ */
+export function getTourOutroLine() {
+  return pick(TOUR_OUTRO_LINES);
 }
