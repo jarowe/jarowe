@@ -194,6 +194,7 @@ export default function Home() {
   const [tourMode, setTourMode] = useState(false);
   const [tourDestination, setTourDestination] = useState(null);
   const [tourIndex, setTourIndex] = useState(-1);
+  const [tourPhotos, setTourPhotos] = useState([]); // nearby Instagram photos at current tour stop
   const preTourPositionRef = useRef(null);
 
   // Instagram photo markers for globe (geo-tagged posts only, deduplicated by location)
@@ -4493,6 +4494,11 @@ export default function Home() {
   const conversationRootKeyRef = useRef(null);
 
   const exitConversation = useCallback(() => {
+    // If a tour is active, don't portal-exit — just end the tour instead
+    if (isTourActive()) {
+      // endGlobeTour will be called separately
+      return;
+    }
     setConversationMode(false);
     setConversationNode(null);
     if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
@@ -4507,6 +4513,7 @@ export default function Home() {
     setTourMode(false);
     setTourDestination(null);
     setTourIndex(-1);
+    setTourPhotos([]);
 
     // Resume auto-cycle
     isUserInteracting.current = false;
@@ -4516,9 +4523,15 @@ export default function Home() {
     const autonomy = getGlintAutonomy();
     if (autonomy) autonomy.resume();
 
-    // Exit conversation
-    exitConversation();
-  }, [startGlobeCycle, exitConversation]);
+    // Clean up conversation state manually (exitConversation guards against tour)
+    setConversationMode(false);
+    setConversationNode(null);
+    if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
+    clearBubble();
+    peekPinnedRef.current = false;
+    window.__prismBopExit = true;
+    runPortalExitSequence();
+  }, [startGlobeCycle, clearBubble, runPortalExitSequence]);
 
   // Globe Tour — start guided tour with Glint as tour guide
   const startGlobeTour = useCallback((startIndex = 0) => {
@@ -4528,6 +4541,9 @@ export default function Home() {
 
     setTourMode(true);
 
+    // Kill any existing conversation timeout so it doesn't hide Glint mid-tour
+    if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
+
     // Pause auto-cycle
     isUserInteracting.current = true;
     if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
@@ -4536,12 +4552,15 @@ export default function Home() {
     const autonomy = getGlintAutonomy();
     if (autonomy) autonomy.pause();
 
-    // Show Glint with excited expression + pin him
+    // Show Glint with excited expression + pin him (stays for entire tour)
+    peekPinnedRef.current = true;
     if (!peekVisibleRef.current) {
       window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
         detail: { autonomous: true, pinned: true, duration: 999999 }
       }));
     }
+    // Clear any peek auto-hide timer
+    if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
 
     // Enter conversation mode for tour
     setConversationMode(true);
@@ -4571,6 +4590,11 @@ export default function Home() {
         setTourIndex(idx);
         setActiveExpedition(expeditions.indexOf(dest));
         setHoveredMarker(dest);
+        // Find nearby Instagram photos (within ~2° lat/lng)
+        const nearby = globePhotoMarkers.filter(p =>
+          Math.abs(p.lat - dest.lat) < 2 && Math.abs(p.lng - dest.lng) < 2
+        );
+        setTourPhotos(nearby);
       },
       onComplete: () => {
         endGlobeTour();
@@ -6184,24 +6208,6 @@ export default function Home() {
                     onLabelHover={(label) => setHoveredMarker(label)}
                     onRingHover={(ring) => setHoveredMarker(ring)}
 
-                    htmlElementsData={tourMode ? globePhotoMarkers : []}
-                    htmlLat="lat"
-                    htmlLng="lng"
-                    htmlAltitude={0.01}
-                    htmlElement={(d) => {
-                      const BASE = import.meta.env.BASE_URL;
-                      const pin = document.createElement('div');
-                      pin.className = 'globe-photo-pin';
-                      if (d.thumbnail) {
-                        const img = document.createElement('img');
-                        img.src = BASE + d.thumbnail.replace(/^\//, '');
-                        img.alt = d.caption || 'Photo';
-                        img.loading = 'lazy';
-                        pin.appendChild(img);
-                      }
-                      return pin;
-                    }}
-
                     customLayerData={tourMode && tourDestination ? [tourDestination] : []}
                     customThreeObject={(d) => {
                       const group = new THREE.Group();
@@ -6274,6 +6280,38 @@ export default function Home() {
                       alt={hoveredMarker.name}
                       style={{ width: `${editorParams.current.photoCardWidth}px`, height: `${Math.round(editorParams.current.photoCardWidth * 0.625)}px`, objectFit: 'cover', borderRadius: '8px' }}
                     />
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {/* Tour Instagram photos — shown as overlay card during tour mode */}
+            <AnimatePresence>
+              {tourMode && tourPhotos.length > 0 && (
+                <motion.div
+                  className="tour-photo-gallery"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                >
+                  <div className="tour-photo-label">Photos from here</div>
+                  <div className="tour-photo-grid">
+                    {tourPhotos.slice(0, 3).map((p, i) => (
+                      p.thumbnail && (
+                        <motion.img
+                          key={p.thumbnail}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.1 }}
+                          src={`${BASE}${p.thumbnail.replace(/^\//, '')}`}
+                          alt={p.caption || 'Instagram photo'}
+                          className="tour-photo-thumb"
+                        />
+                      )
+                    ))}
+                  </div>
+                  {tourPhotos[0]?.caption && (
+                    <div className="tour-photo-caption">{tourPhotos[0].caption}</div>
                   )}
                 </motion.div>
               )}

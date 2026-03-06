@@ -406,6 +406,51 @@
     50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
 }
 
+/* Tour photo gallery overlay */
+.tour-photo-gallery {
+    position: absolute;
+    bottom: 50px;
+    right: 8px;
+    background: rgba(10, 10, 20, 0.85);
+    backdrop-filter: blur(16px);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    z-index: 100;
+    pointer-events: none;
+    max-width: 200px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.tour-photo-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 6px;
+}
+.tour-photo-grid {
+    display: flex;
+    gap: 4px;
+}
+.tour-photo-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.tour-photo-caption {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 6px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
 /* Music Cell */
 .music-art {
     width: 100%;
