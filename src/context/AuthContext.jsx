@@ -144,7 +144,9 @@ export function AuthProvider({ children }) {
 
   const isAdmin = useMemo(() => {
     if (profile?.is_admin === true) return true;
-    return ADMIN_EMAILS.includes(user?.email);
+    // Check both user.email and OAuth metadata for email match
+    const email = user?.email || user?.user_metadata?.email;
+    return !!email && ADMIN_EMAILS.includes(email.toLowerCase());
   }, [profile, user]);
 
   const value = useMemo(() => ({

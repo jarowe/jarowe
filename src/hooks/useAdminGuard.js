@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function useAdminGuard() {
-  const { user, isAdmin, loading } = useAuth();
+  const auth = useAuth();
+  const loading = auth?.loading ?? true;
+  const isAdmin = auth?.isAdmin ?? false;
   const navigate = useNavigate();
 
   useEffect(() => {
