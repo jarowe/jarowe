@@ -23,7 +23,7 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
-import { buildContext, getAmbientLine, getConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getGlobeFlightLine } from '../utils/glintBrain';
+import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getGlobeFlightLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
@@ -4476,6 +4476,7 @@ export default function Home() {
 
   // ── Glint Brain: Conversation mode (Tier 2) ──
   const conversationTimeoutRef = useRef(null);
+  const conversationRootKeyRef = useRef(null);
 
   const exitConversation = useCallback(() => {
     setConversationMode(false);
@@ -4489,6 +4490,25 @@ export default function Home() {
   const handlePillClick = useCallback((reply) => {
     if (reply.nodeId === null) {
       exitConversation();
+      return;
+    }
+
+    // Reroll pill: cycle to a different conversation root
+    if (reply.nodeId === '__reroll__') {
+      window.__currentHoliday = holiday;
+      window.__isBirthday = isBirthday;
+      const ctx = buildContext();
+      const newRoot = rerollConversationRoot(ctx, conversationRootKeyRef.current);
+      conversationRootKeyRef.current = newRoot.rootKey;
+      setConversationNode(newRoot);
+      window.__prismExpression = newRoot.expression || 'happy';
+      showBubbleWithThinking(newRoot.text);
+      // Reset conversation timeout
+      if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+      const cfg = window.__prismConfig || {};
+      conversationTimeoutRef.current = setTimeout(() => {
+        exitConversation();
+      }, (cfg.brainConversationTimeout ?? 15) * 1000);
       return;
     }
 
@@ -4545,6 +4565,9 @@ export default function Home() {
       return;
     }
 
+    // If navigating a scripted dialogue tree, exit AI mode
+    if (aiChatMode) setAiChatMode(false);
+
     window.__currentHoliday = holiday;
     window.__isBirthday = isBirthday;
     const ctx = buildContext();
@@ -4561,7 +4584,7 @@ export default function Home() {
     conversationTimeoutRef.current = setTimeout(() => {
       exitConversation();
     }, (cfg.brainConversationTimeout ?? 15) * 1000);
-  }, [exitConversation, showBubbleWithThinking, holiday, isBirthday]);
+  }, [exitConversation, showBubbleWithThinking, holiday, isBirthday, aiChatMode]);
 
   // Escape key exits conversation
   useEffect(() => {
@@ -5698,8 +5721,9 @@ export default function Home() {
         const ctx = buildContext();
         ctx.bopsThisSession = sb + 1;
         const root = getConversationRoot(ctx);
+        conversationRootKeyRef.current = root.rootKey || null;
         setConversationMode(true);
-        setConversationNode(null); // no scripted node — AI mode
+        setConversationNode(root); // show root pills (Globe Tour, AI, Reroll) before AI takes over
         setAiChatMode(true);
         // Pause autonomy during conversation
         const aut = getGlintAutonomy();
@@ -5723,6 +5747,7 @@ export default function Home() {
         const ctx = buildContext();
         ctx.bopsThisSession = sb + 1;
         const root = getConversationRoot(ctx);
+        conversationRootKeyRef.current = root.rootKey || null;
         setConversationMode(true);
         setConversationNode(root);
         // Pause autonomy during conversation
@@ -6618,12 +6643,12 @@ export default function Home() {
                         >
                           {prismBubble}
                           {/* Quick-reply pills (Glint Brain Tier 2 + AI Tier 4) */}
-                          {conversationMode && conversationNode?.replies && !aiStreaming && !aiChatMode && (
+                          {conversationMode && conversationNode?.replies && !aiStreaming && (!aiChatMode || aiMessages.length === 0) && (
                             <div className="glint-reply-pills">
                               {conversationNode.replies.map((reply, i) => (
                                 <motion.button
                                   key={reply.label}
-                                  className={`glint-pill${reply.nodeId === '__ai__' ? ' glint-pill-ai' : ''}${reply.nodeId?.startsWith?.('__globe__:') ? ' glint-pill-globe' : ''}`}
+                                  className={`glint-pill${reply.nodeId === '__ai__' ? ' glint-pill-ai' : ''}${reply.nodeId?.startsWith?.('__globe__:') ? ' glint-pill-globe' : ''}${reply.nodeId === '__reroll__' ? ' glint-pill-reroll' : ''}`}
                                   initial={{ opacity: 0, y: 8 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: 0.3 + i * (cfg.brainPillAnimDelay ?? 0.1) }}
@@ -6639,7 +6664,7 @@ export default function Home() {
                             </div>
                           )}
                           {/* AI chat mode pills (bop-triggered) */}
-                          {conversationMode && aiChatMode && !aiStreaming && aiMessages.length === 0 && (
+                          {conversationMode && aiChatMode && !aiStreaming && aiMessages.length === 0 && !conversationNode?.replies && (
                             <div className="glint-reply-pills">
                               {['What is this site?', 'Tell me a secret', 'Who made you?'].map((q, i) => (
                                 <motion.button

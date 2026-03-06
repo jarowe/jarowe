@@ -4,6 +4,10 @@ import './AvatarGeometry.css';
 
 /* ═══════════════════════════════════════════════════════════════════════
    AVATAR GEOMETRY — Family Pentagon (anime.js v4)
+
+   Default: a single elegant thin ring around the avatar. Clean & minimal.
+   Hover: the sacred geometry cascades outward — harmony ring → bonds →
+   pentagon → family dots → pentagram → spiral → whiskers → motes.
    ═══════════════════════════════════════════════════════════════════════ */
 
 const CX = 100, CY = 100;
@@ -50,7 +54,6 @@ function goldenSpiralPath(startR, endR, turns) {
   return pts.join(' ');
 }
 
-/* Light motes between vertices */
 function moteData() {
   const motes = [];
   for (let i = 0; i < 5; i++) {
@@ -62,7 +65,6 @@ function moteData() {
         cx: v1.x + (v2.x - v1.x) * t,
         cy: v1.y + (v2.y - v1.y) * t,
         color: FAMILY[i].color,
-        r: 1.2,
       });
     }
   }
@@ -70,7 +72,6 @@ function moteData() {
 }
 const MOTES = moteData();
 
-/* Whisker lines at each vertex */
 function whiskerData() {
   const whiskers = [];
   for (let i = 0; i < 5; i++) {
@@ -89,314 +90,243 @@ const WHISKERS = whiskerData();
 
 export default function AvatarGeometry({ children, effect }) {
   const geoRef = useRef(null);
-  const animsRef = useRef([]);
+  const loopsRef = useRef([]);
   const hoveredRef = useRef(false);
   const hoverAnimsRef = useRef([]);
+  const revealedRef = useRef(false);
 
+  /* ── Mount: only draw the thin resting ring + start rotation loops ── */
   useEffect(() => {
     const el = geoRef.current;
     if (!el) return;
-    const anims = animsRef.current;
 
-    const tl = createTimeline({ defaults: { ease: 'outQuad' } });
-
-    // 0.0s — Harmony ring
-    const harmonyRing = el.querySelector('.fp-harmony-ring');
-    if (harmonyRing) {
-      const d = createDrawable(harmonyRing);
-      tl.add(d, { draw: '0 1', duration: 1200, ease: 'inOutQuad' }, 0);
+    // Draw the resting ring on mount
+    const restRing = el.querySelector('.fp-rest-ring');
+    if (restRing) {
+      const d = createDrawable(restRing);
+      animate(d, { draw: '0 1', duration: 1200, ease: 'inOutQuad' });
     }
 
-    // 0.3s — Bond lines
-    el.querySelectorAll('.fp-bond').forEach((line, i) => {
-      const d = createDrawable(line);
-      tl.add(d, { draw: '0 1', duration: 800, ease: 'outQuad' }, 300 + i * 120);
-    });
-
-    // 0.6s — Pentagon
-    el.querySelectorAll('.fp-pentagon').forEach(p => {
-      const d = createDrawable(p);
-      tl.add(d, { draw: '0 1', duration: 1400, ease: 'inOutQuad' }, 600);
-    });
-
-    // 1.0s — Tiny white dots (barely visible at rest)
-    tl.add(el.querySelectorAll('.fp-family-circle'), {
-      r: [0, 0.7], opacity: [0, 0.5], duration: 600, ease: 'outBack(2)',
-      delay: stagger(120),
-    }, 1000);
-
-    // 1.1s — Small stroke rings draw on (subtle at rest)
-    el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
-      c.setAttribute('r', '2.5');
-      c.style.opacity = '0.35';
-      const d = createDrawable(c);
-      tl.add(d, { draw: '0 1', duration: 700, ease: 'inOutQuad' }, 1100 + i * 120);
-    });
-
-    // 1.3s — Faint glows
-    tl.add(el.querySelectorAll('.fp-family-glow'), {
-      r: [0, 5], opacity: [0, 0.1], duration: 800, ease: 'outQuad',
-      delay: stagger(120),
-    }, 1300);
-
-    // 1.5s — Pentagram
-    el.querySelectorAll('.fp-pentagram').forEach(p => {
-      const d = createDrawable(p);
-      tl.add(d, { draw: '0 1', duration: 1600, ease: 'inOutSine' }, 1500);
-    });
-
-    // 2.0s — Spiral
-    const spiral = el.querySelector('.fp-spiral');
-    if (spiral) {
-      const d = createDrawable(spiral);
-      tl.add(d, { draw: '0 1', duration: 2000, ease: 'inOutQuad' }, 2000);
-    }
-
-    // 2.2s — Whiskers
-    el.querySelectorAll('.fp-whisker').forEach((line, i) => {
-      const d = createDrawable(line);
-      tl.add(d, { draw: '0 1', duration: 600 }, 2200 + i * 80);
-    });
-
-    // 2.5s — Motes
-    tl.add(el.querySelectorAll('.fp-mote'), {
-      opacity: [0, 0.5], r: [0, 1.2],
-      duration: 600, ease: 'outQuad', delay: stagger(30),
-    }, 2500);
-
-    // 2.8s — Phi dots
-    tl.add(el.querySelectorAll('.fp-phi-dot'), {
-      r: [0, 1.5], opacity: [0, 0.7], duration: 500, ease: 'outBack(2)',
-      delay: stagger(100),
-    }, 2800);
-
-    /* ── Continuous loops ── */
-
-    anims.push(animate(el.querySelector('.fp-pent-group'), {
+    // Start rotation loops (they run always, geometry just hidden)
+    const loops = loopsRef.current;
+    loops.push(animate(el.querySelector('.fp-pent-group'), {
       rotate: [0, 360], duration: 120000, loop: true, ease: 'linear',
     }));
-
-    anims.push(animate(el.querySelector('.fp-star-group'), {
+    loops.push(animate(el.querySelector('.fp-star-group'), {
       rotate: [0, -360], duration: 180000, loop: true, ease: 'linear',
     }));
-
-    anims.push(animate(el.querySelector('.fp-spiral-group'), {
+    loops.push(animate(el.querySelector('.fp-spiral-group'), {
       rotate: [0, 360], duration: 90000, loop: true, ease: 'linear',
     }));
 
-    // White dots — barely-there twinkle at rest
-    el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      anims.push(animate(c, {
-        r: [0.7, 0.9, 0.7], opacity: [0.35, 0.6, 0.35],
-        duration: 3000 + i * 500, loop: true, ease: 'inOutSine',
-      }));
-    });
-
-    // Stroke rings — faint breathe at rest
-    el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
-      anims.push(animate(c, {
-        opacity: [0.25, 0.45, 0.25],
-        duration: 3500 + i * 500, loop: true, ease: 'inOutSine',
-      }));
-    });
-
-    // Glows — very subtle at rest
-    el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
-      anims.push(animate(c, {
-        r: [5, 7, 5], opacity: [0.06, 0.15, 0.06],
-        duration: 4000 + i * 700, loop: true, ease: 'inOutSine',
-      }));
-    });
-
-    // Bond heartbeat
-    anims.push(animate(el.querySelectorAll('.fp-bond'), {
-      opacity: [0.3, 0.65, 0.3], strokeWidth: [0.5, 1, 0.5],
-      duration: 5000, loop: true, ease: 'inOutSine',
-      delay: stagger(300),
-    }));
-
-    // Harmony ring
-    anims.push(animate(el.querySelector('.fp-harmony-ring'), {
-      opacity: [0.3, 0.6, 0.3], strokeWidth: [0.6, 1.2, 0.6],
-      duration: 6000, loop: true, ease: 'inOutSine',
-    }));
-
-    // Motes flow
-    el.querySelectorAll('.fp-mote').forEach((m, i) => {
-      const edge = Math.floor(i / 2);
-      const v1 = vertexAt(edge, VERT_R);
-      const v2 = vertexAt((edge + 1) % 5, VERT_R);
-      anims.push(animate(m, {
-        cx: [v1.x, v2.x, v1.x], cy: [v1.y, v2.y, v1.y],
-        opacity: [0.2, 0.6, 0.2],
-        duration: 6000 + i * 400, loop: true, ease: 'inOutSine',
-      }));
-    });
-
-    // Whiskers stroke breathe
-    el.querySelectorAll('.fp-whisker').forEach((line, i) => {
-      const d = createDrawable(line);
-      anims.push(animate(d, {
-        draw: ['0 0.5', '0.5 1', '0 0.5'],
-        duration: 5000 + i * 600, loop: true, ease: 'inOutSine',
-      }));
-      anims.push(animate(line, {
-        opacity: [0.25, 0.6, 0.25],
-        duration: 5000 + i * 600, loop: true, ease: 'inOutSine',
-      }));
-    });
-
-    // Phi dots
-    anims.push(animate(el.querySelectorAll('.fp-phi-dot'), {
-      r: [1.5, 2.2, 1.5], opacity: [0.4, 0.8, 0.4],
-      duration: 4500, loop: true, ease: 'inOutSine',
-      delay: stagger(200),
-    }));
-
-    // Spiral
-    anims.push(animate(el.querySelector('.fp-spiral'), {
-      opacity: [0.15, 0.4, 0.15], duration: 8000, loop: true, ease: 'inOutSine',
-    }));
-
     return () => {
-      tl.pause();
-      anims.forEach(a => a.pause());
-      anims.length = 0;
+      loops.forEach(a => a.pause());
+      loops.length = 0;
     };
   }, []);
 
-  /* ── Hover: dramatic awakening ── */
+  /* ── Hover: cascade reveal / retract ── */
   useEffect(() => {
     const el = geoRef.current;
     if (!el) return;
 
     const onEnter = () => {
       hoveredRef.current = true;
-      animsRef.current.forEach(a => { a.speed = 2.5; });
+      revealedRef.current = true;
 
-      // Clean up previous hover anims
+      // Stop any ongoing retract anims
       hoverAnimsRef.current.forEach(a => a.pause());
       hoverAnimsRef.current = [];
 
-      // Dots bloom to visible on hover
+      // Fade out resting ring
       hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-family-circle'), {
-          r: [0.7, 1.3], opacity: [0.5, 1],
-          duration: 350, ease: 'outQuad',
+        animate(el.querySelector('.fp-rest-ring'), {
+          opacity: [0.35, 0], duration: 300, ease: 'outQuad',
         })
       );
 
-      // Stroke rings expand + trim-path sweep
+      // === CASCADING REVEAL ===
+
+      // 0ms — Harmony ring draws
+      const harmonyRing = el.querySelector('.fp-harmony-ring');
+      if (harmonyRing) {
+        const d = createDrawable(harmonyRing);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad' }));
+        hoverAnimsRef.current.push(animate(harmonyRing, { opacity: [0, 0.6], duration: 500, ease: 'outQuad' }));
+      }
+
+      // 100ms — Bond lines reach outward
+      el.querySelectorAll('.fp-bond').forEach((line, i) => {
+        const d = createDrawable(line);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, ease: 'outQuad', delay: 100 + i * 60 }));
+        hoverAnimsRef.current.push(animate(line, { opacity: [0, 0.65], duration: 400, delay: 100 + i * 60 }));
+      });
+
+      // 200ms — Pentagon draws
+      el.querySelectorAll('.fp-pentagon').forEach((p, i) => {
+        const d = createDrawable(p);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 600, ease: 'inOutQuad', delay: 200 }));
+        hoverAnimsRef.current.push(animate(p, { opacity: [0, i === 0 ? 0.7 : 0.15], duration: 600, delay: 200 }));
+      });
+
+      // 350ms — Family dots + stroke rings bloom
+      el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
+        hoverAnimsRef.current.push(animate(c, {
+          r: [0, 1.3], opacity: [0, 1], duration: 400, ease: 'outBack(2)', delay: 350 + i * 70,
+        }));
+      });
       el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
-        hoverAnimsRef.current.push(
-          animate(c, { r: [2.5, 5], opacity: [0.35, 0.9], duration: 350, ease: 'outQuad' })
-        );
+        c.setAttribute('r', '5');
         const d = createDrawable(c);
-        hoverAnimsRef.current.push(
-          animate(d, {
-            draw: ['0 1', '0.1 0.9', '0.3 0.7', '0.1 0.9', '0 1'],
-            duration: 1800 + i * 200, loop: true, ease: 'inOutSine',
-          })
-        );
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 500, ease: 'inOutQuad', delay: 380 + i * 70 }));
+        hoverAnimsRef.current.push(animate(c, { opacity: [0, 0.9], duration: 500, delay: 380 + i * 70 }));
       });
-
-      // Glows: gentle soft pulse
       el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
-        hoverAnimsRef.current.push(
-          animate(c, {
-            r: [5, 8, 5], opacity: [0.1, 0.25, 0.1],
-            duration: 1200 + i * 200, loop: true, ease: 'inOutSine',
-          })
-        );
+        hoverAnimsRef.current.push(animate(c, {
+          r: [0, 7], opacity: [0, 0.2], duration: 500, ease: 'outQuad', delay: 400 + i * 70,
+        }));
       });
 
-      // Pentagon + pentagram brighten
+      // 550ms — Pentagram traces
+      el.querySelectorAll('.fp-pentagram').forEach(p => {
+        const d = createDrawable(p);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 700, ease: 'inOutSine', delay: 550 }));
+        hoverAnimsRef.current.push(animate(p, { opacity: [0, 0.55], duration: 700, delay: 550 }));
+      });
+
+      // 700ms — Spiral traces
+      const spiral = el.querySelector('.fp-spiral');
+      if (spiral) {
+        const d = createDrawable(spiral);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 800, ease: 'inOutQuad', delay: 700 }));
+        hoverAnimsRef.current.push(animate(spiral, { opacity: [0, 0.35], duration: 800, delay: 700 }));
+      }
+
+      // 800ms — Whiskers stroke in
+      el.querySelectorAll('.fp-whisker').forEach((line, i) => {
+        const d = createDrawable(line);
+        hoverAnimsRef.current.push(animate(d, { draw: '0 1', duration: 400, delay: 800 + i * 50 }));
+        hoverAnimsRef.current.push(animate(line, { opacity: [0, 0.55], duration: 400, delay: 800 + i * 50 }));
+      });
+
+      // 900ms — Motes + phi dots fade in
       hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-pentagon'), {
-          strokeWidth: [0.8, 1.2], opacity: [0.5, 0.8],
-          duration: 400, ease: 'outQuad',
+        animate(el.querySelectorAll('.fp-mote'), {
+          opacity: [0, 0.5], r: [0, 1.2], duration: 400, ease: 'outQuad',
+          delay: stagger(25, { start: 900 }),
         })
       );
       hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-pentagram'), {
-          strokeWidth: [0.7, 1.1], opacity: [0.35, 0.65],
-          duration: 400, ease: 'outQuad',
+        animate(el.querySelectorAll('.fp-phi-dot'), {
+          r: [0, 1.5], opacity: [0, 0.7], duration: 400, ease: 'outBack(2)',
+          delay: stagger(50, { start: 950 }),
         })
       );
 
-      // Bonds brighten
-      hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-bond'), {
-          opacity: [0.4, 0.75], strokeWidth: [0.6, 1.2],
-          duration: 400, ease: 'outQuad',
-        })
-      );
+      // === CONTINUOUS HOVER LOOPS (start after cascade) ===
+      const loopDelay = 1100;
 
-      // Whiskers intensify
-      hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-whisker'), {
-          opacity: [0.3, 0.7], strokeWidth: [0.5, 0.9],
-          duration: 400, ease: 'outQuad',
-        })
-      );
+      // Bond heartbeat
+      hoverAnimsRef.current.push(animate(el.querySelectorAll('.fp-bond'), {
+        opacity: [0.5, 0.8, 0.5], strokeWidth: [0.5, 1, 0.5],
+        duration: 4000, loop: true, ease: 'inOutSine', delay: stagger(200, { start: loopDelay }),
+      }));
 
-      // Spiral brightens
-      hoverAnimsRef.current.push(
-        animate(el.querySelector('.fp-spiral'), {
-          opacity: [0.2, 0.5], strokeWidth: [0.5, 0.9],
-          duration: 500, ease: 'outQuad',
-        })
-      );
+      // Harmony ring breathe
+      hoverAnimsRef.current.push(animate(el.querySelector('.fp-harmony-ring'), {
+        opacity: [0.4, 0.7, 0.4], strokeWidth: [0.6, 1.2, 0.6],
+        duration: 5000, loop: true, ease: 'inOutSine', delay: loopDelay,
+      }));
 
-      // Harmony ring swells
-      hoverAnimsRef.current.push(
-        animate(el.querySelector('.fp-harmony-ring'), {
-          opacity: [0.4, 0.7], strokeWidth: [0.8, 1.5],
-          duration: 400, ease: 'outQuad',
-        })
-      );
+      // Family dot pulse
+      el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
+        hoverAnimsRef.current.push(animate(c, {
+          r: [1.3, 1.6, 1.3], opacity: [0.85, 1, 0.85],
+          duration: 2500 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+      });
+
+      // Stroke ring trim-path sweep
+      el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+        const d = createDrawable(c);
+        hoverAnimsRef.current.push(animate(d, {
+          draw: ['0 1', '0.1 0.9', '0.3 0.7', '0.1 0.9', '0 1'],
+          duration: 1800 + i * 200, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+      });
+
+      // Glow soft pulse
+      el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
+        hoverAnimsRef.current.push(animate(c, {
+          r: [7, 10, 7], opacity: [0.12, 0.25, 0.12],
+          duration: 3000 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+      });
+
+      // Mote flow
+      el.querySelectorAll('.fp-mote').forEach((m, i) => {
+        const edge = Math.floor(i / 2);
+        const v1 = vertexAt(edge, VERT_R);
+        const v2 = vertexAt((edge + 1) % 5, VERT_R);
+        hoverAnimsRef.current.push(animate(m, {
+          cx: [v1.x, v2.x, v1.x], cy: [v1.y, v2.y, v1.y],
+          opacity: [0.25, 0.6, 0.25],
+          duration: 5000 + i * 400, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+      });
+
+      // Whisker stroke breathe
+      el.querySelectorAll('.fp-whisker').forEach((line, i) => {
+        const d = createDrawable(line);
+        hoverAnimsRef.current.push(animate(d, {
+          draw: ['0 0.5', '0.5 1', '0 0.5'],
+          duration: 4000 + i * 500, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+        hoverAnimsRef.current.push(animate(line, {
+          opacity: [0.3, 0.6, 0.3],
+          duration: 4000 + i * 500, loop: true, ease: 'inOutSine', delay: loopDelay,
+        }));
+      });
+
+      // Phi dot pulse
+      hoverAnimsRef.current.push(animate(el.querySelectorAll('.fp-phi-dot'), {
+        r: [1.5, 2.2, 1.5], opacity: [0.4, 0.8, 0.4],
+        duration: 3500, loop: true, ease: 'inOutSine', delay: stagger(150, { start: loopDelay }),
+      }));
+
+      // Spiral breathe
+      hoverAnimsRef.current.push(animate(el.querySelector('.fp-spiral'), {
+        opacity: [0.2, 0.45, 0.2], duration: 6000, loop: true, ease: 'inOutSine', delay: loopDelay,
+      }));
     };
 
     const onLeave = () => {
       hoveredRef.current = false;
-      animsRef.current.forEach(a => { a.speed = 1; });
 
+      // Stop all hover anims
       hoverAnimsRef.current.forEach(a => a.pause());
       hoverAnimsRef.current = [];
 
-      // Dots shrink back to tiny
-      animate(el.querySelectorAll('.fp-family-circle'), {
-        r: 0.7, opacity: 0.5, duration: 500, ease: 'outQuad',
-      });
+      // === RETRACT: fade everything back to hidden ===
+      const dur = 500;
+      const ease = 'inOutQuad';
 
-      // Stroke rings shrink back + restore full draw
-      el.querySelectorAll('.fp-family-stroke').forEach(c => {
-        animate(c, { r: 2.5, opacity: 0.35, duration: 500, ease: 'outQuad' });
-        const d = createDrawable(c);
-        animate(d, { draw: '0 1', duration: 400, ease: 'outQuad' });
-      });
+      // Fade geometry out
+      animate(el.querySelectorAll('.fp-bond'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-pentagon'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-pentagram'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-family-circle'), { r: 0, opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-family-stroke'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-family-glow'), { r: 0, opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-mote'), { r: 0, opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-phi-dot'), { r: 0, opacity: 0, duration: dur, ease });
+      animate(el.querySelectorAll('.fp-whisker'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelector('.fp-spiral'), { opacity: 0, duration: dur, ease });
+      animate(el.querySelector('.fp-harmony-ring'), { opacity: 0, duration: dur, ease });
 
-      // Glows back to faint
-      animate(el.querySelectorAll('.fp-family-glow'), {
-        r: 5, opacity: 0.06, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelectorAll('.fp-pentagon'), {
-        strokeWidth: 0.8, opacity: 0.5, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelectorAll('.fp-pentagram'), {
-        strokeWidth: 0.7, opacity: 0.35, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelectorAll('.fp-bond'), {
-        opacity: 0.4, strokeWidth: 0.6, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelectorAll('.fp-whisker'), {
-        opacity: 0.35, strokeWidth: 0.5, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelector('.fp-spiral'), {
-        opacity: 0.2, strokeWidth: 0.5, duration: 500, ease: 'outQuad',
-      });
-      animate(el.querySelector('.fp-harmony-ring'), {
-        opacity: 0.4, strokeWidth: 0.8, duration: 500, ease: 'outQuad',
+      // Bring back the resting ring
+      animate(el.querySelector('.fp-rest-ring'), {
+        opacity: [0, 0.35], duration: 600, ease: 'outQuad', delay: 200,
       });
     };
 
@@ -409,7 +339,7 @@ export default function AvatarGeometry({ children, effect }) {
     };
   }, []);
 
-  /* ── Click bursts ── */
+  /* ── Click bursts (work whether hovered or not) ── */
   useEffect(() => {
     if (!effect || !geoRef.current) return;
     const el = geoRef.current;
@@ -419,38 +349,47 @@ export default function AvatarGeometry({ children, effect }) {
       animate(ring, { r: [12, 85], opacity: [0.7, 0], strokeWidth: [2, 0.2], duration: 800, ease: 'outCubic' });
     }
 
-    // Circles flash full color from tiny to big and back
+    // Flash family circles to full color
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      animate(c, { r: [0.7, 3, 0.7], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], opacity: [0.5, 1, 0.5], duration: 800, ease: 'outQuad', delay: i * 50 });
+      const isVis = hoveredRef.current;
+      animate(c, {
+        r: [isVis ? 1.3 : 0, 4, isVis ? 1.3 : 0],
+        fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'],
+        opacity: [isVis ? 1 : 0, 1, isVis ? 1 : 0],
+        duration: 800, ease: 'outQuad', delay: i * 50,
+      });
     });
     animate(el.querySelectorAll('.fp-family-stroke'), {
-      r: [2.5, 7, 2.5], strokeWidth: [0.7, 1.3, 0.7], opacity: [0.35, 1, 0.35],
+      r: [5, 8, 5], opacity: [0.8, 1, hoveredRef.current ? 0.8 : 0],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [5, 14, 5], opacity: [0.06, 0.4, 0.06],
+      r: [5, 14, 5], opacity: [0.1, 0.4, hoveredRef.current ? 0.1 : 0],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
 
+    // Bond lines flash
     animate(el.querySelectorAll('.fp-bond'), {
-      opacity: [0.4, 1, 0.4], strokeWidth: [0.5, 2, 0.5],
-      duration: 600, delay: stagger(50),
+      opacity: [0.3, 1, hoveredRef.current ? 0.6 : 0],
+      strokeWidth: [0.5, 2, 0.5], duration: 600, delay: stagger(50),
+    });
+
+    // Pentagon flash
+    animate(el.querySelectorAll('.fp-pentagon'), {
+      opacity: [0.3, 0.9, hoveredRef.current ? 0.7 : 0],
+      strokeWidth: [0.8, 2, 0.8], duration: 600,
     });
 
     if (effect === 'float') {
-      animate(el.querySelector('.fp-spiral'), { opacity: [0.2, 0.7, 0.2], strokeWidth: [0.5, 2, 0.5], duration: 1000 });
+      animate(el.querySelector('.fp-spiral'), { opacity: [0.1, 0.7, hoveredRef.current ? 0.3 : 0], strokeWidth: [0.5, 2, 0.5], duration: 1000 });
     } else if (effect === 'glitch') {
-      animate(el.querySelectorAll('.fp-pentagram'), { strokeWidth: [0.7, 2.5, 0.7], opacity: [0.35, 0.9, 0.35], duration: 500 });
+      animate(el.querySelectorAll('.fp-pentagram'), { strokeWidth: [0.7, 2.5, 0.7], opacity: [0.2, 0.9, hoveredRef.current ? 0.5 : 0], duration: 500 });
     } else if (effect === 'spin') {
-      animate(el.querySelectorAll('.fp-pentagon'), { strokeWidth: [0.8, 2.5, 0.8], opacity: [0.5, 1, 0.5], duration: 700 });
+      animate(el.querySelector('.fp-harmony-ring'), { opacity: [0.2, 0.9, hoveredRef.current ? 0.5 : 0], strokeWidth: [0.6, 2, 0.6], duration: 700 });
     } else if (effect === 'ripple') {
-      animate(el.querySelectorAll('.fp-whisker'), { opacity: [0.3, 1, 0.3], strokeWidth: [0.5, 1.5, 0.5], duration: 500, delay: stagger(40) });
-      animate(el.querySelectorAll('.fp-phi-dot'), { r: [1.5, 3.5, 1.5], opacity: [0.5, 1, 0.5], duration: 600, delay: stagger(60) });
+      animate(el.querySelectorAll('.fp-whisker'), { opacity: [0.2, 1, hoveredRef.current ? 0.5 : 0], strokeWidth: [0.5, 1.5, 0.5], duration: 500, delay: stagger(40) });
+      animate(el.querySelectorAll('.fp-phi-dot'), { r: [0.5, 3.5, hoveredRef.current ? 1.5 : 0], opacity: [0.3, 1, hoveredRef.current ? 0.6 : 0], duration: 600, delay: stagger(60) });
     }
-
-    animsRef.current.forEach(a => { a.speed = 4; });
-    const t = setTimeout(() => { animsRef.current.forEach(a => { a.speed = hoveredRef.current ? 2.5 : 1; }); }, 800);
-    return () => clearTimeout(t);
   }, [effect]);
 
   /* ── SVG elements ── */
@@ -459,7 +398,7 @@ export default function AvatarGeometry({ children, effect }) {
     const v = vertexAt(i, VERT_R);
     return (
       <g key={i}>
-        <circle cx={v.x} cy={v.y} r="8" className="fp-family-glow" fill={f.glow} opacity="0" />
+        <circle cx={v.x} cy={v.y} r="0" className="fp-family-glow" fill={f.glow} opacity="0" />
         <circle cx={v.x} cy={v.y} r="0" className="fp-family-stroke"
           fill="none" stroke={f.color} strokeWidth="0.7" opacity="0" />
         <circle cx={v.x} cy={v.y} r="0" className="fp-family-circle" fill="#fff" opacity="0" />
@@ -472,12 +411,12 @@ export default function AvatarGeometry({ children, effect }) {
     return (
       <line key={i} x1={CX} y1={CY} x2={v.x} y2={v.y}
         className="fp-bond" stroke={f.color} strokeWidth="0.5"
-        opacity="0.4" strokeLinecap="round" />
+        opacity="0" strokeLinecap="round" />
     );
   }), []);
 
   const motes = useMemo(() => MOTES.map((m, i) => (
-    <circle key={i} cx={m.cx} cy={m.cy} r={m.r}
+    <circle key={i} cx={m.cx} cy={m.cy} r="0"
       className="fp-mote" fill={m.color} opacity="0" />
   )), []);
 
@@ -504,7 +443,6 @@ export default function AvatarGeometry({ children, effect }) {
     <div className="avatar-geo-wrap" ref={geoRef}>
       <svg className="avatar-geo-svg" viewBox="0 0 200 200">
         <defs>
-          {/* Feather mask — tighter center cutout so geometry is more visible */}
           <radialGradient id="fp-center-mask" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0%" stopColor="black" />
             <stop offset="22%" stopColor="black" />
@@ -515,16 +453,20 @@ export default function AvatarGeometry({ children, effect }) {
             <rect x="0" y="0" width="200" height="200" fill="url(#fp-center-mask)" />
           </mask>
           <radialGradient id="fp-ambient" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.1" />
-            <stop offset="40%" stopColor="#06b6d4" stopOpacity="0.05" />
+            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.08" />
+            <stop offset="40%" stopColor="#06b6d4" stopOpacity="0.04" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
         </defs>
 
         {/* Ambient glow */}
-        <circle cx={CX} cy={CY} r="95" fill="url(#fp-ambient)" opacity="0.6" />
+        <circle cx={CX} cy={CY} r="95" fill="url(#fp-ambient)" opacity="0.5" />
 
-        {/* Masked geometry */}
+        {/* === DEFAULT: elegant thin ring === */}
+        <circle cx={CX} cy={CY} r="46" className="fp-rest-ring"
+          fill="none" stroke="rgba(168,85,247,0.35)" strokeWidth="0.6" />
+
+        {/* === HOVER GEOMETRY (all starts hidden, opacity 0) === */}
         <g mask="url(#fp-feather-mask)">
           <g className="fp-spiral-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
             <path d={goldenSpiralPath(18, 70, 2.5)} className="fp-spiral"
@@ -537,16 +479,16 @@ export default function AvatarGeometry({ children, effect }) {
           <g className="fp-pent-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
             <polygon points={pentagonPath(VERT_R)} className="fp-pentagon"
               fill="none" stroke="rgba(168,85,247,0.5)" strokeWidth="0.8"
-              strokeLinejoin="round" />
+              strokeLinejoin="round" opacity="0" />
             <polygon points={pentagonPath(VERT_R + 6)} className="fp-pentagon"
               fill="none" stroke="rgba(168,85,247,0.15)" strokeWidth="0.4"
-              strokeLinejoin="round" strokeDasharray="3 5" />
+              strokeLinejoin="round" strokeDasharray="3 5" opacity="0" />
           </g>
 
           <g className="fp-star-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
             <polygon points={pentagramPath(VERT_R)} className="fp-pentagram"
               fill="none" stroke="rgba(251,191,36,0.35)" strokeWidth="0.7"
-              strokeLinejoin="round" />
+              strokeLinejoin="round" opacity="0" />
           </g>
 
           {phiDots}
@@ -554,10 +496,10 @@ export default function AvatarGeometry({ children, effect }) {
           {whiskers}
         </g>
 
-        {/* Family circles — outside mask */}
+        {/* Family circles — outside mask, starts hidden */}
         {familyCircles}
 
-        {/* Harmony ring */}
+        {/* Harmony ring — hidden until hover */}
         <circle cx={CX} cy={CY} r="42" className="fp-harmony-ring"
           fill="none" stroke="rgba(168,85,247,0.4)" strokeWidth="0.6" opacity="0" />
 

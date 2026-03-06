@@ -532,6 +532,8 @@ export function getAmbientLine(context) {
 const AI_CHAT_PILL = { label: "\u2728 Ask me anything", nodeId: '__ai__' };
 // Globe tour pill — appears in conversation roots on home page
 const GLOBE_TOUR_PILL = { label: "\uD83C\uDF0D Globe tour!", nodeId: 'globe-tour-start' };
+// Reroll pill — cycles to a different conversation root
+const REROLL_PILL = { label: "\uD83D\uDD00 Something else", nodeId: '__reroll__' };
 
 const DIALOGUE_TREES = {
   // ── Tour tree ──
@@ -911,6 +913,7 @@ const CONVERSATION_ROOTS = {
       { label: "What is this site?", nodeId: 'tour-start' },
       GLOBE_TOUR_PILL,
       AI_CHAT_PILL,
+      REROLL_PILL,
     ],
   },
   'repeat-bop': {
@@ -925,6 +928,7 @@ const CONVERSATION_ROOTS = {
       GLOBE_TOUR_PILL,
       { label: "Tell me a secret", nodeId: 'secret-1' },
       AI_CHAT_PILL,
+      REROLL_PILL,
     ],
   },
   'veteran-bop': {
@@ -939,6 +943,7 @@ const CONVERSATION_ROOTS = {
       GLOBE_TOUR_PILL,
       { label: "Get philosophical", nodeId: 'philosophy-start' },
       AI_CHAT_PILL,
+      REROLL_PILL,
     ],
   },
   'puncher-bop': {
@@ -949,6 +954,12 @@ const CONVERSATION_ROOTS = {
       { label: "What's your deal?", nodeId: 'tour-glint' },
       AI_CHAT_PILL,
     ],
+    homeReplies: [
+      GLOBE_TOUR_PILL,
+      { label: "Sorry! Pro tips?", nodeId: 'tips-start' },
+      AI_CHAT_PILL,
+      REROLL_PILL,
+    ],
   },
   'explorer-bop': {
     text: "Hey explorer! You've been all over this site. Want some insider knowledge?",
@@ -958,6 +969,12 @@ const CONVERSATION_ROOTS = {
       { label: "Tell me a secret", nodeId: 'secret-1' },
       AI_CHAT_PILL,
     ],
+    homeReplies: [
+      GLOBE_TOUR_PILL,
+      { label: "Pro tips!", nodeId: 'tips-start' },
+      AI_CHAT_PILL,
+      REROLL_PILL,
+    ],
   },
   'holiday-bop': {
     text: "Bop! Happy %holiday%! Want to chat or are you just here to hit me?",
@@ -966,6 +983,12 @@ const CONVERSATION_ROOTS = {
       { label: "Tell me about today", nodeId: 'holiday-info' },
       { label: "What is this site?", nodeId: 'tour-start' },
       AI_CHAT_PILL,
+    ],
+    homeReplies: [
+      GLOBE_TOUR_PILL,
+      { label: "Play today's game!", nodeId: 'holiday-info' },
+      AI_CHAT_PILL,
+      REROLL_PILL,
     ],
   },
 };
@@ -989,7 +1012,7 @@ export function getConversationRoot(context) {
   const clone = (key) => {
     const r = CONVERSATION_ROOTS[key];
     const replies = (isHome && r.homeReplies) ? [...r.homeReplies] : [...r.replies];
-    return { ...r, replies };
+    return { ...r, replies, rootKey: key };
   };
 
   // Holiday-specific root
@@ -1031,6 +1054,26 @@ export function getConversationRoot(context) {
   // Default: repeat bop
   log('Conversation root: repeat-bop');
   return clone('repeat-bop');
+}
+
+/**
+ * Pick a random conversation root, excluding the given key.
+ * Used by the "Something else" reroll pill.
+ */
+export function rerollConversationRoot(context, excludeKey) {
+  const ctx = context;
+  const isHome = !ctx.page || ctx.page === '/' || ctx.page === '';
+  const allKeys = Object.keys(CONVERSATION_ROOTS);
+  const available = allKeys.filter(k => k !== excludeKey);
+  const key = pick(available);
+  const r = CONVERSATION_ROOTS[key];
+  const replies = (isHome && r.homeReplies) ? [...r.homeReplies] : [...r.replies];
+  let text = r.text;
+  if (key === 'holiday-bop' && ctx.holiday?.name) {
+    text = text.replace(/%holiday%/g, ctx.holiday.name);
+  }
+  log('Conversation reroll:', key);
+  return { ...r, text, replies, rootKey: key };
 }
 
 export function getDialogueNode(nodeId, context) {
