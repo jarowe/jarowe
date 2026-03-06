@@ -5,6 +5,8 @@
  * and ensures theme diversity within each epoch.
  */
 
+import { CM_LOCAL_FILES } from './cmLocalFiles';
+
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
 
 function isImage(path) {
@@ -15,15 +17,16 @@ function isImage(path) {
 function hasImageMedia(node) {
   if (!node.media || node.media.length === 0) return false;
   // cm-p nodes always have local copies even though media[] has external URLs
-  if (node.id.startsWith('cm-p-')) return true;
+  if (node.id.startsWith('cm-p-') && CM_LOCAL_FILES[node.id]) return true;
   return node.media.some(m => isImage(m));
 }
 
 function getFirstImage(node) {
   if (!node.media) return null;
-  // Prefer local paths for cm-p nodes
-  if (node.id.startsWith('cm-p-')) {
-    return `/data/media/${node.id}/image-01.jpg`;
+  // For cm-p nodes, use the actual local file manifest (correct extensions)
+  const localFiles = CM_LOCAL_FILES[node.id];
+  if (node.id.startsWith('cm-p-') && localFiles && localFiles.length > 0) {
+    return `/data/media/${node.id}/${localFiles[0]}`;
   }
   for (const m of node.media) {
     if (isImage(m)) return m;
@@ -93,12 +96,13 @@ export function curateMemories(nodes, opts = {}) {
 
       themesUsed.add(theme);
       const heroImage = getFirstImage(node);
-      // For cm-p nodes, use local paths instead of external URLs
+      // For cm-p nodes, use actual local file paths from manifest
       let allImages;
-      if (node.id.startsWith('cm-p-')) {
-        // Generate local paths (image-01 through however many media entries)
-        allImages = node.media.filter(m => isImage(m) || m.startsWith('http'))
-          .map((_, i) => `/data/media/${node.id}/image-${String(i + 1).padStart(2, '0')}.jpg`);
+      const localFiles = CM_LOCAL_FILES[node.id];
+      if (node.id.startsWith('cm-p-') && localFiles) {
+        allImages = localFiles
+          .filter(f => isImage(f))
+          .map(f => `/data/media/${node.id}/${f}`);
       } else {
         allImages = (node.media || []).filter(m => isImage(m));
       }

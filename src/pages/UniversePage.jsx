@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, OrbitControls, Points, PointMaterial, Html, Float, useTexture, MeshTransmissionMaterial } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing';
-import { useRef, useState, useEffect, Suspense, useMemo, useCallback, lazy } from 'react';
+import { Component, useRef, useState, useEffect, Suspense, useMemo, useCallback, lazy } from 'react';
 import { HalfFloatType, Vector3 } from 'three';
 import * as random from 'maath/random/dist/maath-random.esm';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,16 @@ import { layoutMemories } from './universe/layoutMemories';
 import './UniversePage.css';
 
 const MemoryDetailOverlay = lazy(() => import('./universe/MemoryDetailOverlay'));
+
+/* ─── Error Boundary: silently swallows texture load failures ─── */
+class PolaroidErrorBoundary extends Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return this.props.fallback || null;
+    return this.props.children;
+  }
+}
 
 /* ─── Starfield ─── */
 function Starfield(props) {
@@ -397,16 +407,20 @@ export default function UniversePage() {
 
           {/* Memory polaroids — each with independent Suspense */}
           {memories.map(mem => (
-            <Suspense
+            <PolaroidErrorBoundary
               key={mem.id}
               fallback={<PolaroidPlaceholder position={mem.position} rotation={mem.rotation} epochColor={mem.epochColor} />}
             >
-              <MemoryPolaroid
-                memory={mem}
-                onDiscover={handleDiscover}
-                onClick={setSelectedMemory}
-              />
-            </Suspense>
+              <Suspense
+                fallback={<PolaroidPlaceholder position={mem.position} rotation={mem.rotation} epochColor={mem.epochColor} />}
+              >
+                <MemoryPolaroid
+                  memory={mem}
+                  onDiscover={handleDiscover}
+                  onClick={setSelectedMemory}
+                />
+              </Suspense>
+            </PolaroidErrorBoundary>
           ))}
 
           <EffectComposer frameBufferType={HalfFloatType} disableNormalPass>
