@@ -57,6 +57,7 @@ import { computePipelineLayout } from './layout/helix.mjs';
 import { stripAndVerify } from './privacy/exif-stripper.mjs';
 import { redactGPS } from './privacy/gps-redactor.mjs';
 import { assignVisibility, applyAllowlist, filterPrivateNodes, filterPublicOnly, pruneOrphanEdges } from './privacy/visibility.mjs';
+import { filterLowQualityNodes } from './filters/content-quality.mjs';
 import { isMinor, enforceMinorsPolicy } from './privacy/minors-guard.mjs';
 import { auditPrivacy } from './validation/privacy-audit.mjs';
 import { validateSchema } from './validation/schema-validator.mjs';
@@ -375,6 +376,19 @@ async function main() {
       `(${Object.entries(rollupPromotions.bySource).map(([k, v]) => `${k}: ${v}`).join(', ') || 'none'})`
     );
   }
+
+  // ========================================================================
+  // Phase 4.5: CONTENT QUALITY FILTER (drop junk before visibility filter)
+  // ========================================================================
+  log.info('--- Phase 4.5: Content Quality Filter ---');
+
+  // Build set of protected node IDs (curated overrides, milestones, projects)
+  const qualityProtectedIds = new Set([
+    ...Object.keys(curation?.significance_overrides || {}),
+  ]);
+
+  const qualityResult = filterLowQualityNodes(allNodes, qualityProtectedIds);
+  allNodes = qualityResult.kept;
 
   // ========================================================================
   // Phase 5: FILTER BY VISIBILITY
@@ -769,6 +783,7 @@ async function main() {
         particle: sortedNodes.filter(n => n.tier === 'particle').length,
         helixThreshold,
       },
+      contentQuality: qualityResult.stats,
       motifs: motifStats.motifDistribution,
       privacyAudit: {
         violations: 0,

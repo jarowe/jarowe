@@ -408,10 +408,15 @@ export async function parseFacebook(exportDir, options = {}) {
     if (cleanCaption.length > 5) {
       title = cleanCaption.slice(0, 60) + (cleanCaption.length > 60 ? '...' : '');
     } else if (post.media.length > 0) {
-      // Photo/video post without meaningful text — use context from header
-      const verb = post.headerText?.match(/(added|uploaded|posted|updated)/i)?.[1] || 'shared';
-      const mediaWord = post.media.length > 1 ? `${post.media.length} photos` : 'a photo';
-      title = `${verb} ${mediaWord}`;
+      // Photo/video post without meaningful text — try description as title
+      const desc = (post.caption || '').trim();
+      if (desc.length > 5) {
+        title = desc.slice(0, 60) + (desc.length > 60 ? '...' : '');
+      } else {
+        const verb = post.headerText?.match(/(added|uploaded|posted|updated)/i)?.[1] || 'shared';
+        const mediaWord = post.media.length > 1 ? `${post.media.length} photos` : 'a photo';
+        title = `${verb} ${mediaWord}`;
+      }
     } else {
       title = `Facebook ${post.dateStr}`;
     }

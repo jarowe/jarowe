@@ -62,7 +62,7 @@ export default function ParticleCloud({ nodes }) {
       col[i * 3 + 2] = tempColor.b;
 
       // Size: small but scaled slightly by significance
-      sz[i] = 1.5 + sig * 2.5; // range 1.5 to 4.0 pixels
+      sz[i] = 1.0 + sig * 1.5; // range 1.0 to 2.5 pixels
     }
 
     return { positions: pos, colors: col, sizes: sz, basePositions: base };
@@ -145,7 +145,7 @@ export default function ParticleCloud({ nodes }) {
         transparent
         opacity={0.35}
         sizeAttenuation
-        size={3}
+        size={2}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
         toneMapped={false}

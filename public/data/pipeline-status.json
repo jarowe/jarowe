@@ -1,27 +1,27 @@
 {
-  "lastRun": "2026-03-06T00:03:41.929Z",
+  "lastRun": "2026-03-06T00:25:31.125Z",
   "status": "success",
   "publishMode": true,
   "stats": {
-    "nodeCount": 2189,
-    "edgeCount": 4528,
+    "nodeCount": 1221,
+    "edgeCount": 2339,
     "bySource": {
       "carbonmade": 47,
-      "facebook": 2062,
+      "facebook": 1094,
       "instagram": 59,
       "manual": 21
     },
     "byType": {
-      "moment": 2087,
+      "moment": 1119,
       "idea": 1,
       "milestone": 69,
       "project": 32
     },
     "byVisibility": {
-      "public": 2189
+      "public": 1221
     },
     "byFactuality": {
-      "factual": 2189
+      "factual": 1221
     },
     "ingestSources": {
       "instagram": {
@@ -46,19 +46,19 @@
       }
     },
     "edgeQuality": {
-      "avgConnectionsPerNode": 4.1,
-      "crossSourceEdges": 380,
-      "crossSourceRatio": 0.08,
-      "isolatedNodes": 165,
+      "avgConnectionsPerNode": 3.8,
+      "crossSourceEdges": 362,
+      "crossSourceRatio": 0.15,
+      "isolatedNodes": 112,
       "signalDistribution": {
-        "life-chapter": 1854,
-        "shared-motif": 560,
-        "cross-source-echo": 301,
-        "narrative-arc": 542,
-        "seasonal-echo": 258,
+        "life-chapter": 1674,
+        "shared-motif": 378,
+        "cross-source-echo": 300,
+        "narrative-arc": 369,
+        "seasonal-echo": 96,
         "shared-tags": 39,
-        "same-day": 2551,
-        "temporal-proximity": 1420,
+        "same-day": 533,
+        "temporal-proximity": 1422,
         "shared-client": 1,
         "shared-place": 3,
         "shared-entity": 11,
@@ -66,13 +66,13 @@
       }
     },
     "byAuthorship": {
-      "authored": 2189
+      "authored": 1221
     },
     "bySignificanceTier": {
-      "low": 432,
-      "medium": 1270,
-      "high": 451,
-      "exceptional": 36
+      "low": 272,
+      "medium": 701,
+      "high": 214,
+      "exceptional": 34
     },
     "significanceOverridesApplied": 32,
     "rollupPromotions": {
@@ -84,9 +84,18 @@
       "publishMode": true
     },
     "byTier": {
-      "helix": 182,
-      "particle": 2007,
+      "helix": 161,
+      "particle": 1060,
       "helixThreshold": 0.7
+    },
+    "contentQuality": {
+      "total": 2249,
+      "kept": 1280,
+      "dropped": 969,
+      "byReason": {
+        "birthday-spam": 136,
+        "empty-share": 833
+      }
     },
     "motifs": {
       "family": 34,
@@ -95,7 +104,7 @@
       "travel": 8,
       "faith": 4,
       "reflection": 7,
-      "celebration": 143,
+      "celebration": 19,
       "growth": 12,
       "nature": 8,
       "friendship": 15,
@@ -112,10 +121,10 @@
       "warnings": 0
     },
     "realityGate": {
-      "factualNodes": 2189,
+      "factualNodes": 1221,
       "threshold": 250,
       "passed": true,
-      "progress": "2189/250"
+      "progress": "1221/250"
     }
   }
 }

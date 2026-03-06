@@ -20,8 +20,9 @@ public/data/*
 !public/data/pipeline-status.json
 data-private/
 
-# Private media — pipeline copies from data-private, never commit personal photos
-public/data/media/
+# Private media — pipeline-processed media is committed for Vercel deployment
+# Raw Instagram exports stay private
+!public/data/media/
 public/images/instagram/
 
 # Temp patch/fix scripts

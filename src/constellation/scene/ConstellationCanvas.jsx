@@ -34,7 +34,7 @@ function getGPUConfig(tier) {
     pulseAnimation: true,
     starParticles: 2200,
     dpr: Math.min(1.5, window.devicePixelRatio),
-    sphereSegments: 12,
+    sphereSegments: 16,
   };
 }
 

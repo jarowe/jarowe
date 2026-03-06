@@ -167,7 +167,7 @@ export function computeSignificance(node, context = {}) {
  * @returns {number} Size value rounded to 2dp
  */
 export function sizeFromSignificance(sig) {
-  return Number(((0.4 + sig * 1.4) * 1.35).toFixed(2));
+  return Number((0.2 + sig * 0.9).toFixed(2));
 }
 
 /**

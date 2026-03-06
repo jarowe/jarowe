@@ -285,21 +285,15 @@ export default function DetailPanel() {
                           src={url}
                           alt={`${node.title} media ${idx + 1}`}
                           loading="lazy"
-                          onError={(e) => { e.target.style.display = 'none'; }}
+                          onError={(e) => {
+                            // Hide entire thumbnail button on broken image
+                            e.target.closest('.detail-panel__media-thumb').style.display = 'none';
+                          }}
                         />
                       )}
                     </button>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {/* Placeholder for nodes with no media */}
-          {(!node.media || node.media.length === 0) && (
-            <div className="detail-panel__section">
-              <div className="detail-panel__media-placeholder">
-                No media yet
               </div>
             </div>
           )}
