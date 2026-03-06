@@ -36,6 +36,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // Tunnel smooth scroll velocity for momentum
   const tunnelVelocity = useRef(0);
 
+  // Animated view offset proxy for panel shift
+  const viewOffsetProxy = useRef({ x: 0 });
+
   // Capture initial camera state on mount
   useEffect(() => {
     initialCameraPos.current = {
@@ -371,6 +374,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
       isFlyingRef.current = true;
 
+      // Disable zoom so scroll always navigates nodes, never zooms
+      controls.enableZoom = false;
+
       // Pause auto-rotate
       controls.autoRotate = false;
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
@@ -381,26 +387,36 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         useConstellationStore.getState().setTunnelY(node.y);
         isFlyingRef.current = false;
       } else {
-        // Compute leftward X shift to center helix in visible area beside panel
-        const isMobileView = window.innerWidth <= 768;
-        let panelXShift = 0;
-        if (!isMobileView) {
-          const vw = window.innerWidth;
-          const panelPx = Math.min(720, Math.max(380, vw * 0.48));
-          const panelFrac = panelPx / vw;
-          // Camera sits ~21 units from target; at FOV 60° visible width ≈ 24.5 units
-          // Shift by half the panel's fraction of visible width to center in remaining space
-          panelXShift = -(panelFrac / 2) * 24.5;
-        }
-
-        // Compute camera offset: above-right looking at node, shifted left for panel
-        const camTarget = { x: node.x + 15 + panelXShift, y: node.y + 5, z: node.z + 15 };
+        // Compute camera offset: above-right looking at node
+        const camTarget = { x: node.x + 15, y: node.y + 5, z: node.z + 15 };
 
         // Shorter duration for stepping between nodes, longer for first focus
         const prevNode = prevFocusRef.current;
         const isStepping = prevNode && sortedHelixNodes.length > 1;
         const duration = isStepping ? 0.8 : 1.5;
         const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
+
+        // ---- Shift frustum center so helix appears in the left viewport area ----
+        // setViewOffset shifts the projection matrix (not the camera position)
+        // so the 3D view centers in the unobscured area beside the story panel
+        const isMobileView = window.innerWidth <= 768;
+        if (!isMobileView) {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const panelPx = Math.min(720, Math.max(380, vw * 0.48));
+          const targetOffsetX = panelPx / 2;
+
+          // Animate the view offset smoothly
+          gsap.to(viewOffsetProxy.current, {
+            x: targetOffsetX,
+            duration: duration * 0.8,
+            ease,
+            onUpdate: () => {
+              camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
+              camera.updateProjectionMatrix();
+            },
+          });
+        }
 
         // Animate BOTH camera.position AND controls.target simultaneously
         const tl = gsap.timeline({
@@ -416,7 +432,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         );
         tl.to(
           controls.target,
-          { x: node.x + panelXShift, y: node.y, z: node.z, duration, ease },
+          { x: node.x, y: node.y, z: node.z, duration, ease },
           0
         );
         flyTimeline.current = tl;
@@ -424,6 +440,32 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       prevFocusRef.current = focusedNodeId;
     } else {
       prevFocusRef.current = null;
+
+      // Re-enable zoom
+      controls.enableZoom = true;
+
+      // Animate view offset back to center
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (viewOffsetProxy.current.x > 0) {
+        gsap.to(viewOffsetProxy.current, {
+          x: 0,
+          duration: 0.8,
+          ease: 'power2.inOut',
+          onUpdate: () => {
+            if (viewOffsetProxy.current.x > 0.5) {
+              camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
+            } else {
+              camera.clearViewOffset();
+            }
+            camera.updateProjectionMatrix();
+          },
+          onComplete: () => {
+            camera.clearViewOffset();
+            camera.updateProjectionMatrix();
+          },
+        });
+      }
 
       if (mode === 'tunnel') {
         // In tunnel mode: no fly-back, just stay where we are
