@@ -1,23 +1,17 @@
 /* ─── Story Panel ──────────────────────────────────────────────── */
 
-.story-panel__backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 90;
-}
-
 .story-panel {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: clamp(420px, 58vw, 900px);
+  width: clamp(380px, 48vw, 720px);
   z-index: 91;
-  background: rgba(8, 8, 16, 0.88);
+  background: rgba(8, 8, 16, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;

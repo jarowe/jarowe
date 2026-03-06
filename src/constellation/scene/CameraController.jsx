@@ -381,8 +381,20 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         useConstellationStore.getState().setTunnelY(node.y);
         isFlyingRef.current = false;
       } else {
-        // Compute camera offset: above-right looking at node
-        const camTarget = { x: node.x + 15, y: node.y + 5, z: node.z + 15 };
+        // Compute leftward X shift to center helix in visible area beside panel
+        const isMobileView = window.innerWidth <= 768;
+        let panelXShift = 0;
+        if (!isMobileView) {
+          const vw = window.innerWidth;
+          const panelPx = Math.min(720, Math.max(380, vw * 0.48));
+          const panelFrac = panelPx / vw;
+          // Camera sits ~21 units from target; at FOV 60° visible width ≈ 24.5 units
+          // Shift by half the panel's fraction of visible width to center in remaining space
+          panelXShift = -(panelFrac / 2) * 24.5;
+        }
+
+        // Compute camera offset: above-right looking at node, shifted left for panel
+        const camTarget = { x: node.x + 15 + panelXShift, y: node.y + 5, z: node.z + 15 };
 
         // Shorter duration for stepping between nodes, longer for first focus
         const prevNode = prevFocusRef.current;
@@ -404,7 +416,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         );
         tl.to(
           controls.target,
-          { x: node.x, y: node.y, z: node.z, duration, ease },
+          { x: node.x + panelXShift, y: node.y, z: node.z, duration, ease },
           0
         );
         flyTimeline.current = tl;

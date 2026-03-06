@@ -211,18 +211,6 @@ export default function StoryPanel() {
   return (
     <AnimatePresence>
       {node && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            className="story-panel__backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            onClick={clearFocus}
-          />
-
-          {/* Panel */}
           <motion.div
             className="story-panel"
             initial={isMobile ? { y: '100%' } : { x: '100%' }}
@@ -574,7 +562,6 @@ export default function StoryPanel() {
               )}
             </div>
           </motion.div>
-        </>
       )}
     </AnimatePresence>
   );
