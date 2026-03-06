@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Download, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
@@ -9,6 +9,8 @@ import './Admin.css';
 const GameLauncher = lazy(() => import('../components/GameLauncher'));
 
 const TYPE_LABELS = ['milestone', 'project', 'moment', 'idea', 'place', 'person', 'track'];
+const FLAG_TYPES = ['third-party-mention', 'trivial-content', 'media-only', 'low-quality', 'sensitive', 'needs-review'];
+const VIS_OPTIONS = ['public', 'friends', 'private'];
 const TABS = [
   { key: 'nodes', label: 'Nodes', icon: Globe2 },
   { key: 'holidays', label: 'Holidays', icon: Calendar },
@@ -72,9 +74,17 @@ function NodesTab() {
   const [epochFilter, setEpochFilter] = useState(null);
   const [sourceFilter, setSourceFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [flagFilter, setFlagFilter] = useState(null); // null | 'flagged' | 'unflagged' | specific type
+  const [visFilter, setVisFilter] = useState(null); // null | 'public' | 'friends' | 'private'
   const [localHidden, setLocalHidden] = useState(new Set());
-  const [localOverrides, setLocalOverrides] = useState({});
+  const [localVisOverrides, setLocalVisOverrides] = useState({});
+  const [localFlags, setLocalFlags] = useState({}); // nodeId → flag[]
+  const [sigOverrides, setSigOverrides] = useState({}); // preserve on export
   const [hasChanges, setHasChanges] = useState(false);
+  const [selectedNode, setSelectedNode] = useState(null);
+  // Add-flag form state
+  const [newFlagType, setNewFlagType] = useState(FLAG_TYPES[0]);
+  const [newFlagNote, setNewFlagNote] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -89,7 +99,9 @@ function NodesTab() {
           if (curationRes.ok) {
             const curation = await curationRes.json();
             setLocalHidden(new Set(curation.hidden || []));
-            setLocalOverrides(curation.visibility_overrides || {});
+            setLocalVisOverrides(curation.visibility_overrides || {});
+            setLocalFlags(curation.flags || {});
+            setSigOverrides(curation.significance_overrides || {});
           }
         } catch { /* curation.json not available */ }
       } catch { /* ignore */ }
@@ -100,22 +112,36 @@ function NodesTab() {
 
   const nodes = graphData?.nodes || [];
 
-  // Collect unique epochs and sources for filter pills
-  const { epochs, sources, typeCounts } = useMemo(() => {
+  // Collect unique epochs, sources, and flag stats
+  const { epochs, sources, typeCounts, flaggedCount, flagTypeCounts } = useMemo(() => {
     const epochSet = new Set();
     const sourceSet = new Set();
     const tc = {};
+    let fc = 0;
+    const ftc = {};
     for (const n of nodes) {
       if (n.epoch) epochSet.add(n.epoch);
       if (n.source) sourceSet.add(n.source);
       tc[n.type] = (tc[n.type] || 0) + 1;
+      const flags = localFlags[n.id];
+      if (flags?.length) {
+        fc++;
+        for (const f of flags) ftc[f.type] = (ftc[f.type] || 0) + 1;
+      }
     }
     return {
       epochs: [...epochSet].sort(),
       sources: [...sourceSet].sort(),
       typeCounts: tc,
+      flaggedCount: fc,
+      flagTypeCounts: ftc,
     };
-  }, [nodes]);
+  }, [nodes, localFlags]);
+
+  // Effective visibility for a node (override > original)
+  const getNodeVis = useCallback((node) => {
+    return localVisOverrides[node.id] || node.visibility || 'public';
+  }, [localVisOverrides]);
 
   const filteredNodes = useMemo(() => {
     let result = [...nodes];
@@ -123,10 +149,16 @@ function NodesTab() {
     if (typeFilter) result = result.filter(n => n.type === typeFilter);
     if (epochFilter) result = result.filter(n => n.epoch === epochFilter);
     if (sourceFilter) result = result.filter(n => n.source === sourceFilter);
+    if (visFilter) result = result.filter(n => getNodeVis(n) === visFilter);
+
+    // Flag filtering
+    if (flagFilter === 'flagged') result = result.filter(n => localFlags[n.id]?.length);
+    else if (flagFilter === 'unflagged') result = result.filter(n => !localFlags[n.id]?.length);
+    else if (flagFilter && FLAG_TYPES.includes(flagFilter)) result = result.filter(n => localFlags[n.id]?.some(f => f.type === flagFilter));
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(n => n.title?.toLowerCase().includes(q));
+      result = result.filter(n => n.title?.toLowerCase().includes(q) || n.description?.toLowerCase().includes(q));
     }
 
     result.sort((a, b) => {
@@ -139,7 +171,7 @@ function NodesTab() {
     });
 
     return result;
-  }, [nodes, typeFilter, epochFilter, sourceFilter, searchQuery, sortKey, sortDir]);
+  }, [nodes, typeFilter, epochFilter, sourceFilter, visFilter, flagFilter, searchQuery, sortKey, sortDir, localFlags, getNodeVis]);
 
   const toggleNodeVisibility = useCallback((nodeId) => {
     setLocalHidden(prev => {
@@ -150,13 +182,46 @@ function NodesTab() {
     setHasChanges(true);
   }, []);
 
-  function handleSave() {
-    const updatedCuration = {
-      _comment: 'Node curation state. Pipeline reads this to apply publish/hide.',
-      hidden: [...localHidden].sort(),
-      visibility_overrides: localOverrides,
+  const changeNodeVis = useCallback((nodeId, vis) => {
+    setLocalVisOverrides(prev => ({ ...prev, [nodeId]: vis }));
+    setHasChanges(true);
+  }, []);
+
+  const addFlag = useCallback((nodeId, type, note) => {
+    const today = new Date().toISOString().slice(0, 10);
+    setLocalFlags(prev => {
+      const existing = prev[nodeId] || [];
+      return { ...prev, [nodeId]: [...existing, { type, note, createdAt: today, source: 'manual' }] };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const removeFlag = useCallback((nodeId, index) => {
+    setLocalFlags(prev => {
+      const existing = [...(prev[nodeId] || [])];
+      existing.splice(index, 1);
+      const next = { ...prev };
+      if (existing.length === 0) delete next[nodeId]; else next[nodeId] = existing;
+      return next;
+    });
+    setHasChanges(true);
+  }, []);
+
+  function handleExportCuration() {
+    // Build curation patch with visibility_overrides, flags, and hidden
+    const hidden = [...localHidden];
+    // Also add nodes set to 'private' visibility to hidden
+    for (const [id, vis] of Object.entries(localVisOverrides)) {
+      if (vis === 'private' && !hidden.includes(id)) hidden.push(id);
+    }
+    const patch = {
+      _comment: 'Node curation state. Pipeline reads this to apply publish/hide. Managed via admin UI. Pipeline NEVER writes to this file.',
+      hidden: hidden.sort(),
+      visibility_overrides: localVisOverrides,
+      flags: localFlags,
+      significance_overrides: sigOverrides,
     };
-    const blob = new Blob([JSON.stringify(updatedCuration, null, 2) + '\n'], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(patch, null, 2) + '\n'], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'curation.json'; a.click();
@@ -168,6 +233,8 @@ function NodesTab() {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('asc'); }
   }
+
+  const detail = selectedNode ? nodes.find(n => n.id === selectedNode) : null;
 
   if (loading) return <div className="admin-loading">Loading constellation data...</div>;
 
@@ -186,15 +253,29 @@ function NodesTab() {
             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem' }}>total</span>
             <span>{nodes.length}</span>
           </span>
+          {flaggedCount > 0 && (
+            <span className="admin-content-stat">
+              <AlertTriangle size={14} style={{ color: 'rgb(251,191,36)' }} />
+              <span style={{ color: 'rgb(251,191,36)', fontWeight: 600 }}>{flaggedCount} flagged</span>
+            </span>
+          )}
+          {hasChanges && (
+            <button className="admin-edits-badge" onClick={handleExportCuration}>
+              Export Curation
+            </button>
+          )}
         </div>
       </section>
 
       <section className="admin-section admin-glass">
         <div className="admin-table-header">
-          <h2>Nodes ({filteredNodes.length})</h2>
+          <h2>
+            Nodes ({filteredNodes.length})
+            {flaggedCount > 0 && <span className="admin-flag-count-badge">{flaggedCount}</span>}
+          </h2>
           {hasChanges && (
-            <button className="admin-btn admin-btn-save" onClick={handleSave}>
-              <Download size={16} /> Save Changes
+            <button className="admin-btn admin-btn-save" onClick={handleExportCuration}>
+              <Download size={16} /> Export Curation
             </button>
           )}
         </div>
@@ -214,7 +295,7 @@ function NodesTab() {
             <div className="admin-filters">
               <div className="admin-search">
                 <Search size={16} />
-                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by title..." className="admin-input admin-search-input" />
+                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search title or description..." className="admin-input admin-search-input" />
               </div>
               <div className="admin-type-pills">
                 <button className={`admin-pill ${!typeFilter ? 'admin-pill-active' : ''}`} onClick={() => setTypeFilter(null)}>all</button>
@@ -248,6 +329,28 @@ function NodesTab() {
               </div>
             )}
 
+            {/* Flag + Visibility filters */}
+            <div className="admin-filters" style={{ marginTop: '-0.25rem' }}>
+              <div className="admin-type-pills">
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>Flags</span>
+                <button className={`admin-pill ${!flagFilter ? 'admin-pill-active' : ''}`} onClick={() => setFlagFilter(null)}>all</button>
+                <button className={`admin-pill ${flagFilter === 'flagged' ? 'admin-pill-active' : ''}`} onClick={() => setFlagFilter(flagFilter === 'flagged' ? null : 'flagged')}>flagged</button>
+                <button className={`admin-pill ${flagFilter === 'unflagged' ? 'admin-pill-active' : ''}`} onClick={() => setFlagFilter(flagFilter === 'unflagged' ? null : 'unflagged')}>unflagged</button>
+                {FLAG_TYPES.filter(t => flagTypeCounts[t]).map(t => (
+                  <button key={t} className={`admin-pill ${flagFilter === t ? 'admin-pill-active' : ''}`} onClick={() => setFlagFilter(flagFilter === t ? null : t)}>
+                    {t} ({flagTypeCounts[t]})
+                  </button>
+                ))}
+              </div>
+              <div className="admin-type-pills">
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>Vis</span>
+                <button className={`admin-pill ${!visFilter ? 'admin-pill-active' : ''}`} onClick={() => setVisFilter(null)}>all</button>
+                {VIS_OPTIONS.map(v => (
+                  <button key={v} className={`admin-pill ${visFilter === v ? 'admin-pill-active' : ''}`} onClick={() => setVisFilter(visFilter === v ? null : v)}>{v}</button>
+                ))}
+              </div>
+            </div>
+
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -272,19 +375,25 @@ function NodesTab() {
                 <tbody>
                   {filteredNodes.map(node => {
                     const isHidden = localHidden.has(node.id);
+                    const isFlagged = localFlags[node.id]?.length > 0;
+                    const vis = getNodeVis(node);
                     return (
-                      <tr key={node.id} className={isHidden ? 'admin-row-hidden' : ''}>
+                      <tr
+                        key={node.id}
+                        className={`admin-node-clickable ${isHidden ? 'admin-row-hidden' : ''} ${isFlagged ? 'admin-node-row-flagged' : ''} ${selectedNode === node.id ? 'admin-node-selected' : ''}`}
+                        onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                      >
                         <td className="admin-td-title" title={node.id}>{node.title || node.id}</td>
                         <td><span className={`admin-type-tag admin-type-${node.type}`}>{node.type}</span></td>
                         <td>{node.source}</td>
                         <td>{node.date || '--'}</td>
                         <td>{node.epoch || '--'}</td>
                         <td>{node.significance != null ? node.significance.toFixed(2) : '--'}</td>
-                        <td><span className={`admin-vis-tag admin-vis-${node.visibility}`}>{node.visibility}</span></td>
+                        <td><span className={`admin-vis-tag admin-vis-${vis}`}>{vis}</span></td>
                         <td>
                           <button
                             className={`admin-toggle ${isHidden ? 'admin-toggle-off' : 'admin-toggle-on'}`}
-                            onClick={() => toggleNodeVisibility(node.id)}
+                            onClick={e => { e.stopPropagation(); toggleNodeVisibility(node.id); }}
                             title={isHidden ? 'Hidden — click to publish' : 'Published — click to hide'}
                           >
                             {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -299,7 +408,154 @@ function NodesTab() {
           </>
         )}
       </section>
+
+      {/* Node detail panel */}
+      {detail && (
+        <NodeDetailPanel
+          node={detail}
+          vis={getNodeVis(detail)}
+          flags={localFlags[detail.id] || []}
+          onChangeVis={(vis) => changeNodeVis(detail.id, vis)}
+          onAddFlag={(type, note) => { addFlag(detail.id, type, note); }}
+          onRemoveFlag={(idx) => removeFlag(detail.id, idx)}
+          onClose={() => setSelectedNode(null)}
+          newFlagType={newFlagType}
+          setNewFlagType={setNewFlagType}
+          newFlagNote={newFlagNote}
+          setNewFlagNote={setNewFlagNote}
+        />
+      )}
     </>
+  );
+}
+
+// ─── NODE DETAIL PANEL ──────────────────────────────────────────────────
+function NodeDetailPanel({ node, vis, flags, onChangeVis, onAddFlag, onRemoveFlag, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote }) {
+  const base = import.meta.env.BASE_URL || '/';
+  const media = node.media || [];
+  const entities = node.entities || {};
+  const allEntities = [
+    ...(entities.people || []).map(p => ({ label: p, type: 'people' })),
+    ...(entities.tags || []).map(t => ({ label: t, type: 'tags' })),
+    ...(entities.places || []).map(p => ({ label: p, type: 'places' })),
+  ];
+
+  function handleAddFlag() {
+    if (!newFlagType) return;
+    onAddFlag(newFlagType, newFlagNote.trim());
+    setNewFlagNote('');
+  }
+
+  return (
+    <section className="admin-section admin-node-detail">
+      <div className="admin-node-detail-header">
+        <div>
+          <h3>{node.title || node.id}</h3>
+          <div className="admin-node-detail-badges">
+            <span className={`admin-type-tag admin-type-${node.type}`}>{node.type}</span>
+            <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.source}</span>
+            {node.date && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.date}</span>}
+            {node.epoch && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.epoch}</span>}
+            <span className="admin-pill" style={{ fontSize: '0.7rem' }}>sig: {node.significance?.toFixed(2) ?? '--'}</span>
+          </div>
+        </div>
+        <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={onClose}>Close</button>
+      </div>
+
+      <div className="admin-node-detail-body">
+        {/* Left column */}
+        <div className="admin-node-detail-section">
+          {/* Media thumbnails */}
+          {media.length > 0 && (
+            <>
+              <h4>Media ({media.length})</h4>
+              <div className="admin-node-media-grid">
+                {media.slice(0, 4).map((m, i) => (
+                  <img
+                    key={i}
+                    src={m.url?.startsWith('http') ? m.url : `${base}${m.url?.replace(/^\//, '')}`}
+                    alt=""
+                    className="admin-node-media-thumb"
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                ))}
+                {media.length > 4 && (
+                  <div className="admin-node-media-more">+{media.length - 4}</div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Description */}
+          {node.description && (
+            <>
+              <h4>Description</h4>
+              <div className="admin-node-description">{node.description}</div>
+            </>
+          )}
+
+          {/* Entities */}
+          {allEntities.length > 0 && (
+            <>
+              <h4>Entities</h4>
+              <div className="admin-entity-pills">
+                {allEntities.map((e, i) => (
+                  <span key={i} className={`admin-entity-pill admin-entity-${e.type}`}>{e.label}</span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Right column */}
+        <div className="admin-node-detail-section">
+          {/* Visibility control */}
+          <h4>Visibility</h4>
+          <select className="admin-vis-select" value={vis} onChange={e => onChangeVis(e.target.value)}>
+            {VIS_OPTIONS.map(v => (
+              <option key={v} value={v}>{v}</option>
+            ))}
+          </select>
+
+          {/* Flags */}
+          <h4 style={{ marginTop: '0.75rem' }}>
+            Flags {flags.length > 0 && <span className="admin-flag-count-badge">{flags.length}</span>}
+          </h4>
+          {flags.length > 0 && (
+            <div className="admin-flag-list">
+              {flags.map((f, i) => (
+                <div key={i} className="admin-flag-entry">
+                  <span className="admin-flag-badge">{f.type}</span>
+                  <span className="admin-flag-note" title={f.note}>{f.note || '—'}</span>
+                  <span className="admin-flag-date">{f.createdAt}</span>
+                  <span className="admin-flag-source">{f.source}</span>
+                  <button className="admin-flag-remove" onClick={() => onRemoveFlag(i)} title="Remove flag">
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add flag */}
+          <div className="admin-flag-add">
+            <select value={newFlagType} onChange={e => setNewFlagType(e.target.value)}>
+              {FLAG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <textarea
+              value={newFlagNote}
+              onChange={e => setNewFlagNote(e.target.value)}
+              placeholder="Note (optional)"
+              rows={1}
+            />
+            <button onClick={handleAddFlag}>
+              <Plus size={12} /> Flag
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

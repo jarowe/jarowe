@@ -2,6 +2,7 @@
   "_comment": "Node curation state. Pipeline reads this to apply publish/hide. Managed via admin UI. Pipeline NEVER writes to this file.",
   "hidden": [],
   "visibility_overrides": {},
+  "flags": {},
   "significance_overrides": {
     "_comment": "Manual overrides for key life milestones. Applied AFTER all auto-scoring (Phase 7.5).",
     "cm-m-001": 0.95,

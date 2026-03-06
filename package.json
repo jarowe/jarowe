@@ -12,6 +12,8 @@
     "ingest:music": "node pipeline/ingest-music.mjs",
     "ingest:all": "node pipeline/ingest-music.mjs",
     "build:knowledge": "node pipeline/ai/generate-knowledge-summary.mjs",
+    "audit:content": "node pipeline/audit/content-audit.mjs",
+    "audit:content:dry": "node pipeline/audit/content-audit.mjs --dry-run",
     "lint": "eslint .",
     "preview": "vite preview"
   },
