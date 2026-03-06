@@ -113,7 +113,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
   // Pre-compute base scales for breathing animation
   const baseScales = useMemo(
-    () => nodes.map((n) => n.size),
+    () => nodes.map((n) => n.size * 1.4),
     [nodes]
   );
 
@@ -125,7 +125,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     nodes.forEach((node, i) => {
       // Position + scale
       dummy.position.set(node.x, node.y, node.z);
-      dummy.scale.setScalar(node.size);
+      dummy.scale.setScalar(node.size * 1.4);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 

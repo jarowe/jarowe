@@ -27,7 +27,7 @@ const diamondVertexShader = `
     vColor = color;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_PointSize = size * (200.0 / -mvPosition.z);
-    gl_PointSize = clamp(gl_PointSize, 1.0, 24.0);
+    gl_PointSize = clamp(gl_PointSize, 2.0, 36.0);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -92,8 +92,8 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;
 
-      // Size: small diamonds scaled by significance
-      sz[i] = 2.5 + sig * 3.0; // range 2.5 to 5.5
+      // Size: diamonds scaled by significance (larger for easier clicking)
+      sz[i] = 4.0 + sig * 5.0; // range 4.0 to 9.0
     }
 
     return { positions: pos, colors: col, sizes: sz, basePositions: base };
@@ -105,7 +105,7 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       vertexShader: diamondVertexShader,
       fragmentShader: diamondFragmentShader,
       uniforms: {
-        uOpacity: { value: 0.45 },
+        uOpacity: { value: 0.6 },
       },
       vertexColors: true,
       transparent: true,
