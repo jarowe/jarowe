@@ -3,22 +3,61 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
 
+/** Theme-based color palette (matches NodeCloud) */
+const THEME_COLORS = {
+  love: '#f472b6', family: '#fb923c', fatherhood: '#fb923c',
+  career: '#60a5fa', craft: '#38bdf8', growth: '#a78bfa',
+  reflection: '#c084fc', adventure: '#2dd4bf', travel: '#2dd4bf',
+  greece: '#2dd4bf', celebration: '#fbbf24', friendship: '#818cf8',
+  nature: '#34d399', food: '#f97316', nostalgia: '#d4a574',
+  faith: '#e2c6ff', home: '#86efac',
+};
+
+const TYPE_COLORS = {
+  project: '#f59e0b', moment: '#f87171', person: '#a78bfa',
+  place: '#2dd4bf', idea: '#22d3ee', milestone: '#fbbf24',
+  track: '#34d399',
+};
+
+/** Diamond-shaped point shader */
+const diamondVertexShader = `
+  attribute float size;
+  varying vec3 vColor;
+  void main() {
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = size * (200.0 / -mvPosition.z);
+    gl_PointSize = clamp(gl_PointSize, 1.0, 24.0);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const diamondFragmentShader = `
+  varying vec3 vColor;
+  uniform float uOpacity;
+  void main() {
+    // Diamond shape: |x| + |y| <= 1 in point-coord space centered at 0.5
+    vec2 uv = gl_PointCoord * 2.0 - 1.0;
+    float diamond = abs(uv.x) + abs(uv.y);
+    if (diamond > 1.0) discard;
+    // Soft edge glow
+    float alpha = smoothstep(1.0, 0.5, diamond) * uOpacity;
+    gl_FragColor = vec4(vColor, alpha);
+  }
+`;
+
 /**
  * Ambient particle cloud for particle-tier nodes.
  *
- * Uses THREE.Points (single draw call) for efficient rendering of
- * thousands of tiny semi-transparent particles scattered around the
- * helix spine. Each particle represents a lower-significance memory
- * that adds texture and depth without cluttering the main helix.
- *
- * Particles are clickable via raycasting threshold.
+ * Renders diamond-shaped particles using a custom ShaderMaterial.
+ * Each particle is color-coordinated by theme/type.
  * Gentle floating drift animation gives the cloud life.
  */
 export default function ParticleCloud({ nodes, tunnelMode = false }) {
   const pointsRef = useRef();
+  const materialRef = useRef();
   const focusNode = useConstellationStore((s) => s.focusNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
-  const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
   const count = nodes.length;
 
   // Pre-compute geometry attributes
@@ -27,7 +66,6 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
     const col = new Float32Array(count * 3);
     const sz = new Float32Array(count);
     const base = new Float32Array(count * 3);
-
     const tempColor = new THREE.Color();
 
     for (let i = 0; i < count; i++) {
@@ -44,35 +82,37 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       base[i * 3 + 1] = y;
       base[i * 3 + 2] = z;
 
-      // Color: theme-based with type fallback, dimmed by significance
+      // Color: theme-based with type fallback
       const sig = node.significance ?? 0.2;
-      const brightness = 0.2 + sig * 0.6; // subtle: range 0.2 to 0.8
-      const themeColors = {
-        love: '#f472b6', family: '#fb923c', fatherhood: '#fb923c',
-        career: '#60a5fa', craft: '#38bdf8', growth: '#a78bfa',
-        reflection: '#c084fc', adventure: '#2dd4bf', travel: '#2dd4bf',
-        greece: '#2dd4bf', celebration: '#fbbf24', friendship: '#818cf8',
-        nature: '#34d399', food: '#f97316', nostalgia: '#d4a574',
-        faith: '#e2c6ff', home: '#86efac',
-      };
-      const typeColors = {
-        project: '#f59e0b', moment: '#f87171', person: '#a78bfa',
-        place: '#2dd4bf', idea: '#22d3ee', milestone: '#fbbf24',
-        track: '#34d399',
-      };
-      const color = (node.theme && themeColors[node.theme])
-        || typeColors[node.type] || '#94a3b8';
+      const brightness = 0.3 + sig * 0.8; // range 0.3 to 1.1
+      const color = (node.theme && THEME_COLORS[node.theme])
+        || (node.type && TYPE_COLORS[node.type]) || '#94a3b8';
       tempColor.set(color).multiplyScalar(brightness);
       col[i * 3] = tempColor.r;
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;
 
-      // Size: small but scaled slightly by significance
-      sz[i] = 1.0 + sig * 1.5; // range 1.0 to 2.5 pixels
+      // Size: small diamonds scaled by significance
+      sz[i] = 2.5 + sig * 3.0; // range 2.5 to 5.5
     }
 
     return { positions: pos, colors: col, sizes: sz, basePositions: base };
   }, [nodes, count]);
+
+  // Diamond shader material
+  const shaderMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: diamondVertexShader,
+      fragmentShader: diamondFragmentShader,
+      uniforms: {
+        uOpacity: { value: 0.45 },
+      },
+      vertexColors: true,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+  }, []);
 
   // Set up geometry
   useEffect(() => {
@@ -86,17 +126,14 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
 
   // Focus dimming + tunnel mode dimming
   useEffect(() => {
-    if (!pointsRef.current) return;
-    const mat = pointsRef.current.material;
     if (tunnelMode) {
-      mat.opacity = 0.1; // Reduced in tunnel to prevent visual clutter
+      shaderMaterial.uniforms.uOpacity.value = 0.12;
     } else if (focusedNodeId) {
-      mat.opacity = 0.08; // Nearly invisible when focusing on helix node
+      shaderMaterial.uniforms.uOpacity.value = 0.1;
     } else {
-      mat.opacity = 0.35; // Default ambient opacity
+      shaderMaterial.uniforms.uOpacity.value = 0.45;
     }
-    mat.needsUpdate = true;
-  }, [focusedNodeId, tunnelMode]);
+  }, [focusedNodeId, tunnelMode, shaderMaterial]);
 
   // Gentle floating drift animation
   useFrame(({ clock }) => {
@@ -107,7 +144,6 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
 
     const arr = posAttr.array;
     for (let i = 0; i < count; i++) {
-      // Gentle sine-wave drift (unique phase per particle)
       const phase = i * 0.73;
       arr[i * 3] = basePositions[i * 3] + Math.sin(time * 0.15 + phase) * 0.8;
       arr[i * 3 + 1] = basePositions[i * 3 + 1] + Math.sin(time * 0.1 + phase * 0.5) * 0.4;
@@ -127,8 +163,6 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
 
   const handlePointerOver = (e) => {
     e.stopPropagation();
-    // Particles set a negative hoveredNode to distinguish from helix nodes
-    // The HoverLabel component can check this
     if (e.index !== undefined) {
       document.body.style.cursor = 'pointer';
     }
@@ -146,18 +180,9 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       onClick={handleClick}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
+      material={shaderMaterial}
     >
       <bufferGeometry />
-      <pointsMaterial
-        vertexColors
-        transparent
-        opacity={0.35}
-        sizeAttenuation
-        size={2}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-      />
     </points>
   );
 }

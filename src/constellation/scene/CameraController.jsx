@@ -30,11 +30,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // Track whether a focus is active to suppress auto-orbit resume during fly-to
   const isFlyingRef = useRef(false);
 
-  // Tunnel mode scroll handling
-  const tunnelScrollRef = useRef(null);
-
   // Track previous focus for stepping detection
   const prevFocusRef = useRef(null);
+
+  // Tunnel smooth scroll velocity for momentum
+  const tunnelVelocity = useRef(0);
 
   // Capture initial camera state on mount
   useEffect(() => {
@@ -122,16 +122,19 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (rampInterval.current) clearInterval(rampInterval.current);
 
-      // Start Y at current camera Y or helix midpoint
+      // Start Y at current camera Y
       const startY = camera.position.y;
       setTunnelY(startY);
+      tunnelVelocity.current = 0;
 
       const tl = gsap.timeline({
         onUpdate: () => controls.update(),
         onComplete: () => {
           isFlyingRef.current = false;
-          // Lock orbit controls for tunnel
+          // In tunnel: disable full orbit rotation but allow limited panning
           controls.enableRotate = false;
+          controls.enablePan = true;
+          controls.enableZoom = false;
           controls.autoRotate = false;
         },
       });
@@ -164,6 +167,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
       isFlyingRef.current = true;
       controls.enableRotate = true;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+      tunnelVelocity.current = 0;
 
       const currentY = camera.position.y;
       const exitZ = initialCameraPos.current?.z || 110;
@@ -215,16 +221,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const handleWheel = (e) => {
       const state = useConstellationStore.getState();
 
-      // Tunnel mode: free scroll along Y axis
+      // Tunnel mode: smooth momentum-based scroll along Y axis
       if (state.cameraMode === 'tunnel') {
         e.preventDefault();
-        const speed = 2;
-        const delta = e.deltaY * speed * 0.01;
-        const newY = Math.max(
-          helixBounds?.minY ?? -200,
-          Math.min(helixBounds?.maxY ?? 200, state.tunnelY + delta)
-        );
-        state.setTunnelY(newY);
+        // Accumulate velocity for momentum scrolling
+        const impulse = e.deltaY * 0.08;
+        tunnelVelocity.current += impulse;
+        // Clamp max velocity
+        tunnelVelocity.current = Math.max(-15, Math.min(15, tunnelVelocity.current));
         return;
       }
 
@@ -243,7 +247,6 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         if (currentIdx === -1) return;
 
         // Scroll down (deltaY > 0) = move forward in time (higher Y)
-        // Scroll up (deltaY < 0) = move backward in time (lower Y)
         const direction = e.deltaY > 0 ? 1 : -1;
         const nextIdx = currentIdx + direction;
 
@@ -278,10 +281,10 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         const step = 5;
         if (e.key === 'ArrowUp' || e.key === 'w') {
           e.preventDefault();
-          state.setTunnelY(Math.min(helixBounds?.maxY ?? 200, state.tunnelY + step));
+          tunnelVelocity.current += step * 0.5;
         } else if (e.key === 'ArrowDown' || e.key === 's') {
           e.preventDefault();
-          state.setTunnelY(Math.max(helixBounds?.minY ?? -200, state.tunnelY - step));
+          tunnelVelocity.current -= step * 0.5;
         }
         return;
       }
@@ -308,7 +311,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [helixBounds, sortedHelixNodes]);
 
-  // ---- Smooth tunnel camera follow ----
+  // ---- Smooth tunnel camera follow with momentum ----
   useFrame(() => {
     const { cameraMode: mode } = useConstellationStore.getState();
     if (mode !== 'tunnel' || isFlyingRef.current) return;
@@ -316,16 +319,31 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const controls = controlsRef.current;
     if (!controls) return;
 
+    // Apply velocity with friction for momentum scrolling
+    if (Math.abs(tunnelVelocity.current) > 0.01) {
+      const state = useConstellationStore.getState();
+      const newY = Math.max(
+        helixBounds?.minY ?? -200,
+        Math.min(helixBounds?.maxY ?? 200, state.tunnelY + tunnelVelocity.current)
+      );
+      state.setTunnelY(newY);
+      // Friction: decelerate smoothly
+      tunnelVelocity.current *= 0.92;
+    } else {
+      tunnelVelocity.current = 0;
+    }
+
     const targetY = useConstellationStore.getState().tunnelY;
+    const lerpFactor = 0.08;
 
-    // Smoothly interpolate camera Y
-    camera.position.x += (0 - camera.position.x) * 0.1;
-    camera.position.y += (targetY - camera.position.y) * 0.1;
-    camera.position.z += (0 - camera.position.z) * 0.1;
+    // Smoothly interpolate camera Y — always centered on axis
+    camera.position.x += (0 - camera.position.x) * lerpFactor;
+    camera.position.y += (targetY - camera.position.y) * lerpFactor;
+    camera.position.z += (0 - camera.position.z) * lerpFactor;
 
-    controls.target.x += (0 - controls.target.x) * 0.1;
-    controls.target.y += (targetY + 50 - controls.target.y) * 0.1;
-    controls.target.z += (0 - controls.target.z) * 0.1;
+    controls.target.x += (0 - controls.target.x) * lerpFactor;
+    controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
+    controls.target.z += (0 - controls.target.z) * lerpFactor;
 
     controls.update();
   });

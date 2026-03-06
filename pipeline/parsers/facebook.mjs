@@ -40,6 +40,8 @@ const log = createLogger('facebook');
 
 // ─── Album / junk prefixes to strip from captions ────────────────────
 const ALBUM_PREFIX_RE = /^(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?)\s*/i;
+// Global version: strips album names from ANYWHERE in text (for .text() concatenation artifacts)
+const ALBUM_ANYWHERE_RE = /(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?)\s*/gi;
 
 /**
  * Clean Facebook mention markup: @[57204844:2048:Maria] → Maria
@@ -271,8 +273,8 @@ function extractFbPosts($, exportDir, fileType) {
       if (divText.length > 10 &&
           !/^(Updated|http|Photos$)/i.test(divText) &&
           !/^\w+ \d{1,2}, \d{4}/.test(divText)) {
-        // Strip album-name prefix before evaluating
-        const cleaned = divText.replace(ALBUM_PREFIX_RE, '').trim();
+        // Strip ALL album-name occurrences (not just prefix — .text() concatenates nested elements)
+        const cleaned = divText.replace(ALBUM_ANYWHERE_RE, '').trim();
         if (cleaned.length > 5) {
           captionCandidates.push(cleaned);
         }
@@ -283,7 +285,7 @@ function extractFbPosts($, exportDir, fileType) {
       $post.find('div._2pin').each((_, div) => {
         const divText = $(div).text()?.trim() || '';
         if (divText.length > 15 && !/^(Updated|http)/i.test(divText)) {
-          const cleaned = divText.replace(ALBUM_PREFIX_RE, '').trim();
+          const cleaned = divText.replace(ALBUM_ANYWHERE_RE, '').trim();
           if (cleaned.length > 5) {
             captionCandidates.push(cleaned);
           }
@@ -428,7 +430,7 @@ export async function parseFacebook(exportDir, options = {}) {
     // Clean title: strip album pollution, generate meaningful fallbacks
     let title;
     let cleanCaption = (post.caption || '')
-      .replace(ALBUM_PREFIX_RE, '')
+      .replace(ALBUM_ANYWHERE_RE, '')
       .trim();
 
     // Strip old FB status "is " prefix (e.g. "is Owning chris in halo3")

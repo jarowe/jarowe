@@ -1,6 +1,6 @@
 .theme-legend {
   position: absolute;
-  bottom: 5rem; /* above the LVL XP bar */
+  bottom: 7rem; /* above the LVL XP bar */
   right: 1rem;
   z-index: 10;
   display: flex;
@@ -103,7 +103,7 @@
 /* Mobile: smaller, collapsible by default */
 @media (max-width: 768px) {
   .theme-legend {
-    bottom: 6rem; /* above mobile XP bar + nav */
+    bottom: 8rem; /* above mobile XP bar + nav */
     right: 0.5rem;
   }
 

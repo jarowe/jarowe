@@ -236,9 +236,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       />
       <meshStandardMaterial
         ref={materialRef}
-        color={[1.8, 1.8, 1.8]}
-        emissive={[0.15, 0.15, 0.15]}
-        emissiveIntensity={1}
+        color="#ffffff"
+        emissive="#ffffff"
+        emissiveIntensity={0.4}
         toneMapped={false}
       />
     </instancedMesh>
