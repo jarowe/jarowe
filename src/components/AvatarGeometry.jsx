@@ -10,10 +10,6 @@ import './AvatarGeometry.css';
    the golden-ratio pentagram. The pentagon — symbol of protection,
    harmony, and the divine proportion — frames Jared's avatar.
 
-   The pentagram's diagonals divide each other in the golden ratio
-   (phi = 1.618...), making every intersection a mathematical expression
-   of beauty. Each vertex holds a family member's light.
-
    Jared (purple)  — top vertex, the keystone
    Maria (teal)    — upper-right, the heart
    Jace  (blue)    — lower-right, the explorer
@@ -21,44 +17,38 @@ import './AvatarGeometry.css';
    Jole  (emerald) — upper-left, the wonder
    ═══════════════════════════════════════════════════════════════════════ */
 
-const CX = 110, CY = 110;
-const PHI = (1 + Math.sqrt(5)) / 2; // 1.618...
+const CX = 100, CY = 100;
+const PHI = (1 + Math.sqrt(5)) / 2;
 
 const FAMILY = [
-  { name: 'Jared', color: '#a855f7', glow: 'rgba(168,85,247,0.5)' },
-  { name: 'Maria', color: '#06b6d4', glow: 'rgba(6,182,212,0.5)' },
-  { name: 'Jace',  color: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
-  { name: 'Jax',   color: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
-  { name: 'Jole',  color: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
+  { name: 'Jared', color: '#a855f7', glow: 'rgba(168,85,247,0.4)' },
+  { name: 'Maria', color: '#06b6d4', glow: 'rgba(6,182,212,0.4)' },
+  { name: 'Jace',  color: '#3b82f6', glow: 'rgba(59,130,246,0.4)' },
+  { name: 'Jax',   color: '#ef4444', glow: 'rgba(239,68,68,0.4)' },
+  { name: 'Jole',  color: '#22c55e', glow: 'rgba(34,197,94,0.4)' },
 ];
 
-/* Vertex positions: top=Jared, then CW */
+const VERT_R = 58; // vertex radius — pulled in to avoid clipping
+
 function vertexAt(i, r) {
-  const a = (i * 72 - 90) * Math.PI / 180; // 72 = 360/5, start at top
+  const a = (i * 72 - 90) * Math.PI / 180;
   return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
 }
 
-/* Pentagon path (connect adjacent vertices) */
 function pentagonPath(r) {
-  const pts = [];
-  for (let i = 0; i < 5; i++) {
-    const v = vertexAt(i, r);
-    pts.push(`${v.x},${v.y}`);
-  }
-  return pts.join(' ');
-}
-
-/* Pentagram path (connect every-other vertex: 0→2→4→1→3→0) */
-function pentagramPath(r) {
-  const order = [0, 2, 4, 1, 3];
-  const pts = order.map(i => {
+  return Array.from({ length: 5 }, (_, i) => {
     const v = vertexAt(i, r);
     return `${v.x},${v.y}`;
-  });
-  return pts.join(' ');
+  }).join(' ');
 }
 
-/* Golden spiral approximation — logarithmic spiral from center outward */
+function pentagramPath(r) {
+  return [0, 2, 4, 1, 3].map(i => {
+    const v = vertexAt(i, r);
+    return `${v.x},${v.y}`;
+  }).join(' ');
+}
+
 function goldenSpiralPath(startR, endR, turns) {
   const steps = 120;
   const b = Math.log(endR / startR) / (turns * 2 * Math.PI);
@@ -66,34 +56,24 @@ function goldenSpiralPath(startR, endR, turns) {
   for (let i = 0; i <= steps; i++) {
     const t = (i / steps) * turns * 2 * Math.PI;
     const r = startR * Math.exp(b * t);
-    const x = CX + r * Math.cos(t - Math.PI / 2);
-    const y = CY + r * Math.sin(t - Math.PI / 2);
-    pts.push(i === 0 ? `M${x} ${y}` : `L${x} ${y}`);
+    pts.push(`${i === 0 ? 'M' : 'L'}${CX + r * Math.cos(t - Math.PI / 2)} ${CY + r * Math.sin(t - Math.PI / 2)}`);
   }
   return pts.join(' ');
 }
 
-/* Bond lines from center to each family vertex */
-function bondLine(i, r) {
-  const v = vertexAt(i, r);
-  return { x1: CX, y1: CY, x2: v.x, y2: v.y };
-}
-
-/* Light motes — tiny particles between family vertices */
+/* Light motes between vertices */
 function moteData() {
   const motes = [];
   for (let i = 0; i < 5; i++) {
-    const v1 = vertexAt(i, 68);
-    const v2 = vertexAt((i + 1) % 5, 68);
-    // 3 motes per edge, evenly spaced
-    for (let j = 1; j <= 3; j++) {
-      const t = j / 4;
+    const v1 = vertexAt(i, VERT_R);
+    const v2 = vertexAt((i + 1) % 5, VERT_R);
+    for (let j = 1; j <= 2; j++) {
+      const t = j / 3;
       motes.push({
         cx: v1.x + (v2.x - v1.x) * t,
         cy: v1.y + (v2.y - v1.y) * t,
         color: FAMILY[i].color,
-        nextColor: FAMILY[(i + 1) % 5].color,
-        r: 1.0 + (j % 2) * 0.5,
+        r: 0.6,
       });
     }
   }
@@ -101,33 +81,29 @@ function moteData() {
 }
 const MOTES = moteData();
 
-/* Outer ticks — 5 groups of 3, colored per family member */
-function outerTicks() {
-  const ticks = [];
+/* Delicate whisker lines at each vertex — very thin, animate stroke in/out */
+function whiskerData() {
+  const whiskers = [];
   for (let i = 0; i < 5; i++) {
     const baseA = i * 72 - 90;
-    for (let j = -1; j <= 1; j++) {
-      const a = (baseA + j * 8) * Math.PI / 180;
-      const r1 = j === 0 ? 82 : 84;
-      const r2 = j === 0 ? 92 : 90;
-      ticks.push({
-        x1: CX + r1 * Math.cos(a), y1: CY + r1 * Math.sin(a),
-        x2: CX + r2 * Math.cos(a), y2: CY + r2 * Math.sin(a),
-        color: FAMILY[i].color,
-        major: j === 0,
-      });
-    }
+    const a = baseA * Math.PI / 180;
+    const r1 = VERT_R + 8;
+    const r2 = VERT_R + 16;
+    whiskers.push({
+      x1: CX + r1 * Math.cos(a), y1: CY + r1 * Math.sin(a),
+      x2: CX + r2 * Math.cos(a), y2: CY + r2 * Math.sin(a),
+      color: FAMILY[i].color,
+    });
   }
-  return ticks;
+  return whiskers;
 }
-const TICKS = outerTicks();
+const WHISKERS = whiskerData();
 
 export default function AvatarGeometry({ children, effect }) {
   const geoRef = useRef(null);
   const animsRef = useRef([]);
   const hoveredRef = useRef(false);
 
-  /* ── Mount: entrance timeline + continuous loops ── */
   useEffect(() => {
     const el = geoRef.current;
     if (!el) return;
@@ -135,95 +111,95 @@ export default function AvatarGeometry({ children, effect }) {
 
     const tl = createTimeline({ defaults: { ease: 'outQuad' } });
 
-    // 0.0s — Center harmony ring draws
+    // 0.0s — Harmony ring draws
     const harmonyRing = el.querySelector('.fp-harmony-ring');
     if (harmonyRing) {
       const d = createDrawable(harmonyRing);
       tl.add(d, { draw: '0 1', duration: 1200, ease: 'inOutQuad' }, 0);
     }
 
-    // 0.3s — Bond lines from center reach outward (family connection)
+    // 0.3s — Bond lines reach outward
     el.querySelectorAll('.fp-bond').forEach((line, i) => {
       const d = createDrawable(line);
       tl.add(d, { draw: '0 1', duration: 800, ease: 'outQuad' }, 300 + i * 120);
     });
 
-    // 0.6s — Pentagon draws (the 5-sided home)
+    // 0.6s — Pentagon draws
     el.querySelectorAll('.fp-pentagon').forEach(p => {
       const d = createDrawable(p);
       tl.add(d, { draw: '0 1', duration: 1400, ease: 'inOutQuad' }, 600);
     });
 
-    // 1.0s — Family circles bloom at each vertex (white fill, colored stroke)
+    // 1.0s — Family circles bloom (tiny white dots)
     tl.add(el.querySelectorAll('.fp-family-circle'), {
-      r: [0, 3.5], opacity: [0, 1], duration: 700, ease: 'outBack(2)',
-      delay: stagger(150),
+      r: [0, 2], opacity: [0, 1], duration: 600, ease: 'outBack(2)',
+      delay: stagger(120),
     }, 1000);
 
-    // 1.1s — Family stroke rings appear
+    // 1.1s — Colored stroke rings
     tl.add(el.querySelectorAll('.fp-family-stroke'), {
-      r: [0, 6], opacity: [0, 0.9], duration: 700, ease: 'outBack(2)',
-      delay: stagger(150),
+      r: [0, 4.5], opacity: [0, 0.8], duration: 600, ease: 'outBack(2)',
+      delay: stagger(120),
     }, 1100);
 
-    // 1.2s — Family glows appear
+    // 1.2s — Soft glows
     tl.add(el.querySelectorAll('.fp-family-glow'), {
-      r: [0, 9], opacity: [0, 0.2], duration: 800, ease: 'outQuad',
-      delay: stagger(150),
+      r: [0, 7], opacity: [0, 0.15], duration: 800, ease: 'outQuad',
+      delay: stagger(120),
     }, 1200);
 
-    // 1.5s — Pentagram star draws (golden ratio geometry)
+    // 1.5s — Pentagram draws
     el.querySelectorAll('.fp-pentagram').forEach(p => {
       const d = createDrawable(p);
       tl.add(d, { draw: '0 1', duration: 1600, ease: 'inOutSine' }, 1500);
     });
 
-    // 2.0s — Golden spiral traces from center outward
+    // 2.0s — Golden spiral
     const spiral = el.querySelector('.fp-spiral');
     if (spiral) {
       const d = createDrawable(spiral);
       tl.add(d, { draw: '0 1', duration: 2000, ease: 'inOutQuad' }, 2000);
     }
 
-    // 2.2s — Outer ticks fade in
-    tl.add(el.querySelectorAll('.fp-tick'), {
-      opacity: [0, (_, i) => TICKS[i]?.major ? 0.7 : 0.35],
-      duration: 500, delay: stagger(40),
-    }, 2200);
+    // 2.2s — Whisker lines stroke in
+    el.querySelectorAll('.fp-whisker').forEach((line, i) => {
+      const d = createDrawable(line);
+      tl.add(d, { draw: '0 1', duration: 600 }, 2200 + i * 80);
+    });
 
-    // 2.5s — Light motes appear
+    // 2.5s — Light motes
     tl.add(el.querySelectorAll('.fp-mote'), {
-      opacity: [0, 0.4], r: [0, (_, i) => MOTES[i]?.r || 1],
+      opacity: [0, 0.3], r: [0, 0.6],
       duration: 600, ease: 'outQuad', delay: stagger(30),
     }, 2500);
 
-    // 2.8s — Phi ratio markers
+    // 2.8s — Phi dots
     tl.add(el.querySelectorAll('.fp-phi-dot'), {
-      r: [0, 1.5], opacity: [0, 0.6], duration: 500, ease: 'outBack(2)',
+      r: [0, 1.2], opacity: [0, 0.5], duration: 500, ease: 'outBack(2)',
       delay: stagger(100),
     }, 2800);
 
-    /* ── Continuous loops (slow, contemplative) ── */
+    /* ── Continuous loops ── */
 
-    // Pentagon group breathes — very slow rotation (120s full revolution)
+    // Pentagon — 120s rotation
     anims.push(animate(el.querySelector('.fp-pent-group'), {
       rotate: [0, 360], duration: 120000, loop: true, ease: 'linear',
     }));
 
-    // Pentagram counter-rotates (180s — even slower, meditative)
+    // Pentagram — 180s counter-rotation
     anims.push(animate(el.querySelector('.fp-star-group'), {
       rotate: [0, -360], duration: 180000, loop: true, ease: 'linear',
     }));
 
-    // Golden spiral gentle rotation (90s)
+    // Spiral — 90s rotation
     anims.push(animate(el.querySelector('.fp-spiral-group'), {
       rotate: [0, 360], duration: 90000, loop: true, ease: 'linear',
     }));
 
-    // Family circles — subtle pulse (white dots)
+    // Family circles — subtle pulse
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [3.5, 4.2, 3.5], opacity: [0.9, 1, 0.9],
+        r: [2, 2.5, 2], opacity: [0.85, 1, 0.85],
         duration: 3000 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
@@ -231,61 +207,67 @@ export default function AvatarGeometry({ children, effect }) {
     // Family stroke rings — gentle breathe
     el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [6, 7, 6], opacity: [0.7, 1, 0.7],
+        r: [4.5, 5.2, 4.5], opacity: [0.6, 0.9, 0.6],
         duration: 3500 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Family glows — slower pulse, out of phase with circles
+    // Family glows
     el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [9, 12, 9], opacity: [0.15, 0.3, 0.15],
+        r: [7, 10, 7], opacity: [0.1, 0.25, 0.1],
         duration: 4000 + i * 700, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Bond lines — subtle heartbeat opacity (family connection breathing)
+    // Bond lines — heartbeat
     anims.push(animate(el.querySelectorAll('.fp-bond'), {
-      opacity: [0.2, 0.5, 0.2], strokeWidth: [0.5, 1, 0.5],
+      opacity: [0.15, 0.4, 0.15], strokeWidth: [0.3, 0.7, 0.3],
       duration: 5000, loop: true, ease: 'inOutSine',
       delay: stagger(300),
     }));
 
     // Harmony ring — slow breath
     anims.push(animate(el.querySelector('.fp-harmony-ring'), {
-      opacity: [0.25, 0.5, 0.25], strokeWidth: [0.8, 1.5, 0.8],
+      opacity: [0.2, 0.4, 0.2], strokeWidth: [0.5, 1, 0.5],
       duration: 6000, loop: true, ease: 'inOutSine',
     }));
 
-    // Light motes — traveling between family vertices (connection flow)
+    // Motes — flow between vertices
     el.querySelectorAll('.fp-mote').forEach((m, i) => {
-      const edge = Math.floor(i / 3);
-      const v1 = vertexAt(edge, 68);
-      const v2 = vertexAt((edge + 1) % 5, 68);
+      const edge = Math.floor(i / 2);
+      const v1 = vertexAt(edge, VERT_R);
+      const v2 = vertexAt((edge + 1) % 5, VERT_R);
       anims.push(animate(m, {
-        cx: [v1.x, v2.x, v1.x],
-        cy: [v1.y, v2.y, v1.y],
-        opacity: [0.15, 0.55, 0.15],
+        cx: [v1.x, v2.x, v1.x], cy: [v1.y, v2.y, v1.y],
+        opacity: [0.1, 0.4, 0.1],
         duration: 6000 + i * 400, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Tick marks — gentle breathe
-    anims.push(animate(el.querySelectorAll('.fp-tick'), {
-      opacity: [0.2, 0.6, 0.2], duration: 7000, loop: true, ease: 'inOutSine',
-      delay: stagger(100),
-    }));
+    // Whisker lines — stroke in/out breathing
+    el.querySelectorAll('.fp-whisker').forEach((line, i) => {
+      const d = createDrawable(line);
+      anims.push(animate(d, {
+        draw: ['0 0.5', '0.5 1', '0 0.5'],
+        duration: 5000 + i * 600, loop: true, ease: 'inOutSine',
+      }));
+      anims.push(animate(line, {
+        opacity: [0.15, 0.45, 0.15],
+        duration: 5000 + i * 600, loop: true, ease: 'inOutSine',
+      }));
+    });
 
-    // Phi dots — subtle scale pulse
+    // Phi dots — pulse
     anims.push(animate(el.querySelectorAll('.fp-phi-dot'), {
-      r: [1.5, 2.2, 1.5], opacity: [0.4, 0.8, 0.4],
+      r: [1.2, 1.8, 1.2], opacity: [0.3, 0.65, 0.3],
       duration: 4500, loop: true, ease: 'inOutSine',
       delay: stagger(200),
     }));
 
-    // Golden spiral opacity wave
+    // Spiral opacity wave
     anims.push(animate(el.querySelector('.fp-spiral'), {
-      opacity: [0.1, 0.3, 0.1], duration: 8000, loop: true, ease: 'inOutSine',
+      opacity: [0.08, 0.25, 0.08], duration: 8000, loop: true, ease: 'inOutSine',
     }));
 
     return () => {
@@ -295,256 +277,175 @@ export default function AvatarGeometry({ children, effect }) {
     };
   }, []);
 
-  /* ── Hover: gently intensify (2x, not 3x — more contemplative) ── */
+  /* ── Hover ── */
   useEffect(() => {
-    const onEnter = () => {
-      hoveredRef.current = true;
-      animsRef.current.forEach(a => { a.speed = 2; });
-    };
-    const onLeave = () => {
-      hoveredRef.current = false;
-      animsRef.current.forEach(a => { a.speed = 1; });
-    };
+    const onEnter = () => { hoveredRef.current = true; animsRef.current.forEach(a => { a.speed = 2; }); };
+    const onLeave = () => { hoveredRef.current = false; animsRef.current.forEach(a => { a.speed = 1; }); };
     const el = geoRef.current;
     if (!el) return;
     el.addEventListener('mouseenter', onEnter);
     el.addEventListener('mouseleave', onLeave);
-    return () => {
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-    };
+    return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); };
   }, []);
 
-  /* ── Click effect bursts ── */
+  /* ── Click bursts ── */
   useEffect(() => {
     if (!effect || !geoRef.current) return;
     const el = geoRef.current;
 
-    // Shockwave pentagonal ring
+    // Shockwave
     const ring = el.querySelector('.fp-burst');
     if (ring) {
-      animate(ring, {
-        r: [15, 95], opacity: [0.7, 0], strokeWidth: [2.5, 0.3],
-        duration: 800, ease: 'outCubic',
-      });
+      animate(ring, { r: [12, 85], opacity: [0.6, 0], strokeWidth: [1.5, 0.2], duration: 800, ease: 'outCubic' });
     }
 
-    // Family circles flash to FULL COLOR on click (unity moment)
+    // Family circles flash to FULL COLOR
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      const col = FAMILY[i]?.color || '#fff';
-      animate(c, {
-        r: [3.5, 7, 3.5], fill: ['#fff', col, '#fff'],
-        duration: 800, ease: 'outQuad',
-        delay: i * 60,
-      });
+      animate(c, { r: [2, 5, 2], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], duration: 800, ease: 'outQuad', delay: i * 50 });
     });
     animate(el.querySelectorAll('.fp-family-stroke'), {
-      r: [6, 10, 6], strokeWidth: [1.2, 2.5, 1.2],
-      opacity: [0.8, 1, 0.8],
-      duration: 700, ease: 'outQuad', delay: stagger(50),
+      r: [4.5, 8, 4.5], strokeWidth: [0.7, 1.5, 0.7], opacity: [0.7, 1, 0.7],
+      duration: 700, ease: 'outQuad', delay: stagger(40),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [9, 20, 9], opacity: [0.2, 0.6, 0.2],
-      duration: 700, ease: 'outQuad', delay: stagger(50),
+      r: [7, 16, 7], opacity: [0.15, 0.5, 0.15],
+      duration: 700, ease: 'outQuad', delay: stagger(40),
     });
 
-    // Bond lines surge bright
+    // Bond lines surge
     animate(el.querySelectorAll('.fp-bond'), {
-      opacity: [0.3, 1, 0.3], strokeWidth: [0.5, 2, 0.5],
-      duration: 600, delay: stagger(60),
+      opacity: [0.2, 0.8, 0.2], strokeWidth: [0.3, 1.5, 0.3],
+      duration: 600, delay: stagger(50),
     });
 
-    // Per-effect unique accent
+    // Per-effect accents
     if (effect === 'float') {
-      // Family circles lift — spiral expands
-      animate(el.querySelector('.fp-spiral'), {
-        opacity: [0.15, 0.6, 0.15], strokeWidth: [0.6, 2, 0.6],
-        duration: 1000,
-      });
+      animate(el.querySelector('.fp-spiral'), { opacity: [0.1, 0.5, 0.1], strokeWidth: [0.4, 1.5, 0.4], duration: 1000 });
     } else if (effect === 'glitch') {
-      // Pentagram flashes bright (star energy)
-      animate(el.querySelectorAll('.fp-pentagram'), {
-        strokeWidth: [0.6, 3, 0.6], opacity: [0.2, 0.8, 0.2],
-        duration: 500,
-      });
+      animate(el.querySelectorAll('.fp-pentagram'), { strokeWidth: [0.4, 2, 0.4], opacity: [0.15, 0.7, 0.15], duration: 500 });
     } else if (effect === 'spin') {
-      // Pentagon lines surge
-      animate(el.querySelectorAll('.fp-pentagon'), {
-        strokeWidth: [0.8, 3, 0.8], opacity: [0.3, 0.9, 0.3],
-        duration: 700,
-      });
+      animate(el.querySelectorAll('.fp-pentagon'), { strokeWidth: [0.5, 2, 0.5], opacity: [0.2, 0.8, 0.2], duration: 700 });
     } else if (effect === 'ripple') {
-      // All ticks blaze outward
-      animate(el.querySelectorAll('.fp-tick'), {
-        opacity: [0.3, 1, 0.3], duration: 500, delay: stagger(25),
-      });
-      // Phi dots burst
-      animate(el.querySelectorAll('.fp-phi-dot'), {
-        r: [1.5, 4, 1.5], opacity: [0.5, 1, 0.5],
-        duration: 600, delay: stagger(80),
-      });
+      animate(el.querySelectorAll('.fp-whisker'), { opacity: [0.2, 0.9, 0.2], duration: 500, delay: stagger(40) });
+      animate(el.querySelectorAll('.fp-phi-dot'), { r: [1.2, 3, 1.2], opacity: [0.4, 1, 0.4], duration: 600, delay: stagger(60) });
     }
 
-    // Speed surge then ease back
+    // Speed surge
     animsRef.current.forEach(a => { a.speed = 4; });
-    const t = setTimeout(() => {
-      animsRef.current.forEach(a => { a.speed = hoveredRef.current ? 2 : 1; });
-    }, 800);
+    const t = setTimeout(() => { animsRef.current.forEach(a => { a.speed = hoveredRef.current ? 2 : 1; }); }, 800);
     return () => clearTimeout(t);
   }, [effect]);
 
-  /* ── Pre-compute SVG elements ── */
+  /* ── SVG elements ── */
 
-  // Pentagon vertices for family circles (white core + colored stroke ring)
   const familyCircles = useMemo(() => FAMILY.map((f, i) => {
-    const v = vertexAt(i, 68);
+    const v = vertexAt(i, VERT_R);
     return (
       <g key={i}>
-        {/* Soft glow behind */}
-        <circle cx={v.x} cy={v.y} r="9" className="fp-family-glow"
-          fill={f.glow} opacity="0" />
-        {/* Colored stroke ring */}
+        <circle cx={v.x} cy={v.y} r="7" className="fp-family-glow" fill={f.glow} opacity="0" />
         <circle cx={v.x} cy={v.y} r="0" className="fp-family-stroke"
-          fill="none" stroke={f.color} strokeWidth="1.2" opacity="0" />
-        {/* White core dot */}
-        <circle cx={v.x} cy={v.y} r="0" className="fp-family-circle"
-          fill="#fff" opacity="0" />
+          fill="none" stroke={f.color} strokeWidth="0.7" opacity="0" />
+        <circle cx={v.x} cy={v.y} r="0" className="fp-family-circle" fill="#fff" opacity="0" />
       </g>
     );
   }), []);
 
-  // Bond lines from center to each family vertex
   const bonds = useMemo(() => FAMILY.map((f, i) => {
-    const b = bondLine(i, 68);
+    const v = vertexAt(i, VERT_R);
     return (
-      <line key={i} x1={b.x1} y1={b.y1} x2={b.x2} y2={b.y2}
-        className="fp-bond" stroke={f.color} strokeWidth="0.5"
-        opacity="0.3" strokeLinecap="round" />
+      <line key={i} x1={CX} y1={CY} x2={v.x} y2={v.y}
+        className="fp-bond" stroke={f.color} strokeWidth="0.3"
+        opacity="0.2" strokeLinecap="round" />
     );
   }), []);
 
-  // Light motes traveling between vertices
   const motes = useMemo(() => MOTES.map((m, i) => (
     <circle key={i} cx={m.cx} cy={m.cy} r={m.r}
       className="fp-mote" fill={m.color} opacity="0" />
   )), []);
 
-  // Outer colored ticks (5 groups of 3)
-  const ticks = useMemo(() => TICKS.map((t, i) => (
-    <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-      className="fp-tick" stroke={t.color}
-      strokeWidth={t.major ? '1.2' : '0.6'} opacity="0"
-      strokeLinecap="round" />
+  const whiskers = useMemo(() => WHISKERS.map((w, i) => (
+    <line key={i} x1={w.x1} y1={w.y1} x2={w.x2} y2={w.y2}
+      className="fp-whisker" stroke={w.color}
+      strokeWidth="0.4" opacity="0" strokeLinecap="round" />
   )), []);
 
-  // Golden ratio intersection dots on pentagram
   const phiDots = useMemo(() => {
-    const dots = [];
     const order = [0, 2, 4, 1, 3];
-    for (let i = 0; i < 5; i++) {
-      const a = vertexAt(order[i], 68);
-      const b = vertexAt(order[(i + 1) % 5], 68);
-      // Golden ratio division point: 1/phi along each pentagram segment
+    return Array.from({ length: 5 }, (_, i) => {
+      const a = vertexAt(order[i], VERT_R);
+      const b = vertexAt(order[(i + 1) % 5], VERT_R);
       const t = 1 / PHI;
-      dots.push({
-        cx: a.x + (b.x - a.x) * t,
-        cy: a.y + (b.y - a.y) * t,
-      });
-    }
-    return dots.map((d, i) => (
-      <circle key={i} cx={d.cx} cy={d.cy} r="0" className="fp-phi-dot"
-        fill="rgba(251,191,36,0.8)" opacity="0" />
-    ));
+      return (
+        <circle key={i} cx={a.x + (b.x - a.x) * t} cy={a.y + (b.y - a.y) * t}
+          r="0" className="fp-phi-dot" fill="rgba(251,191,36,0.7)" opacity="0" />
+      );
+    });
   }, []);
 
   return (
     <div className="avatar-geo-wrap" ref={geoRef}>
-      <svg className="avatar-geo-svg" viewBox="0 0 220 220">
+      <svg className="avatar-geo-svg" viewBox="0 0 200 200">
         <defs>
-          {/* Feathered center mask — keeps avatar photo clear */}
           <radialGradient id="fp-center-mask" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0%" stopColor="black" />
-            <stop offset="30%" stopColor="black" />
-            <stop offset="52%" stopColor="white" />
+            <stop offset="28%" stopColor="black" />
+            <stop offset="48%" stopColor="white" />
             <stop offset="100%" stopColor="white" />
           </radialGradient>
           <mask id="fp-feather-mask">
-            <rect x="0" y="0" width="220" height="220" fill="url(#fp-center-mask)" />
+            <rect x="0" y="0" width="200" height="200" fill="url(#fp-center-mask)" />
           </mask>
-
-          {/* Ambient glow gradient */}
           <radialGradient id="fp-ambient" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.08" />
-            <stop offset="40%" stopColor="#06b6d4" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.06" />
+            <stop offset="40%" stopColor="#06b6d4" stopOpacity="0.03" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
-
-          {/* Per-family glow filters */}
-          {FAMILY.map((f, i) => (
-            <filter key={i} id={`fp-glow-${i}`} x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          ))}
         </defs>
 
-        {/* Ambient background glow */}
-        <circle cx={CX} cy={CY} r="105" fill="url(#fp-ambient)" opacity="0.6" />
+        {/* Ambient glow */}
+        <circle cx={CX} cy={CY} r="95" fill="url(#fp-ambient)" opacity="0.5" />
 
-        {/* === All geometry masked to feather away from center === */}
+        {/* Masked geometry */}
         <g mask="url(#fp-feather-mask)">
-
-          {/* Golden spiral — the family journey outward */}
           <g className="fp-spiral-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
-            <path d={goldenSpiralPath(22, 80, 2.5)} className="fp-spiral"
-              fill="none" stroke="rgba(251,191,36,0.15)" strokeWidth="0.6"
+            <path d={goldenSpiralPath(18, 68, 2.5)} className="fp-spiral"
+              fill="none" stroke="rgba(251,191,36,0.12)" strokeWidth="0.4"
               strokeLinecap="round" opacity="0" />
           </g>
 
-          {/* Bond lines — family connections from center */}
           {bonds}
 
-          {/* Pentagon — the 5-sided home */}
           <g className="fp-pent-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
-            <polygon points={pentagonPath(68)} className="fp-pentagon"
-              fill="none" stroke="rgba(168,85,247,0.3)" strokeWidth="0.8"
+            <polygon points={pentagonPath(VERT_R)} className="fp-pentagon"
+              fill="none" stroke="rgba(168,85,247,0.25)" strokeWidth="0.5"
               strokeLinejoin="round" />
-            {/* Second pentagon slightly larger for depth */}
-            <polygon points={pentagonPath(76)} className="fp-pentagon"
-              fill="none" stroke="rgba(168,85,247,0.12)" strokeWidth="0.5"
-              strokeLinejoin="round" strokeDasharray="4 6" />
+            <polygon points={pentagonPath(VERT_R + 6)} className="fp-pentagon"
+              fill="none" stroke="rgba(168,85,247,0.08)" strokeWidth="0.3"
+              strokeLinejoin="round" strokeDasharray="3 5" />
           </g>
 
-          {/* Pentagram — the golden-ratio star */}
           <g className="fp-star-group" style={{ transformOrigin: `${CX}px ${CY}px` }}>
-            <polygon points={pentagramPath(68)} className="fp-pentagram"
-              fill="none" stroke="rgba(251,191,36,0.18)" strokeWidth="0.6"
+            <polygon points={pentagramPath(VERT_R)} className="fp-pentagram"
+              fill="none" stroke="rgba(251,191,36,0.14)" strokeWidth="0.4"
               strokeLinejoin="round" />
           </g>
 
-          {/* Golden ratio phi dots at pentagram intersections */}
           {phiDots}
-
-          {/* Light motes flowing between vertices */}
           {motes}
-
-          {/* Outer ticks — colored per family member */}
-          {ticks}
-
+          {whiskers}
         </g>
-        {/* === End feathered mask === */}
 
-        {/* Family circles at pentagon vertices (OUTSIDE mask so they're fully visible) */}
+        {/* Family circles — outside mask */}
         {familyCircles}
 
-        {/* Central harmony ring — the family bond */}
-        <circle cx={CX} cy={CY} r="50" className="fp-harmony-ring"
-          fill="none" stroke="rgba(168,85,247,0.3)" strokeWidth="0.8"
-          opacity="0" />
+        {/* Harmony ring */}
+        <circle cx={CX} cy={CY} r="42" className="fp-harmony-ring"
+          fill="none" stroke="rgba(168,85,247,0.2)" strokeWidth="0.5" opacity="0" />
 
-        {/* Burst ring (animated on click) */}
-        <circle cx={CX} cy={CY} r="15" className="fp-burst"
-          fill="none" stroke="rgba(168,85,247,0.6)" strokeWidth="2.5" opacity="0" />
+        {/* Burst ring */}
+        <circle cx={CX} cy={CY} r="12" className="fp-burst"
+          fill="none" stroke="rgba(168,85,247,0.5)" strokeWidth="1.5" opacity="0" />
       </svg>
 
       {children}
