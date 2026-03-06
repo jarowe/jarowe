@@ -130,23 +130,25 @@ export default function AvatarGeometry({ children, effect }) {
       tl.add(d, { draw: '0 1', duration: 1400, ease: 'inOutQuad' }, 600);
     });
 
-    // 1.0s — Family circles bloom (tiny white dots)
+    // 1.0s — Family circles bloom (tiny white pinpoints)
     tl.add(el.querySelectorAll('.fp-family-circle'), {
-      r: [0, 2], opacity: [0, 1], duration: 600, ease: 'outBack(2)',
+      r: [0, 1.2], opacity: [0, 1], duration: 600, ease: 'outBack(2)',
       delay: stagger(120),
     }, 1000);
 
-    // 1.1s — Colored stroke rings
-    tl.add(el.querySelectorAll('.fp-family-stroke'), {
-      r: [0, 4.5], opacity: [0, 0.8], duration: 600, ease: 'outBack(2)',
-      delay: stagger(120),
-    }, 1100);
+    // 1.1s — Colored stroke rings draw on
+    el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+      c.setAttribute('r', '4.5');
+      c.style.opacity = '0.8';
+      const d = createDrawable(c);
+      tl.add(d, { draw: '0 1', duration: 700, ease: 'inOutQuad' }, 1100 + i * 120);
+    });
 
-    // 1.2s — Soft glows
+    // 1.3s — Soft glows
     tl.add(el.querySelectorAll('.fp-family-glow'), {
       r: [0, 7], opacity: [0, 0.15], duration: 800, ease: 'outQuad',
       delay: stagger(120),
-    }, 1200);
+    }, 1300);
 
     // 1.5s — Pentagram draws
     el.querySelectorAll('.fp-pentagram').forEach(p => {
@@ -196,18 +198,18 @@ export default function AvatarGeometry({ children, effect }) {
       rotate: [0, 360], duration: 90000, loop: true, ease: 'linear',
     }));
 
-    // Family circles — subtle pulse
+    // Family circles — subtle pulse (tiny pinpoints)
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [2, 2.5, 2], opacity: [0.85, 1, 0.85],
+        r: [1.2, 1.6, 1.2], opacity: [0.85, 1, 0.85],
         duration: 3000 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
 
-    // Family stroke rings — gentle breathe
+    // Family stroke rings — gentle opacity breathe
     el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
       anims.push(animate(c, {
-        r: [4.5, 5.2, 4.5], opacity: [0.6, 0.9, 0.6],
+        opacity: [0.5, 0.85, 0.5],
         duration: 3500 + i * 500, loop: true, ease: 'inOutSine',
       }));
     });
@@ -277,15 +279,51 @@ export default function AvatarGeometry({ children, effect }) {
     };
   }, []);
 
-  /* ── Hover ── */
+  /* ── Hover: speed up + stroke ring trim-path animation ── */
+  const hoverAnimsRef = useRef([]);
+
   useEffect(() => {
-    const onEnter = () => { hoveredRef.current = true; animsRef.current.forEach(a => { a.speed = 2; }); };
-    const onLeave = () => { hoveredRef.current = false; animsRef.current.forEach(a => { a.speed = 1; }); };
     const el = geoRef.current;
     if (!el) return;
+
+    const onEnter = () => {
+      hoveredRef.current = true;
+      animsRef.current.forEach(a => { a.speed = 2; });
+
+      // Trim-path animation on stroke rings: draw sweeps around nicely
+      hoverAnimsRef.current.forEach(a => a.pause());
+      hoverAnimsRef.current = [];
+      el.querySelectorAll('.fp-family-stroke').forEach((c, i) => {
+        const d = createDrawable(c);
+        hoverAnimsRef.current.push(
+          animate(d, {
+            draw: ['0 1', '0.15 0.85', '0.35 0.65', '0.15 0.85', '0 1'],
+            duration: 2000 + i * 300, loop: true, ease: 'inOutSine',
+          })
+        );
+      });
+    };
+
+    const onLeave = () => {
+      hoveredRef.current = false;
+      animsRef.current.forEach(a => { a.speed = 1; });
+
+      // Restore full stroke rings
+      hoverAnimsRef.current.forEach(a => a.pause());
+      hoverAnimsRef.current = [];
+      el.querySelectorAll('.fp-family-stroke').forEach(c => {
+        const d = createDrawable(c);
+        animate(d, { draw: '0 1', duration: 400, ease: 'outQuad' });
+      });
+    };
+
     el.addEventListener('mouseenter', onEnter);
     el.addEventListener('mouseleave', onLeave);
-    return () => { el.removeEventListener('mouseenter', onEnter); el.removeEventListener('mouseleave', onLeave); };
+    return () => {
+      el.removeEventListener('mouseenter', onEnter);
+      el.removeEventListener('mouseleave', onLeave);
+      hoverAnimsRef.current.forEach(a => a.pause());
+    };
   }, []);
 
   /* ── Click bursts ── */
@@ -301,14 +339,14 @@ export default function AvatarGeometry({ children, effect }) {
 
     // Family circles flash to FULL COLOR
     el.querySelectorAll('.fp-family-circle').forEach((c, i) => {
-      animate(c, { r: [2, 5, 2], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], duration: 800, ease: 'outQuad', delay: i * 50 });
+      animate(c, { r: [1.2, 3.5, 1.2], fill: ['#fff', FAMILY[i]?.color || '#fff', '#fff'], duration: 800, ease: 'outQuad', delay: i * 50 });
     });
     animate(el.querySelectorAll('.fp-family-stroke'), {
-      r: [4.5, 8, 4.5], strokeWidth: [0.7, 1.5, 0.7], opacity: [0.7, 1, 0.7],
+      r: [4.5, 7, 4.5], strokeWidth: [0.7, 1.3, 0.7], opacity: [0.7, 1, 0.7],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
     animate(el.querySelectorAll('.fp-family-glow'), {
-      r: [7, 16, 7], opacity: [0.15, 0.5, 0.15],
+      r: [7, 14, 7], opacity: [0.15, 0.45, 0.15],
       duration: 700, ease: 'outQuad', delay: stagger(40),
     });
 
