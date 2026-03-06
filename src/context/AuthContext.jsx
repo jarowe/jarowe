@@ -35,18 +35,14 @@ export function AuthProvider({ children }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        if (p) {
-          setUser(session.user);
-          setProfile(p);
-        } else {
-          // Stale session — user was deleted or profile missing, force sign out
-          try { await supabase.auth.signOut(); } catch (_) {}
-          try {
-            Object.keys(localStorage)
-              .filter(k => k.startsWith('sb-'))
-              .forEach(k => localStorage.removeItem(k));
-          } catch (_) {}
+        // Set user IMMEDIATELY so email-based checks (isAdmin) work right away
+        setUser(session.user);
+        // Profile is optional — don't block auth on it
+        try {
+          const p = await fetchProfile(session.user.id);
+          if (p) setProfile(p);
+        } catch (_) {
+          // Profile fetch failed — user is still authenticated
         }
       }
       setLoading(false);
@@ -61,10 +57,14 @@ export function AuthProvider({ children }) {
         async (event, session) => {
           if (session?.user) {
             setUser(session.user);
-            const p = await fetchProfile(session.user.id);
-            setProfile(p);
             if (event === 'SIGNED_IN') {
               window.dispatchEvent(new CustomEvent('auth-signed-in'));
+            }
+            try {
+              const p = await fetchProfile(session.user.id);
+              if (p) setProfile(p);
+            } catch (_) {
+              // Profile fetch failed — user is still authenticated
             }
           } else {
             setUser(null);
