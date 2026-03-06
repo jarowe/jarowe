@@ -382,62 +382,69 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (rampInterval.current) clearInterval(rampInterval.current);
 
+      // Camera offset differs: tunnel pulls back wide, helix stays close
+      const dist = mode === 'tunnel' ? 80 : 35;
+      const yLift = mode === 'tunnel' ? 12 : 8;
+      const camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
+
+      // Shorter duration for stepping between nodes, longer for first focus
+      const prevNode = prevFocusRef.current;
+      const isStepping = prevNode && sortedHelixNodes.length > 1;
+      const duration = isStepping ? 0.8 : 1.5;
+      const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
+
+      // In tunnel mode: re-enable controls temporarily for the fly-out animation
       if (mode === 'tunnel') {
-        // In tunnel mode: just slide Y to the node's position
-        useConstellationStore.getState().setTunnelY(node.y);
-        isFlyingRef.current = false;
-      } else {
-        // Helix (side) view: close-in for detail. Tunnel: pulled back for overview.
-        const dist = 35;
-        const camTarget = { x: node.x + dist, y: node.y + 8, z: node.z + dist };
+        controls.enabled = true;
+      }
 
-        // Shorter duration for stepping between nodes, longer for first focus
-        const prevNode = prevFocusRef.current;
-        const isStepping = prevNode && sortedHelixNodes.length > 1;
-        const duration = isStepping ? 0.8 : 1.5;
-        const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
+      // ---- Shift frustum center so helix appears in the left viewport area ----
+      const isMobileView = window.innerWidth <= 768;
+      if (!isMobileView) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const panelPx = Math.min(720, Math.max(380, vw * 0.48));
+        const targetOffsetX = panelPx / 2;
 
-        // ---- Shift frustum center so helix appears in the left viewport area ----
-        // setViewOffset shifts the projection matrix (not the camera position)
-        // so the 3D view centers in the unobscured area beside the story panel
-        const isMobileView = window.innerWidth <= 768;
-        if (!isMobileView) {
-          const vw = window.innerWidth;
-          const vh = window.innerHeight;
-          const panelPx = Math.min(720, Math.max(380, vw * 0.48));
-          const targetOffsetX = panelPx / 2;
-
-          // Animate the view offset smoothly
-          gsap.to(viewOffsetProxy.current, {
-            x: targetOffsetX,
-            duration: duration * 0.8,
-            ease,
-            onUpdate: () => {
-              camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
-              camera.updateProjectionMatrix();
-            },
-          });
-        }
-
-        // Animate BOTH camera.position AND controls.target simultaneously
-        const tl = gsap.timeline({
-          onUpdate: () => controls.update(),
-          onComplete: () => {
-            isFlyingRef.current = false;
+        gsap.to(viewOffsetProxy.current, {
+          x: targetOffsetX,
+          duration: duration * 0.8,
+          ease,
+          onUpdate: () => {
+            camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
+            camera.updateProjectionMatrix();
           },
         });
-        tl.to(
-          camera.position,
-          { x: camTarget.x, y: camTarget.y, z: camTarget.z, duration, ease },
-          0
-        );
-        tl.to(
-          controls.target,
-          { x: node.x, y: node.y, z: node.z, duration, ease },
-          0
-        );
-        flyTimeline.current = tl;
       }
+
+      // In tunnel mode: contract FOV back to normal for the pulled-back view
+      if (mode === 'tunnel') {
+        gsap.to(camera, {
+          fov: HELIX_FOV,
+          duration: duration * 0.6,
+          ease: 'power2.out',
+          onUpdate: () => camera.updateProjectionMatrix(),
+        });
+      }
+
+      // Animate BOTH camera.position AND controls.target simultaneously
+      const tl = gsap.timeline({
+        onUpdate: () => controls.update(),
+        onComplete: () => {
+          isFlyingRef.current = false;
+        },
+      });
+      tl.to(
+        camera.position,
+        { x: camTarget.x, y: camTarget.y, z: camTarget.z, duration, ease },
+        0
+      );
+      tl.to(
+        controls.target,
+        { x: node.x, y: node.y, z: node.z, duration, ease },
+        0
+      );
+      flyTimeline.current = tl;
       prevFocusRef.current = focusedNodeId;
     } else {
       prevFocusRef.current = null;
@@ -469,8 +476,38 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       }
 
       if (mode === 'tunnel') {
-        // In tunnel mode: no fly-back, just stay where we are
-        isFlyingRef.current = false;
+        // Fly back into the tunnel axis, restore wide FOV, disable controls
+        isFlyingRef.current = true;
+        const currentY = useConstellationStore.getState().tunnelY;
+
+        const tl = gsap.timeline({
+          onUpdate: () => controls.update(),
+          onComplete: () => {
+            isFlyingRef.current = false;
+            controls.enabled = false;
+            controls.autoRotate = false;
+          },
+        });
+
+        // Fly camera back to axis center
+        tl.to(
+          camera.position,
+          { x: 0, y: currentY, z: 0, duration: 1, ease: 'power2.inOut' },
+          0
+        );
+        // Look forward along axis
+        tl.to(
+          controls.target,
+          { x: 0, y: currentY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
+          0
+        );
+        // Restore wide FOV
+        tl.to(camera, {
+          fov: TUNNEL_FOV, duration: 0.5, ease: 'power2.out',
+          onUpdate: () => camera.updateProjectionMatrix(),
+        }, 0.3);
+
+        flyTimeline.current = tl;
         return;
       }
 
