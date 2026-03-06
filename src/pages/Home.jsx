@@ -8,7 +8,7 @@ import instagramPosts from '../data/instagramPosts.json';
 import MusicCell from '../components/MusicCell';
 import confetti from 'canvas-confetti';
 // GSAP removed entirely from Home - using pure CSS animations to prevent black screen bugs
-import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound } from '../utils/sounds';
+import { playHoverSound, playClickSound, playBopSound, playBirthdaySound, playBalloonPopSound, playChatSendSound, playChatReceiveSound, playTourTransitionSound, playTourCompleteSound } from '../utils/sounds';
 import DailyCipher from '../components/DailyCipher';
 import SpeedPuzzle from '../components/SpeedPuzzle';
 import PortalVFX from '../components/PortalVFX';
@@ -24,13 +24,15 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
-import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine, getTourIntroLine, getTourDestinationLine, getTourOutroLine } from '../utils/glintBrain';
+import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
-import { startTour, endTour, nextDestination, prevDestination, getTourState, isTourActive } from '../utils/globeTour';
+import { startTour, endTour, nextChapter, prevChapter, getTourState, isTourActive } from '../utils/globeTour';
+import { getTourChapters, TOTAL_CHAPTERS } from '../data/tourChapters';
 import { useCloudSync } from '../hooks/useCloudSync';
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 const GlintFab = lazy(() => import('../components/GlintFab'));
+const GlobeTourCinematic = lazy(() => import('../components/GlobeTourCinematic'));
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import './Home.css';
 import * as THREE from 'three';
@@ -192,6 +194,10 @@ export default function Home() {
   const [activeExpedition, setActiveExpedition] = useState(0);
   const activeExpeditionRef = useRef(0);
   const [tourMode, setTourMode] = useState(false);
+  const [tourCinematic, setTourCinematic] = useState(false);
+  const [tourChapter, setTourChapter] = useState(null);
+  const [tourChapterIndex, setTourChapterIndex] = useState(-1);
+  const [tourNarration, setTourNarration] = useState(null);
   const [tourDestination, setTourDestination] = useState(null);
   const [tourIndex, setTourIndex] = useState(-1);
   const [tourPhotos, setTourPhotos] = useState([]); // nearby Instagram photos at current tour stop
@@ -3778,7 +3784,8 @@ export default function Home() {
 
   // Brand reveal - pure CSS animation handles visuals, this just dismisses the overlay
   // On birthday: extended to show humorous age reveal after JAROWE. fades
-  const [brandPhase, setBrandPhase] = useState('logo'); // logo -> birthday -> done
+  const [brandPhase, setBrandPhase] = useState('logo'); // logo -> holiday -> birthday -> done
+  const holidayTier = holiday && !isBirthday ? holiday.tier : 0;
   useEffect(() => {
     if (!showBrand) return;
     if (isBirthday) {
@@ -3789,6 +3796,15 @@ export default function Home() {
         setShowBrand(false);
       }, 7500);
       return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else if (holidayTier >= 2) {
+      // T2/T3: colored logo (2.2s) → holiday phase → dismiss
+      const holidayPhaseDuration = holidayTier >= 3 ? 2500 : 1300;
+      const t1 = setTimeout(() => setBrandPhase('holiday'), 2200);
+      const t2 = setTimeout(() => {
+        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        setShowBrand(false);
+      }, 2200 + holidayPhaseDuration);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     } else {
       const timer = setTimeout(() => {
         try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
@@ -3796,7 +3812,21 @@ export default function Home() {
       }, 3300);
       return () => clearTimeout(timer);
     }
-  }, [showBrand, isBirthday]);
+  }, [showBrand, isBirthday, holidayTier]);
+
+  // T3 holiday confetti burst during brand reveal
+  useEffect(() => {
+    if (brandPhase !== 'holiday' || holidayTier < 3 || !holiday) return;
+    const colors = [holiday.accentPrimary, holiday.accentSecondary, '#ffffff'];
+    const t1 = setTimeout(() => {
+      confetti({ particleCount: 70, spread: 80, origin: { x: 0.5, y: 0.5 }, colors, scalar: 1.1 });
+    }, 200);
+    const t2 = setTimeout(() => {
+      confetti({ particleCount: 30, angle: 60, spread: 50, origin: { x: 0.1, y: 0.6 }, colors });
+      confetti({ particleCount: 30, angle: 120, spread: 50, origin: { x: 0.9, y: 0.6 }, colors });
+    }, 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [brandPhase, holidayTier, holiday]);
 
   // Birthday confetti entrance
   useEffect(() => {
@@ -4508,9 +4538,13 @@ export default function Home() {
   }, [clearBubble, runPortalExitSequence]);
 
   // End globe tour and restore state
-  const endGlobeTour = useCallback(() => {
+  const endGlobeTour = useCallback((completed = false) => {
     if (isTourActive()) endTour();
     setTourMode(false);
+    setTourCinematic(false);
+    setTourChapter(null);
+    setTourChapterIndex(-1);
+    setTourNarration(null);
     setTourDestination(null);
     setTourIndex(-1);
     setTourPhotos([]);
@@ -4531,15 +4565,24 @@ export default function Home() {
     peekPinnedRef.current = false;
     window.__prismBopExit = true;
     runPortalExitSequence();
+
+    // Completion rewards
+    if (completed) {
+      playTourCompleteSound();
+      window.dispatchEvent(new CustomEvent('add-xp', { detail: { amount: 50, reason: 'Globe Tour Complete' } }));
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      localStorage.setItem('jarowe_tour_completed', String(Date.now()));
+    }
   }, [startGlobeCycle, clearBubble, runPortalExitSequence]);
 
-  // Globe Tour — start guided tour with Glint as tour guide
+  // Globe Tour — start cinematic chapter-based tour
   const startGlobeTour = useCallback((startIndex = 0) => {
     if (tourMode) return;
     const ep = editorParams.current;
     if (!(ep.globeTourEnabled ?? true)) return;
 
     setTourMode(true);
+    setTourCinematic(true);
 
     // Kill any existing conversation timeout so it doesn't hide Glint mid-tour
     if (conversationTimeoutRef.current) { clearTimeout(conversationTimeoutRef.current); conversationTimeoutRef.current = null; }
@@ -4565,48 +4608,51 @@ export default function Home() {
     // Enter conversation mode for tour
     setConversationMode(true);
 
-    // Start the tour state machine
+    const isRepeat = !!localStorage.getItem('jarowe_tour_completed');
+    const chapters = getTourChapters();
+
+    // Start the chapter-based tour state machine
     startTour({
-      destinations: expeditions,
+      chapters,
       pointOfView: (pov, dur) => globeRef.current?.pointOfView(pov, dur),
       onNarration: (line) => {
         window.__prismExpression = line.expression;
+        setTourNarration(line);
         showBubbleWithThinking(line.text);
 
         // Build tour nav pills
         const tourState = getTourState();
         const pills = [];
-        if (tourState.activeIndex > 0) {
+        if (tourState.activeChapter > 0) {
           pills.push({ label: '\u25c0 Previous', nodeId: '__tour_prev__' });
         }
-        if (tourState.activeIndex < tourState.total - 1) {
+        if (tourState.activeChapter < tourState.total - 1) {
           pills.push({ label: 'Next \u25b6', nodeId: '__tour_next__' });
         }
         pills.push({ label: 'End Tour', nodeId: '__tour_end__' });
         setConversationNode({ text: line.text, expression: line.expression, replies: pills });
       },
-      onDestinationChange: (dest, idx) => {
-        setTourDestination(dest);
-        setTourIndex(idx);
-        setActiveExpedition(expeditions.indexOf(dest));
-        setHoveredMarker(dest);
-        // Find nearby Instagram photos (within ~2° lat/lng)
-        const nearby = globePhotoMarkers.filter(p =>
-          Math.abs(p.lat - dest.lat) < 2 && Math.abs(p.lng - dest.lng) < 2
-        );
-        setTourPhotos(nearby);
+      onChapterChange: (chapter, idx) => {
+        setTourChapter(chapter);
+        setTourChapterIndex(idx);
+        // Play transition sound between chapters (not on first)
+        if (idx > 0) playTourTransitionSound();
+        // Set hoveredMarker for globe marker if chapter has destinations
+        if (chapter.destinations.length > 0) {
+          const dest = chapter.destinations[0];
+          setTourDestination(dest);
+          setHoveredMarker(dest);
+        } else {
+          setTourDestination(null);
+          setHoveredMarker(null);
+        }
       },
       onComplete: () => {
-        endGlobeTour();
+        endGlobeTour(true);
       },
-      getIntroLine: getTourIntroLine,
-      getDestinationLine: getTourDestinationLine,
-      getOutroLine: getTourOutroLine,
-      dwellTime: ep.globeTourDwellTime ?? 6000,
-      transitTime: ep.globeTourTransitTime ?? 2000,
-      altitude: ep.globeTourAltitude ?? 1.5,
+      transitTime: ep.globeTourTransitTime ?? 3500,
       autoAdvance: ep.globeTourAutoAdvance ?? true,
-      startIndex,
+      startChapter: startIndex,
     });
   }, [tourMode, showBubbleWithThinking, endGlobeTour]);
 
@@ -4636,8 +4682,8 @@ export default function Home() {
     }
 
     // Tour navigation pills
-    if (reply.nodeId === '__tour_prev__') { prevDestination(); return; }
-    if (reply.nodeId === '__tour_next__') { nextDestination(); return; }
+    if (reply.nodeId === '__tour_prev__') { prevChapter(); return; }
+    if (reply.nodeId === '__tour_next__') { nextChapter(); return; }
     if (reply.nodeId === '__tour_end__') { endGlobeTour(); return; }
 
     // Globe action pills: __globe__:expeditionIndex — start tour at specific destination
@@ -5963,9 +6009,64 @@ export default function Home() {
                   transition={{ duration: 0.4 }}
                   style={{ display: 'flex', gap: '8px', fontSize: '4rem', fontWeight: 'bold', fontFamily: 'var(--font-display)', color: 'white' }}
                 >
-                  {"JAROWE.".split('').map((char, i) => (
-                    <span key={i} className="brand-char" style={{ display: 'inline-block' }}>{char}</span>
-                  ))}
+                  {"JAROWE.".split('').map((char, i) => {
+                    const charStyle = { display: 'inline-block' };
+                    if (holiday && !isBirthday && holidayTier >= 2) {
+                      // T2/T3: gradient text
+                      charStyle.background = `linear-gradient(135deg, ${holiday.accentPrimary}, ${holiday.accentSecondary})`;
+                      charStyle.WebkitBackgroundClip = 'text';
+                      charStyle.backgroundClip = 'text';
+                      charStyle.WebkitTextFillColor = 'transparent';
+                      if (holidayTier >= 3) {
+                        charStyle.filter = `drop-shadow(0 0 20px ${holiday.accentPrimary})`;
+                      }
+                    } else if (holiday && !isBirthday && holidayTier === 1) {
+                      // T1: subtle tint
+                      charStyle.color = `color-mix(in srgb, white 80%, ${holiday.accentPrimary})`;
+                    }
+                    return <span key={i} className="brand-char" style={charStyle}>{char}</span>;
+                  })}
+                </motion.div>
+              )}
+              {brandPhase === 'holiday' && holiday && (
+                <motion.div
+                  key="holiday"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
+                    style={{ fontSize: holidayTier >= 3 ? '5rem' : '4rem', lineHeight: 1 }}
+                  >
+                    {holiday.emoji}
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25, duration: 0.4 }}
+                    className="brand-holiday-name"
+                    style={holidayTier >= 3
+                      ? { background: `linear-gradient(135deg, ${holiday.accentPrimary}, ${holiday.accentSecondary})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+                      : { color: holiday.accentPrimary }
+                    }
+                  >
+                    {holiday.name}
+                  </motion.div>
+                  {holidayTier >= 3 && holiday.greeting && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7, duration: 0.5 }}
+                      className="brand-holiday-greeting"
+                    >
+                      {holiday.greeting}
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
               {brandPhase === 'birthday' && (
@@ -6094,7 +6195,7 @@ export default function Home() {
       )}
 
       <section className="bento-container">
-        <div className="bento-grid">
+        <div className={`bento-grid${tourCinematic ? ' tour-dissolve' : ''}`}>
           {/* HERO IDENTITY CELL */}
           <div className="bento-cell cell-hero tilt-enabled">
             <div className="bento-content">
@@ -6131,7 +6232,7 @@ export default function Home() {
           </div>
 
           {/* WORLD MAP CELL */}
-          <div className={`bento-cell cell-map${editorParams.current.globeBreakout ? ' globe-breakout' : ''}${!editorParams.current.glassSweepEnabled ? ' glass-sweep-off' : ''}${!editorParams.current.glassShimmerEnabled ? ' glass-shimmer-off' : ''}${!editorParams.current.innerGlowEnabled ? ' inner-glow-off' : ''}`}
+          <div className={`bento-cell cell-map${tourCinematic ? ' tour-cinematic' : ''}${editorParams.current.globeBreakout ? ' globe-breakout' : ''}${!editorParams.current.glassSweepEnabled ? ' glass-sweep-off' : ''}${!editorParams.current.glassShimmerEnabled ? ' glass-shimmer-off' : ''}${!editorParams.current.innerGlowEnabled ? ' inner-glow-off' : ''}`}
             style={{
               ...(editorParams.current.globeBreakout ? { '--globe-breakout-px': `${editorParams.current.globeBreakoutPx}px` } : {}),
               ...(editorParams.current.glassSweepOpacity !== undefined ? { '--glass-sweep-opacity': editorParams.current.glassSweepOpacity } : {}),
@@ -6284,36 +6385,20 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Tour Instagram photos — shown as overlay card during tour mode */}
+            {/* Cinematic tour overlay — fullscreen UI on top of expanded globe */}
             <AnimatePresence>
-              {tourMode && tourPhotos.length > 0 && (
-                <motion.div
-                  className="tour-photo-gallery"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.35, ease: 'easeOut' }}
-                >
-                  <div className="tour-photo-label">Photos from here</div>
-                  <div className="tour-photo-grid">
-                    {tourPhotos.slice(0, 3).map((p, i) => (
-                      p.thumbnail && (
-                        <motion.img
-                          key={p.thumbnail}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: i * 0.1 }}
-                          src={`${BASE}${p.thumbnail.replace(/^\//, '')}`}
-                          alt={p.caption || 'Instagram photo'}
-                          className="tour-photo-thumb"
-                        />
-                      )
-                    ))}
-                  </div>
-                  {tourPhotos[0]?.caption && (
-                    <div className="tour-photo-caption">{tourPhotos[0].caption}</div>
-                  )}
-                </motion.div>
+              {tourCinematic && tourChapter && (
+                <Suspense fallback={null}>
+                  <GlobeTourCinematic
+                    chapter={tourChapter}
+                    chapterIndex={tourChapterIndex}
+                    totalChapters={TOTAL_CHAPTERS}
+                    narration={tourNarration}
+                    onPrev={() => prevChapter()}
+                    onNext={() => nextChapter()}
+                    onExit={() => endGlobeTour()}
+                  />
+                </Suspense>
               )}
             </AnimatePresence>
             {/* Fog / particle overlay (controllable via editor) */}
@@ -6357,26 +6442,26 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className={`map-badge${tourMode ? ' tour-active' : ''}`}>
-              {tourMode ? (
+            <div className={`map-badge${tourMode ? ' tour-active' : ''}${tourCinematic ? ' tour-hidden' : ''}`}>
+              {tourMode && !tourCinematic ? (
                 <>
-                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); prevDestination(); }} aria-label="Previous destination" disabled={tourIndex <= 0}>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); prevChapter(); }} aria-label="Previous chapter" disabled={tourChapterIndex <= 0}>
                     <ChevronLeft size={14} />
                   </button>
                   <div className="map-badge-center">
                     <Globe2 size={14} />
                     <span className="map-badge-location">
-                      {tourDestination ? tourDestination.name : 'Tour'} ({tourIndex + 1}/{expeditions.length})
+                      {tourChapter ? tourChapter.title : 'Tour'} ({tourChapterIndex + 1}/{TOTAL_CHAPTERS})
                     </span>
                   </div>
-                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); nextDestination(); }} aria-label="Next destination" disabled={tourIndex >= expeditions.length - 1}>
+                  <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); nextChapter(); }} aria-label="Next chapter" disabled={tourChapterIndex >= TOTAL_CHAPTERS - 1}>
                     <ChevronRight size={14} />
                   </button>
                   <button className="globe-nav-btn tour-exit-btn" onClick={(e) => { e.stopPropagation(); endGlobeTour(); }} aria-label="End tour">
                     <X size={14} />
                   </button>
                 </>
-              ) : (
+              ) : !tourCinematic ? (
                 <>
                   <button className="globe-nav-btn" onClick={(e) => { e.stopPropagation(); navigateGlobe('prev'); }} aria-label="Previous location">
                     <ChevronLeft size={14} />
@@ -6391,7 +6476,7 @@ export default function Home() {
                     <ChevronRight size={14} />
                   </button>
                 </>
-              )}
+              ) : null}
             </div>
             {/* Liquid glass edge overlay */}
             <div className="liquid-glass-edge" />

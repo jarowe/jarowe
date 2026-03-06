@@ -451,6 +451,63 @@
     -webkit-box-orient: vertical;
 }
 
+/* ── Cinematic Tour: Grid Dissolve & Cell Expansion ── */
+
+/* Other bento cells dissolve away with stagger */
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map) {
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(1) { transition-delay: 0s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(3) { transition-delay: 0.05s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(4) { transition-delay: 0.1s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(5) { transition-delay: 0.15s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(6) { transition-delay: 0.2s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(7) { transition-delay: 0.25s; }
+.bento-grid.tour-dissolve > .bento-cell:not(.cell-map):nth-child(8) { transition-delay: 0.3s; }
+
+/* Globe cell expands to fill viewport */
+.cell-map.tour-cinematic {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000 !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    border-radius: 0 !important;
+    border: none !important;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: visible !important;
+}
+.cell-map.tour-cinematic::before,
+.cell-map.tour-cinematic::after {
+    display: none;
+}
+.cell-map.tour-cinematic .liquid-glass-edge {
+    display: none;
+}
+.cell-map.tour-cinematic .worldschool-badge {
+    display: none;
+}
+.cell-map.tour-cinematic .globe-fog-layer,
+.cell-map.tour-cinematic .globe-particles-layer {
+    display: none;
+}
+
+/* Hide overlays in cinematic mode */
+.map-badge.tour-hidden {
+    display: none !important;
+}
+.cell-map.tour-cinematic .globe-msg-bubble {
+    display: none;
+}
+
+/* Cinematic mode: hide expedition photo card */
+.cell-map.tour-cinematic .expedition-photo-card {
+    display: none;
+}
+
 /* Music Cell */
 .music-art {
     width: 100%;
@@ -1560,6 +1617,25 @@
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
+}
+
+/* Holiday Brand Reveal */
+.brand-holiday-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.brand-holiday-greeting {
+    font-size: 1.1rem;
+    color: #a1a1aa;
+    font-family: var(--font-body);
+    font-weight: 400;
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.5;
 }
 
 /* Responsive */
