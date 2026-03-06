@@ -289,13 +289,15 @@ export default function AvatarGeometry({ children, effect }) {
         );
       });
 
-      // Family glows expand
-      hoverAnimsRef.current.push(
-        animate(el.querySelectorAll('.fp-family-glow'), {
-          r: [8, 16], opacity: [0.2, 0.45],
-          duration: 400, ease: 'outQuad',
-        })
-      );
+      // Family glows: small soft pulse (not big blobs)
+      el.querySelectorAll('.fp-family-glow').forEach((c, i) => {
+        hoverAnimsRef.current.push(
+          animate(c, {
+            r: [6, 9, 6], opacity: [0.15, 0.3, 0.15],
+            duration: 1200 + i * 200, loop: true, ease: 'inOutSine',
+          })
+        );
+      });
 
       // Pentagon + pentagram brighten
       hoverAnimsRef.current.push(
@@ -359,7 +361,7 @@ export default function AvatarGeometry({ children, effect }) {
 
       // Ease everything back
       animate(el.querySelectorAll('.fp-family-glow'), {
-        r: 8, opacity: 0.2, duration: 500, ease: 'outQuad',
+        r: 8, opacity: 0.15, duration: 500, ease: 'outQuad',
       });
       animate(el.querySelectorAll('.fp-pentagon'), {
         strokeWidth: 0.8, opacity: 0.5, duration: 500, ease: 'outQuad',
