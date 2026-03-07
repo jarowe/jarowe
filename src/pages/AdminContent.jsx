@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check, ChevronLeft, ChevronRight, StickyNote } from 'lucide-react';
+import { resolveMediaUrl, getMediaType } from '../constellation/media/resolveMediaUrl';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
@@ -254,6 +255,7 @@ function NodesTab() {
     else { setSortKey(key); setSortDir('asc'); }
   }
 
+  const edges = graphData?.edges || [];
   const detail = selectedNode ? nodes.find(n => n.id === selectedNode) : null;
 
   if (loading) return <div className="admin-loading">Loading constellation data...</div>;
@@ -454,6 +456,8 @@ function NodesTab() {
           setNewFlagType={setNewFlagType}
           newFlagNote={newFlagNote}
           setNewFlagNote={setNewFlagNote}
+          allNodes={nodes}
+          allEdges={edges}
         />
       )}
     </>
@@ -461,15 +465,52 @@ function NodesTab() {
 }
 
 // ─── NODE DETAIL PANEL ──────────────────────────────────────────────────
-function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnected, onChangeVis, onToggleHidden, onAddFlag, onRemoveFlag, onUpdateCuration, onReset, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote }) {
-  const base = import.meta.env.BASE_URL || '/';
+
+const ENTITY_GROUPS = [
+  { key: 'people', label: 'People' },
+  { key: 'places', label: 'Places' },
+  { key: 'tags', label: 'Tags' },
+  { key: 'projects', label: 'Projects' },
+  { key: 'clients', label: 'Clients' },
+];
+
+const CONNECTION_TYPE_COLORS = {
+  temporal: '#60a5fa',
+  entity: '#a78bfa',
+  thematic: '#34d399',
+  causal: '#fbbf24',
+  collaborative: '#f472b6',
+  geographic: '#fb923c',
+};
+
+function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnected, onChangeVis, onToggleHidden, onAddFlag, onRemoveFlag, onUpdateCuration, onReset, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote, allNodes, allEdges }) {
   const media = node.media || [];
   const entities = node.entities || {};
-  const allEntities = [
-    ...(entities.people || []).map(p => ({ label: p, type: 'people' })),
-    ...(entities.tags || []).map(t => ({ label: t, type: 'tags' })),
-    ...(entities.places || []).map(p => ({ label: p, type: 'places' })),
-  ];
+
+  // Grouped entities
+  const entityGroups = useMemo(() => {
+    const groups = [];
+    let total = 0;
+    for (const g of ENTITY_GROUPS) {
+      const items = entities[g.key] || [];
+      if (items.length > 0) {
+        groups.push({ ...g, items });
+        total += items.length;
+      }
+    }
+    return { groups, total };
+  }, [entities]);
+
+  // Lightbox state
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+
+  // Connections accordion
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const [showAllConnections, setShowAllConnections] = useState(false);
+
+  // Admin notes
+  const [notesVal, setNotesVal] = useState(curation.admin_notes || '');
+  const notesTimerRef = useRef(null);
 
   // Inline edit state
   const [editingTitle, setEditingTitle] = useState(false);
@@ -480,14 +521,56 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
   const titleRef = useRef(null);
   const descRef = useRef(null);
 
+  // Connections data
+  const connectionGroups = useMemo(() => {
+    if (!allEdges?.length || !allNodes?.length) return [];
+    const connectedEdges = allEdges.filter(e => e.source === node.id || e.target === node.id);
+    const groupMap = new Map();
+    for (const edge of connectedEdges) {
+      const otherId = edge.source === node.id ? edge.target : edge.source;
+      const otherNode = allNodes.find(n => n.id === otherId);
+      if (!otherNode) continue;
+      if (!groupMap.has(otherId)) {
+        groupMap.set(otherId, { nodeId: otherId, nodeTitle: otherNode.title, nodeType: otherNode.type, evidence: [] });
+      }
+      const group = groupMap.get(otherId);
+      for (const ev of (edge.evidence || [])) {
+        group.evidence.push({ ...ev, weight: edge.weight });
+      }
+    }
+    const groups = Array.from(groupMap.values());
+    groups.sort((a, b) => {
+      const avgA = a.evidence.reduce((s, e) => s + (e.weight || 0), 0) / (a.evidence.length || 1);
+      const avgB = b.evidence.reduce((s, e) => s + (e.weight || 0), 0) / (b.evidence.length || 1);
+      return avgB - avgA;
+    });
+    return groups;
+  }, [node.id, allEdges, allNodes]);
+
   // Sync local state when curation changes (e.g. different node selected)
   useEffect(() => {
     setTitleVal(curation.title_override || '');
     setDescVal(curation.description_override || '');
     setSigVal(curation.significance_override ?? node.significance ?? 0.5);
+    setNotesVal(curation.admin_notes || '');
     setEditingTitle(false);
     setEditingDesc(false);
+    setLightboxIdx(null);
+    setConnectionsOpen(false);
+    setShowAllConnections(false);
   }, [node.id, curation]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    function handleKey(e) {
+      if (e.key === 'Escape') setLightboxIdx(null);
+      else if (e.key === 'ArrowRight') setLightboxIdx(i => (i + 1) % media.length);
+      else if (e.key === 'ArrowLeft') setLightboxIdx(i => (i - 1 + media.length) % media.length);
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [lightboxIdx, media.length]);
 
   function handleTitleSave() {
     setEditingTitle(false);
@@ -505,7 +588,15 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
     const num = parseFloat(val);
     if (isNaN(num)) return;
     setSigVal(num);
-    onUpdateCuration({ significance_override: num }, false); // debounced
+    onUpdateCuration({ significance_override: num }, false);
+  }
+
+  function handleNotesChange(val) {
+    setNotesVal(val);
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+    notesTimerRef.current = setTimeout(() => {
+      onUpdateCuration({ admin_notes: val.trim() || null }, false);
+    }, 800);
   }
 
   function handleAddFlag() {
@@ -515,12 +606,12 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
   }
 
   const hasOverrides = curation.node_id != null;
+  const visibleConnections = showAllConnections ? connectionGroups : connectionGroups.slice(0, 8);
 
   return (
     <section className="admin-section admin-node-detail">
       <div className="admin-node-detail-header">
         <div>
-          {/* Inline-editable title */}
           {editingTitle ? (
             <input
               ref={titleRef}
@@ -547,7 +638,6 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
             <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.source}</span>
             {node.date && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.date}</span>}
             {node.epoch && <span className="admin-pill" style={{ fontSize: '0.7rem' }}>{node.epoch}</span>}
-            {/* Save status */}
             {saveState && (
               <span className={`admin-save-status admin-save-status-${saveState}`}>
                 {saveState === 'saving' && 'Saving...'}
@@ -575,29 +665,32 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
       <div className="admin-node-detail-body">
         {/* Left column */}
         <div className="admin-node-detail-section">
-          {/* Media thumbnails */}
+          {/* Full media grid with lightbox */}
           {media.length > 0 && (
             <>
               <h4>Media ({media.length})</h4>
-              <div className="admin-node-media-grid">
-                {media.slice(0, 4).map((m, i) => (
-                  <img
-                    key={i}
-                    src={m.url?.startsWith('http') ? m.url : `${base}${m.url?.replace(/^\//, '')}`}
-                    alt=""
-                    className="admin-node-media-thumb"
-                    loading="lazy"
-                    onError={e => { e.target.style.display = 'none'; }}
-                  />
-                ))}
-                {media.length > 4 && (
-                  <div className="admin-node-media-more">+{media.length - 4}</div>
-                )}
+              <div className="admin-node-media-grid admin-node-media-grid-full">
+                {media.map((m, i) => {
+                  const url = resolveMediaUrl(m.url);
+                  const type = getMediaType(m.url);
+                  return (
+                    <div key={i} className="admin-media-thumb-wrap" onClick={() => setLightboxIdx(i)}>
+                      {type === 'video' ? (
+                        <>
+                          <video src={url} className="admin-node-media-thumb" preload="metadata" muted />
+                          <div className="admin-media-play-badge"><Play size={14} /></div>
+                        </>
+                      ) : (
+                        <img src={url} alt="" className="admin-node-media-thumb" loading="lazy" onError={e => { e.target.style.opacity = '0.2'; }} />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
 
-          {/* Description — inline editable */}
+          {/* Description */}
           <h4>Description</h4>
           {editingDesc ? (
             <textarea
@@ -620,15 +713,38 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
             </div>
           )}
 
-          {/* Entities */}
-          {allEntities.length > 0 && (
+          {/* Admin Notes */}
+          {supabaseConnected && (
             <>
-              <h4>Entities</h4>
-              <div className="admin-entity-pills">
-                {allEntities.map((e, i) => (
-                  <span key={i} className={`admin-entity-pill admin-entity-${e.type}`}>{e.label}</span>
-                ))}
-              </div>
+              <h4>
+                <StickyNote size={12} style={{ verticalAlign: '-1px', marginRight: '0.3rem' }} />
+                Admin Notes
+                {notesVal.trim() && <span className="admin-notes-dot" />}
+              </h4>
+              <textarea
+                className="admin-notes-textarea"
+                value={notesVal}
+                onChange={e => handleNotesChange(e.target.value)}
+                placeholder="Internal notes: what needs fixing, context, editorial reminders..."
+                rows={3}
+              />
+            </>
+          )}
+
+          {/* Grouped Entities */}
+          {entityGroups.total > 0 && (
+            <>
+              <h4>Entities ({entityGroups.total})</h4>
+              {entityGroups.groups.map(g => (
+                <div key={g.key} className="admin-entity-group">
+                  <span className="admin-entity-group-label">{g.label} ({g.items.length})</span>
+                  <div className="admin-entity-pills">
+                    {g.items.map((item, i) => (
+                      <span key={i} className={`admin-entity-pill admin-entity-${g.key}`}>{item}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </>
           )}
         </div>
@@ -640,27 +756,9 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
             <>
               <h4>Significance Override</h4>
               <div className="admin-sig-control">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={sigVal}
-                  onChange={e => handleSigChange(e.target.value)}
-                  className="admin-sig-slider"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={sigVal}
-                  onChange={e => handleSigChange(e.target.value)}
-                  className="admin-sig-input"
-                />
-                <span className="admin-sig-original" title="Pipeline value">
-                  orig: {node.significance?.toFixed(2) ?? '--'}
-                </span>
+                <input type="range" min="0" max="1" step="0.01" value={sigVal} onChange={e => handleSigChange(e.target.value)} className="admin-sig-slider" />
+                <input type="number" min="0" max="1" step="0.05" value={sigVal} onChange={e => handleSigChange(e.target.value)} className="admin-sig-input" />
+                <span className="admin-sig-original" title="Pipeline value">orig: {node.significance?.toFixed(2) ?? '--'}</span>
               </div>
             </>
           )}
@@ -668,17 +766,12 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
           {/* Visibility control */}
           <h4>Visibility</h4>
           <select className="admin-vis-select" value={vis} onChange={e => onChangeVis(e.target.value)}>
-            {VIS_OPTIONS.map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
+            {VIS_OPTIONS.map(v => (<option key={v} value={v}>{v}</option>))}
           </select>
 
           {/* Hidden toggle */}
           <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              className={`admin-toggle ${curation.hidden ? 'admin-toggle-off' : 'admin-toggle-on'}`}
-              onClick={onToggleHidden}
-            >
+            <button className={`admin-toggle ${curation.hidden ? 'admin-toggle-off' : 'admin-toggle-on'}`} onClick={onToggleHidden}>
               {curation.hidden ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
             <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
@@ -698,9 +791,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
                   <span className="admin-flag-note" title={f.note}>{f.note || '\u2014'}</span>
                   <span className="admin-flag-date">{f.createdAt}</span>
                   <span className="admin-flag-source">{f.source}</span>
-                  <button className="admin-flag-remove" onClick={() => onRemoveFlag(i)} title="Remove flag">
-                    <X size={12} />
-                  </button>
+                  <button className="admin-flag-remove" onClick={() => onRemoveFlag(i)} title="Remove flag"><X size={12} /></button>
                 </div>
               ))}
             </div>
@@ -711,18 +802,69 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
             <select value={newFlagType} onChange={e => setNewFlagType(e.target.value)}>
               {FLAG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <textarea
-              value={newFlagNote}
-              onChange={e => setNewFlagNote(e.target.value)}
-              placeholder="Note (optional)"
-              rows={1}
-            />
-            <button onClick={handleAddFlag}>
-              <Plus size={12} /> Flag
-            </button>
+            <textarea value={newFlagNote} onChange={e => setNewFlagNote(e.target.value)} placeholder="Note (optional)" rows={1} />
+            <button onClick={handleAddFlag}><Plus size={12} /> Flag</button>
           </div>
+
+          {/* Connections accordion */}
+          {connectionGroups.length > 0 && (
+            <>
+              <button className="admin-connections-toggle" onClick={() => setConnectionsOpen(!connectionsOpen)}>
+                {connectionsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                Because... ({connectionGroups.length} connection{connectionGroups.length !== 1 ? 's' : ''})
+              </button>
+              {connectionsOpen && (
+                <div className="admin-connections-list">
+                  {visibleConnections.map(cg => (
+                    <div key={cg.nodeId} className="admin-connection-group">
+                      <div className="admin-connection-header">
+                        <span className="admin-connection-type-dot" style={{ background: CONNECTION_TYPE_COLORS[cg.evidence[0]?.type] || '#888' }} />
+                        <span className={`admin-type-tag admin-type-${cg.nodeType}`} style={{ fontSize: '0.6rem', padding: '0.1em 0.35em' }}>{cg.nodeType}</span>
+                        <span className="admin-connection-title">{cg.nodeTitle}</span>
+                      </div>
+                      {cg.evidence.map((ev, i) => (
+                        <div key={i} className="admin-connection-evidence">
+                          <span className="admin-evidence-signal">{ev.signal || ev.type}</span>
+                          <span className="admin-evidence-desc">{ev.description || ''}</span>
+                          <div className="admin-evidence-weight-bar">
+                            <div className="admin-evidence-weight-fill" style={{ width: `${(ev.weight || 0) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  {connectionGroups.length > 8 && !showAllConnections && (
+                    <button className="admin-connections-show-more" onClick={() => setShowAllConnections(true)}>
+                      Show {connectionGroups.length - 8} more
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Lightbox overlay */}
+      {lightboxIdx !== null && media[lightboxIdx] && (
+        <div className="admin-lightbox-overlay" onClick={() => setLightboxIdx(null)}>
+          <div className="admin-lightbox-content" onClick={e => e.stopPropagation()}>
+            <div className="admin-lightbox-counter">{lightboxIdx + 1} / {media.length}</div>
+            <button className="admin-lightbox-close" onClick={() => setLightboxIdx(null)}><X size={20} /></button>
+            {media.length > 1 && (
+              <>
+                <button className="admin-lightbox-arrow admin-lightbox-prev" onClick={() => setLightboxIdx((lightboxIdx - 1 + media.length) % media.length)}><ChevronLeft size={28} /></button>
+                <button className="admin-lightbox-arrow admin-lightbox-next" onClick={() => setLightboxIdx((lightboxIdx + 1) % media.length)}><ChevronRight size={28} /></button>
+              </>
+            )}
+            {getMediaType(media[lightboxIdx].url) === 'video' ? (
+              <video src={resolveMediaUrl(media[lightboxIdx].url)} className="admin-lightbox-media" controls autoPlay />
+            ) : (
+              <img src={resolveMediaUrl(media[lightboxIdx].url)} alt="" className="admin-lightbox-media" />
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
