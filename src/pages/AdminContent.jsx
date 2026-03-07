@@ -663,7 +663,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
 
   return (
     <div className="admin-detail-drawer-backdrop" onClick={onClose}>
-    <section className="admin-section admin-node-detail admin-detail-drawer" onClick={e => e.stopPropagation()}>
+    <div className="admin-detail-drawer" onClick={e => e.stopPropagation()}>
       <button className="admin-drawer-close" onClick={onClose} title="Close (Esc)"><X size={20} /></button>
       <div className="admin-node-detail-header">
         <div>
@@ -1051,7 +1051,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
           </div>
         </div>
       )}
-    </section>
+    </div>
     </div>
   );
 }
