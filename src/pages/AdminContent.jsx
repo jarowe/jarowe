@@ -757,8 +757,9 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
                 <h3 className="admin-pv-section-title">Media</h3>
                 <div className="admin-pv-media-grid">
                   {media.map((m, i) => {
-                    const url = resolveMediaUrl(m.url);
-                    const type = getMediaType(m.url);
+                    const raw = typeof m === 'string' ? m : m.url;
+                    const url = resolveMediaUrl(raw);
+                    const type = getMediaType(raw);
                     return (
                       <button key={i} className="admin-pv-media-thumb" onClick={() => setLightboxIdx(i)}>
                         {type === 'video' ? (
@@ -856,8 +857,9 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
               <h4>Media ({media.length})</h4>
               <div className="admin-node-media-grid admin-node-media-grid-full">
                 {media.map((m, i) => {
-                  const url = resolveMediaUrl(m.url);
-                  const type = getMediaType(m.url);
+                  const raw = typeof m === 'string' ? m : m.url;
+                  const url = resolveMediaUrl(raw);
+                  const type = getMediaType(raw);
                   return (
                     <div key={i} className="admin-media-thumb-wrap" onClick={() => setLightboxIdx(i)}>
                       {type === 'video' ? (
@@ -1043,11 +1045,14 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
                 <button className="admin-lightbox-arrow admin-lightbox-next" onClick={() => setLightboxIdx((lightboxIdx + 1) % media.length)}><ChevronRight size={28} /></button>
               </>
             )}
-            {getMediaType(media[lightboxIdx].url) === 'video' ? (
-              <video src={resolveMediaUrl(media[lightboxIdx].url)} className="admin-lightbox-media" controls autoPlay />
-            ) : (
-              <img src={resolveMediaUrl(media[lightboxIdx].url)} alt="" className="admin-lightbox-media" />
-            )}
+            {(() => {
+              const raw = typeof media[lightboxIdx] === 'string' ? media[lightboxIdx] : media[lightboxIdx].url;
+              return getMediaType(raw) === 'video' ? (
+                <video src={resolveMediaUrl(raw)} className="admin-lightbox-media" controls autoPlay />
+              ) : (
+                <img src={resolveMediaUrl(raw)} alt="" className="admin-lightbox-media" />
+              );
+            })()}
           </div>
         </div>
       )}
