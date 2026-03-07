@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUpDown, Search, Shield, ShieldOff, ChevronDown, ChevronUp, Users, Trophy, Gamepad2, Map } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseGet } from '../lib/supabase';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { GAMES } from '../data/gameRegistry';
 import './Admin.css';
@@ -26,53 +26,33 @@ function AdminUsersInner() {
   const [expandedId, setExpandedId] = useState(null);
   const [confirmToggle, setConfirmToggle] = useState(null); // { id, name, currentAdmin }
 
-  const loadUsers = useCallback(async function _load(attempt = 0) {
+  const loadUsers = useCallback(async function _load() {
       setLoading(true);
       setError(null);
       try {
-        // Safety timeout: Supabase client can hang if session lock is
-        // corrupted. 30s is generous but prevents infinite loading.
-        const safetyTimeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timed out after 30s. Try signing out and back in, then reload.')), 30000));
-
-        const profilesRes = await Promise.race([
-          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-          safetyTimeout,
+        // Direct REST calls — bypass Supabase client session lock entirely.
+        const [profilesData, scoresData, achievementsData] = await Promise.all([
+          supabaseGet('profiles', { order: 'created_at.desc' }),
+          supabaseGet('high_scores', { select: 'user_id,game_id,score' }),
+          supabaseGet('achievements', { select: 'user_id,achievement_id' }),
         ]);
 
-        // If we get an auth error on first attempt, wait and retry once
-        if (profilesRes.error) {
-          const code = profilesRes.error.code || profilesRes.error.message || '';
-          if (attempt < 1 && (code.includes('JWT') || code.includes('401') || code === 'PGRST301')) {
-            await new Promise(r => setTimeout(r, 2000));
-            return _load(attempt + 1);
-          }
-          throw profilesRes.error;
-        }
-
-        // Fetch related data in parallel (share the safety timeout)
-        const [scoresRes, achievementsRes] = await Promise.race([
-          Promise.all([
-            supabase.from('high_scores').select('user_id, game_id, score'),
-            supabase.from('achievements').select('user_id, achievement_id'),
-          ]),
-          safetyTimeout,
-        ]);
+        if (!profilesData) throw new Error('Failed to load profiles — check Supabase connection');
 
         // Group scores and achievements by user_id
         const scoresByUser = {};
-        for (const s of (scoresRes.data || [])) {
+        for (const s of (scoresData || [])) {
           if (!scoresByUser[s.user_id]) scoresByUser[s.user_id] = [];
           scoresByUser[s.user_id].push({ game_id: s.game_id, score: s.score });
         }
         const achievementsByUser = {};
-        for (const a of (achievementsRes.data || [])) {
+        for (const a of (achievementsData || [])) {
           if (!achievementsByUser[a.user_id]) achievementsByUser[a.user_id] = [];
           achievementsByUser[a.user_id].push({ achievement_id: a.achievement_id });
         }
 
         // Attach to each profile
-        const merged = (profilesRes.data || []).map(p => ({
+        const merged = profilesData.map(p => ({
           ...p,
           high_scores: scoresByUser[p.id] || [],
           achievements: achievementsByUser[p.id] || [],

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseGet } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -30,21 +30,13 @@ export function useCurationSync() {
     }
   }, []);
 
-  // Fetch all curation rows with generous safety timeout.
-  // The Supabase client queues requests behind its internal session lock
-  // during token refresh — 30s is generous but prevents infinite hang.
+  // Fetch all curation rows via direct REST (bypasses Supabase session lock).
   const fetchAll = useCallback(async () => {
-    if (!supabase) return null;
     try {
-      const safetyTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), 30000));
-      const { data, error } = await Promise.race([
-        supabase.from('node_curation').select('*'),
-        safetyTimeout,
-      ]);
-      if (error) throw error;
+      const data = await supabaseGet('node_curation');
+      if (!data) return null;
       const map = new Map();
-      for (const row of data || []) {
+      for (const row of data) {
         map.set(row.node_id, row);
       }
       return map;
