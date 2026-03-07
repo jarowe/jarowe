@@ -1613,6 +1613,10 @@ body:has(.admin-detail-drawer-backdrop) {
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
 }
+/* Inside the fixed-width drawer, stack columns vertically */
+.admin-detail-drawer .admin-node-detail-body {
+  grid-template-columns: 1fr;
+}
 
 .admin-node-detail-section {
   display: flex;
