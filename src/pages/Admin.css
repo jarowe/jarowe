@@ -1251,12 +1251,67 @@
    ============================================================ */
 
 /* Node detail panel (slides open below table) */
+/* Detail drawer — slide-in from right */
+body:has(.admin-detail-drawer-backdrop) {
+  overflow: hidden;
+}
+.admin-detail-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+  animation: admin-fade-in 0.15s ease-out;
+}
+@keyframes admin-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.admin-detail-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(580px, 90vw);
+  margin: 0;
+  padding: 1.5rem 1.25rem;
+  background: rgb(18, 18, 24);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  overflow-y: auto;
+  z-index: 901;
+  animation: admin-slide-in 0.2s ease-out;
+}
+@keyframes admin-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.admin-drawer-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s, color 0.15s;
+}
+.admin-drawer-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
 .admin-node-detail {
-  margin-top: 1rem;
-  padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  margin-top: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
 }
 
 .admin-node-detail-header {

@@ -603,17 +603,21 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
     setPreviewMode(false);
   }, [node.id, curation]);
 
-  // Lightbox keyboard navigation
+  // Keyboard navigation: Escape closes drawer (or lightbox if open)
   useEffect(() => {
-    if (lightboxIdx === null) return;
     function handleKey(e) {
-      if (e.key === 'Escape') setLightboxIdx(null);
-      else if (e.key === 'ArrowRight') setLightboxIdx(i => (i + 1) % media.length);
-      else if (e.key === 'ArrowLeft') setLightboxIdx(i => (i - 1 + media.length) % media.length);
+      if (e.key === 'Escape') {
+        if (lightboxIdx !== null) setLightboxIdx(null);
+        else onClose();
+      }
+      if (lightboxIdx !== null) {
+        if (e.key === 'ArrowRight') setLightboxIdx(i => (i + 1) % media.length);
+        else if (e.key === 'ArrowLeft') setLightboxIdx(i => (i - 1 + media.length) % media.length);
+      }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [lightboxIdx, media.length]);
+  }, [lightboxIdx, media.length, onClose]);
 
   function handleTitleSave() {
     setEditingTitle(false);
@@ -658,7 +662,9 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
   const themeColor = node.theme ? THEME_COLORS[node.theme] : null;
 
   return (
-    <section className="admin-section admin-node-detail">
+    <div className="admin-detail-drawer-backdrop" onClick={onClose}>
+    <section className="admin-section admin-node-detail admin-detail-drawer" onClick={e => e.stopPropagation()}>
+      <button className="admin-drawer-close" onClick={onClose} title="Close (Esc)"><X size={20} /></button>
       <div className="admin-node-detail-header">
         <div>
           {editingTitle && !previewMode ? (
@@ -715,7 +721,6 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
               <RotateCcw size={14} /> Reset
             </button>
           )}
-          <button className="admin-btn" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }} onClick={onClose}>Close</button>
         </div>
       </div>
 
@@ -1047,6 +1052,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
         </div>
       )}
     </section>
+    </div>
   );
 }
 
