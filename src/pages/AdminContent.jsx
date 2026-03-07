@@ -86,7 +86,27 @@ function NodesTab() {
   // Supabase curation state
   const [curationMap, setCurationMap] = useState(new Map()); // nodeId → curation row
   const [supabaseConnected, setSupabaseConnected] = useState(!!supabase);
+  const [curationLoading, setCurationLoading] = useState(!!supabase);
   const { fetchAll, saveNodeImmediate, saveNode, deleteOverride, savingState } = useCurationSync();
+
+  // Load curation data from Supabase (called on mount + retry)
+  const loadCuration = useCallback(async () => {
+    if (!supabase) { setSupabaseConnected(false); setCurationLoading(false); return; }
+    setCurationLoading(true);
+    try {
+      const result = await fetchAll();
+      if (result) {
+        setCurationMap(result);
+        setSupabaseConnected(true);
+      } else {
+        setSupabaseConnected(false);
+      }
+    } catch {
+      setSupabaseConnected(false);
+    } finally {
+      setCurationLoading(false);
+    }
+  }, [fetchAll]);
 
   useEffect(() => {
     async function load() {
@@ -99,26 +119,11 @@ function NodesTab() {
       // Always finish loading — don't let Supabase block the page
       setLoading(false);
 
-      // Load curation from Supabase in background (non-blocking)
-      if (supabase) {
-        try {
-          const timeout = new Promise(resolve => setTimeout(() => resolve(null), 8000));
-          const result = await Promise.race([fetchAll(), timeout]);
-          if (result) {
-            setCurationMap(result);
-            setSupabaseConnected(true);
-          } else {
-            setSupabaseConnected(false);
-          }
-        } catch {
-          setSupabaseConnected(false);
-        }
-      } else {
-        setSupabaseConnected(false);
-      }
+      // Load curation from Supabase in background (non-blocking, no timeout)
+      loadCuration();
     }
     load();
-  }, [fetchAll]);
+  }, [loadCuration]);
 
   const nodes = graphData?.nodes || [];
 
@@ -263,11 +268,30 @@ function NodesTab() {
   return (
     <>
       {/* Connection status */}
-      {!supabaseConnected && (
+      {curationLoading && (
+        <section className="admin-section">
+          <div className="admin-curation-warning" style={{ borderColor: 'rgba(100,160,255,0.2)', background: 'rgba(100,160,255,0.06)' }}>
+            <Cloud size={16} style={{ color: 'rgb(140,190,255)' }} />
+            <span style={{ color: 'rgb(140,190,255)' }}>Connecting to Supabase...</span>
+          </div>
+        </section>
+      )}
+      {!supabaseConnected && !curationLoading && (
         <section className="admin-section">
           <div className="admin-curation-warning">
             <CloudOff size={16} />
-            Supabase not connected. Changes will not persist. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable live CMS.
+            {supabase
+              ? 'Supabase connection failed. Changes will not persist.'
+              : <>Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable live CMS.</>
+            }
+            {supabase && (
+              <button
+                onClick={loadCuration}
+                style={{ marginLeft: '0.75rem', padding: '0.3rem 0.8rem', background: 'rgba(100,160,255,0.15)', color: 'rgb(140,190,255)', border: '1px solid rgba(100,160,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                Retry
+              </button>
+            )}
           </div>
         </section>
       )}

@@ -30,13 +30,14 @@ export function useCurationSync() {
     }
   }, []);
 
-  // Fetch all curation rows (with timeout to prevent hanging on stale sessions)
+  // Fetch all curation rows
+  // No internal timeout — the Supabase client queues requests behind its
+  // internal session lock during token refresh. An aggressive timeout here
+  // causes false "not connected" states. The caller can apply its own timeout.
   const fetchAll = useCallback(async () => {
-    if (!supabase) return new Map();
+    if (!supabase) return null;
     try {
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
-      const query = supabase.from('node_curation').select('*');
-      const { data, error } = await Promise.race([query, timeout]);
+      const { data, error } = await supabase.from('node_curation').select('*');
       if (error) throw error;
       const map = new Map();
       for (const row of data || []) {
@@ -44,7 +45,7 @@ export function useCurationSync() {
       }
       return map;
     } catch {
-      return new Map();
+      return null;
     }
   }, []);
 

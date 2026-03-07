@@ -31,14 +31,13 @@ function AdminUsersInner() {
       setError(null);
       try {
         // Query directly — AuthContext handles session refresh.
-        // Timeout after 10s to prevent hanging on dead sessions.
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timed out. Try signing out and back in.')), 10000));
-
-        const profilesRes = await Promise.race([
-          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-          timeout,
-        ]);
+        // No aggressive timeout — the Supabase client queues requests behind
+        // its internal session lock during token refresh, so short timeouts
+        // cause false failures. Let the query complete naturally.
+        const profilesRes = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
         // If we get an auth error on first attempt, wait and retry once
         if (profilesRes.error) {
@@ -50,13 +49,10 @@ function AdminUsersInner() {
           throw profilesRes.error;
         }
 
-        // Fetch related data in parallel (also with timeout)
-        const [scoresRes, achievementsRes] = await Promise.race([
-          Promise.all([
-            supabase.from('high_scores').select('user_id, game_id, score'),
-            supabase.from('achievements').select('user_id, achievement_id'),
-          ]),
-          timeout,
+        // Fetch related data in parallel
+        const [scoresRes, achievementsRes] = await Promise.all([
+          supabase.from('high_scores').select('user_id, game_id, score'),
+          supabase.from('achievements').select('user_id, achievement_id'),
         ]);
 
         // Group scores and achievements by user_id
