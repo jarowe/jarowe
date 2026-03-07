@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check, ChevronLeft, ChevronRight, StickyNote } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check, ChevronLeft, ChevronRight, StickyNote, ExternalLink, MapPin, User, Folder, Lightbulb, Star } from 'lucide-react';
 import { resolveMediaUrl, getMediaType } from '../constellation/media/resolveMediaUrl';
+import { TYPE_COLORS, THEME_COLORS } from '../constellation/ui/DetailPanel';
 import AdminGate from '../components/AdminGate';
 import { HOLIDAY_CALENDAR, CATEGORIES, TIER_NAMES } from '../data/holidayCalendar';
 import { GAMES } from '../data/gameRegistry';
@@ -507,9 +508,26 @@ const CONNECTION_TYPE_COLORS = {
   geographic: '#fb923c',
 };
 
+const EVIDENCE_ICON_MAP = {
+  temporal: Calendar,
+  place: MapPin,
+  person: User,
+  project: Folder,
+  idea: Lightbulb,
+};
+
+function formatDate(dateStr) {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return dateStr; }
+}
+
 function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnected, onChangeVis, onToggleHidden, onAddFlag, onRemoveFlag, onUpdateCuration, onReset, onClose, newFlagType, setNewFlagType, newFlagNote, setNewFlagNote, allNodes, allEdges }) {
   const media = node.media || [];
   const entities = node.entities || {};
+
+  // Preview vs Edit mode
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Grouped entities
   const entityGroups = useMemo(() => {
@@ -582,6 +600,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
     setLightboxIdx(null);
     setConnectionsOpen(false);
     setShowAllConnections(false);
+    setPreviewMode(false);
   }, [node.id, curation]);
 
   // Lightbox keyboard navigation
@@ -632,11 +651,17 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
   const hasOverrides = curation.node_id != null;
   const visibleConnections = showAllConnections ? connectionGroups : connectionGroups.slice(0, 8);
 
+  // Effective title and description (with overrides applied)
+  const effectiveTitle = curation.title_override || node.title || node.id;
+  const effectiveDesc = curation.description_override || node.description || '';
+  const typeStyle = TYPE_COLORS[node.type] || TYPE_COLORS.moment;
+  const themeColor = node.theme ? THEME_COLORS[node.theme] : null;
+
   return (
     <section className="admin-section admin-node-detail">
       <div className="admin-node-detail-header">
         <div>
-          {editingTitle ? (
+          {editingTitle && !previewMode ? (
             <input
               ref={titleRef}
               className="admin-inline-edit admin-inline-edit-title"
@@ -650,11 +675,11 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
           ) : (
             <h3
               className="admin-node-title-editable"
-              onClick={() => { if (supabaseConnected) { setEditingTitle(true); setTitleVal(curation.title_override || node.title || ''); } }}
+              onClick={() => { if (supabaseConnected && !previewMode) { setEditingTitle(true); setTitleVal(curation.title_override || node.title || ''); } }}
               title={supabaseConnected ? 'Click to edit title' : node.title}
             >
-              {curation.title_override || node.title || node.id}
-              {supabaseConnected && <Pencil size={12} className="admin-inline-edit-icon" />}
+              {effectiveTitle}
+              {supabaseConnected && !previewMode && <Pencil size={12} className="admin-inline-edit-icon" />}
             </h3>
           )}
           <div className="admin-node-detail-badges">
@@ -672,7 +697,15 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-          {hasOverrides && supabaseConnected && (
+          <button
+            className={`admin-btn ${previewMode ? 'admin-btn-primary' : ''}`}
+            style={previewMode ? {} : { background: 'rgba(100,160,255,0.1)', color: 'rgb(140,190,255)', border: '1px solid rgba(100,160,255,0.2)', fontSize: '0.78rem' }}
+            onClick={() => setPreviewMode(!previewMode)}
+            title={previewMode ? 'Back to edit mode' : 'Preview as visitors see it'}
+          >
+            <ExternalLink size={14} /> {previewMode ? 'Edit' : 'Preview'}
+          </button>
+          {hasOverrides && supabaseConnected && !previewMode && (
             <button
               className="admin-btn"
               style={{ background: 'rgba(255,150,80,0.1)', color: 'rgb(255,170,110)', border: '1px solid rgba(255,150,80,0.2)', fontSize: '0.78rem' }}
@@ -686,6 +719,129 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
         </div>
       </div>
 
+      {/* ─── PREVIEW MODE ─── */}
+      {previewMode ? (
+        <div className="admin-preview-visitor">
+          {/* Mirrors the public DetailPanel layout exactly */}
+          <div className="admin-preview-visitor-inner">
+            {/* Header */}
+            <div className="admin-pv-header">
+              <div className="admin-pv-meta">
+                <span className="admin-pv-badge" style={{ backgroundColor: typeStyle.bg, color: typeStyle.text }}>{node.type}</span>
+                {themeColor && (
+                  <span className="admin-pv-badge" style={{ backgroundColor: `${themeColor}22`, color: themeColor }}>
+                    <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: themeColor, marginRight: 4 }} />
+                    {node.theme}
+                  </span>
+                )}
+                {node.source && <span className="admin-pv-badge" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>{node.source}</span>}
+                {node.date && <span className="admin-pv-date">{formatDate(node.date)}</span>}
+              </div>
+              <h2 className="admin-pv-title">{effectiveTitle}</h2>
+              {node.epoch && <span className="admin-pv-epoch">{node.epoch}</span>}
+            </div>
+
+            {/* Description */}
+            <div className="admin-pv-section">
+              <p className="admin-pv-description">{effectiveDesc || <span style={{ opacity: 0.3, fontStyle: 'italic' }}>No description</span>}</p>
+            </div>
+
+            {/* Media gallery */}
+            {media.length > 0 && (
+              <div className="admin-pv-section">
+                <h3 className="admin-pv-section-title">Media</h3>
+                <div className="admin-pv-media-grid">
+                  {media.map((m, i) => {
+                    const url = resolveMediaUrl(m.url);
+                    const type = getMediaType(m.url);
+                    return (
+                      <button key={i} className="admin-pv-media-thumb" onClick={() => setLightboxIdx(i)}>
+                        {type === 'video' ? (
+                          <video src={url} muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={url} alt="" loading="lazy" onError={e => { e.target.closest('.admin-pv-media-thumb').style.display = 'none'; }} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Entity chips */}
+            {entityGroups.total > 0 && (
+              <div className="admin-pv-section">
+                <h3 className="admin-pv-section-title">Connected</h3>
+                <div className="admin-pv-chips">
+                  {entityGroups.groups.flatMap(g => g.items.map((item, i) => {
+                    const chipTypeStyle = TYPE_COLORS[g.key === 'people' ? 'person' : g.key === 'places' ? 'place' : g.key === 'projects' ? 'project' : 'idea'] || TYPE_COLORS.idea;
+                    return (
+                      <span key={`${g.key}-${i}`} className="admin-pv-chip" style={{ backgroundColor: chipTypeStyle.bg, color: chipTypeStyle.text }}>
+                        {item}
+                      </span>
+                    );
+                  }))}
+                </div>
+              </div>
+            )}
+
+            {/* Because section */}
+            {connectionGroups.length > 0 && (
+              <div className="admin-pv-section">
+                <button className="admin-pv-because-toggle" onClick={() => setConnectionsOpen(!connectionsOpen)}>
+                  <span>Because... <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>({connectionGroups.length})</span></span>
+                  {connectionsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {connectionsOpen && (
+                  <div className="admin-pv-because-content">
+                    {visibleConnections.map(cg => {
+                      const connStyle = TYPE_COLORS[cg.nodeType] || TYPE_COLORS.moment;
+                      return (
+                        <div key={cg.nodeId} className="admin-pv-conn-group">
+                          <div className="admin-pv-conn-title" style={{ color: connStyle.text }}>
+                            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: connStyle.text, flexShrink: 0 }} />
+                            {cg.nodeTitle}
+                          </div>
+                          {cg.evidence.map((ev, j) => {
+                            const EvIcon = EVIDENCE_ICON_MAP[ev.type] || Star;
+                            return (
+                              <div key={j} className="admin-pv-evidence">
+                                <span className="admin-pv-evidence-icon"><EvIcon size={12} /></span>
+                                <span className="admin-pv-evidence-desc">{ev.description || ''}</span>
+                                {ev.weight != null && (
+                                  <span className="admin-pv-evidence-weight">
+                                    <span className="admin-pv-evidence-weight-bar" style={{ width: `${Math.round(ev.weight * 100)}%` }} />
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                    {connectionGroups.length > 8 && !showAllConnections && (
+                      <button className="admin-pv-show-more" onClick={() => setShowAllConnections(true)}>
+                        Show {connectionGroups.length - 8} more
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Status bar */}
+            <div className="admin-pv-status">
+              <span className={`admin-vis-tag admin-vis-${vis}`}>{vis}</span>
+              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)' }}>
+                sig: {(curation.significance_override ?? node.significance ?? 0).toFixed(2)}
+              </span>
+              {curation.hidden && <span style={{ fontSize: '0.72rem', color: 'rgb(248,113,113)' }}>HIDDEN</span>}
+              {flags.length > 0 && <span style={{ fontSize: '0.72rem', color: 'rgb(251,191,36)' }}>{flags.length} flag{flags.length !== 1 ? 's' : ''}</span>}
+            </div>
+          </div>
+        </div>
+      ) : (
+      /* ─── EDIT MODE ─── */
       <div className="admin-node-detail-body">
         {/* Left column */}
         <div className="admin-node-detail-section">
@@ -868,6 +1024,7 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
           )}
         </div>
       </div>
+      )}
 
       {/* Lightbox overlay */}
       {lightboxIdx !== null && media[lightboxIdx] && (

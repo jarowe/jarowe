@@ -30,14 +30,15 @@ function AdminUsersInner() {
       setLoading(true);
       setError(null);
       try {
-        // Query directly — AuthContext handles session refresh.
-        // No aggressive timeout — the Supabase client queues requests behind
-        // its internal session lock during token refresh, so short timeouts
-        // cause false failures. Let the query complete naturally.
-        const profilesRes = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
+        // Safety timeout: Supabase client can hang if session lock is
+        // corrupted. 30s is generous but prevents infinite loading.
+        const safetyTimeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timed out after 30s. Try signing out and back in, then reload.')), 30000));
+
+        const profilesRes = await Promise.race([
+          supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+          safetyTimeout,
+        ]);
 
         // If we get an auth error on first attempt, wait and retry once
         if (profilesRes.error) {
@@ -49,10 +50,13 @@ function AdminUsersInner() {
           throw profilesRes.error;
         }
 
-        // Fetch related data in parallel
-        const [scoresRes, achievementsRes] = await Promise.all([
-          supabase.from('high_scores').select('user_id, game_id, score'),
-          supabase.from('achievements').select('user_id, achievement_id'),
+        // Fetch related data in parallel (share the safety timeout)
+        const [scoresRes, achievementsRes] = await Promise.race([
+          Promise.all([
+            supabase.from('high_scores').select('user_id, game_id, score'),
+            supabase.from('achievements').select('user_id, achievement_id'),
+          ]),
+          safetyTimeout,
         ]);
 
         // Group scores and achievements by user_id
