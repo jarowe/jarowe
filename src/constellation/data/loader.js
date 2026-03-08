@@ -17,7 +17,7 @@
 
 import mockData from './mock-constellation.json';
 import { computeHelixLayout } from '../layout/helixLayout.js';
-import { supabase } from '../../lib/supabase';
+import { supabaseGet } from '../../lib/supabase';
 
 /**
  * Load constellation data from the pipeline output or fall back to mock data.
@@ -37,14 +37,13 @@ import { supabase } from '../../lib/supabase';
  * Returns a Map of nodeId → override row. Silently returns empty Map on error.
  */
 async function fetchCurationOverrides() {
-  if (!supabase) return new Map();
   try {
-    const { data, error } = await supabase
-      .from('node_curation')
-      .select('*');
-    if (error) throw error;
+    // Direct REST call — bypasses Supabase client session lock that blocks
+    // the entire constellation from loading when signed in.
+    const data = await supabaseGet('node_curation');
+    if (!data) return new Map();
     const map = new Map();
-    for (const row of data || []) {
+    for (const row of data) {
       map.set(row.node_id, row);
     }
     return map;
