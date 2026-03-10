@@ -122,10 +122,10 @@ export default function MusicCell() {
                         aria-label="Volume"
                     />
                 </div>
-                {currentTrack?.platformUrl && currentTrack.platform === 'spotify' && (
-                    <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className="music-listen-link" title="Listen on Spotify">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M16.5 10.5c-2.5-1.5-6.5-1.6-8.8-.9a.7.7 0 1 1-.4-1.3c2.7-.8 7.1-.7 9.9 1a.7.7 0 0 1-.7 1.2zm-.6 2.2c-2.1-1.3-5.3-1.7-7.8-.9a.6.6 0 1 1-.3-1.1c2.8-.8 6.3-.4 8.7 1.1a.6.6 0 0 1-.6 1zm-.7 2.1c-1.7-1-3.8-1.3-6.3-.7a.5.5 0 1 1-.2-1c2.7-.6 5-.3 6.9.8a.5.5 0 0 1-.4.9z" fill="#fff"/></svg>
-                        <span>Listen on Spotify</span>
+                {currentTrack?.platformUrl && (
+                    <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className={`music-listen-link ${currentTrack.platform === 'soundcloud' ? 'sc' : ''}`} title={`Listen on ${platformLabels[currentTrack.platform] || currentTrack.platform}`}>
+                        <PlatformBadge platform={currentTrack.platform} />
+                        <span>Listen on {platformLabels[currentTrack.platform] || currentTrack.platform}</span>
                     </a>
                 )}
             </div>

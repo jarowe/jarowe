@@ -123,6 +123,7 @@ const avatarEffects = ['float', 'glitch', 'spin', 'ripple'];
 
 const avatarPhotos = [
   'headshot.jpg',
+  'jarowe_image.jpg',
   'family-alps.jpg',
   'couple-golden-hour.jpg',
   'boys-selfie.jpg',
