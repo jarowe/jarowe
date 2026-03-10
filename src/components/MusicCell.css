@@ -5,47 +5,172 @@
     height: 100%;
 }
 
-.music-top {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.music-artwork-wrapper {
+/* ── Showcase: 3D album art + vinyl disc ── */
+.music-showcase {
     position: relative;
-    width: 60px;
-    height: 60px;
-    flex-shrink: 0;
-}
-
-.music-artwork {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-    object-fit: cover;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-}
-
-.music-artwork-wrapper .platform-badge {
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-}
-
-.music-art-icon {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #7c3aed, #38bdf8, #f472b6, #7c3aed);
-    background-size: 300% 300%;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    padding: 8px 0 4px;
+    min-height: 140px;
+}
+
+/* Vinyl wrapper handles the slide transition */
+.music-vinyl-wrap {
+    position: absolute;
+    z-index: 1;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Default: tucked behind album art */
+    transform: translateX(0px);
+}
+
+.music-vinyl-wrap.out {
+    transform: translateX(45px);
+}
+
+/* Vinyl disc */
+.music-vinyl {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 50%, #333 0%, #111 18%, transparent 19%),
+        repeating-radial-gradient(
+            circle at 50% 50%,
+            transparent 0px,
+            transparent 4px,
+            rgba(255, 255, 255, 0.04) 4px,
+            rgba(255, 255, 255, 0.04) 5px
+        ),
+        radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0a0a12 100%);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.06),
+        0 4px 24px rgba(0, 0, 0, 0.7),
+        inset 0 0 20px rgba(0, 0, 0, 0.3);
+    /* Spin is always defined but paused by default */
+    animation: vinylSpin 2s linear infinite paused;
+}
+
+.music-vinyl.spinning {
+    animation-play-state: running;
+}
+
+@keyframes vinylSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Vinyl sheen — a diagonal highlight streak to make spin visible */
+.vinyl-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.08) 45%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 255, 255, 0.08) 55%,
+        transparent 70%
+    );
+    pointer-events: none;
+}
+
+/* Vinyl center label */
+.vinyl-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+    overflow: hidden;
+}
+
+.vinyl-label-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    opacity: 0.85;
+}
+
+/* Center spindle hole */
+.vinyl-label::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0a0a12;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* 3D album art container */
+.music-artwork-3d {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    flex-shrink: 0;
+    z-index: 2;
+}
+
+.music-artwork-3d .music-artwork {
+    width: 130px;
+    height: 130px;
+    border-radius: 10px;
+    object-fit: cover;
+    box-shadow:
+        0 8px 30px rgba(124, 58, 237, 0.35),
+        0 2px 8px rgba(0, 0, 0, 0.6),
+        -4px 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+    transform: rotateY(-3deg) rotateX(2deg);
+}
+
+.music-showcase:hover .music-artwork-3d .music-artwork {
+    transform: rotateY(0deg) rotateX(0deg) scale(1.02);
+    box-shadow:
+        0 12px 40px rgba(124, 58, 237, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.7),
+        0 0 60px rgba(124, 58, 237, 0.15);
+}
+
+/* Glossy reflection overlay */
+.artwork-gloss {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.05) 35%,
+        transparent 55%
+    );
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* Fallback icon (no artwork) */
+.music-art-icon {
+    width: 130px;
+    height: 130px;
+    background: linear-gradient(135deg, #7c3aed, #38bdf8, #f472b6, #7c3aed);
+    background-size: 300% 300%;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 8px 30px rgba(124, 58, 237, 0.35),
+        0 2px 8px rgba(0, 0, 0, 0.6);
+    transform: rotateY(-3deg) rotateX(2deg);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .music-art-icon.playing {
@@ -53,40 +178,74 @@
 }
 
 @keyframes rotateGradient {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
+/* ── Now Spinning label + platform link ── */
+.music-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.now-playing {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.music-platform-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    color: #a1a1aa;
+    text-decoration: none;
+    border-bottom: 1px dotted #a1a1aa;
+    transition: color 0.2s;
+}
+
+.music-platform-link:hover {
+    color: #1DB954;
+    border-bottom-color: #1DB954;
+}
+
+.music-platform-link .platform-badge {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Track info ── */
 .music-meta {
-    margin-top: 1.5rem;
+    margin-top: 0.6rem;
 }
 
 .music-meta .song-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #fff;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
 }
 
 .music-meta .song-artist {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #a1a1aa;
 }
 
+/* ── Controls bar ── */
 .music-controls-bar {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
 }
 
 .control-btn {
@@ -123,4 +282,83 @@
 .prev-btn:hover,
 .next-btn:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Bottom row: volume + Spotify link ── */
+.music-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    gap: 8px;
+}
+
+.music-volume-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.music-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 70px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+}
+
+.music-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.music-volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+}
+
+.music-volume-slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
+    border: none;
+    cursor: pointer;
+}
+
+/* Listen on Spotify link */
+.music-listen-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #1DB954;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.music-listen-link:hover {
+    background: rgba(29, 185, 84, 0.2);
+    border-color: rgba(29, 185, 84, 0.4);
+    box-shadow: 0 0 12px rgba(29, 185, 84, 0.15);
+}
+
+.music-listen-link svg {
+    flex-shrink: 0;
 }

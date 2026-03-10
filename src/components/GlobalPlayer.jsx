@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, SkipForward, SkipBack, Music2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Music2, Volume2 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { useLocation } from 'react-router-dom';
 import './GlobalPlayer.css';
@@ -34,11 +34,12 @@ function GlobalPlatformBadge({ platform }) {
 }
 
 export default function GlobalPlayer() {
-    const { isPlaying, currentTrack, togglePlay, handleNext, handlePrevious } = useAudio();
+    const { isPlaying, currentTrack, togglePlay, handleNext, handlePrevious, volume, setVolume, musicCellVisible } = useAudio();
     const location = useLocation();
 
-    // Hide on home page - MusicCell handles it there
-    if (!currentTrack || location.pathname === '/') return null;
+    // Hide when no track, or on home page when MusicCell is still visible
+    if (!currentTrack) return null;
+    if (location.pathname === '/' && musicCellVisible) return null;
 
     return (
         <div className="global-player">
@@ -69,6 +70,20 @@ export default function GlobalPlayer() {
                 <button onClick={handleNext} className="global-control-btn" aria-label="Next track">
                     <SkipForward size={16} color="#fff" />
                 </button>
+            </div>
+
+            <div className="global-volume-wrap">
+                <Volume2 size={12} color="#a1a1aa" />
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="global-volume-slider"
+                    aria-label="Volume"
+                />
             </div>
         </div>
     );

@@ -36,6 +36,10 @@ function connectAnalyser() {
 export function AudioProvider({ children }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+    const [volume, setVolumeState] = useState(() => {
+        const saved = parseFloat(localStorage.getItem('jarowe_volume'));
+        return isNaN(saved) ? 0.7 : saved;
+    });
     const soundRef = useRef(null);
     const trackIndexRef = useRef(0);
     const loadingRef = useRef(false);
@@ -43,6 +47,18 @@ export function AudioProvider({ children }) {
     // Shuffle order created once on mount
     const shuffledOrder = useMemo(() => shuffleIndices(tracks.length), []);
     const shufflePositionRef = useRef(0);
+
+    // Initialize Howler global volume
+    useEffect(() => {
+        Howler.volume(volume);
+    }, []);
+
+    const setVolume = (v) => {
+        const clamped = Math.max(0, Math.min(1, v));
+        setVolumeState(clamped);
+        Howler.volume(clamped);
+        localStorage.setItem('jarowe_volume', clamped.toString());
+    };
 
     const playTrack = (index) => {
         if (loadingRef.current) return;
@@ -114,9 +130,12 @@ export function AudioProvider({ children }) {
         }
 
         if (!soundRef.current) {
-            // Start with first track in shuffle order
-            shufflePositionRef.current = 0;
-            playTrack(shuffledOrder[0]);
+            // Play the currently displayed track (tracks[0] on first load)
+            // Find its position in shuffle order so next/prev work correctly
+            const displayedIndex = trackIndexRef.current;
+            const pos = shuffledOrder.indexOf(displayedIndex);
+            shufflePositionRef.current = pos >= 0 ? pos : 0;
+            playTrack(displayedIndex);
             return;
         }
 
@@ -149,6 +168,9 @@ export function AudioProvider({ children }) {
         };
     }, []);
 
+    // Track whether the home-page MusicCell is visible (IntersectionObserver)
+    const [musicCellVisible, setMusicCellVisible] = useState(true);
+
     const value = {
         isPlaying,
         currentTrackIndex,
@@ -157,7 +179,11 @@ export function AudioProvider({ children }) {
         togglePlay,
         playTrack,
         handleNext,
-        handlePrevious
+        handlePrevious,
+        volume,
+        setVolume,
+        musicCellVisible,
+        setMusicCellVisible
     };
 
     return (
