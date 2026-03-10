@@ -336,45 +336,30 @@
     cursor: pointer;
 }
 
-/* Listen on Spotify link */
-.music-listen-link {
-    display: inline-flex;
+/* Platform icon button */
+.music-platform-btn {
+    display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #1DB954;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     text-decoration: none;
-    padding: 4px 8px;
-    border-radius: 12px;
-    background: rgba(29, 185, 84, 0.1);
-    border: 1px solid rgba(29, 185, 84, 0.2);
     transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.music-listen-link:hover {
-    background: rgba(29, 185, 84, 0.2);
-    border-color: rgba(29, 185, 84, 0.4);
-    box-shadow: 0 0 12px rgba(29, 185, 84, 0.15);
-}
-
-/* SoundCloud variant */
-.music-listen-link.sc {
-    color: #ff5500;
-    background: rgba(255, 85, 0, 0.1);
-    border-color: rgba(255, 85, 0, 0.2);
-}
-
-.music-listen-link.sc:hover {
-    background: rgba(255, 85, 0, 0.2);
-    border-color: rgba(255, 85, 0, 0.4);
-    box-shadow: 0 0 12px rgba(255, 85, 0, 0.15);
-}
-
-.music-listen-link svg,
-.music-listen-link .platform-badge {
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+}
+
+.music-platform-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+.music-platform-btn .platform-badge {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
 }

@@ -123,9 +123,8 @@ export default function MusicCell() {
                     />
                 </div>
                 {currentTrack?.platformUrl && (
-                    <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className={`music-listen-link ${currentTrack.platform === 'soundcloud' ? 'sc' : ''}`} title={`Listen on ${platformLabels[currentTrack.platform] || currentTrack.platform}`}>
+                    <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className="music-platform-btn" title={`Open on ${platformLabels[currentTrack.platform] || currentTrack.platform}`}>
                         <PlatformBadge platform={currentTrack.platform} />
-                        <span>Listen on {platformLabels[currentTrack.platform] || currentTrack.platform}</span>
                     </a>
                 )}
             </div>
