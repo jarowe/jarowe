@@ -111,13 +111,22 @@
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-/* 3D album art container */
+/* 3D album art container — clickable to open full player */
 .music-artwork-3d {
     position: relative;
     width: 130px;
     height: 130px;
     flex-shrink: 0;
     z-index: 2;
+    cursor: pointer;
+}
+
+.music-artwork-3d:hover .music-artwork {
+    transform: rotateY(0deg) rotateX(0deg) scale(1.04);
+    box-shadow:
+        0 12px 40px rgba(124, 58, 237, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.7),
+        0 0 60px rgba(124, 58, 237, 0.15);
 }
 
 .music-artwork-3d .music-artwork {
@@ -202,12 +211,14 @@
 .music-platform-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.7rem;
-    color: #a1a1aa;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #c4c4cc;
     text-decoration: none;
-    border-bottom: 1px dotted #a1a1aa;
-    transition: color 0.2s;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.2);
+    padding-bottom: 1px;
+    transition: color 0.2s, border-color 0.2s;
 }
 
 .music-platform-link:hover {
@@ -216,8 +227,8 @@
 }
 
 .music-platform-link .platform-badge {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -284,25 +295,35 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* ── Bottom row: volume + Spotify link ── */
+/* ── Shuffle button ── */
+.shuffle-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(5px);
+}
+
+.shuffle-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.shuffle-btn.active {
+    background: rgba(124, 58, 237, 0.2);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+}
+
+/* ── Bottom row: volume full-width ── */
 .music-bottom-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     margin-top: 0.5rem;
-    gap: 8px;
-}
-
-.music-volume-row {
-    display: flex;
-    align-items: center;
     gap: 6px;
 }
 
 .music-volume-slider {
     -webkit-appearance: none;
     appearance: none;
-    width: 70px;
+    flex: 1;
     height: 3px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.15);
@@ -336,30 +357,3 @@
     cursor: pointer;
 }
 
-/* Platform icon button */
-.music-platform-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-decoration: none;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-.music-platform-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
-}
-
-.music-platform-btn .platform-badge {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-}

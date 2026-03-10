@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useRef, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useContext, useRef, useEffect } from 'react';
 import { Howl, Howler } from 'howler';
 import tracks from '../data/tracks';
 
@@ -44,9 +44,28 @@ export function AudioProvider({ children }) {
     const trackIndexRef = useRef(0);
     const loadingRef = useRef(false);
 
-    // Shuffle order created once on mount
-    const shuffledOrder = useMemo(() => shuffleIndices(tracks.length), []);
+    // Shuffle state — true = random order, false = sequential
+    const [shuffle, setShuffle] = useState(true);
+    const shuffleRef = useRef(true);
+
+    // Shuffle order created once on mount, re-shuffled when toggling on
+    const [shuffledOrder, setShuffledOrder] = useState(() => shuffleIndices(tracks.length));
     const shufflePositionRef = useRef(0);
+
+    const toggleShuffle = () => {
+        const next = !shuffleRef.current;
+        shuffleRef.current = next;
+        setShuffle(next);
+        if (next) {
+            // Re-shuffle and place current track at position 0
+            const newOrder = shuffleIndices(tracks.length);
+            const cur = trackIndexRef.current;
+            const idx = newOrder.indexOf(cur);
+            if (idx > 0) { [newOrder[0], newOrder[idx]] = [newOrder[idx], newOrder[0]]; }
+            setShuffledOrder(newOrder);
+            shufflePositionRef.current = 0;
+        }
+    };
 
     // Initialize Howler global volume
     useEffect(() => {
@@ -110,10 +129,13 @@ export function AudioProvider({ children }) {
                 }
             },
             onend: () => {
-                // Advance to next in shuffle order
-                const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
-                shufflePositionRef.current = nextPos;
-                playTrack(shuffledOrder[nextPos]);
+                if (shuffleRef.current) {
+                    const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
+                    shufflePositionRef.current = nextPos;
+                    playTrack(shuffledOrder[nextPos]);
+                } else {
+                    playTrack((trackIndexRef.current + 1) % tracks.length);
+                }
             }
         });
 
@@ -148,16 +170,24 @@ export function AudioProvider({ children }) {
 
     const handleNext = () => {
         loadingRef.current = false;
-        const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
-        shufflePositionRef.current = nextPos;
-        playTrack(shuffledOrder[nextPos]);
+        if (shuffleRef.current) {
+            const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
+            shufflePositionRef.current = nextPos;
+            playTrack(shuffledOrder[nextPos]);
+        } else {
+            playTrack((trackIndexRef.current + 1) % tracks.length);
+        }
     };
 
     const handlePrevious = () => {
         loadingRef.current = false;
-        const prevPos = (shufflePositionRef.current - 1 + shuffledOrder.length) % shuffledOrder.length;
-        shufflePositionRef.current = prevPos;
-        playTrack(shuffledOrder[prevPos]);
+        if (shuffleRef.current) {
+            const prevPos = (shufflePositionRef.current - 1 + shuffledOrder.length) % shuffledOrder.length;
+            shufflePositionRef.current = prevPos;
+            playTrack(shuffledOrder[prevPos]);
+        } else {
+            playTrack((trackIndexRef.current - 1 + tracks.length) % tracks.length);
+        }
     }
 
     useEffect(() => {
@@ -182,6 +212,8 @@ export function AudioProvider({ children }) {
         handlePrevious,
         volume,
         setVolume,
+        shuffle,
+        toggleShuffle,
         musicCellVisible,
         setMusicCellVisible
     };

@@ -29,6 +29,7 @@ import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../util
 import { startTour, endTour, nextChapter, prevChapter, getTourState, isTourActive } from '../utils/globeTour';
 import { getTourChapters, TOTAL_CHAPTERS } from '../data/tourChapters';
 import { useCloudSync } from '../hooks/useCloudSync';
+const MusicPlayerModal = lazy(() => import('../components/MusicPlayerModal'));
 const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 const GlintFab = lazy(() => import('../components/GlintFab'));
@@ -4158,6 +4159,7 @@ export default function Home() {
   const [showSpawnMarkers, setShowSpawnMarkers] = useState(false);
   const [showTrivia, setShowTrivia] = useState(false);
   const [showGame, setShowGame] = useState(false);
+  const [showMusicModal, setShowMusicModal] = useState(false);
 
   // Glint Brain — conversation mode (Tier 2)
   const [conversationMode, setConversationMode] = useState(false);
@@ -6652,7 +6654,7 @@ export default function Home() {
           </div>
 
           <div className="bento-cell cell-music">
-            <MusicCell />
+            <MusicCell onOpenPlayer={() => setShowMusicModal(true)} />
           </div>
 
           {/* WORKSHOP CELL */}
@@ -7422,6 +7424,15 @@ export default function Home() {
               holiday={holiday}
               onClose={() => { setShowGame(false); const aut = getGlintAutonomy(); if (aut) aut.resume(); }}
             />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* FULL-SCREEN MUSIC PLAYER MODAL */}
+      <AnimatePresence>
+        {showMusicModal && (
+          <Suspense fallback={null}>
+            <MusicPlayerModal onClose={() => setShowMusicModal(false)} />
           </Suspense>
         )}
       </AnimatePresence>

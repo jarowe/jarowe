@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Music2, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Shuffle, Music2, Volume2 } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import './MusicCell.css';
 
@@ -38,8 +38,8 @@ function PlatformBadge({ platform }) {
     return null;
 }
 
-export default function MusicCell() {
-    const { isPlaying, currentTrackIndex, currentTrack, tracks, togglePlay, handleNext, handlePrevious, volume, setVolume, setMusicCellVisible } = useAudio();
+export default function MusicCell({ onOpenPlayer }) {
+    const { isPlaying, currentTrackIndex, currentTrack, tracks, togglePlay, handleNext, handlePrevious, volume, setVolume, shuffle, toggleShuffle, setMusicCellVisible } = useAudio();
     const cellRef = useRef(null);
 
     // Track visibility for GlobalPlayer show/hide on home page
@@ -66,7 +66,7 @@ export default function MusicCell() {
                         </div>
                     </div>
                 </div>
-                <div className="music-artwork-3d">
+                <div className="music-artwork-3d" onClick={onOpenPlayer} role="button" tabIndex={0} aria-label="Open full player">
                     {currentTrack?.artwork ? (
                         <img src={currentTrack.artwork} alt={currentTrack.title} className="music-artwork" />
                     ) : (
@@ -83,7 +83,7 @@ export default function MusicCell() {
                     <div className="now-playing">NOW SPINNING</div>
                     {currentTrack?.platformUrl && (
                         <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className="music-platform-link">
-                            {currentTrack.platform === 'spotify' && <PlatformBadge platform="spotify" />}
+                            <PlatformBadge platform={currentTrack.platform} />
                             @jarowe on {platformLabels[currentTrack.platform] || currentTrack.platform}
                         </a>
                     )}
@@ -97,6 +97,9 @@ export default function MusicCell() {
             </div>
 
             <div className="music-controls-bar">
+                <button onClick={toggleShuffle} className={`control-btn shuffle-btn${shuffle ? ' active' : ''}`} aria-label="Toggle shuffle">
+                    <Shuffle size={16} color={shuffle ? '#7c3aed' : '#fff'} />
+                </button>
                 <button onClick={handlePrevious} className="control-btn prev-btn" aria-label="Previous track">
                     <SkipBack size={20} color="#fff" />
                 </button>
@@ -109,24 +112,17 @@ export default function MusicCell() {
             </div>
 
             <div className="music-bottom-row">
-                <div className="music-volume-row">
-                    <Volume2 size={14} color="#a1a1aa" />
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={volume}
-                        onChange={(e) => setVolume(parseFloat(e.target.value))}
-                        className="music-volume-slider"
-                        aria-label="Volume"
-                    />
-                </div>
-                {currentTrack?.platformUrl && (
-                    <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className="music-platform-btn" title={`Open on ${platformLabels[currentTrack.platform] || currentTrack.platform}`}>
-                        <PlatformBadge platform={currentTrack.platform} />
-                    </a>
-                )}
+                <Volume2 size={14} color="#a1a1aa" />
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="music-volume-slider"
+                    aria-label="Volume"
+                />
             </div>
         </div>
     );
