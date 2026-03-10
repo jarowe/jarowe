@@ -84,7 +84,7 @@ export default function MusicCell({ onOpenPlayer }) {
                     {currentTrack?.platformUrl && (
                         <a href={currentTrack.platformUrl} target="_blank" rel="noreferrer" className="music-platform-link">
                             <PlatformBadge platform={currentTrack.platform} />
-                            @jarowe on {platformLabels[currentTrack.platform] || currentTrack.platform}
+                            Jarowe on {platformLabels[currentTrack.platform] || currentTrack.platform}
                         </a>
                     )}
                 </div>
