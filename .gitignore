@@ -23,6 +23,7 @@ data-private/
 # Private media — pipeline-processed media is committed for Vercel deployment
 # Raw Instagram exports stay private
 !public/data/media/
+public/data/media/fb-*/
 public/images/instagram/
 
 # Temp patch/fix scripts
@@ -30,6 +31,12 @@ fix_globe.cjs
 patch_*.cjs
 update_globe.cjs
 nul
+
+# Local / temp / archive (not for deployment)
+carbonmade-archive/
+.claude/
+C*devjarowetmp_*
+public/images/Facebook/
 
 # Editor directories and files
 .vscode/*
