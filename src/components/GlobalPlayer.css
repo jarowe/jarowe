@@ -33,6 +33,30 @@
     gap: 10px;
 }
 
+.global-artwork-wrapper {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+.global-artwork {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.global-artwork-wrapper .global-platform-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
 .global-art-icon {
     width: 32px;
     height: 32px;

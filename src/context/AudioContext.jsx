@@ -1,15 +1,18 @@
-import React, { createContext, useState, useContext, useRef, useEffect } from 'react';
+import React, { createContext, useState, useContext, useRef, useEffect, useMemo } from 'react';
 import { Howl, Howler } from 'howler';
+import tracks from '../data/tracks';
 
 const AudioContext = createContext(null);
 
-const BASE = import.meta.env.BASE_URL;
-
-export const sunoTracks = [
-    { title: "Electric Dreams", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-16.mp3` },
-    { title: "Neon Nights", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-13.mp3` },
-    { title: "The Void Calls", artist: "Jarowe", src: `${BASE}audio/SoundHelix-Song-14.mp3` }
-];
+// Fisher-Yates shuffle — returns a new array of indices in random order
+function shuffleIndices(length) {
+    const arr = Array.from({ length }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
 
 // Branch-connect an AnalyserNode to Howler's masterGain (Web Audio mode).
 // Audio flows: XHR download → decode → BufferSource → masterGain → destination
@@ -37,6 +40,10 @@ export function AudioProvider({ children }) {
     const trackIndexRef = useRef(0);
     const loadingRef = useRef(false);
 
+    // Shuffle order created once on mount
+    const shuffledOrder = useMemo(() => shuffleIndices(tracks.length), []);
+    const shufflePositionRef = useRef(0);
+
     const playTrack = (index) => {
         if (loadingRef.current) return;
         loadingRef.current = true;
@@ -50,7 +57,7 @@ export function AudioProvider({ children }) {
             Howler.ctx.resume();
         }
 
-        const track = sunoTracks[index];
+        const track = tracks[index];
         trackIndexRef.current = index;
 
         const sound = new Howl({
@@ -87,8 +94,10 @@ export function AudioProvider({ children }) {
                 }
             },
             onend: () => {
-                const nextIndex = (trackIndexRef.current + 1) % sunoTracks.length;
-                playTrack(nextIndex);
+                // Advance to next in shuffle order
+                const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
+                shufflePositionRef.current = nextPos;
+                playTrack(shuffledOrder[nextPos]);
             }
         });
 
@@ -105,7 +114,9 @@ export function AudioProvider({ children }) {
         }
 
         if (!soundRef.current) {
-            playTrack(0);
+            // Start with first track in shuffle order
+            shufflePositionRef.current = 0;
+            playTrack(shuffledOrder[0]);
             return;
         }
 
@@ -118,14 +129,16 @@ export function AudioProvider({ children }) {
 
     const handleNext = () => {
         loadingRef.current = false;
-        const nextIndex = (trackIndexRef.current + 1) % sunoTracks.length;
-        playTrack(nextIndex);
+        const nextPos = (shufflePositionRef.current + 1) % shuffledOrder.length;
+        shufflePositionRef.current = nextPos;
+        playTrack(shuffledOrder[nextPos]);
     };
 
     const handlePrevious = () => {
         loadingRef.current = false;
-        const prevIndex = (trackIndexRef.current - 1 + sunoTracks.length) % sunoTracks.length;
-        playTrack(prevIndex);
+        const prevPos = (shufflePositionRef.current - 1 + shuffledOrder.length) % shuffledOrder.length;
+        shufflePositionRef.current = prevPos;
+        playTrack(shuffledOrder[prevPos]);
     }
 
     useEffect(() => {
@@ -139,8 +152,8 @@ export function AudioProvider({ children }) {
     const value = {
         isPlaying,
         currentTrackIndex,
-        currentTrack: sunoTracks[currentTrackIndex],
-        sunoTracks,
+        currentTrack: tracks[currentTrackIndex],
+        tracks,
         togglePlay,
         playTrack,
         handleNext,
