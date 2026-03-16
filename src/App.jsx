@@ -222,14 +222,14 @@ function AppContent() {
           <Route path="/artist" element={
             takeover.loading
               ? <LazyFallback />
-              : takeover.exposure === 'takeover' && takeover.entry
+              : takeover.entry
                 ? <TakeoverRoute entry={takeover.entry} pageKey="artist" takeover={takeover} />
                 : null
           } />
           <Route path="/epk" element={
             takeover.loading
               ? <LazyFallback />
-              : takeover.exposure === 'takeover' && takeover.entry
+              : takeover.entry
                 ? <TakeoverRoute entry={takeover.entry} pageKey="epk" takeover={takeover} />
                 : null
           } />
