@@ -190,6 +190,15 @@ export function AudioProvider({ children }) {
         }
     }
 
+    // Pause current playback without unloading — used by release routes
+    // to silence site music when entering a campaign context.
+    // Does NOT auto-resume; user must press play again.
+    const pausePlayback = () => {
+        if (soundRef.current && isPlaying) {
+            soundRef.current.pause();
+        }
+    };
+
     useEffect(() => {
         return () => {
             if (soundRef.current) {
@@ -214,6 +223,7 @@ export function AudioProvider({ children }) {
         setVolume,
         shuffle,
         toggleShuffle,
+        pausePlayback,
         musicCellVisible,
         setMusicCellVisible
     };
