@@ -1,0 +1,526 @@
+.release-bitb .bitb-artist {
+  position: relative;
+}
+
+.release-bitb #bitb-artist-hero {
+  min-height: calc(100vh - var(--bitb-nav-height));
+  min-height: calc(100dvh - var(--bitb-nav-height));
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding-top: clamp(7rem, 10vw, 9rem);
+  overflow: clip;
+}
+
+.release-bitb .bitb-artist-hero::before {
+  content: '';
+  position: absolute;
+  inset: 6% 12% auto;
+  height: 24rem;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(237, 230, 219, 0.14), transparent 24%),
+    radial-gradient(circle at 28% 45%, rgba(196, 98, 106, 0.16), transparent 28%),
+    radial-gradient(circle at 72% 45%, rgba(201, 168, 108, 0.14), transparent 28%);
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-hero__aura,
+.release-bitb .bitb-artist-hero__portrait-wrap,
+.release-bitb .bitb-artist-hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.release-bitb .bitb-artist-hero__aura {
+  position: absolute;
+  left: 50%;
+  top: 8rem;
+  width: clamp(20rem, 36vw, 32rem);
+  height: clamp(20rem, 36vw, 32rem);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(237, 230, 219, 0.16), transparent 48%),
+    radial-gradient(circle at 35% 50%, rgba(196, 98, 106, 0.14), transparent 44%),
+    radial-gradient(circle at 65% 50%, rgba(201, 168, 108, 0.12), transparent 42%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-hero__portrait-wrap {
+  width: clamp(15rem, 24vw, 21rem);
+  aspect-ratio: 1;
+  margin: 0 auto 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(237, 230, 219, 0.08);
+}
+
+.release-bitb .bitb-artist-hero__portrait-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 30%),
+    radial-gradient(circle at 35% 20%, rgba(237, 230, 219, 0.08), transparent 30%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-hero__portrait {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  filter: saturate(0.92) contrast(1.02);
+}
+
+.release-bitb .bitb-artist-hero__portrait-placeholder {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(237, 230, 219, 0.1), transparent 22%),
+    radial-gradient(circle at 50% 70%, rgba(49, 46, 129, 0.56), transparent 44%),
+    var(--bitb-portrait-url) center / cover no-repeat,
+    linear-gradient(180deg, var(--bitb-indigo-solid), var(--bitb-midnight));
+  border-radius: 50%;
+}
+
+.release-bitb .bitb-artist-hero__portrait ~ .bitb-artist-hero__portrait-placeholder {
+  display: none;
+}
+
+.release-bitb .bitb-artist-hero__ring {
+  position: absolute;
+  inset: -1rem;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 108, 0.36);
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 108, 0.05),
+    0 0 42px rgba(201, 168, 108, 0.12);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-hero__content {
+  max-width: 52rem;
+}
+
+.release-bitb .bitb-artist-hero__content .bitb-eyebrow {
+  justify-content: center;
+}
+
+.release-bitb .bitb-artist-hero__content .bitb-eyebrow::before {
+  background: linear-gradient(90deg, rgba(201, 168, 108, 0.8), rgba(201, 168, 108, 0.14));
+}
+
+.release-bitb .bitb-artist-hero__name {
+  margin: 0 0 1rem;
+  font-size: clamp(3rem, 7vw, 6rem);
+  text-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.release-bitb .bitb-artist-hero__tagline {
+  max-width: 44rem;
+  margin: 0 auto;
+  font-size: clamp(1.02rem, 1vw + 0.74rem, 1.18rem);
+  line-height: 1.78;
+  color: rgba(237, 230, 219, 0.78);
+}
+
+.release-bitb .bitb-artist-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem 1.2rem;
+  margin-top: 1.5rem;
+  color: rgba(237, 230, 219, 0.64);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-hero__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.release-bitb .bitb-artist-hero__meta span:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 0.9rem;
+  background: rgba(237, 230, 219, 0.12);
+}
+
+.release-bitb #bitb-artist-statement {
+  padding-top: 2.5rem;
+}
+
+.release-bitb .bitb-artist-statement__panel {
+  position: relative;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: clamp(1.6rem, 3vw, 2.4rem);
+  border-radius: var(--bitb-radius-lg);
+  overflow: hidden;
+  text-align: center;
+}
+
+.release-bitb .bitb-artist-statement__panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(196, 98, 106, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 78%, rgba(201, 168, 108, 0.1), transparent 26%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-statement__panel .bitb-eyebrow {
+  justify-content: center;
+}
+
+.release-bitb .bitb-artist-statement__quote {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: var(--bitb-font-display);
+  font-size: clamp(1.45rem, 2.8vw, 2.3rem);
+  line-height: 1.48;
+  font-style: italic;
+  color: rgba(237, 230, 219, 0.94);
+  border: 0;
+}
+
+.release-bitb .bitb-artist-album {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 360px);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
+}
+
+.release-bitb .bitb-artist-album__content,
+.release-bitb .bitb-artist-album__art-panel {
+  position: relative;
+  padding: clamp(1.45rem, 2.2vw, 1.9rem);
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.release-bitb .bitb-artist-album__content::before,
+.release-bitb .bitb-artist-album__art-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 42%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-album__heading {
+  margin: 0 0 0.9rem;
+  font-size: clamp(2rem, 3vw, 3.1rem);
+}
+
+.release-bitb .bitb-artist-album__text {
+  margin: 0;
+  color: var(--bitb-ivory-dim);
+  font-size: clamp(1rem, 1vw + 0.72rem, 1.12rem);
+  line-height: 1.76;
+}
+
+.release-bitb .bitb-artist-album__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.4rem;
+}
+
+.release-bitb .bitb-artist-album__meta-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.28rem 0.78rem;
+  border-radius: 999px;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 230, 219, 0.7);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-album__art-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.release-bitb .bitb-artist-album__artwork {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 22px;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.28);
+}
+
+.release-bitb .bitb-artist-album__caption {
+  margin: 0;
+  color: rgba(237, 230, 219, 0.7);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb #bitb-artist-lyrics {
+  padding-top: clamp(5rem, 8vw, 6.8rem);
+}
+
+.release-bitb .bitb-artist-lyrics__header {
+  margin-bottom: 1.5rem;
+}
+
+.release-bitb .bitb-artist-lyrics__heading {
+  max-width: 12ch;
+  margin: 0;
+  font-size: clamp(2rem, 3.4vw, 3rem);
+}
+
+.release-bitb .bitb-artist-lyrics__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.release-bitb .bitb-artist-lyrics__card {
+  position: relative;
+  min-height: 15rem;
+  padding: 1.3rem 1.25rem 1.2rem;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  grid-column: span 4;
+}
+
+.release-bitb .bitb-artist-lyrics__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(201, 168, 108, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 48%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-artist-lyrics__card:nth-child(3n + 2) {
+  transform: translateY(1.4rem);
+}
+
+.release-bitb .bitb-artist-lyrics__index {
+  position: relative;
+  z-index: 1;
+  color: rgba(237, 230, 219, 0.38);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-lyrics__excerpt {
+  margin: 1.15rem 0;
+}
+
+.release-bitb .bitb-artist-lyrics__source {
+  position: relative;
+  z-index: 1;
+  font-style: normal;
+  color: rgba(212, 135, 141, 0.9);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-discography {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 380px);
+  gap: clamp(1rem, 2.2vw, 1.8rem);
+  align-items: start;
+}
+
+.release-bitb .bitb-artist-discography__heading {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 3vw, 3rem);
+}
+
+.release-bitb .bitb-artist-discography__cards {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.release-bitb .bitb-artist-discography__card {
+  width: min(100%, 22rem);
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.release-bitb .bitb-artist-discography__art {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.release-bitb .bitb-artist-discography__body {
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+
+.release-bitb .bitb-artist-discography__type,
+.release-bitb .bitb-artist-discography__year {
+  display: block;
+  color: rgba(237, 230, 219, 0.58);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-discography__title {
+  margin: 0.45rem 0;
+  font-size: 1.7rem;
+}
+
+.release-bitb .bitb-artist-process {
+  padding-top: 4.5rem;
+}
+
+.release-bitb .bitb-artist-process__panel {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.6rem 1.4rem;
+  border-radius: 24px;
+  text-align: center;
+}
+
+.release-bitb .bitb-artist-process__heading {
+  margin: 0 0 0.7rem;
+  font-size: 1rem;
+  font-family: var(--bitb-font-body);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.7);
+}
+
+.release-bitb .bitb-artist-process__text {
+  margin: 0;
+  color: rgba(237, 230, 219, 0.62);
+  font-size: 0.96rem;
+  line-height: 1.72;
+}
+
+.release-bitb .bitb-artist-cta__panel {
+  padding: clamp(1.6rem, 2.8vw, 2.4rem);
+  border-radius: 30px;
+  text-align: center;
+}
+
+.release-bitb .bitb-artist-cta__panel .bitb-eyebrow {
+  justify-content: center;
+}
+
+.release-bitb .bitb-artist-cta__heading {
+  margin: 0 0 1.4rem;
+  font-size: clamp(2rem, 3.1vw, 3rem);
+}
+
+.release-bitb .bitb-artist-cta__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.95rem;
+}
+
+.release-bitb .bitb-artist-cta__socials {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.1rem;
+  margin-top: 1.5rem;
+}
+
+.release-bitb .bitb-artist-cta__social {
+  color: rgba(237, 230, 219, 0.62) !important;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-artist-cta__social:hover {
+  color: var(--bitb-gold) !important;
+}
+
+@media (max-width: 980px) {
+  .release-bitb .bitb-artist-album,
+  .release-bitb .bitb-artist-discography {
+    grid-template-columns: 1fr;
+  }
+
+  .release-bitb .bitb-artist-discography__cards {
+    justify-content: flex-start;
+  }
+
+  .release-bitb .bitb-artist-lyrics__card {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 720px) {
+  .release-bitb .bitb-artist-lyrics__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .release-bitb .bitb-artist-lyrics__card,
+  .release-bitb .bitb-artist-lyrics__card:nth-child(3n + 2) {
+    grid-column: auto;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .release-bitb #bitb-artist-hero {
+    min-height: auto;
+    padding-top: 6.3rem;
+  }
+
+  .release-bitb .bitb-artist-hero__portrait-wrap {
+    width: min(16rem, 72vw);
+  }
+
+  .release-bitb .bitb-artist-hero__meta {
+    gap: 0.6rem 0.9rem;
+  }
+
+  .release-bitb .bitb-artist-hero__meta span:not(:last-child)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .release-bitb .bitb-artist-cta__buttons .bitb-cta {
+    width: 100%;
+  }
+}

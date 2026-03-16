@@ -1,0 +1,430 @@
+.release-bitb .bitb-epk {
+  position: relative;
+}
+
+.release-bitb #bitb-epk-header {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: stretch;
+  padding-top: clamp(7rem, 10vw, 8.5rem);
+}
+
+.release-bitb .bitb-epk-header__art-panel,
+.release-bitb .bitb-epk-header__info,
+.release-bitb .bitb-epk-bios__block,
+.release-bitb .bitb-epk-focus__card,
+.release-bitb .bitb-epk-tags__group,
+.release-bitb .bitb-epk-tracklist__panel,
+.release-bitb .bitb-epk-credits__panel,
+.release-bitb .bitb-epk-assets__panel,
+.release-bitb .bitb-epk-contact__panel {
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.release-bitb .bitb-epk-header__art-panel,
+.release-bitb .bitb-epk-header__info {
+  position: relative;
+  padding: 1.2rem;
+}
+
+.release-bitb .bitb-epk-header__art-panel::before,
+.release-bitb .bitb-epk-header__info::before,
+.release-bitb .bitb-epk-bios__block::before,
+.release-bitb .bitb-epk-focus__card::before,
+.release-bitb .bitb-epk-tags__group::before,
+.release-bitb .bitb-epk-tracklist__panel::before,
+.release-bitb .bitb-epk-credits__panel::before,
+.release-bitb .bitb-epk-assets__panel::before,
+.release-bitb .bitb-epk-contact__panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 44%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-epk-header__artwork {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 22px;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.28);
+}
+
+.release-bitb .bitb-epk-header__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: clamp(1.45rem, 2.4vw, 2rem);
+}
+
+.release-bitb .bitb-epk-header__title {
+  margin: 0;
+  font-size: clamp(2.3rem, 5vw, 4rem);
+}
+
+.release-bitb .bitb-epk-header__artist {
+  margin: -0.2rem 0 0;
+  color: rgba(237, 230, 219, 0.74);
+  font-size: 1.02rem;
+}
+
+.release-bitb .bitb-epk-header__oneliner {
+  max-width: 44rem;
+  margin: 0;
+  color: rgba(237, 230, 219, 0.84);
+  font-size: clamp(1rem, 1vw + 0.72rem, 1.16rem);
+  line-height: 1.74;
+}
+
+.release-bitb .bitb-epk-header__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.release-bitb .bitb-epk-header__dates span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.3rem 0.78rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 108, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 230, 219, 0.78);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-bios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.release-bitb .bitb-epk-bios__block {
+  position: relative;
+  padding: 1.45rem 1.35rem;
+}
+
+.release-bitb .bitb-epk-bios__label {
+  margin: 0 0 0.8rem;
+  font-family: var(--bitb-font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bitb-gold);
+}
+
+.release-bitb .bitb-epk-bios__text {
+  margin: 0;
+  color: var(--bitb-ivory-dim);
+  font-size: 1rem;
+  line-height: 1.76;
+}
+
+.release-bitb .bitb-epk-focus__intro {
+  margin-bottom: 1.35rem;
+}
+
+.release-bitb .bitb-epk-focus__heading {
+  max-width: 13ch;
+  margin: 0;
+  font-size: clamp(1.9rem, 3.2vw, 2.9rem);
+}
+
+.release-bitb .bitb-epk-focus__card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 280px);
+  gap: 1rem;
+  padding: clamp(1.35rem, 2.4vw, 1.8rem);
+}
+
+.release-bitb .bitb-epk-focus__copy {
+  position: relative;
+  z-index: 1;
+}
+
+.release-bitb .bitb-epk-focus__title {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+}
+
+.release-bitb .bitb-epk-focus__meta {
+  margin: 0.45rem 0 0.9rem;
+  color: rgba(237, 230, 219, 0.6);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-focus__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.48rem;
+}
+
+.release-bitb .bitb-epk-focus__aside {
+  position: relative;
+  z-index: 1;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(237, 230, 219, 0.08);
+  display: flex;
+  align-items: center;
+}
+
+.release-bitb .bitb-epk-focus__summary {
+  margin: 0;
+  color: rgba(237, 230, 219, 0.72);
+  font-size: 0.98rem;
+  line-height: 1.72;
+}
+
+.release-bitb .bitb-epk-tags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.release-bitb .bitb-epk-tags__group {
+  position: relative;
+  padding: 1.3rem 1.2rem;
+}
+
+.release-bitb .bitb-epk-tags__label {
+  margin: 0 0 0.8rem;
+  font-family: var(--bitb-font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bitb-gold);
+}
+
+.release-bitb .bitb-epk-tags__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.release-bitb .bitb-epk-tracklist__panel {
+  position: relative;
+  padding: clamp(1.45rem, 2.2vw, 1.9rem);
+}
+
+.release-bitb .bitb-epk-tracklist__heading,
+.release-bitb .bitb-epk-credits__heading,
+.release-bitb .bitb-epk-assets__heading,
+.release-bitb .bitb-epk-contact__heading {
+  margin: 0 0 1.2rem;
+  font-size: clamp(1.7rem, 2.8vw, 2.5rem);
+}
+
+.release-bitb .bitb-epk-tracklist__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.release-bitb .bitb-epk-tracklist__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(237, 230, 219, 0.06);
+}
+
+.release-bitb .bitb-epk-tracklist__item:last-child {
+  border-bottom: 0;
+}
+
+.release-bitb .bitb-epk-tracklist__number,
+.release-bitb .bitb-epk-tracklist__duration,
+.release-bitb .bitb-epk-tracklist__isrc {
+  color: rgba(237, 230, 219, 0.58);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-tracklist__title {
+  font-family: var(--bitb-font-display);
+  font-size: 1.08rem;
+}
+
+.release-bitb .bitb-epk-credits {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 1rem;
+}
+
+.release-bitb .bitb-epk-credits__panel,
+.release-bitb .bitb-epk-assets__panel {
+  position: relative;
+  padding: 1.45rem 1.3rem;
+}
+
+.release-bitb .bitb-epk-credits__list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.release-bitb .bitb-epk-credits__list dt {
+  color: rgba(237, 230, 219, 0.62);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-credits__list dd {
+  margin: 0;
+  color: rgba(237, 230, 219, 0.88);
+}
+
+.release-bitb .bitb-epk-credits__ai-note {
+  margin: 1.2rem 0 0;
+  color: rgba(237, 230, 219, 0.62);
+  font-size: 0.92rem;
+  line-height: 1.72;
+}
+
+.release-bitb .bitb-epk-assets__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.release-bitb .bitb-epk-assets__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.72rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  color: rgba(237, 230, 219, 0.72);
+}
+
+.release-bitb .bitb-epk-assets__item:hover {
+  color: var(--bitb-gold);
+  border-color: rgba(201, 168, 108, 0.22);
+  transform: translateY(-2px);
+}
+
+.release-bitb .bitb-epk-assets__preview {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.release-bitb .bitb-epk-assets__label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-contact__panel {
+  position: relative;
+  padding: clamp(1.45rem, 2.4vw, 2rem);
+  text-align: center;
+}
+
+.release-bitb .bitb-epk-contact__panel .bitb-eyebrow {
+  justify-content: center;
+}
+
+.release-bitb .bitb-epk-contact__email {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  font-family: var(--bitb-font-display);
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+  color: var(--bitb-gold) !important;
+}
+
+.release-bitb .bitb-epk-contact__socials {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+}
+
+.release-bitb .bitb-epk-contact__social {
+  color: rgba(237, 230, 219, 0.62) !important;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-epk-contact__social:hover {
+  color: var(--bitb-gold) !important;
+}
+
+@media (max-width: 980px) {
+  .release-bitb #bitb-epk-header,
+  .release-bitb .bitb-epk-bios,
+  .release-bitb .bitb-epk-tags,
+  .release-bitb .bitb-epk-credits,
+  .release-bitb .bitb-epk-focus__card {
+    grid-template-columns: 1fr;
+  }
+
+  .release-bitb .bitb-epk-focus__aside {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid rgba(237, 230, 219, 0.08);
+    padding-top: 1rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .release-bitb .bitb-epk-tracklist__item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'number title duration'
+      'isrc isrc isrc';
+    align-items: start;
+  }
+
+  .release-bitb .bitb-epk-tracklist__number {
+    grid-area: number;
+  }
+
+  .release-bitb .bitb-epk-tracklist__title {
+    grid-area: title;
+  }
+
+  .release-bitb .bitb-epk-tracklist__duration {
+    grid-area: duration;
+  }
+
+  .release-bitb .bitb-epk-tracklist__isrc {
+    grid-area: isrc;
+  }
+}
+
+@media (max-width: 560px) {
+  .release-bitb .bitb-epk-assets__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .release-bitb .bitb-epk-header__dates {
+    gap: 0.55rem;
+  }
+}

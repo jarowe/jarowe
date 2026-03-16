@@ -1,0 +1,1124 @@
+/*
+ * ReleaseLandingPage - visual and motion layer for Boy In The Bubble.
+ * The DOM contract remains intact; all styling is scoped under .release-bitb.
+ */
+
+.release-bitb .bitb-landing {
+  position: relative;
+}
+
+.release-bitb .bitb-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.15rem;
+  padding: 0.82rem 1.5rem;
+  border-radius: 999px;
+  font-family: var(--bitb-font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    transform 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease;
+}
+
+.release-bitb .bitb-cta:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 108, 0.55),
+    0 0 0 6px rgba(201, 168, 108, 0.12);
+}
+
+.release-bitb .bitb-cta--primary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
+    linear-gradient(135deg, var(--bitb-gold-bright), var(--bitb-gold));
+  color: #0b1020 !important;
+  box-shadow:
+    0 18px 40px rgba(201, 168, 108, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.release-bitb .bitb-cta--primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 24px 46px rgba(201, 168, 108, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.release-bitb .bitb-cta--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  color: var(--bitb-ivory-dim) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.release-bitb .bitb-cta--secondary:hover {
+  color: var(--bitb-ivory) !important;
+  border-color: rgba(237, 230, 219, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+/* Hero */
+.release-bitb #bitb-hero {
+  max-width: none;
+  width: 100%;
+  min-height: calc(100vh - 0.85rem);
+  min-height: calc(100dvh - 0.85rem);
+  padding:
+    clamp(7rem, 10vw, 9.25rem)
+    clamp(1.25rem, 4vw, 2.6rem)
+    clamp(4.75rem, 8vw, 6.5rem);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow: clip;
+}
+
+.release-bitb .bitb-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 14rem;
+  background: linear-gradient(180deg, transparent, rgba(9, 13, 25, 0.92));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.release-bitb .bitb-hero__bg,
+.release-bitb .bitb-hero__halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-hero__bg {
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(237, 230, 219, 0.18), transparent 20rem),
+    linear-gradient(180deg, rgba(8, 12, 20, 0.14), rgba(8, 12, 20, 0.88)),
+    var(--bitb-artwork-url) center 22% / clamp(32rem, 52vw, 48rem) auto no-repeat;
+  filter: saturate(0.9) brightness(0.92) contrast(1.02);
+}
+
+.release-bitb .bitb-hero__bg::before,
+.release-bitb .bitb-hero__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.release-bitb .bitb-hero__bg::before {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(201, 168, 108, 0.14), transparent 15rem),
+    radial-gradient(circle at 50% 60%, rgba(196, 98, 106, 0.08), transparent 20rem);
+  filter: blur(30px);
+}
+
+.release-bitb .bitb-hero__bg::after {
+  background:
+    linear-gradient(180deg, rgba(10, 14, 26, 0.22), rgba(10, 14, 26, 0.92)),
+    radial-gradient(circle at 50% 40%, transparent 0, rgba(10, 14, 26, 0.3) 58%, rgba(10, 14, 26, 0.78) 100%);
+}
+
+.release-bitb .bitb-hero__halo {
+  z-index: 1;
+}
+
+.release-bitb .bitb-hero__halo::before,
+.release-bitb .bitb-hero__halo::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: clamp(10rem, 18vw, 12rem);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-hero__halo::before {
+  width: clamp(20rem, 40vw, 33rem);
+  height: clamp(20rem, 40vw, 33rem);
+  border: 1px solid rgba(201, 168, 108, 0.42);
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 108, 0.04),
+    0 0 38px rgba(201, 168, 108, 0.15),
+    inset 0 0 42px rgba(255, 255, 255, 0.05);
+}
+
+.release-bitb .bitb-hero__halo::after {
+  width: clamp(14rem, 28vw, 23rem);
+  height: clamp(14rem, 28vw, 23rem);
+  background: radial-gradient(circle, rgba(237, 230, 219, 0.11), transparent 68%);
+  filter: blur(34px);
+}
+
+.release-bitb .bitb-hero__content,
+.release-bitb .bitb-hero__cta {
+  position: relative;
+  z-index: 3;
+}
+
+.release-bitb .bitb-hero__content {
+  max-width: 54rem;
+}
+
+.release-bitb .bitb-hero__album-tag {
+  margin: 0 0 1.15rem;
+  font-size: 0.8rem;
+  font-weight: 750;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bitb-gold);
+}
+
+.release-bitb .bitb-hero__title {
+  max-width: 11ch;
+  margin: 0 auto 1.1rem;
+  font-size: clamp(3rem, 7vw, 6.4rem);
+  font-variation-settings: 'opsz' 120;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.32);
+}
+
+.release-bitb .bitb-hero__subtitle {
+  max-width: 34rem;
+  margin: 0 auto;
+  font-size: clamp(1.02rem, 1.1vw + 0.72rem, 1.28rem);
+  line-height: 1.72;
+  color: rgba(237, 230, 219, 0.8);
+}
+
+.release-bitb .bitb-hero__whisper {
+  margin: 1.55rem auto 0;
+  font-family: var(--bitb-font-display);
+  font-size: clamp(1rem, 1vw + 0.74rem, 1.16rem);
+  font-style: italic;
+  color: rgba(212, 135, 141, 0.9);
+}
+
+.release-bitb .bitb-hero__dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.4rem;
+  margin-top: 1.75rem;
+  padding: 0.72rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(237, 230, 219, 0.09);
+  color: var(--bitb-ivory-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.95rem;
+  margin-top: 2.35rem;
+}
+
+/* Manifesto */
+.release-bitb #bitb-manifesto {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.6rem);
+  margin-top: -2.3rem;
+}
+
+.release-bitb .bitb-manifesto__artist,
+.release-bitb .bitb-manifesto__album {
+  position: relative;
+  padding: 2rem;
+  border-radius: var(--bitb-radius-lg);
+  overflow: hidden;
+}
+
+.release-bitb .bitb-manifesto__artist::before,
+.release-bitb .bitb-manifesto__album::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-manifesto__artist::after,
+.release-bitb .bitb-manifesto__album::after {
+  content: '';
+  position: absolute;
+  inset: auto 1.2rem 1.2rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(237, 230, 219, 0.18), transparent);
+}
+
+.release-bitb .bitb-manifesto__artist {
+  box-shadow:
+    var(--bitb-shadow-card),
+    inset 0 0 80px rgba(196, 98, 106, 0.08);
+}
+
+.release-bitb .bitb-manifesto__album {
+  box-shadow:
+    var(--bitb-shadow-card),
+    inset 0 0 90px rgba(201, 168, 108, 0.08);
+}
+
+.release-bitb .bitb-manifesto__heading {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+}
+
+.release-bitb .bitb-manifesto__text {
+  margin: 0;
+}
+
+/* Focus */
+.release-bitb #bitb-focus {
+  padding-top: clamp(5rem, 8vw, 7rem);
+}
+
+.release-bitb .bitb-focus__intro {
+  margin-bottom: 1.75rem;
+}
+
+.release-bitb .bitb-focus__heading {
+  max-width: 13ch;
+  margin: 0;
+  font-size: clamp(2rem, 3.8vw, 3.35rem);
+}
+
+.release-bitb .bitb-focus__module {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: clamp(1.4rem, 3vw, 2.5rem);
+  align-items: stretch;
+  padding: clamp(1.25rem, 2vw, 1.65rem);
+  border-radius: calc(var(--bitb-radius-lg) + 4px);
+  overflow: hidden;
+}
+
+.release-bitb .bitb-focus__module::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(201, 168, 108, 0.14), transparent 28%),
+    radial-gradient(circle at 82% 75%, rgba(196, 98, 106, 0.1), transparent 32%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-focus__artwork-wrap {
+  position: relative;
+  border-radius: calc(var(--bitb-radius-md) + 2px);
+  overflow: hidden;
+  min-height: 100%;
+}
+
+.release-bitb .bitb-focus__artwork-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(237, 230, 219, 0.1);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-focus__artwork-wrap::after {
+  content: '';
+  position: absolute;
+  inset: auto -8% -10%;
+  height: 45%;
+  background: linear-gradient(180deg, transparent, rgba(9, 13, 25, 0.9));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-focus__artwork {
+  width: 100%;
+  height: 100%;
+  min-height: 21rem;
+  object-fit: cover;
+  filter: saturate(0.96) contrast(1.02);
+  transform: scale(1.02);
+}
+
+.release-bitb .bitb-focus__details {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.release-bitb .bitb-focus__kicker {
+  margin: 0 0 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bitb-rose-light);
+}
+
+.release-bitb .bitb-focus__track-title {
+  margin: 0 0 0.9rem;
+  font-size: clamp(2rem, 4vw, 3.45rem);
+}
+
+.release-bitb .bitb-focus__tags,
+.release-bitb .bitb-track-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.48rem;
+}
+
+.release-bitb .bitb-focus__tag,
+.release-bitb .bitb-track-card__tag,
+.release-bitb .bitb-epk-focus__tag,
+.release-bitb .bitb-epk-tags__chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 230, 219, 0.74);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-focus__lyric,
+.release-bitb .bitb-track-card__lyric,
+.release-bitb .bitb-artist-lyrics__excerpt,
+.release-bitb .bitb-epk-focus__lyric {
+  position: relative;
+  margin: 1.25rem 0 0;
+  padding-left: 1.1rem;
+  border-left: 1px solid rgba(212, 135, 141, 0.45);
+  font-family: var(--bitb-font-display);
+  font-size: clamp(1.08rem, 1vw + 0.86rem, 1.42rem);
+  font-style: italic;
+  line-height: 1.55;
+  color: rgba(237, 230, 219, 0.9);
+}
+
+.release-bitb .bitb-focus__story {
+  max-width: 38rem;
+  margin: 1.15rem 0 0;
+}
+
+.release-bitb .bitb-focus__cta-row {
+  margin-top: 1.45rem;
+}
+
+/* World */
+.release-bitb #bitb-world {
+  padding-top: clamp(5.4rem, 9vw, 8.2rem);
+}
+
+.release-bitb #bitb-world::before {
+  content: '';
+  position: absolute;
+  inset: 0 clamp(1rem, 4vw, 2rem);
+  border-radius: 40px;
+  background:
+    radial-gradient(circle at 10% 18%, rgba(201, 168, 108, 0.1), transparent 22rem),
+    radial-gradient(circle at 85% 68%, rgba(196, 98, 106, 0.1), transparent 24rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 35%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.release-bitb .bitb-world__header {
+  margin-bottom: 1.8rem;
+}
+
+.release-bitb .bitb-world__heading {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.45rem);
+}
+
+.release-bitb .bitb-world__intro {
+  max-width: 40rem;
+  margin: 1rem 0 0;
+}
+
+.release-bitb .bitb-world__tracklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.release-bitb .bitb-track-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01)),
+    rgba(18, 20, 34, 0.7);
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  box-shadow: var(--bitb-shadow-card);
+  cursor: pointer;
+}
+
+.release-bitb .bitb-track-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.04), transparent 45%),
+    radial-gradient(circle at 0% 50%, rgba(201, 168, 108, 0.1), transparent 35%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.release-bitb .bitb-track-card::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  bottom: 1rem;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(201, 168, 108, 0.12), rgba(196, 98, 106, 0.2));
+  opacity: 0.7;
+}
+
+.release-bitb .bitb-track-card:hover {
+  border-color: rgba(201, 168, 108, 0.2);
+}
+
+.release-bitb .bitb-track-card:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 108, 0.5),
+    0 0 0 6px rgba(201, 168, 108, 0.08),
+    var(--bitb-shadow-card);
+}
+
+.release-bitb .bitb-track-card--focus {
+  border-color: rgba(196, 98, 106, 0.22);
+  box-shadow:
+    var(--bitb-shadow-card),
+    inset 0 0 70px rgba(196, 98, 106, 0.08);
+}
+
+.release-bitb .bitb-track-card--locked {
+  cursor: default;
+  opacity: 0.74;
+}
+
+.release-bitb .bitb-track-card__header {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.2rem 1.25rem 1.2rem 2rem;
+}
+
+.release-bitb .bitb-track-card__number,
+.release-bitb .bitb-track-card__duration,
+.release-bitb .bitb-track-card__lock {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.62);
+}
+
+.release-bitb .bitb-track-card__title {
+  font-size: clamp(1.05rem, 1vw + 0.8rem, 1.34rem);
+  line-height: 1.25;
+}
+
+.release-bitb .bitb-track-card__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.6rem;
+  padding: 0 0.62rem;
+  border-radius: 999px;
+  background: rgba(196, 98, 106, 0.16);
+  border: 1px solid rgba(196, 98, 106, 0.2);
+  color: rgba(237, 230, 219, 0.88);
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-track-card__body {
+  position: relative;
+  z-index: 1;
+  padding: 0 1.25rem 1.2rem 2rem;
+  overflow: hidden;
+}
+
+.release-bitb .bitb-track-card__lyric {
+  margin-bottom: 1.1rem;
+}
+
+/* Player */
+.release-bitb .bitb-player {
+  --bitb-player-energy: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  gap: 0.35rem 0.95rem;
+  margin-top: 1.05rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(8, 12, 24, 0.78);
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 34px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+.release-bitb .bitb-player::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(201, 168, 108, calc(0.06 + (var(--bitb-player-energy) * 0.22))), transparent 28%),
+    radial-gradient(circle at 85% 50%, rgba(196, 98, 106, calc(0.05 + (var(--bitb-player-energy) * 0.18))), transparent 22%);
+  opacity: 0.9;
+  pointer-events: none;
+  transition: opacity 140ms linear;
+}
+
+.release-bitb .bitb-player__artwork {
+  grid-row: 1 / 4;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+.release-bitb .bitb-player__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.release-bitb .bitb-player__title {
+  font-family: var(--bitb-font-display);
+  font-size: 1rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.release-bitb .bitb-player__artist {
+  font-size: 0.78rem;
+  color: rgba(237, 230, 219, 0.62);
+}
+
+.release-bitb .bitb-player__toggle {
+  grid-row: 1 / 4;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(201, 168, 108, 0.4);
+  border-radius: 50%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    rgba(255, 255, 255, 0.02);
+  color: var(--bitb-gold);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 220ms ease,
+    background 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease;
+}
+
+.release-bitb .bitb-player__toggle:hover:not(:disabled) {
+  transform: scale(1.04);
+  border-color: rgba(201, 168, 108, 0.56);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03)),
+    rgba(201, 168, 108, 0.08);
+}
+
+.release-bitb .bitb-player__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.release-bitb .bitb-player__toggle-icon {
+  display: inline-block;
+  width: 0.8rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.release-bitb .bitb-player[data-playing='true'] .bitb-player__toggle {
+  color: #0c1020;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.07)),
+    linear-gradient(135deg, var(--bitb-gold-bright), var(--bitb-gold));
+}
+
+.release-bitb .bitb-player__rail {
+  grid-column: 2 / 4;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(237, 230, 219, 0.08);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.release-bitb .bitb-player__rail:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 108, 0.55),
+    0 0 0 4px rgba(201, 168, 108, 0.1);
+}
+
+.release-bitb .bitb-player__fill {
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(212, 135, 141, 0.75), rgba(201, 168, 108, 0.95), rgba(237, 230, 219, 0.95));
+  box-shadow: 0 0 16px rgba(201, 168, 108, 0.22);
+}
+
+.release-bitb .bitb-player__elapsed,
+.release-bitb .bitb-player__duration {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(237, 230, 219, 0.62);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.release-bitb .bitb-player__elapsed {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.release-bitb .bitb-player__duration {
+  grid-column: 3;
+  justify-self: end;
+}
+
+/* Timeline */
+.release-bitb .bitb-timeline__header,
+.release-bitb .bitb-press__header {
+  margin-bottom: 1.8rem;
+}
+
+.release-bitb .bitb-timeline__heading,
+.release-bitb .bitb-press__heading {
+  margin: 0;
+  font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+}
+
+.release-bitb .bitb-timeline__track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.release-bitb .bitb-timeline__track::before {
+  content: '';
+  position: absolute;
+  left: 1.15rem;
+  right: 1.15rem;
+  top: 0.8rem;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(201, 168, 108, 0.28), rgba(255, 255, 255, 0.06));
+}
+
+.release-bitb .bitb-timeline-item {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.62rem;
+  text-align: center;
+}
+
+.release-bitb .bitb-timeline-item__marker {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(237, 230, 219, 0.28);
+  background: rgba(9, 13, 25, 1);
+  box-shadow: 0 0 0 8px rgba(9, 13, 25, 0.74);
+}
+
+.release-bitb .bitb-timeline-item--active .bitb-timeline-item__marker {
+  border-color: rgba(201, 168, 108, 0.88);
+  background: var(--bitb-gold);
+  box-shadow:
+    0 0 0 8px rgba(9, 13, 25, 0.74),
+    0 0 20px rgba(201, 168, 108, 0.3);
+}
+
+.release-bitb .bitb-timeline-item--past .bitb-timeline-item__marker {
+  border-color: rgba(237, 230, 219, 0.5);
+  background: rgba(237, 230, 219, 0.68);
+}
+
+.release-bitb .bitb-timeline-item__label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.72);
+}
+
+.release-bitb .bitb-timeline-item__date {
+  font-size: 0.78rem;
+  color: rgba(237, 230, 219, 0.52);
+}
+
+.release-bitb .bitb-timeline-item--active .bitb-timeline-item__label,
+.release-bitb .bitb-timeline-item--active .bitb-timeline-item__date {
+  color: var(--bitb-gold);
+}
+
+/* Press */
+.release-bitb .bitb-press__blurb {
+  max-width: 42rem;
+  margin: 0.95rem 0 0;
+}
+
+.release-bitb .bitb-press__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.release-bitb .bitb-press-card {
+  position: relative;
+  padding: 1.55rem;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.release-bitb .bitb-press-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 56%);
+  pointer-events: none;
+}
+
+.release-bitb .bitb-press-card__title {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 0.65rem;
+  font-size: 1.4rem;
+}
+
+.release-bitb .bitb-press-card__text {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 1rem;
+  color: var(--bitb-ivory-dim);
+  line-height: 1.7;
+}
+
+.release-bitb .bitb-press-card__cta {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bitb-gold) !important;
+}
+
+.release-bitb .bitb-press-card__cta::after {
+  content: '->';
+  display: inline-block;
+  transition: transform 220ms ease;
+}
+
+.release-bitb .bitb-press-card__cta:hover::after {
+  transform: translateX(3px);
+}
+
+/* Footer */
+.release-bitb #bitb-footer {
+  padding-bottom: 5rem;
+}
+
+.release-bitb .bitb-footer {
+  text-align: center;
+}
+
+.release-bitb .bitb-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(36rem, 86vw);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.38), transparent);
+}
+
+.release-bitb .bitb-footer__links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.release-bitb .bitb-footer__link {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.68) !important;
+}
+
+.release-bitb .bitb-footer__link:hover {
+  color: var(--bitb-ivory) !important;
+}
+
+.release-bitb .bitb-footer__divider {
+  width: 1px;
+  height: 1rem;
+  background: rgba(237, 230, 219, 0.15);
+}
+
+.release-bitb .bitb-footer__socials {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+
+.release-bitb .bitb-footer__social {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.56) !important;
+}
+
+.release-bitb .bitb-footer__social:hover {
+  color: var(--bitb-gold) !important;
+}
+
+.release-bitb .bitb-footer__copy {
+  margin: 0;
+  font-size: 0.68rem;
+  color: rgba(237, 230, 219, 0.38);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Mobile */
+@media (max-width: 980px) {
+  .release-bitb #bitb-manifesto,
+  .release-bitb .bitb-focus__module,
+  .release-bitb .bitb-press__cards {
+    grid-template-columns: 1fr;
+  }
+
+  .release-bitb .bitb-focus__artwork {
+    min-height: 18rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .release-bitb .bitb-track-card__header {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'number title duration'
+      'badge badge lock';
+    align-items: start;
+  }
+
+  .release-bitb .bitb-track-card__number {
+    grid-area: number;
+  }
+
+  .release-bitb .bitb-track-card__title {
+    grid-area: title;
+  }
+
+  .release-bitb .bitb-track-card__duration {
+    grid-area: duration;
+  }
+
+  .release-bitb .bitb-track-card__badge {
+    grid-area: badge;
+    justify-self: start;
+    margin-top: 0.1rem;
+  }
+
+  .release-bitb .bitb-track-card__lock {
+    grid-area: lock;
+    justify-self: end;
+    margin-top: 0.28rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .release-bitb .bitb-timeline__track {
+    flex-direction: column;
+    gap: 1.45rem;
+    padding-left: 0;
+  }
+
+  .release-bitb .bitb-timeline__track::before {
+    left: 0.78rem;
+    right: auto;
+    top: 0.8rem;
+    bottom: 0.8rem;
+    width: 1px;
+    height: auto;
+  }
+
+  .release-bitb .bitb-timeline-item {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 0.95rem;
+  }
+
+  .release-bitb .bitb-timeline-item__date {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .release-bitb #bitb-hero {
+    min-height: 92dvh;
+    padding-top: 6.4rem;
+  }
+
+  .release-bitb .bitb-hero__bg {
+    background:
+      radial-gradient(circle at 50% 22%, rgba(237, 230, 219, 0.18), transparent 14rem),
+      linear-gradient(180deg, rgba(8, 12, 20, 0.16), rgba(8, 12, 20, 0.94)),
+      var(--bitb-artwork-url) center 16% / 28rem auto no-repeat;
+  }
+
+  .release-bitb .bitb-hero__halo::before {
+    width: 18rem;
+    height: 18rem;
+  }
+
+  .release-bitb .bitb-hero__halo::after {
+    width: 12rem;
+    height: 12rem;
+  }
+
+  .release-bitb .bitb-hero__dates {
+    border-radius: 18px;
+  }
+
+  .release-bitb .bitb-focus__module,
+  .release-bitb .bitb-manifesto__artist,
+  .release-bitb .bitb-manifesto__album,
+  .release-bitb .bitb-press-card {
+    padding: 1.2rem;
+    border-radius: 24px;
+  }
+
+  .release-bitb .bitb-track-card {
+    border-radius: 20px;
+  }
+
+  .release-bitb .bitb-track-card__header {
+    padding: 1rem 1rem 1rem 1.55rem;
+  }
+
+  .release-bitb .bitb-track-card__body {
+    padding: 0 1rem 1rem 1.55rem;
+  }
+
+  .release-bitb .bitb-player {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    padding: 0.85rem 0.85rem 0.9rem;
+  }
+
+  .release-bitb .bitb-player__artwork {
+    width: 52px;
+    height: 52px;
+  }
+
+  .release-bitb .bitb-footer__links {
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .release-bitb .bitb-footer__divider {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .release-bitb .bitb-hero__cta,
+  .release-bitb .bitb-focus__cta-row {
+    width: 100%;
+  }
+
+  .release-bitb .bitb-hero__cta .bitb-cta,
+  .release-bitb .bitb-focus__cta-row .bitb-cta {
+    width: 100%;
+  }
+
+  .release-bitb .bitb-player {
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .release-bitb .bitb-player__toggle {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .release-bitb .bitb-player__rail,
+  .release-bitb .bitb-player__elapsed,
+  .release-bitb .bitb-player__duration {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,0 +1,193 @@
+/*
+ * ReleaseShell - global visual language for the Boy In The Bubble release routes.
+ * All selectors remain scoped to .release-bitb.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Manrope:wght@200..800&display=swap');
+
+.release-bitb {
+  --bitb-midnight: #0a0e1a;
+  --bitb-indigo: rgba(49, 46, 129, 0.35);
+  --bitb-indigo-solid: #1e1b4b;
+  --bitb-gold: #c9a86c;
+  --bitb-gold-bright: #dbb978;
+  --bitb-rose: #c4626a;
+  --bitb-rose-light: #d4878d;
+  --bitb-ivory: #ede6db;
+  --bitb-ivory-dim: rgba(237, 230, 219, 0.7);
+  --bitb-font-display: 'Fraunces', serif;
+  --bitb-font-body: 'Manrope', sans-serif;
+  --bitb-nav-height: 68px;
+  --bitb-radius-lg: 32px;
+  --bitb-radius-md: 22px;
+  --bitb-radius-sm: 14px;
+  --bitb-shadow-soft: 0 30px 80px rgba(0, 0, 0, 0.28);
+  --bitb-shadow-card: 0 22px 60px rgba(0, 0, 0, 0.2);
+  --bitb-border-soft: rgba(237, 230, 219, 0.09);
+  --bitb-border-strong: rgba(201, 168, 108, 0.18);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(212, 135, 141, 0.12), transparent 24rem),
+    radial-gradient(circle at 80% 10%, rgba(201, 168, 108, 0.12), transparent 30rem),
+    radial-gradient(circle at 50% 70%, rgba(49, 46, 129, 0.3), transparent 35rem),
+    linear-gradient(180deg, #090d19 0%, #0b1020 28%, #0f1122 58%, #090d19 100%);
+  color: var(--bitb-ivory);
+  font-family: var(--bitb-font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  isolation: isolate;
+  position: relative;
+}
+
+.release-bitb::before,
+.release-bitb::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.release-bitb::before {
+  opacity: 0.5;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(237, 230, 219, 0.08), transparent 18rem),
+    radial-gradient(circle at 18% 32%, rgba(201, 168, 108, 0.08), transparent 28rem),
+    radial-gradient(circle at 78% 34%, rgba(196, 98, 106, 0.08), transparent 24rem);
+  filter: blur(16px);
+}
+
+.release-bitb::after {
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.24), transparent 82%);
+}
+
+.release-bitb__main {
+  position: relative;
+  z-index: 1;
+}
+
+.release-bitb section {
+  position: relative;
+  z-index: 1;
+  padding: clamp(4.75rem, 7vw, 7rem) clamp(1.25rem, 3.6vw, 2.4rem);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.release-bitb h1,
+.release-bitb h2,
+.release-bitb h3 {
+  font-family: var(--bitb-font-display);
+  font-weight: 430;
+  line-height: 1.06;
+  color: var(--bitb-ivory);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.release-bitb p,
+.release-bitb li,
+.release-bitb dt,
+.release-bitb dd,
+.release-bitb blockquote,
+.release-bitb cite,
+.release-bitb span {
+  text-wrap: pretty;
+}
+
+.release-bitb a {
+  color: var(--bitb-gold);
+  text-decoration: none;
+  transition:
+    color 220ms ease,
+    border-color 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+}
+
+.release-bitb a:hover {
+  color: var(--bitb-gold-bright);
+}
+
+.release-bitb .bitb-surface {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
+    rgba(20, 20, 35, 0.58);
+  border: 1px solid var(--bitb-border-soft);
+  box-shadow: var(--bitb-shadow-card);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+}
+
+.release-bitb .bitb-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bitb-gold);
+}
+
+.release-bitb .bitb-eyebrow::before {
+  content: '';
+  width: 2.6rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.8));
+}
+
+.release-bitb .bitb-section-heading {
+  max-width: 11ch;
+}
+
+.release-bitb .bitb-body-copy {
+  color: var(--bitb-ivory-dim);
+  font-size: clamp(1rem, 1vw + 0.75rem, 1.14rem);
+  line-height: 1.78;
+}
+
+.release-bitb .bitb-glow-line {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.45), transparent);
+}
+
+.release-bitb.reduce-motion *,
+.release-bitb.reduce-motion *::before,
+.release-bitb.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (max-width: 900px) {
+  .release-bitb {
+    --bitb-nav-height: 60px;
+  }
+
+  .release-bitb section {
+    padding: 4rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .release-bitb::after {
+    opacity: 0.16;
+    background-size: 96px 96px;
+  }
+
+  .release-bitb .bitb-eyebrow {
+    letter-spacing: 0.18em;
+  }
+}
