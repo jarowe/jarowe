@@ -126,19 +126,19 @@ export const dates = {
 /* ── CTAs (keyed by rollout_phase) ───────────────────────── */
 export const ctas = {
   'pre-single': {
-    primary:   { label: 'Pre-save on Spotify', url: '#', utmCampaign: 'bitb-presave' },
+    primary:   { label: 'Listen on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-presave' },
     secondary: { label: 'Open EPK', url: '/music/boy-in-the-bubble/epk' },
   },
   'single-live': {
-    primary:   { label: 'Listen Now', url: '#', utmCampaign: 'bitb-single' },
+    primary:   { label: 'Listen on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-single' },
     secondary: { label: 'Open EPK', url: '/music/boy-in-the-bubble/epk' },
   },
   'pre-album': {
-    primary:   { label: 'Pre-save the Album', url: '#', utmCampaign: 'bitb-album-presave' },
-    secondary: { label: 'Listen to the Single', url: '#', utmCampaign: 'bitb-single' },
+    primary:   { label: 'Listen on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-album-presave' },
+    secondary: { label: 'Open EPK', url: '/music/boy-in-the-bubble/epk' },
   },
   'album-live': {
-    primary:   { label: 'Listen to the Album', url: '#', utmCampaign: 'bitb-album' },
+    primary:   { label: 'Listen on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-album' },
     secondary: { label: 'Open EPK', url: '/music/boy-in-the-bubble/epk' },
   },
 };
