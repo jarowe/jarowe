@@ -3869,6 +3869,9 @@ export default function Home() {
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [brandPhase, holidayTier, holiday]);
 
+  // Scroll to top when Home mounts (returning from release page etc.)
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   // Birthday confetti entrance
   useEffect(() => {
     if (!isBirthday) return;
@@ -6706,6 +6709,16 @@ export default function Home() {
             </div>
           </div>
 
+          {/* WORKSHOP CELL */}
+          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
+            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
+            <div className="featured-badge">Tools & Builds</div>
+            <div className="bento-content" style={{ zIndex: 1 }}>
+              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
+              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
+            </div>
+          </div>
+
           {/* NOW PAGE CELL */}
           <div
             className="bento-cell cell-now clickable tilt-enabled"
@@ -6737,7 +6750,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* SOCIALS CELL — under Currently on the right */}
+          {/* SOCIALS CELL — pinned under Currently */}
           <div className="bento-cell cell-socials">
             <div className="bento-content" style={{ padding: '1.5rem' }}>
               <div className="socials-grid">
@@ -6750,16 +6763,6 @@ export default function Home() {
                 <a href="https://linkedin.com/in/jaredalanrowe" target="_blank" rel="noreferrer" className="social-link"><Linkedin size={24} /></a>
                 <a href="https://www.instagram.com/jaredrowe/" target="_blank" rel="noreferrer" className="social-link"><Instagram size={24} /></a>
               </div>
-            </div>
-          </div>
-
-          {/* WORKSHOP CELL */}
-          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
-            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
-            <div className="featured-badge">Tools & Builds</div>
-            <div className="bento-content" style={{ zIndex: 1 }}>
-              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
-              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
             </div>
           </div>
 

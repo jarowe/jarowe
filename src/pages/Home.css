@@ -268,12 +268,10 @@
 
 .cell-now {
     grid-column: 4;
-    grid-row: span 1;
 }
 
 .cell-socials {
     grid-column: 4;
-    grid-row: span 1;
 }
 
 .cell-garden {
@@ -1846,13 +1844,11 @@
     }
 
     .cell-now {
-        grid-column: span 1;
-        grid-row: span 1;
+        grid-column: auto;
     }
 
     .cell-socials {
-        grid-column: span 1;
-        grid-row: span 1;
+        grid-column: auto;
     }
 
     .cell-garden {
