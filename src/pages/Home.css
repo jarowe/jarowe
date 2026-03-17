@@ -267,12 +267,12 @@
 }
 
 .cell-now {
-    grid-column: span 1;
+    grid-column: 4;
     grid-row: span 1;
 }
 
 .cell-socials {
-    grid-column: span 1;
+    grid-column: 4;
     grid-row: span 1;
 }
 

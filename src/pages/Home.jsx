@@ -3817,7 +3817,7 @@ export default function Home() {
   }, []);
 
   const container = useRef();
-  const [showBrand, setShowBrand] = useState(() => { try { return !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
+  const [showBrand, setShowBrand] = useState(() => { try { return !localStorage.getItem('jarowe_visited') && !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
   const [showPromo, setShowPromo] = useState(() => { try { return !localStorage.getItem('jarowe_promo_bitb_seen'); } catch { return false; } });
   const dismissPromo = useCallback(() => { try { localStorage.setItem('jarowe_promo_bitb_seen', '1'); } catch {} setShowPromo(false); }, []);
 
@@ -3827,11 +3827,13 @@ export default function Home() {
   const holidayTier = holiday && !isBirthday ? holiday.tier : 0;
   useEffect(() => {
     if (!showBrand) return;
+    // Mark as seen immediately so navigating away mid-animation won't cause replay
+    try { localStorage.setItem('jarowe_visited', '1'); } catch {}
     if (isBirthday) {
       // Phase 1: JAROWE. letters (2.5s), Phase 2: birthday age (3.5s)
       const t1 = setTimeout(() => setBrandPhase('birthday'), 2500);
       const t2 = setTimeout(() => {
-        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        try { sessionStorage.setItem('jarowe_visited', 'true'); localStorage.setItem('jarowe_visited', '1'); } catch {}
         setShowBrand(false);
       }, 7500);
       return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -3840,13 +3842,13 @@ export default function Home() {
       const holidayPhaseDuration = holidayTier >= 3 ? 2500 : 1300;
       const t1 = setTimeout(() => setBrandPhase('holiday'), 2200);
       const t2 = setTimeout(() => {
-        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        try { sessionStorage.setItem('jarowe_visited', 'true'); localStorage.setItem('jarowe_visited', '1'); } catch {}
         setShowBrand(false);
       }, 2200 + holidayPhaseDuration);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     } else {
       const timer = setTimeout(() => {
-        try { sessionStorage.setItem('jarowe_visited', 'true'); } catch {}
+        try { sessionStorage.setItem('jarowe_visited', 'true'); localStorage.setItem('jarowe_visited', '1'); } catch {}
         setShowBrand(false);
       }, 3300);
       return () => clearTimeout(timer);
@@ -6704,16 +6706,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* WORKSHOP CELL */}
-          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
-            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
-            <div className="featured-badge">Tools & Builds</div>
-            <div className="bento-content" style={{ zIndex: 1 }}>
-              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
-              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
-            </div>
-          </div>
-
           {/* NOW PAGE CELL */}
           <div
             className="bento-cell cell-now clickable tilt-enabled"
@@ -6745,7 +6737,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* SOCIALS CELL */}
+          {/* SOCIALS CELL — under Currently on the right */}
           <div className="bento-cell cell-socials">
             <div className="bento-content" style={{ padding: '1.5rem' }}>
               <div className="socials-grid">
@@ -6758,6 +6750,16 @@ export default function Home() {
                 <a href="https://linkedin.com/in/jaredalanrowe" target="_blank" rel="noreferrer" className="social-link"><Linkedin size={24} /></a>
                 <a href="https://www.instagram.com/jaredrowe/" target="_blank" rel="noreferrer" className="social-link"><Instagram size={24} /></a>
               </div>
+            </div>
+          </div>
+
+          {/* WORKSHOP CELL */}
+          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
+            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
+            <div className="featured-badge">Tools & Builds</div>
+            <div className="bento-content" style={{ zIndex: 1 }}>
+              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
+              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
             </div>
           </div>
 
