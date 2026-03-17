@@ -27,6 +27,13 @@ export default function ReleaseNav({ config, phase }) {
   return (
     <nav className="release-nav" aria-label="Release navigation">
       <div className="release-nav__inner">
+        {/* Home escape hatch */}
+        <Link to="/" className="release-nav__home" aria-label="Back to jarowe.com" title="Back to jarowe.com">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </Link>
+
         {/* Wordmark */}
         <Link to={basePath} className="release-nav__wordmark">
           {config.artist.name}

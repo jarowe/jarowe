@@ -13,7 +13,7 @@
 .release-bitb .release-nav__inner {
   pointer-events: auto;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
   gap: 1.4rem;
   max-width: 1180px;
@@ -30,6 +30,25 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+.release-bitb .release-nav__home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  color: var(--bitb-ivory-dim) !important;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  transition: all 220ms ease;
+}
+
+.release-bitb .release-nav__home:hover {
+  color: var(--bitb-ivory) !important;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(237, 230, 219, 0.16);
 }
 
 .release-bitb .release-nav__wordmark {
@@ -135,7 +154,7 @@
 
 @media (max-width: 860px) {
   .release-bitb .release-nav__inner {
-    grid-template-columns: auto auto;
+    grid-template-columns: auto auto auto;
     justify-content: space-between;
     gap: 0.8rem;
     padding: 0 0.95rem;

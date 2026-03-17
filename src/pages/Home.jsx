@@ -34,6 +34,7 @@ const GlintChatInput = lazy(() => import('../components/GlintChatInput'));
 const GlintChatPanel = lazy(() => import('../components/GlintChatPanel'));
 const GlintFab = lazy(() => import('../components/GlintFab'));
 const GlobeTourCinematic = lazy(() => import('../components/GlobeTourCinematic'));
+const PromoSplash = lazy(() => import('../components/PromoSplash'));
 import { useAuth } from '../context/AuthContext';
 import { PRISM_DEFAULTS } from '../utils/prismDefaults';
 import './Home.css';
@@ -3817,6 +3818,8 @@ export default function Home() {
 
   const container = useRef();
   const [showBrand, setShowBrand] = useState(() => { try { return !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
+  const [showPromo, setShowPromo] = useState(() => { try { return !sessionStorage.getItem('jarowe_promo_bitb_seen'); } catch { return false; } });
+  const dismissPromo = useCallback(() => { try { sessionStorage.setItem('jarowe_promo_bitb_seen', 'true'); } catch {} setShowPromo(false); }, []);
 
   // Brand reveal - pure CSS animation handles visuals, this just dismisses the overlay
   // On birthday: extended to show humorous age reveal after JAROWE. fades
@@ -6267,6 +6270,34 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ALBUM PROMO SPLASH — first visit only, after brand reveal */}
+      <AnimatePresence>
+        {!showBrand && showPromo && (
+          <Suspense fallback={null}>
+            <PromoSplash onDismiss={dismissPromo} />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* PERSISTENT ALBUM PROMO PILL — after splash dismissed */}
+      <AnimatePresence>
+        {!showBrand && !showPromo && (
+          <motion.div
+            className="promo-pill"
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
+          >
+            <a href="/music/boy-in-the-bubble" className="promo-pill__link">
+              <img src={`${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg`} alt="" className="promo-pill__art" />
+              <span className="promo-pill__text">Boy In The Bubble</span>
+              <span className="promo-pill__badge">NEW</span>
+            </a>
           </motion.div>
         )}
       </AnimatePresence>

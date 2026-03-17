@@ -1,0 +1,292 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..900&display=swap');
+
+/* ── Fullscreen promo splash ──────────────────────────────── */
+
+.promo-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.promo-splash__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 14, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.promo-splash__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+  padding: 2.5rem 2rem 2rem;
+  border-radius: 32px;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    rgba(10, 14, 26, 0.85);
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(32px) saturate(130%);
+  -webkit-backdrop-filter: blur(32px) saturate(130%);
+  overflow: hidden;
+}
+
+/* ── Ambient glow orbs ──────────────────────────────────── */
+
+.promo-splash__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.promo-splash__glow--gold {
+  width: 18rem;
+  height: 18rem;
+  top: -6rem;
+  right: -4rem;
+  background: radial-gradient(circle, rgba(201, 168, 108, 0.18), transparent 60%);
+}
+
+.promo-splash__glow--rose {
+  width: 14rem;
+  height: 14rem;
+  bottom: -3rem;
+  left: -3rem;
+  background: radial-gradient(circle, rgba(196, 98, 106, 0.14), transparent 60%);
+}
+
+/* ── Album artwork ──────────────────────────────────────── */
+
+.promo-splash__artwork {
+  position: relative;
+  z-index: 1;
+  width: min(280px, 72vw);
+  aspect-ratio: 1;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 1px solid rgba(237, 230, 219, 0.08);
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.35),
+    0 0 60px rgba(201, 168, 108, 0.12);
+  margin-bottom: 1.6rem;
+}
+
+/* ── Text ───────────────────────────────────────────────── */
+
+.promo-splash__text {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.6rem;
+}
+
+.promo-splash__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #c9a86c;
+}
+
+.promo-splash__eyebrow::before,
+.promo-splash__eyebrow::after {
+  content: '';
+  width: 1.8rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.6));
+}
+
+.promo-splash__eyebrow::after {
+  background: linear-gradient(90deg, rgba(201, 168, 108, 0.6), transparent);
+}
+
+.promo-splash__title {
+  margin: 0 0 0.6rem;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 430;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: #ede6db;
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.promo-splash__subtitle {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(0.9rem, 1vw + 0.7rem, 1.05rem);
+  line-height: 1.6;
+  color: rgba(237, 230, 219, 0.65);
+}
+
+/* ── CTAs ───────────────────────────────────────────────── */
+
+.promo-splash__ctas {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  width: 100%;
+  margin-bottom: 1.2rem;
+}
+
+.promo-splash__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 3rem;
+  padding: 0.55rem 1.4rem;
+  border-radius: 999px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+.promo-splash__cta--spotify {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05)),
+    linear-gradient(135deg, #dbb978, #c9a86c);
+  color: #0a0e1a;
+  box-shadow:
+    0 12px 32px rgba(201, 168, 108, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.promo-splash__cta--spotify:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 40px rgba(201, 168, 108, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.promo-splash__cta--explore {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  color: #ede6db;
+}
+
+.promo-splash__cta--explore:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(237, 230, 219, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ── Enter site button ──────────────────────────────────── */
+
+.promo-splash__enter {
+  position: relative;
+  z-index: 1;
+  background: none;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(237, 230, 219, 0.45);
+  cursor: pointer;
+  transition: color 220ms ease;
+}
+
+.promo-splash__enter:hover {
+  color: rgba(237, 230, 219, 0.8);
+}
+
+/* ── Persistent promo pill ──────────────────────────────── */
+
+.promo-pill {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 900;
+}
+
+.promo-pill__link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  background: rgba(10, 14, 26, 0.82);
+  border: 1px solid rgba(201, 168, 108, 0.15);
+  border-radius: 999px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  text-decoration: none;
+  transition: all 220ms ease;
+}
+
+.promo-pill__link:hover {
+  border-color: rgba(201, 168, 108, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201, 168, 108, 0.12);
+}
+
+.promo-pill__art {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.promo-pill__text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ede6db;
+  letter-spacing: 0.02em;
+}
+
+.promo-pill__badge {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #0a0e1a;
+  background: linear-gradient(135deg, #dbb978, #c9a86c);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+
+/* ── Mobile ─────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .promo-splash__card {
+    padding: 2rem 1.4rem 1.5rem;
+    border-radius: 24px;
+  }
+
+  .promo-splash__artwork {
+    border-radius: 16px;
+  }
+
+  .promo-pill {
+    bottom: 5rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .promo-pill__link:hover {
+    transform: translateX(0) translateY(-2px);
+  }
+}
