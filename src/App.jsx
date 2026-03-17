@@ -152,14 +152,12 @@ function AppContent() {
     location.pathname === '/' &&
     !takeover.loading &&
     (takeover.exposure === 'takeover' || takeover.isAdminPreview);
-  // Alias routes: treat as release context while loading (optimistic) or
-  // once takeover is confirmed.  This ensures chrome is suppressed and the
-  // loading gate renders instead of a blank/wrong-chrome flash.
+  // Alias routes: always treat as release context when a campaign entry
+  // exists, so chrome rules (hideNavbar, etc.) apply regardless of mode.
   const isAliasPath =
     location.pathname === '/artist' || location.pathname === '/epk';
-  const isTakeoverAlias =
-    isAliasPath && (takeover.loading || takeover.exposure === 'takeover');
-  const isReleaseContext = isReleaseRoute || isTakeoverHome || isTakeoverAlias;
+  const isAliasRelease = isAliasPath && !!takeover.entry;
+  const isReleaseContext = isReleaseRoute || isTakeoverHome || isAliasRelease;
 
   // Chrome rules — only apply when in release context
   const chrome = isReleaseContext ? takeover.chrome : {};
