@@ -12,7 +12,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweBoyInTheBubble-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "Forever is Now",
@@ -21,7 +21,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweForeverisNow-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "Limitless and Fragile",
@@ -30,7 +30,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweLimitlessandFragile-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "My Whole Life for This",
@@ -39,7 +39,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweMyWholeLifeforThis-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "The Birds That Stayed",
@@ -48,7 +48,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweTheBirdsThatStayed-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "We Were Never Ready for the Light",
@@ -57,7 +57,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble/JaroweWeWereNeverReadyfortheLight-mastered.mp3`,
     artwork: BITB_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
 
   // ── Boy In The Bubble Redux ───────────────────────────────
@@ -68,7 +68,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble Redux/Jarowe_Limitless-and-Fragile_Remix.mp3`,
     artwork: REDUX_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "Limitless and Fragile (Slowed)",
@@ -77,7 +77,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble Redux/Jarowe_Limitless-and-Fragile_Slowed.mp3`,
     artwork: REDUX_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
   {
     title: "My Whole Life for This (Remix)",
@@ -86,7 +86,7 @@ const tracks = [
     src: `${BASE}audio/Boy In The Bubble Redux/Jarowe_My_Whole_Life_for_This_Remix.mp3`,
     artwork: REDUX_ART,
     platform: "spotify",
-    platformUrl: "https://open.spotify.com/artist/jarowe",
+    platformUrl: "https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ",
   },
 
   // ── SoundCloud Singles ────────────────────────────────────

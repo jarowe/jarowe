@@ -82,7 +82,7 @@ export const artist = {
     'I didn\'t set out to make an album. I set out to say something I\'d been carrying for a long time - about the weight of becoming, the terror of being seen, and the strange grace of realizing you were never ready for any of it. These songs are the most honest thing I\'ve ever put into the world.',
   portrait: `${BASE}images/jarowe_image.jpg`,
   socials: {
-    spotify: 'https://open.spotify.com/artist/jarowe',
+    spotify: 'https://open.spotify.com/artist/7ceYpgh0zd3q99yGNDiwSQ',
     soundcloud: 'https://soundcloud.com/jarowe',
     instagram: 'https://instagram.com/jarowemusic',
     x: 'https://x.com/jarikirane',
