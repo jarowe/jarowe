@@ -235,6 +235,14 @@ export const press = {
   ],
 };
 
+/* ── Streaming Links ─────────────────────────────────────── */
+const APPLE_MUSIC_URL = 'https://music.apple.com/us/album/boy-in-the-bubble-ep/1883948543';
+
+export const streamingLinks = [
+  { platform: 'spotify', label: 'Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', color: '#1DB954' },
+  { platform: 'apple-music', label: 'Apple Music', url: APPLE_MUSIC_URL, color: '#FA2D48' },
+];
+
 /* ── Rollout Timeline ────────────────────────────────────── */
 export const timeline = [
   { id: 'tl-presave',   label: 'Pre-save Opens',   date: dates.singleDisplayDate, phase: 'pre-single' },
@@ -252,6 +260,7 @@ const config = {
   focusTrackId,
   dates,
   ctas,
+  streamingLinks,
   tracks,
   press,
   timeline,

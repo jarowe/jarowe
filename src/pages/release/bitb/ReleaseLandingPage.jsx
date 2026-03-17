@@ -21,6 +21,7 @@ import {
   timeline,
   focusTrackId,
   press,
+  streamingLinks,
 } from '../../../content/takeovers/bitb/config';
 import './ReleaseLandingPage.css';
 
@@ -394,7 +395,15 @@ function TrackCard({ track, phase, expanded, onToggle, reduceMotion }) {
             {track.lyricExcerpt && (
               <blockquote className="bitb-track-card__lyric">{track.lyricExcerpt}</blockquote>
             )}
-            {!isLocked && <PreviewPlayer track={track} />}
+            {!isLocked && (
+              <div className="bitb-streaming-links">
+                {streamingLinks.map(({ platform, label, url }) => (
+                  <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className={`bitb-streaming-link bitb-streaming-link--${platform}`}>
+                    {label}
+                  </a>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -534,7 +543,13 @@ export default function ReleaseLandingPage({ phase = 'pre-single' }) {
                 The lead single is not an anthem of certainty. It is the sound of standing inside exposure,
                 grief, and awakening without pretending to be ready for any of it.
               </p>
-              <PreviewPlayer track={focusTrack} />
+              <div className="bitb-streaming-links">
+                {streamingLinks.map(({ platform, label, url }) => (
+                  <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className={`bitb-streaming-link bitb-streaming-link--${platform}`}>
+                    {label}
+                  </a>
+                ))}
+              </div>
               <div className="bitb-focus__cta-row">
                 <a
                   href={ctaSet.primary.url}

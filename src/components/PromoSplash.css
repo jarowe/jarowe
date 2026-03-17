@@ -66,6 +66,32 @@
   background: radial-gradient(circle, rgba(196, 98, 106, 0.14), transparent 60%);
 }
 
+/* ── Close button ──────────────────────────────────────── */
+
+.promo-splash__close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(237, 230, 219, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 230, 219, 0.5);
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+.promo-splash__close:hover {
+  color: rgba(237, 230, 219, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(237, 230, 219, 0.2);
+}
+
 /* ── Album artwork ──────────────────────────────────────── */
 
 .promo-splash__artwork {
@@ -179,6 +205,18 @@
   box-shadow:
     0 16px 40px rgba(201, 168, 108, 0.32),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.promo-splash__cta--apple {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  color: #ede6db;
+}
+
+.promo-splash__cta--apple:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(250, 45, 72, 0.3);
+  transform: translateY(-1px);
 }
 
 .promo-splash__cta--explore {
