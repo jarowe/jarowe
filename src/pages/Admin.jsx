@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Gamepad2, Settings, Users, FileText } from 'lucide-react';
+import { Gamepad2, Settings, Users, FileText, Radio } from 'lucide-react';
 import AdminGate from '../components/AdminGate';
 import { supabase } from '../lib/supabase';
 import { GAMES } from '../data/gameRegistry';
@@ -63,6 +63,7 @@ function AdminInner() {
     { to: '/?editor=jarowe', icon: Settings, label: 'Editors', desc: 'Globe + Glint editors', color: '#60a5fa', external: true },
     { to: '/admin/users', icon: Users, label: 'Users', desc: userCount != null ? `${userCount} registered` : 'Manage users', color: '#f472b6' },
     { to: '/admin/content', icon: FileText, label: 'Content', desc: nodeCount != null ? `${nodeCount} nodes` : 'Browse content', color: '#34d399' },
+    { to: '/admin/campaigns', icon: Radio, label: 'Campaigns', desc: 'Release takeovers', color: '#fbbf24' },
   ];
 
   if (loading) {
