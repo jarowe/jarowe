@@ -113,7 +113,7 @@ export const album = {
 };
 
 /* ── Focus Single ────────────────────────────────────────── */
-export const focusTrackId = 'we-were-never-ready';
+export const focusTrackId = 'boy-in-the-bubble';
 
 /* ── Dates ───────────────────────────────────────────────── */
 export const dates = {
@@ -151,7 +151,7 @@ export const tracks = [
     title: 'Boy In The Bubble',
     duration: '3:42',
     durationSec: 222,
-    isFocusTrack: false,
+    isFocusTrack: true,
     lyricExcerpt: 'I\'m the boy in the bubble, still learning to breathe.',
     themeTags: ['identity', 'vulnerability', 'becoming'],
     previewSrc: `${BASE}audio/previews/boy-in-the-bubble/boy-in-the-bubble-preview.mp3`,
@@ -216,7 +216,7 @@ export const tracks = [
     title: 'We Were Never Ready for the Light',
     duration: '4:27',
     durationSec: 267,
-    isFocusTrack: true,
+    isFocusTrack: false,
     lyricExcerpt: 'We were never ready for the light. It showed the dust we danced around.',
     themeTags: ['revelation', 'grace', 'surrender'],
     previewSrc: `${BASE}audio/previews/boy-in-the-bubble/we-were-never-ready-preview.mp3`,
