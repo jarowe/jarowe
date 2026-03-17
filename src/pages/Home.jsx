@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Globe2, BookOpen, ArrowRight, ChevronLeft, ChevronRight, Instagram, Github, Linkedin, Quote, X, MessageCircle, Lightbulb, Play } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { photos } from '../data/photos';
 import instagramPosts from '../data/instagramPosts.json';
@@ -6274,7 +6274,37 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Promo splash removed — homepage uses takeover mode instead */}
+      {/* Album promo splash — first-visit overlay */}
+      <AnimatePresence>
+        {showPromo && (
+          <Suspense fallback={null}>
+            <PromoSplash onDismiss={dismissPromo} />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* Persistent promo pill — visible after splash is dismissed */}
+      <AnimatePresence>
+        {!showPromo && (
+          <motion.div
+            className="promo-pill"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
+          >
+            <Link to="/music/boy-in-the-bubble" className="promo-pill__link">
+              <img
+                src={`${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg`}
+                alt="Boy In The Bubble"
+                className="promo-pill__art"
+              />
+              <span className="promo-pill__text">Boy In The Bubble</span>
+              <span className="promo-pill__badge">NEW</span>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* BIRTHDAY BANNER */}
       {isBirthday && (
@@ -6660,6 +6690,18 @@ export default function Home() {
 
           <div className="bento-cell cell-music">
             <MusicCell onOpenPlayer={() => setShowMusicModal(true)} />
+          </div>
+
+          {/* ALBUM PROMO CELL */}
+          <div className="bento-cell cell-album clickable" onClick={() => navigate('/music/boy-in-the-bubble')}>
+            <div className="album-cell__bg" style={{ backgroundImage: `url(${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg)` }} />
+            <div className="album-cell__glow" />
+            <div className="album-cell__content">
+              <span className="album-cell__badge">New Album</span>
+              <h3 className="album-cell__title">Boy In The Bubble</h3>
+              <p className="album-cell__subtitle">6 tracks of becoming</p>
+              <span className="album-cell__cta">Explore &rarr;</span>
+            </div>
           </div>
 
           {/* WORKSHOP CELL */}
