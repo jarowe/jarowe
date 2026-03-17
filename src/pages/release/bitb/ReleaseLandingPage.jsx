@@ -436,6 +436,11 @@ export default function ReleaseLandingPage({ phase = 'pre-single' }) {
 
   return (
     <div className="bitb-landing">
+      <Link to="/world" className="bitb-landing__close" aria-label="Enter site" title="Enter jarowe.com">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18" /><path d="M6 6l12 12" />
+        </svg>
+      </Link>
       <motion.section
         id="bitb-hero"
         ref={heroRef}

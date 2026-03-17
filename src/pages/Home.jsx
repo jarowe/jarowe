@@ -6274,33 +6274,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ALBUM PROMO SPLASH — first visit only, after brand reveal */}
-      <AnimatePresence>
-        {!showBrand && showPromo && (
-          <Suspense fallback={null}>
-            <PromoSplash onDismiss={dismissPromo} />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      {/* PERSISTENT ALBUM PROMO PILL — after splash dismissed */}
-      <AnimatePresence>
-        {!showBrand && !showPromo && (
-          <motion.div
-            className="promo-pill"
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.4 }}
-          >
-            <a href="/music/boy-in-the-bubble" className="promo-pill__link">
-              <img src={`${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg`} alt="" className="promo-pill__art" />
-              <span className="promo-pill__text">Boy In The Bubble</span>
-              <span className="promo-pill__badge">NEW</span>
-            </a>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Promo splash removed — homepage uses takeover mode instead */}
 
       {/* BIRTHDAY BANNER */}
       {isBirthday && (

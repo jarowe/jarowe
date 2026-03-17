@@ -3,6 +3,33 @@
  * The DOM contract remains intact; all styling is scoped under .release-bitb.
  */
 
+.release-bitb .bitb-landing__close {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  background: rgba(10, 14, 26, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(237, 230, 219, 0.6) !important;
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+.release-bitb .bitb-landing__close:hover {
+  color: rgba(237, 230, 219, 0.95) !important;
+  background: rgba(10, 14, 26, 0.8);
+  border-color: rgba(237, 230, 219, 0.25);
+  transform: scale(1.08);
+}
+
 .release-bitb .bitb-landing {
   position: relative;
 }
