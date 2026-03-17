@@ -413,11 +413,29 @@ function TrackCard({ track, phase, expanded, onToggle, reduceMotion }) {
 
 export default function ReleaseLandingPage({ phase = 'pre-single' }) {
   const reduceMotion = useReducedMotion();
+  const gatewayRef = useRef(null);
   const heroRef = useRef(null);
   const [expandedTrack, setExpandedTrack] = useState(focusTrackId);
   const ctaSet = ctas[phase] ?? ctas['pre-single'];
   const focusTrack = tracks.find((track) => track.id === focusTrackId);
 
+  /* ── Gateway parallax ──────────────────────────────────── */
+  const { scrollYProgress: gwScroll } = useScroll({
+    target: gatewayRef,
+    offset: ['start start', 'end start'],
+  });
+
+  const gwBgY = useTransform(gwScroll, [0, 1], [0, 80]);
+  const gwBgScale = useTransform(gwScroll, [0, 1], [1, 1.12]);
+  const gwHaloScale = useTransform(gwScroll, [0, 1], [1, 1.6]);
+  const gwHaloOpacity = useTransform(gwScroll, [0, 0.5, 1], [1, 0.6, 0]);
+  const gwArtY = useTransform(gwScroll, [0, 1], [0, -60]);
+  const gwArtScale = useTransform(gwScroll, [0, 1], [1, 0.82]);
+  const gwContentY = useTransform(gwScroll, [0, 1], [0, -100]);
+  const gwContentOpacity = useTransform(gwScroll, [0, 0.45, 0.85], [1, 0.9, 0]);
+  const gwHintOpacity = useTransform(gwScroll, [0, 0.15], [1, 0]);
+
+  /* ── Hero parallax ─────────────────────────────────────── */
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
@@ -441,6 +459,79 @@ export default function ReleaseLandingPage({ phase = 'pre-single' }) {
           <path d="M18 6L6 18" /><path d="M6 6l12 12" />
         </svg>
       </Link>
+      {/* ── Gateway ─────────────────────────────────────────── */}
+      <motion.section
+        id="bitb-gateway"
+        ref={gatewayRef}
+        className="bitb-gateway"
+        initial={reduceMotion ? false : 'hidden'}
+        animate={reduceMotion ? undefined : 'visible'}
+        variants={staggerReveal}
+      >
+        <motion.div
+          className="bitb-gateway__bg"
+          aria-hidden="true"
+          style={reduceMotion ? undefined : { y: gwBgY, scale: gwBgScale }}
+        />
+        <motion.div
+          className="bitb-gateway__halo"
+          aria-hidden="true"
+          style={reduceMotion ? undefined : { scale: gwHaloScale, opacity: gwHaloOpacity }}
+        />
+        <motion.div
+          className="bitb-gateway__artwork-wrap"
+          variants={childReveal}
+          style={reduceMotion ? undefined : { y: gwArtY, scale: gwArtScale }}
+        >
+          <img
+            className="bitb-gateway__artwork"
+            src={album.artwork}
+            alt={`${album.title} album artwork`}
+            draggable={false}
+          />
+        </motion.div>
+        <motion.div
+          className="bitb-gateway__content"
+          variants={childReveal}
+          style={reduceMotion ? undefined : { y: gwContentY, opacity: gwContentOpacity }}
+        >
+          <motion.h1 className="bitb-gateway__title" variants={childReveal}>
+            {album.title}
+          </motion.h1>
+          <motion.p className="bitb-gateway__subtitle" variants={childReveal}>
+            {album.subtitle}
+          </motion.p>
+          <motion.div className="bitb-gateway__links" variants={childReveal}>
+            {streamingLinks.map(({ platform, label, url }) => (
+              <a
+                key={platform}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`bitb-gateway__stream-pill bitb-gateway__stream-pill--${platform}`}
+              >
+                {label}
+              </a>
+            ))}
+          </motion.div>
+          <motion.div variants={childReveal}>
+            <Link to="/world" className="bitb-gateway__enter">
+              Enter Jarowe World &rarr;
+            </Link>
+          </motion.div>
+        </motion.div>
+        <motion.div
+          className="bitb-gateway__scroll-hint"
+          aria-hidden="true"
+          variants={childReveal}
+          style={reduceMotion ? undefined : { opacity: gwHintOpacity }}
+        >
+          <span className="bitb-gateway__scroll-arrow" />
+          <span>Scroll to explore</span>
+        </motion.div>
+      </motion.section>
+
+      {/* ── Hero ──────────────────────────────────────────── */}
       <motion.section
         id="bitb-hero"
         ref={heroRef}

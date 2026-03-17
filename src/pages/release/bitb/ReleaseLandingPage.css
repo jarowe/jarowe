@@ -93,6 +93,184 @@
   transform: translateY(-2px);
 }
 
+/* Gateway */
+.release-bitb #bitb-gateway {
+  position: relative;
+  max-width: none;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow: clip;
+  padding: clamp(5rem, 8vw, 7rem) clamp(1.25rem, 4vw, 2.6rem) clamp(4rem, 6vw, 5rem);
+}
+
+.release-bitb .bitb-gateway__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(201, 168, 108, 0.10), transparent 22rem),
+    radial-gradient(circle at 50% 55%, rgba(196, 98, 106, 0.06), transparent 26rem),
+    linear-gradient(180deg, rgba(10, 14, 26, 0.3), rgba(10, 14, 26, 0.95));
+  filter: blur(2px);
+}
+
+.release-bitb .bitb-gateway__halo {
+  position: absolute;
+  left: 50%;
+  top: clamp(10rem, 22vw, 16rem);
+  transform: translateX(-50%);
+  width: clamp(22rem, 44vw, 38rem);
+  height: clamp(22rem, 44vw, 38rem);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(circle, rgba(201, 168, 108, 0.14), rgba(196, 98, 106, 0.06) 40%, transparent 70%);
+  filter: blur(40px);
+  animation: gw-halo-pulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes gw-halo-pulse {
+  0%   { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  100% { opacity: 1;   transform: translateX(-50%) scale(1.06); }
+}
+
+.release-bitb .bitb-gateway__artwork-wrap {
+  position: relative;
+  z-index: 2;
+  width: clamp(14rem, 32vw, 22rem);
+  aspect-ratio: 1;
+  margin-bottom: 2rem;
+}
+
+.release-bitb .bitb-gateway__artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--bitb-radius-md, 16px);
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    0 0 80px rgba(201, 168, 108, 0.12),
+    0 0 120px rgba(196, 98, 106, 0.06);
+}
+
+.release-bitb .bitb-gateway__content {
+  position: relative;
+  z-index: 3;
+  max-width: 36rem;
+}
+
+.release-bitb .bitb-gateway__title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-variation-settings: 'opsz' 120;
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.release-bitb .bitb-gateway__subtitle {
+  margin: 0 0 1.6rem;
+  font-size: clamp(0.95rem, 1vw + 0.7rem, 1.18rem);
+  line-height: 1.7;
+  color: rgba(237, 230, 219, 0.75);
+}
+
+.release-bitb .bitb-gateway__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-bottom: 1.4rem;
+}
+
+.release-bitb .bitb-gateway__stream-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  font-family: var(--bitb-font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 220ms ease;
+  border: 1px solid rgba(237, 230, 219, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--bitb-ivory-dim) !important;
+}
+
+.release-bitb .bitb-gateway__stream-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(237, 230, 219, 0.22);
+  transform: translateY(-2px);
+}
+
+.release-bitb .bitb-gateway__stream-pill--spotify:hover {
+  border-color: rgba(29, 185, 84, 0.45);
+  color: #1DB954 !important;
+}
+
+.release-bitb .bitb-gateway__stream-pill--apple-music:hover {
+  border-color: rgba(250, 45, 72, 0.45);
+  color: #FA2D48 !important;
+}
+
+.release-bitb .bitb-gateway__enter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bitb-gold) !important;
+  transition: all 220ms ease;
+}
+
+.release-bitb .bitb-gateway__enter:hover {
+  color: var(--bitb-gold-bright, #dbb978) !important;
+  transform: translateX(3px);
+}
+
+.release-bitb .bitb-gateway__scroll-hint {
+  position: absolute;
+  bottom: clamp(1.5rem, 3vw, 2.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(237, 230, 219, 0.45);
+}
+
+.release-bitb .bitb-gateway__scroll-arrow {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-right: 2px solid rgba(237, 230, 219, 0.4);
+  border-bottom: 2px solid rgba(237, 230, 219, 0.4);
+  transform: rotate(45deg);
+  animation: gw-scroll-bounce 1.8s ease-in-out infinite;
+}
+
+@keyframes gw-scroll-bounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); opacity: 1; }
+  50%      { transform: rotate(45deg) translateY(6px); opacity: 0.5; }
+}
+
 /* Hero */
 .release-bitb #bitb-hero {
   max-width: none;
@@ -1097,6 +1275,16 @@
 }
 
 @media (max-width: 640px) {
+  .release-bitb .bitb-gateway__artwork-wrap {
+    width: clamp(11rem, 52vw, 16rem);
+    margin-bottom: 1.5rem;
+  }
+
+  .release-bitb .bitb-gateway__halo {
+    width: 18rem;
+    height: 18rem;
+  }
+
   .release-bitb #bitb-hero {
     min-height: 92dvh;
     padding-top: 6.4rem;
