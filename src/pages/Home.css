@@ -164,9 +164,9 @@
     grid-row: span 2;
 }
 
-/* Album Promo Cell */
+/* Album Promo Cell — spans cols 2-4 so no gap next to Currently */
 .cell-album {
-    grid-column: span 2;
+    grid-column: 2 / -1;
     grid-row: span 1;
     min-height: 200px;
 }
