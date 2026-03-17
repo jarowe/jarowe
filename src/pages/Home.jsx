@@ -3818,8 +3818,8 @@ export default function Home() {
 
   const container = useRef();
   const [showBrand, setShowBrand] = useState(() => { try { return !sessionStorage.getItem('jarowe_visited'); } catch { return false; } });
-  const [showPromo, setShowPromo] = useState(() => { try { return !sessionStorage.getItem('jarowe_promo_bitb_seen'); } catch { return false; } });
-  const dismissPromo = useCallback(() => { try { sessionStorage.setItem('jarowe_promo_bitb_seen', 'true'); } catch {} setShowPromo(false); }, []);
+  const [showPromo, setShowPromo] = useState(() => { try { return !localStorage.getItem('jarowe_promo_bitb_seen'); } catch { return false; } });
+  const dismissPromo = useCallback(() => { try { localStorage.setItem('jarowe_promo_bitb_seen', '1'); } catch {} setShowPromo(false); }, []);
 
   // Brand reveal - pure CSS animation handles visuals, this just dismisses the overlay
   // On birthday: extended to show humorous age reveal after JAROWE. fades

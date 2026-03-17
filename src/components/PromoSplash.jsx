@@ -107,13 +107,6 @@ export default function PromoSplash({ onDismiss }) {
           </Link>
         </motion.div>
 
-        <motion.button
-          className="promo-splash__enter"
-          onClick={onDismiss}
-          variants={fadeUp}
-        >
-          Enter Site
-        </motion.button>
       </motion.div>
     </motion.div>
   );

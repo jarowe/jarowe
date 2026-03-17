@@ -25,6 +25,9 @@ import {
 } from '../../../content/takeovers/bitb/config';
 import './ReleaseLandingPage.css';
 
+/* Module-level flag — intro flash plays only once per SPA session */
+let introFlashPlayed = false;
+
 const EASE_OUT = [0.22, 1, 0.36, 1];
 
 const sectionReveal = {
@@ -40,6 +43,23 @@ const staggerReveal = {
   hidden: {},
   visible: {
     transition: { staggerChildren: 0.12, delayChildren: 0.08 },
+  },
+};
+
+/* Hero entrance — delayed to sync with intro flash */
+const heroStagger = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.10, delayChildren: 0.5 },
+  },
+};
+
+const heroChildReveal = {
+  hidden: { opacity: 0, y: 32 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: EASE_OUT },
   },
 };
 
@@ -413,27 +433,15 @@ function TrackCard({ track, phase, expanded, onToggle, reduceMotion }) {
 
 export default function ReleaseLandingPage({ phase = 'pre-single' }) {
   const reduceMotion = useReducedMotion();
-  const gatewayRef = useRef(null);
   const heroRef = useRef(null);
   const [expandedTrack, setExpandedTrack] = useState(focusTrackId);
   const ctaSet = ctas[phase] ?? ctas['pre-single'];
   const focusTrack = tracks.find((track) => track.id === focusTrackId);
 
-  /* ── Gateway parallax ──────────────────────────────────── */
-  const { scrollYProgress: gwScroll } = useScroll({
-    target: gatewayRef,
-    offset: ['start start', 'end start'],
-  });
-
-  const gwBgY = useTransform(gwScroll, [0, 1], [0, 80]);
-  const gwBgScale = useTransform(gwScroll, [0, 1], [1, 1.12]);
-  const gwHaloScale = useTransform(gwScroll, [0, 1], [1, 1.6]);
-  const gwHaloOpacity = useTransform(gwScroll, [0, 0.5, 1], [1, 0.6, 0]);
-  const gwArtY = useTransform(gwScroll, [0, 1], [0, -60]);
-  const gwArtScale = useTransform(gwScroll, [0, 1], [1, 0.82]);
-  const gwContentY = useTransform(gwScroll, [0, 1], [0, -100]);
-  const gwContentOpacity = useTransform(gwScroll, [0, 0.45, 0.85], [1, 0.9, 0]);
-  const gwHintOpacity = useTransform(gwScroll, [0, 0.15], [1, 0]);
+  /* Show intro flash only on first visit this session */
+  const showIntro = !reduceMotion && !introFlashPlayed;
+  const heroChild = showIntro ? heroChildReveal : childReveal;
+  useEffect(() => { introFlashPlayed = true; }, []);
 
   /* ── Hero parallax ─────────────────────────────────────── */
   const { scrollYProgress } = useScroll({
@@ -454,82 +462,8 @@ export default function ReleaseLandingPage({ phase = 'pre-single' }) {
 
   return (
     <div className="bitb-landing">
-      <Link to="/world" className="bitb-landing__close" aria-label="Enter site" title="Enter jarowe.com">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6L6 18" /><path d="M6 6l12 12" />
-        </svg>
-      </Link>
-      {/* ── Gateway ─────────────────────────────────────────── */}
-      <motion.section
-        id="bitb-gateway"
-        ref={gatewayRef}
-        className="bitb-gateway"
-        initial={reduceMotion ? false : 'hidden'}
-        animate={reduceMotion ? undefined : 'visible'}
-        variants={staggerReveal}
-      >
-        <motion.div
-          className="bitb-gateway__bg"
-          aria-hidden="true"
-          style={reduceMotion ? undefined : { y: gwBgY, scale: gwBgScale }}
-        />
-        <motion.div
-          className="bitb-gateway__halo"
-          aria-hidden="true"
-          style={reduceMotion ? undefined : { scale: gwHaloScale, opacity: gwHaloOpacity }}
-        />
-        <motion.div
-          className="bitb-gateway__artwork-wrap"
-          variants={childReveal}
-          style={reduceMotion ? undefined : { y: gwArtY, scale: gwArtScale }}
-        >
-          <img
-            className="bitb-gateway__artwork"
-            src={album.artwork}
-            alt={`${album.title} album artwork`}
-            draggable={false}
-          />
-        </motion.div>
-        <motion.div
-          className="bitb-gateway__content"
-          variants={childReveal}
-          style={reduceMotion ? undefined : { y: gwContentY, opacity: gwContentOpacity }}
-        >
-          <motion.h1 className="bitb-gateway__title" variants={childReveal}>
-            {album.title}
-          </motion.h1>
-          <motion.p className="bitb-gateway__subtitle" variants={childReveal}>
-            {album.subtitle}
-          </motion.p>
-          <motion.div className="bitb-gateway__links" variants={childReveal}>
-            {streamingLinks.map(({ platform, label, url }) => (
-              <a
-                key={platform}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`bitb-gateway__stream-pill bitb-gateway__stream-pill--${platform}`}
-              >
-                {label}
-              </a>
-            ))}
-          </motion.div>
-          <motion.div variants={childReveal}>
-            <Link to="/world" className="bitb-gateway__enter">
-              Enter Jarowe World &rarr;
-            </Link>
-          </motion.div>
-        </motion.div>
-        <motion.div
-          className="bitb-gateway__scroll-hint"
-          aria-hidden="true"
-          variants={childReveal}
-          style={reduceMotion ? undefined : { opacity: gwHintOpacity }}
-        >
-          <span className="bitb-gateway__scroll-arrow" />
-          <span>Scroll to explore</span>
-        </motion.div>
-      </motion.section>
+      {/* ── Cinematic intro flash (first visit only) ───── */}
+      {showIntro && <div className="bitb-intro-flash" aria-hidden="true" />}
 
       {/* ── Hero ──────────────────────────────────────────── */}
       <motion.section
@@ -538,43 +472,43 @@ export default function ReleaseLandingPage({ phase = 'pre-single' }) {
         className="bitb-hero"
         initial={reduceMotion ? false : 'hidden'}
         animate={reduceMotion ? undefined : 'visible'}
-        variants={staggerReveal}
+        variants={showIntro ? heroStagger : staggerReveal}
       >
         <motion.div
           className="bitb-hero__bg"
           aria-hidden="true"
-          variants={childReveal}
+          variants={heroChild}
           style={reduceMotion ? undefined : { scale: heroBgScale, y: heroBgY }}
         />
         <motion.div
           className="bitb-hero__halo"
           aria-hidden="true"
-          variants={childReveal}
+          variants={heroChild}
           style={reduceMotion ? undefined : { y: heroHaloY, opacity: heroHaloOpacity }}
         />
         <motion.div
           className="bitb-hero__content"
-          variants={childReveal}
+          variants={heroChild}
           style={reduceMotion ? undefined : { y: heroContentY, opacity: heroContentOpacity }}
         >
-          <motion.p className="bitb-hero__album-tag" variants={childReveal}>
+          <motion.p className="bitb-hero__album-tag" variants={heroChildReveal}>
             from {album.title}
           </motion.p>
-          <motion.h1 className="bitb-hero__title" variants={childReveal}>
+          <motion.h1 className="bitb-hero__title" variants={heroChildReveal}>
             We Were Never Ready for the Light
           </motion.h1>
-          <motion.p className="bitb-hero__subtitle" variants={childReveal}>
+          <motion.p className="bitb-hero__subtitle" variants={heroChildReveal}>
             {album.subtitle}
           </motion.p>
-          <motion.p className="bitb-hero__whisper" variants={childReveal}>
+          <motion.p className="bitb-hero__whisper" variants={heroChildReveal}>
             Only the echo. Never the sound.
           </motion.p>
-          <motion.div className="bitb-hero__dates" variants={childReveal}>
+          <motion.div className="bitb-hero__dates" variants={heroChildReveal}>
             <span>{phase === 'album-live' ? 'Album out' : 'Single'} {phase === 'album-live' ? '' : 'April 10, 2026'}</span>
             <span>Album May 8, 2026</span>
           </motion.div>
         </motion.div>
-        <motion.div className="bitb-hero__cta" variants={childReveal}>
+        <motion.div className="bitb-hero__cta" variants={heroChildReveal}>
           <a
             href={ctaSet.primary.url}
             className="bitb-cta bitb-cta--primary"

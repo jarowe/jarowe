@@ -39,7 +39,8 @@ export default function GlobalPlayer() {
 
     // Hide when no track, or on home page when MusicCell is still visible
     if (!currentTrack) return null;
-    if (location.pathname === '/' && musicCellVisible) return null;
+    const isHomePage = location.pathname === '/' || location.pathname === '/world';
+    if (isHomePage && musicCellVisible) return null;
 
     return (
         <div className="global-player">
