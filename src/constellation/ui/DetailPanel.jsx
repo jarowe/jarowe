@@ -142,6 +142,44 @@ export default function DetailPanel() {
           {/* Mobile drag handle */}
           <div className="detail-panel__drag-handle" />
 
+          {/* Hero media — first item displayed prominently */}
+          {node.media && node.media.length > 0 && (() => {
+            const heroUrl = resolveMediaUrl(node.media[0]);
+            const heroType = getMediaType(node.media[0]);
+            return (
+              <div
+                className="detail-panel__hero"
+                onClick={() => openLightbox(node.media, 0)}
+                role="button"
+                tabIndex={0}
+                aria-label="View media fullscreen"
+              >
+                {heroType === 'video' ? (
+                  <video
+                    src={heroUrl}
+                    className="detail-panel__hero-media"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <img
+                    src={heroUrl}
+                    alt={node.title}
+                    className="detail-panel__hero-media"
+                    loading="eager"
+                  />
+                )}
+                {node.media.length > 1 && (
+                  <div className="detail-panel__hero-count">
+                    1 / {node.media.length}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Header */}
           <div className="detail-panel__header">
             <div className="detail-panel__meta">
@@ -201,20 +239,21 @@ export default function DetailPanel() {
             <p className="detail-panel__description">{node.description}</p>
           </div>
 
-          {/* Media gallery */}
-          {node.media && node.media.length > 0 && (
+          {/* Media gallery — remaining items (first is hero above) */}
+          {node.media && node.media.length > 1 && (
             <div className="detail-panel__section">
               <h3 className="detail-panel__section-title">Media</h3>
               <div className="detail-panel__media-grid">
-                {node.media.map((item, idx) => {
+                {node.media.slice(1).map((item, idx) => {
+                  const realIdx = idx + 1;
                   const url = resolveMediaUrl(item);
                   const type = getMediaType(item);
                   return (
                     <button
-                      key={idx}
+                      key={realIdx}
                       className="detail-panel__media-thumb"
-                      onClick={() => openLightbox(node.media, idx)}
-                      aria-label={`View media ${idx + 1}`}
+                      onClick={() => openLightbox(node.media, realIdx)}
+                      aria-label={`View media ${realIdx + 1}`}
                     >
                       {type === 'video' ? (
                         <>

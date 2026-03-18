@@ -39,6 +39,45 @@
   color: #fff;
 }
 
+/* Hero media — first item shown prominently */
+.detail-panel__hero {
+  position: relative;
+  width: 100%;
+  max-height: 300px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.detail-panel__hero-media {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Video hero: show native controls, let user play directly */
+video.detail-panel__hero-media {
+  object-fit: contain;
+  background: #000;
+  cursor: default;
+}
+
+.detail-panel__hero-count {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .detail-panel__drag-handle {
   display: none;
 }
