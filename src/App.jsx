@@ -251,6 +251,11 @@ function AppContent() {
               <ConstellationPage />
             </Suspense>
           } />
+          <Route path="/constellation/:nodeId" element={
+            <Suspense fallback={<LazyFallback label="Loading Constellation..." />}>
+              <ConstellationPage />
+            </Suspense>
+          } />
           <Route path="/profile" element={
             <Suspense fallback={<LazyFallback label="Loading Profile..." />}>
               <ProfilePage />

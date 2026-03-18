@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Component } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useConstellationStore } from '../constellation/store';
 import ConstellationCanvas from '../constellation/scene/ConstellationCanvas';
 import ListView from '../constellation/fallback/ListView';
@@ -96,6 +96,7 @@ export default function ConstellationPage() {
   const loadData = useConstellationStore((s) => s.loadData);
   const [canvasReady, setCanvasReady] = useState(false);
   const navigate = useNavigate();
+  const { nodeId: urlNodeId } = useParams();
 
   // Refs for back-button history state management
   const hasConstellationState = useRef(false);
@@ -104,6 +105,17 @@ export default function ConstellationPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Deep-link: auto-focus node from URL param once data is loaded
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (urlNodeId && dataLoaded && !deepLinked.current) {
+      deepLinked.current = true;
+      const focusNode = useConstellationStore.getState().focusNode;
+      // Small delay to let canvas initialize
+      requestAnimationFrame(() => focusNode(urlNodeId));
+    }
+  }, [urlNodeId, dataLoaded]);
 
   // Delay Canvas mount by one frame to survive React StrictMode's
   // mount-unmount-remount cycle. Without this, StrictMode creates and
@@ -161,13 +173,14 @@ export default function ConstellationPage() {
   useEffect(() => {
     if (focusedNodeId && !hasConstellationState.current) {
       // First focus: push a history entry so back button can close panel
-      window.history.pushState({ constellation: true }, '');
+      window.history.pushState({ constellation: true }, '', `/constellation/${focusedNodeId}`);
       hasConstellationState.current = true;
     } else if (focusedNodeId && hasConstellationState.current) {
-      // Subsequent focus: replace state (avoid stack overflow per pitfall #7)
-      window.history.replaceState({ constellation: true }, '');
+      // Subsequent focus: replace state with new node URL
+      window.history.replaceState({ constellation: true }, '', `/constellation/${focusedNodeId}`);
     } else if (!focusedNodeId && hasConstellationState.current) {
-      // Panel closed via clearFocus: remove history state
+      // Panel closed via clearFocus: go back to base URL
+      window.history.replaceState({}, '', '/constellation');
       hasConstellationState.current = false;
     }
   }, [focusedNodeId]);

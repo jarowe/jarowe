@@ -146,22 +146,24 @@ export default function DetailPanel() {
           {node.media && node.media.length > 0 && (() => {
             const heroUrl = resolveMediaUrl(node.media[0]);
             const heroType = getMediaType(node.media[0]);
+            const isVideo = heroType === 'video';
             return (
               <div
-                className="detail-panel__hero"
-                onClick={() => openLightbox(node.media, 0)}
-                role="button"
-                tabIndex={0}
-                aria-label="View media fullscreen"
+                className={`detail-panel__hero${isVideo ? '' : ' detail-panel__hero--image'}`}
+                {...(!isVideo && {
+                  onClick: () => openLightbox(node.media, 0),
+                  role: 'button',
+                  tabIndex: 0,
+                })}
+                aria-label={isVideo ? 'Video player' : 'View media fullscreen'}
               >
-                {heroType === 'video' ? (
+                {isVideo ? (
                   <video
                     src={heroUrl}
                     className="detail-panel__hero-media"
                     controls
                     playsInline
                     preload="metadata"
-                    onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
                   <img

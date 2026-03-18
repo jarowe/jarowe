@@ -43,25 +43,33 @@
 .detail-panel__hero {
   position: relative;
   width: 100%;
-  max-height: 300px;
-  overflow: hidden;
-  cursor: pointer;
   background: #000;
   flex-shrink: 0;
 }
 
+/* Image hero — cropped cover, click for lightbox */
+.detail-panel__hero--image {
+  max-height: 300px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
 .detail-panel__hero-media {
   width: 100%;
-  max-height: 300px;
-  object-fit: cover;
   display: block;
 }
 
-/* Video hero: show native controls, let user play directly */
+/* Image: cover crop */
+img.detail-panel__hero-media {
+  max-height: 300px;
+  object-fit: cover;
+}
+
+/* Video: full native player, no crop, no height limit */
 video.detail-panel__hero-media {
+  width: 100%;
   object-fit: contain;
   background: #000;
-  cursor: default;
 }
 
 .detail-panel__hero-count {
