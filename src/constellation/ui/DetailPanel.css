@@ -65,11 +65,14 @@ img.detail-panel__hero-media {
   object-fit: cover;
 }
 
-/* Video: full native player, no crop, no height limit */
+/* Video: full native player with guaranteed visibility */
 video.detail-panel__hero-media {
   width: 100%;
+  min-height: 200px;
+  max-height: 500px;
   object-fit: contain;
   background: #000;
+  border-radius: 0;
 }
 
 .detail-panel__hero-count {

@@ -159,11 +159,14 @@ export default function DetailPanel() {
               >
                 {isVideo ? (
                   <video
+                    key={heroUrl}
                     src={heroUrl}
                     className="detail-panel__hero-media"
                     controls
+                    autoPlay
+                    muted
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                   />
                 ) : (
                   <img

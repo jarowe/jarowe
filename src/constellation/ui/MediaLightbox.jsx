@@ -91,7 +91,6 @@ export default function MediaLightbox() {
                 className="media-lightbox__image"
                 controls
                 autoPlay
-                muted
                 playsInline
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
