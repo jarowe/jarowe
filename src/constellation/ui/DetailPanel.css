@@ -65,14 +65,38 @@ img.detail-panel__hero-media {
   object-fit: cover;
 }
 
-/* Video: full native player with guaranteed visibility */
+/* Video: full player with guaranteed visibility */
 video.detail-panel__hero-media {
   width: 100%;
   min-height: 200px;
   max-height: 500px;
   object-fit: contain;
   background: #000;
-  border-radius: 0;
+  display: block;
+}
+
+/* Video hero wrapper */
+.detail-panel__video-hero {
+  position: relative;
+  width: 100%;
+  background: #000;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Big centered play button */
+.detail-panel__video-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.detail-panel__video-hero:hover .detail-panel__video-play-btn svg circle {
+  fill: rgba(124, 58, 237, 0.7);
 }
 
 .detail-panel__hero-count {

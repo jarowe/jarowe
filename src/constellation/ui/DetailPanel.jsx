@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import {
@@ -57,6 +57,46 @@ const EVIDENCE_ICON_MAP = {
   project: Folder,
   idea: Lightbulb,
 };
+
+/** Inline video player with big play button overlay */
+function VideoHero({ src }) {
+  const videoRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+
+  const togglePlay = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().then(() => setPlaying(true)).catch(() => {});
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  }, []);
+
+  return (
+    <div className="detail-panel__video-hero" onClick={togglePlay}>
+      <video
+        ref={videoRef}
+        src={src}
+        className="detail-panel__hero-media"
+        playsInline
+        preload="auto"
+        loop
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
+      {!playing && (
+        <div className="detail-panel__video-play-btn" aria-label="Play video">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="23" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.3)" strokeWidth="2"/>
+            <polygon points="19,14 19,34 36,24" fill="#fff"/>
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Number of connections to show before "Show N more" */
 const INITIAL_CONNECTION_LIMIT = 5;
@@ -158,16 +198,7 @@ export default function DetailPanel() {
                 aria-label={isVideo ? 'Video player' : 'View media fullscreen'}
               >
                 {isVideo ? (
-                  <video
-                    key={heroUrl}
-                    src={heroUrl}
-                    className="detail-panel__hero-media"
-                    controls
-                    autoPlay
-                    muted
-                    playsInline
-                    preload="auto"
-                  />
+                  <VideoHero key={heroUrl} src={heroUrl} />
                 ) : (
                   <img
                     src={heroUrl}
