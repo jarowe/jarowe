@@ -531,29 +531,36 @@ async function main() {
   log.info('--- Phase 6.8: Tier Classification ---');
 
   const helixThreshold = PIPELINE_CONFIG.tiers?.helixThreshold ?? 0.35;
+  const tierOverrides = curation.tier_overrides || {};
   let helixCount = 0;
   let particleCount = 0;
+  let tierOverrideCount = 0;
 
   for (const node of allNodes) {
-    // Manual milestones have tier pre-set by parser — respect it
-    if (node.tier === 'helix') {
-      helixCount++;
-    } else if (node.type === 'milestone' || node.type === 'project') {
-      // Milestones and projects always go on helix regardless of significance
+    // 1. Curation tier_overrides take absolute priority
+    if (tierOverrides[node.id]) {
+      node.tier = tierOverrides[node.id];
+      tierOverrideCount++;
+    // 2. Manual milestones have tier pre-set by parser — respect it
+    } else if (node.tier === 'helix') {
+      // keep
+    // 3. Milestones auto-helix (manually curated life events)
+    } else if (node.type === 'milestone') {
       node.tier = 'helix';
-      helixCount++;
+    // 4. Projects go on helix only if significance meets threshold
     } else if (node.significance >= helixThreshold) {
       node.tier = 'helix';
-      helixCount++;
     } else {
       node.tier = 'particle';
-      particleCount++;
     }
+
+    if (node.tier === 'helix') helixCount++;
+    else particleCount++;
   }
 
   log.info(
     `Tier classification: ${helixCount} helix, ${particleCount} particle ` +
-    `(threshold: ${helixThreshold})`
+    `(threshold: ${helixThreshold}, ${tierOverrideCount} overrides)`
   );
 
   // ========================================================================

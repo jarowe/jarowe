@@ -19,39 +19,105 @@ const TYPE_COLORS = {
   track: '#34d399',
 };
 
-/** Diamond-shaped point shader */
-const diamondVertexShader = `
+/**
+ * Shape IDs:
+ * 0 = circle, 1 = diamond, 2 = square, 3 = heart, 4 = triangle, 5 = star
+ *
+ * Theme → shape mapping for themed nodes.
+ * Unthemed nodes get a shape from a deterministic ID hash.
+ */
+const THEME_SHAPES = {
+  love: 3, family: 3, fatherhood: 3,       // heart
+  career: 2, craft: 2,                      // square
+  adventure: 4, travel: 4, greece: 4, nature: 4, // triangle
+  celebration: 5, friendship: 5,            // star
+  growth: 1, reflection: 1, faith: 1,       // diamond
+  nostalgia: 0, food: 0, home: 0,           // circle
+};
+
+/** Simple hash of string → 0..count */
+function hashShape(id, count) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  }
+  return ((h % count) + count) % count;
+}
+
+const vertexShader = `
   attribute float size;
+  attribute float shape;
   varying vec3 vColor;
+  varying float vShape;
   void main() {
     vColor = color;
+    vShape = shape;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_PointSize = size * (200.0 / -mvPosition.z);
-    gl_PointSize = clamp(gl_PointSize, 2.0, 36.0);
+    gl_PointSize = clamp(gl_PointSize, 2.0, 40.0);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
 
-const diamondFragmentShader = `
+const fragmentShader = `
   varying vec3 vColor;
+  varying float vShape;
   uniform float uOpacity;
+
   void main() {
-    // Diamond shape: |x| + |y| <= 1 in point-coord space centered at 0.5
     vec2 uv = gl_PointCoord * 2.0 - 1.0;
-    float diamond = abs(uv.x) + abs(uv.y);
-    if (diamond > 1.0) discard;
-    // Soft edge glow
-    float alpha = smoothstep(1.0, 0.5, diamond) * uOpacity;
+    float d;
+    int s = int(vShape + 0.5);
+
+    if (s == 1) {
+      // Diamond — rotated square
+      d = (abs(uv.x) + abs(uv.y)) / 1.0;
+    } else if (s == 2) {
+      // Rounded square
+      d = max(abs(uv.x), abs(uv.y)) / 0.78;
+    } else if (s == 3) {
+      // Heart — Inigo Quilez's exact heart SDF
+      vec2 p = vec2(abs(uv.x), -uv.y - 0.1);
+      float a = atan(p.x, p.y) / 3.14159;
+      float r = length(p);
+      float h = abs(a);
+      float shape = (13.0 * h - 22.0 * h * h + 10.0 * h * h * h) / (6.0 - 5.0 * h);
+      d = r / shape;
+    } else if (s == 4) {
+      // Triangle pointing UP — equilateral
+      vec2 p = vec2(uv.x, -uv.y + 0.25);
+      float k = 1.732; // sqrt(3)
+      p.x = abs(p.x) - 0.7;
+      p.y = p.y + 0.7 / k;
+      if (p.x + k * p.y > 0.0) {
+        p = vec2(p.x - k * p.y, -k * p.x - p.y) / 2.0;
+      }
+      p.x -= clamp(p.x, -1.4, 0.0);
+      d = -length(p) * sign(p.y);
+      d = smoothstep(0.05, -0.05, d);
+      d = 1.0 - d;
+    } else if (s == 5) {
+      // 4-point star / sparkle
+      float r = length(uv);
+      float a = atan(uv.y, uv.x);
+      float f = abs(cos(a * 2.0));
+      f = mix(0.3, 1.0, f);
+      d = r / f;
+    } else {
+      // Circle
+      d = length(uv);
+    }
+
+    if (d > 1.0) discard;
+    float alpha = smoothstep(1.0, 0.55, d) * uOpacity;
     gl_FragColor = vec4(vColor, alpha);
   }
 `;
 
 /**
  * Ambient particle cloud for particle-tier nodes.
- *
- * Renders diamond-shaped particles using a custom ShaderMaterial.
- * Each particle is color-coordinated by theme/type.
- * Gentle floating drift animation gives the cloud life.
+ * Renders shaped particles (circle, diamond, square, heart, triangle, star)
+ * based on node type. Each particle is color-coordinated by theme/type.
  */
 export default function ParticleCloud({ nodes, tunnelMode = false }) {
   const pointsRef = useRef();
@@ -61,10 +127,11 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
   const count = nodes.length;
 
   // Pre-compute geometry attributes
-  const { positions, colors, sizes, basePositions } = useMemo(() => {
+  const { positions, colors, sizes, shapes, basePositions } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const sz = new Float32Array(count);
+    const sh = new Float32Array(count);
     const base = new Float32Array(count * 3);
     const tempColor = new THREE.Color();
 
@@ -84,7 +151,7 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
 
       // Color: theme-based with type fallback
       const sig = node.significance ?? 0.2;
-      const brightness = 0.3 + sig * 0.8; // range 0.3 to 1.1
+      const brightness = 0.5 + sig * 0.7;
       const color = (node.theme && THEME_COLORS[node.theme])
         || (node.type && TYPE_COLORS[node.type]) || '#94a3b8';
       tempColor.set(color).multiplyScalar(brightness);
@@ -92,18 +159,25 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;
 
-      // Size: diamonds scaled by significance (larger for easier clicking)
-      sz[i] = 4.0 + sig * 5.0; // range 4.0 to 9.0
+      // Size
+      sz[i] = 6.0 + sig * 6.0;
+
+      // Shape: theme-based if themed, otherwise deterministic from node ID
+      if (node.theme && THEME_SHAPES[node.theme] !== undefined) {
+        sh[i] = THEME_SHAPES[node.theme];
+      } else {
+        sh[i] = hashShape(node.id, 6);
+      }
     }
 
-    return { positions: pos, colors: col, sizes: sz, basePositions: base };
+    return { positions: pos, colors: col, sizes: sz, shapes: sh, basePositions: base };
   }, [nodes, count]);
 
-  // Diamond shader material
+  // Shader material
   const shaderMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
-      vertexShader: diamondVertexShader,
-      fragmentShader: diamondFragmentShader,
+      vertexShader,
+      fragmentShader,
       uniforms: {
         uOpacity: { value: 0.6 },
       },
@@ -121,17 +195,18 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    geo.setAttribute('shape', new THREE.BufferAttribute(shapes, 1));
     geo.computeBoundingSphere();
-  }, [positions, colors, sizes]);
+  }, [positions, colors, sizes, shapes]);
 
   // Focus dimming + tunnel mode dimming
   useEffect(() => {
     if (tunnelMode) {
       shaderMaterial.uniforms.uOpacity.value = 0.12;
     } else if (focusedNodeId) {
-      shaderMaterial.uniforms.uOpacity.value = 0.1;
+      shaderMaterial.uniforms.uOpacity.value = 0.3;
     } else {
-      shaderMaterial.uniforms.uOpacity.value = 0.45;
+      shaderMaterial.uniforms.uOpacity.value = 0.65;
     }
   }, [focusedNodeId, tunnelMode, shaderMaterial]);
 

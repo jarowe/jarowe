@@ -42,7 +42,7 @@ function checkThinNode(node) {
 
 function checkProfileUpdate(node) {
   const title = node.title || '';
-  if (/^(updated|changed)\s+(a photo|cover|profile)/i.test(title)) {
+  if (/^(updated|changed|added|uploaded|shared)\s+(a\s+|an\s+|\d+\s+)?photo(s)?$/i.test(title)) {
     const descLen = (node.description || '').length;
     if (descLen < 15) {
       return { drop: true, reason: 'profile-update' };
@@ -92,6 +92,36 @@ function checkTitleIsDescription(node) {
   return { drop: false };
 }
 
+function checkSensitiveContent(node) {
+  const text = `${node.title || ''} ${node.description || ''}`;
+  // Patterns that indicate prank/hijacked posts or inappropriate content
+  if (/\bTHANKFUL FOR DRUGS\b/i.test(text)) {
+    return { drop: true, reason: 'sensitive-content' };
+  }
+  if (/\bteabag\b/i.test(text) && (node.description || '').length < 30) {
+    return { drop: true, reason: 'sensitive-content' };
+  }
+  // Gibberish: 5+ consecutive uppercase chars with no real words
+  if (/[A-Z]{5,}.*[A-Z]{5,}/.test(text) && !/\b[a-z]{3,}\b/.test(text)) {
+    return { drop: true, reason: 'gibberish' };
+  }
+  // Repeated parser artifacts
+  if (/^(Photos){2,}$/i.test((node.title || '').trim())) {
+    return { drop: true, reason: 'parser-artifact' };
+  }
+  return { drop: false };
+}
+
+function checkDuplicate(node, seenTitles) {
+  const title = (node.title || '').trim();
+  const key = `${node.date}|${title}`;
+  if (title.length > 5 && seenTitles.has(key)) {
+    return { drop: true, reason: 'duplicate' };
+  }
+  seenTitles.add(key);
+  return { drop: false };
+}
+
 const RULES = [
   checkBirthdaySpam,
   checkThinNode,
@@ -100,6 +130,7 @@ const RULES = [
   checkEmptyShare,
   checkGenericTitle,
   checkTitleIsDescription,
+  checkSensitiveContent,
 ];
 
 /**
@@ -119,6 +150,8 @@ export function filterLowQualityNodes(nodes, protectedIds = new Set()) {
     byReason: {},
   };
 
+  const seenTitles = new Set();
+
   for (const node of nodes) {
     // Never drop protected nodes
     if (protectedIds.has(node.id)) {
@@ -131,6 +164,15 @@ export function filterLowQualityNodes(nodes, protectedIds = new Set()) {
     if (node.type === 'milestone' || node.type === 'project' || node.source === 'manual') {
       kept.push(node);
       stats.kept++;
+      continue;
+    }
+
+    // Check duplicate (uses shared state, runs before standard rules)
+    const dupResult = checkDuplicate(node, seenTitles);
+    if (dupResult.drop) {
+      dropped.push(node);
+      stats.dropped++;
+      stats.byReason[dupResult.reason] = (stats.byReason[dupResult.reason] || 0) + 1;
       continue;
     }
 

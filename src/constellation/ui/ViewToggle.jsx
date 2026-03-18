@@ -1,4 +1,3 @@
-import { Orbit, Tunnel } from 'lucide-react';
 import { useConstellationStore } from '../store';
 import './ViewToggle.css';
 

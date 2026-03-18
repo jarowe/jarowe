@@ -1,26 +1,27 @@
 {
-  "lastRun": "2026-03-06T01:51:37.142Z",
+  "lastRun": "2026-03-18T19:14:46.323Z",
   "status": "success",
-  "publishMode": true,
+  "publishMode": false,
   "stats": {
-    "nodeCount": 503,
-    "edgeCount": 1135,
+    "nodeCount": 417,
+    "edgeCount": 909,
     "bySource": {
-      "carbonmade": 46,
-      "facebook": 399,
-      "instagram": 37,
+      "carbonmade": 59,
+      "facebook": 292,
+      "instagram": 45,
       "manual": 21
     },
     "byType": {
-      "moment": 402,
-      "milestone": 69,
-      "project": 32
+      "moment": 352,
+      "milestone": 30,
+      "project": 35
     },
     "byVisibility": {
-      "public": 503
+      "public": 67,
+      "friends": 350
     },
     "byFactuality": {
-      "factual": 503
+      "factual": 417
     },
     "ingestSources": {
       "instagram": {
@@ -45,88 +46,86 @@
       }
     },
     "edgeQuality": {
-      "avgConnectionsPerNode": 4.5,
-      "crossSourceEdges": 243,
-      "crossSourceRatio": 0.21,
-      "isolatedNodes": 37,
+      "avgConnectionsPerNode": 4.4,
+      "crossSourceEdges": 268,
+      "crossSourceRatio": 0.29,
+      "isolatedNodes": 26,
       "signalDistribution": {
-        "shared-motif": 245,
-        "cross-source-echo": 191,
-        "narrative-arc": 232,
-        "life-chapter": 828,
-        "shared-tags": 51,
-        "seasonal-echo": 90,
-        "temporal-proximity": 690,
-        "same-day": 197,
+        "shared-motif": 290,
+        "cross-source-echo": 220,
+        "narrative-arc": 276,
+        "life-chapter": 683,
+        "seasonal-echo": 114,
+        "shared-tags": 57,
+        "temporal-proximity": 506,
+        "same-day": 108,
         "shared-client": 1,
         "shared-place": 3,
-        "shared-entity": 12,
-        "shared-identity": 12
+        "shared-entity": 17,
+        "shared-identity": 17
       }
     },
     "byAuthorship": {
-      "authored": 503
+      "authored": 417
     },
     "bySignificanceTier": {
-      "low": 82,
-      "medium": 292,
-      "high": 99,
-      "exceptional": 30
+      "low": 75,
+      "medium": 212,
+      "high": 91,
+      "exceptional": 39
     },
-    "significanceOverridesApplied": 32,
+    "significanceOverridesApplied": 70,
     "rollupPromotions": {
-      "totalPromoted": 2122,
-      "bySource": {
-        "instagram": 59,
-        "facebook": 2063
-      },
-      "publishMode": true
+      "totalPromoted": 0,
+      "bySource": {},
+      "publishMode": false
     },
     "byTier": {
-      "helix": 117,
-      "particle": 386,
+      "helix": 77,
+      "particle": 340,
       "helixThreshold": 0.7
     },
     "contentQuality": {
-      "total": 2249,
-      "kept": 544,
-      "dropped": 1705,
+      "total": 2124,
+      "kept": 417,
+      "dropped": 1707,
       "byReason": {
-        "generic-title": 22,
+        "generic-title": 17,
+        "duplicate": 489,
         "title-is-description": 1,
         "thin-node": 694,
         "birthday-spam": 153,
-        "empty-share": 835
+        "profile-update": 353
       }
     },
     "motifs": {
-      "family": 23,
-      "fatherhood": 14,
-      "love": 12,
+      "family": 29,
+      "fatherhood": 20,
+      "love": 18,
       "travel": 8,
       "faith": 2,
-      "reflection": 7,
-      "celebration": 3,
-      "growth": 10,
+      "reflection": 8,
+      "celebration": 5,
+      "friendship": 13,
+      "growth": 14,
       "nature": 8,
-      "friendship": 9,
-      "greece": 6,
+      "greece": 8,
       "nostalgia": 2,
       "home": 1,
-      "food": 3,
-      "craft": 44,
-      "career": 31,
-      "adventure": 2
+      "food": 4,
+      "craft": 53,
+      "career": 36,
+      "adventure": 3
     },
     "privacyAudit": {
       "violations": 0,
       "warnings": 0
     },
     "realityGate": {
-      "factualNodes": 503,
+      "factualNodes": 417,
       "threshold": 250,
       "passed": true,
-      "progress": "503/250"
+      "progress": "417/250"
     }
   }
 }

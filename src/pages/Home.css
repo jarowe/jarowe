@@ -868,22 +868,40 @@
     color: #fff;
 }
 
+.universe-btns {
+    display: flex;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
 .enter-btn {
     background: rgba(124, 58, 237, 0.2);
     border: 1px solid var(--accent-primary);
     color: #fff;
-    padding: 0.8rem 1.5rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 30px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     font-weight: bold;
+    font-size: 0.82rem;
+    cursor: pointer;
     transition: all 0.3s;
 }
 
-.cell-universe:hover .enter-btn {
+.enter-btn:hover {
     background: var(--accent-primary);
     box-shadow: 0 0 20px var(--accent-primary);
+}
+
+.enter-btn--constellation {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.5);
+}
+
+.enter-btn--constellation:hover {
+    background: rgba(56, 189, 248, 0.8);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
 }
 
 /* Avatar Click Effects */

@@ -39,9 +39,9 @@ import { createLogger } from '../utils/logger.mjs';
 const log = createLogger('facebook');
 
 // ─── Album / junk prefixes to strip from captions ────────────────────
-const ALBUM_PREFIX_RE = /^(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?)\s*/i;
+const ALBUM_PREFIX_RE = /^(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?|iOS Photos?|Photos?|Paper Photos?|TurboCollage for iPad Photos?)\s*/i;
 // Global version: strips album names from ANYWHERE in text (for .text() concatenation artifacts)
-const ALBUM_ANYWHERE_RE = /(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?)\s*/gi;
+const ALBUM_ANYWHERE_RE = /(Click for video:?|Mobile Uploads?|Timeline Photos?|Cover Photos?|Profile Pictures?|Instagram Photos?|iOS Photos?|(?<!\w)Photos?(?=\S)|Paper Photos?|TurboCollage for iPad Photos?)\s*/gi;
 
 /**
  * Clean Facebook mention markup: @[57204844:2048:Maria] → Maria

@@ -6815,15 +6815,20 @@ export default function Home() {
           </div>
 
           {/* ENTER THE UNIVERSE CELL */}
-          <div className="bento-cell cell-universe clickable" onClick={() => navigate('/universe')}>
+          <div className="bento-cell cell-universe">
             <div className="bento-content">
               <div className="universe-content">
                 <div>
                   <div className="universe-text">Go Deeper</div>
                   <p style={{ color: 'var(--accent-secondary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>See how everything connects.</p>
                 </div>
-                <div className="enter-btn">
-                  Explore <ArrowRight size={18} />
+                <div className="universe-btns">
+                  <div className="enter-btn" onClick={() => navigate('/universe')} role="button" tabIndex={0}>
+                    Universe <ArrowRight size={16} />
+                  </div>
+                  <div className="enter-btn enter-btn--constellation" onClick={() => navigate('/constellation')} role="button" tabIndex={0}>
+                    Constellation <ArrowRight size={16} />
+                  </div>
                 </div>
               </div>
             </div>
