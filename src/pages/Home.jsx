@@ -6303,6 +6303,9 @@ export default function Home() {
                 src={`${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg`}
                 alt="Boy In The Bubble"
                 className="promo-pill__art"
+                width={32}
+                height={32}
+                style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }}
               />
               <span className="promo-pill__text">Boy In The Bubble</span>
               <span className="promo-pill__badge">APR 10</span>
