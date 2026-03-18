@@ -59,41 +59,21 @@ const EVIDENCE_ICON_MAP = {
 };
 
 /** Inline video player with big play button overlay */
+/** Video player that uses native controls (proven to work) */
 function VideoHero({ src }) {
-  const videoRef = useRef(null);
-  const [playing, setPlaying] = useState(false);
-
-  const togglePlay = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) {
-      v.play().then(() => setPlaying(true)).catch(() => {});
-    } else {
-      v.pause();
-      setPlaying(false);
-    }
-  }, []);
-
   return (
-    <div className="detail-panel__video-hero" onClick={togglePlay}>
+    <div className="detail-panel__video-hero">
       <video
-        ref={videoRef}
         src={src}
         className="detail-panel__hero-media"
+        controls
         playsInline
+        muted
+        autoPlay
         preload="auto"
         loop
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
+        style={{ width: '100%', minHeight: 200, maxHeight: 500, background: '#000', display: 'block' }}
       />
-      {!playing && (
-        <div className="detail-panel__video-play-btn" aria-label="Play video">
-          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-            <circle cx="24" cy="24" r="23" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.3)" strokeWidth="2"/>
-            <polygon points="19,14 19,34 36,24" fill="#fff"/>
-          </svg>
-        </div>
-      )}
     </div>
   );
 }
