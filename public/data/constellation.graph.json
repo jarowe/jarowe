@@ -37563,6 +37563,33 @@
       "factuality": "factual",
       "id": "ms-005",
       "isHub": false,
+      "links": [
+        {
+          "source": "Official Site",
+          "title": "Doctrine Creative",
+          "url": "http://www.doctrinecreative.com/"
+        },
+        {
+          "source": "IMDb",
+          "title": "Jared Rowe — IMDb",
+          "url": "https://www.imdb.com/name/nm2753520/"
+        },
+        {
+          "source": "IMDb",
+          "title": "Derek Alan Rowe — IMDb",
+          "url": "https://www.imdb.com/name/nm2779590/"
+        },
+        {
+          "source": "IMDb",
+          "title": "Out on Parole (2009)",
+          "url": "https://www.imdb.com/title/tt1442308/"
+        },
+        {
+          "source": "IMDb",
+          "title": "Gutter King (2010)",
+          "url": "https://www.imdb.com/title/tt1286746/"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.82,
@@ -37702,6 +37729,28 @@
       "factuality": "factual",
       "id": "ms-008",
       "isHub": false,
+      "links": [
+        {
+          "source": "Videezy",
+          "title": "Videezy — Free Stock Video",
+          "url": "https://www.videezy.com/"
+        },
+        {
+          "source": "Videezy",
+          "title": "Jared Rowe on Videezy",
+          "url": "https://www.videezy.com/members/jarowe"
+        },
+        {
+          "source": "Lesterbanks",
+          "title": "Eezy Launches Videezy",
+          "url": "https://lesterbanks.com/2012/07/eezy-inc-launches-hd-stock-video-sharing-community-videezy/"
+        },
+        {
+          "source": "ProductionCrate",
+          "title": "Interview: Jared Rowe — VFX Artist",
+          "url": "https://news.productioncrate.com/interview-with-jared-rowe-vfx-artist-and-motion-designer/"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.78,
@@ -37796,6 +37845,33 @@
       "factuality": "factual",
       "id": "ms-010",
       "isHub": false,
+      "links": [
+        {
+          "source": "Elgato",
+          "title": "VBI on Elgato Marketplace",
+          "url": "https://marketplace.elgato.com/maker/visuals-by-impulse"
+        },
+        {
+          "source": "Wikitia",
+          "title": "Visuals by Impulse — Wiki",
+          "url": "https://wikitia.com/wiki/Visuals_by_Impulse"
+        },
+        {
+          "source": "Streamers Playbook",
+          "title": "VBI Review — Is It Worth It?",
+          "url": "https://streamersplaybook.com/visuals-by-impulse-review-is-it-worth-it-for-streamers/"
+        },
+        {
+          "source": "StreamElements",
+          "title": "StreamElements x VBI Partnership",
+          "url": "https://blog.streamelements.com/streamelements-now-offers-amazing-graphic-designs-from-visuals-by-impulse-bfda65965521"
+        },
+        {
+          "source": "Streamlabs",
+          "title": "VBI x Streamlabs Design Factory",
+          "url": "https://blog.streamlabs.com/vbi-streamlabs-app-c203bbe14a6a"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.82,
@@ -37889,6 +37965,43 @@
       "factuality": "factual",
       "id": "ms-012",
       "isHub": false,
+      "links": [
+        {
+          "source": "Corsair",
+          "title": "Official Press Release — Corsair IR",
+          "url": "https://ir.corsair.com/news-releases/news-release-details/great-content-design-corsair-acquires-visuals-by-impulse"
+        },
+        {
+          "source": "GameSpot",
+          "title": "GameSpot Coverage",
+          "url": "https://www.gamespot.com/articles/corsair-purchases-streaming-visuals-company-to-grow-elgato/1100-6487618/"
+        },
+        {
+          "source": "Dexerto",
+          "title": "Dexerto Coverage",
+          "url": "https://www.dexerto.com/business/corsair-purchases-visuals-by-impulse-1514420/"
+        },
+        {
+          "source": "KitGuru",
+          "title": "KitGuru Coverage",
+          "url": "https://www.kitguru.net/channel/generaltech/matthew-wilson/corsair-acquires-visuals-by-impulse-to-enhance-content-creator-offerings/"
+        },
+        {
+          "source": "The FPS Review",
+          "title": "The FPS Review",
+          "url": "https://www.thefpsreview.com/2021/02/16/corsair-acquires-visuals-by-impulse-a-premium-design-platform-for-streamers/"
+        },
+        {
+          "source": "Crunchbase",
+          "title": "Crunchbase — Acquisition",
+          "url": "https://www.crunchbase.com/acquisition/elgato-systems-acquires-visuals-by-impulse--13ae1997"
+        },
+        {
+          "source": "Facebook",
+          "title": "Elgato Facebook Announcement (Video)",
+          "url": "https://www.facebook.com/Elgato/videos/visuals-by-impulse/423456922084328/"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.82,
@@ -37975,6 +38088,18 @@
       "factuality": "factual",
       "id": "ms-014",
       "isHub": false,
+      "links": [
+        {
+          "source": "Official Site",
+          "title": "Starseed Pictures",
+          "url": "https://www.thestarseedgroup.com/"
+        },
+        {
+          "source": "Vimeo",
+          "title": "Starseed on Vimeo",
+          "url": "https://vimeo.com/starseedpictures"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.75,
@@ -38197,6 +38322,18 @@
       "factuality": "factual",
       "id": "ms-019",
       "isHub": false,
+      "links": [
+        {
+          "source": "Elgato",
+          "title": "Elgato at TwitchCon 2025 Guide",
+          "url": "https://www.elgato.com/us/en/explorer/news/events/elgato-twitchcon-2025/"
+        },
+        {
+          "source": "TwitchCon",
+          "title": "TwitchCon San Diego 2025 Archive",
+          "url": "https://www.twitchcon.com/archive/san-diego-2025/"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.68,
@@ -38287,6 +38424,18 @@
       "factuality": "factual",
       "id": "ms-021",
       "isHub": false,
+      "links": [
+        {
+          "source": "Elgato",
+          "title": "Elgato Marketplace",
+          "url": "https://marketplace.elgato.com/"
+        },
+        {
+          "source": "Elgato",
+          "title": "Elgato Marketplace — Stream Deck Plugins",
+          "url": "https://marketplace.elgato.com/stream-deck/plugins"
+        }
+      ],
       "location": null,
       "media": [],
       "significance": 0.55,

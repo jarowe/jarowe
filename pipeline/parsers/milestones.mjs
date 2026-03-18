@@ -68,6 +68,7 @@ export async function parseMilestones(milestonesDir) {
       epoch: assignEpoch(ms.date),
       description: ms.description || '',
       media: ms.media || [],
+      links: ms.links || [],
       source: 'manual',
       sourceId: ms.id,
       visibility: 'public', // Manual milestones are always public

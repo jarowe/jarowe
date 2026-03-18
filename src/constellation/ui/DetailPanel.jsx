@@ -217,12 +217,17 @@ export default function DetailPanel() {
                       aria-label={`View media ${idx + 1}`}
                     >
                       {type === 'video' ? (
-                        <video
-                          src={url}
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
+                        <>
+                          <video
+                            src={url}
+                            muted
+                            playsInline
+                            autoPlay
+                            loop
+                            preload="metadata"
+                          />
+                          <div className="detail-panel__video-badge" aria-hidden="true">▶</div>
+                        </>
                       ) : (
                         <img
                           src={url}
@@ -237,6 +242,27 @@ export default function DetailPanel() {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* External links / articles */}
+          {node.links && node.links.length > 0 && (
+            <div className="detail-panel__section">
+              <h3 className="detail-panel__section-title">Articles & Links</h3>
+              <div className="detail-panel__links">
+                {node.links.map((link, idx) => (
+                  <a
+                    key={idx}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="detail-panel__link"
+                  >
+                    <span className="detail-panel__link-title">{link.title}</span>
+                    <span className="detail-panel__link-source">{link.source}</span>
+                  </a>
+                ))}
               </div>
             </div>
           )}

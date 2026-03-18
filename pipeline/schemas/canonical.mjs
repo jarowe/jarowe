@@ -111,6 +111,11 @@ export function createCanonicalNode(fields = {}) {
     location: fields.location || null,
   };
 
+  // External links (articles, press, references)
+  if (Array.isArray(fields.links) && fields.links.length > 0) {
+    node.links = fields.links;
+  }
+
   // Optional sourceMeta — only include if provided (keeps output clean)
   if (fields.sourceMeta && typeof fields.sourceMeta === 'object') {
     node.sourceMeta = fields.sourceMeta;
