@@ -6305,7 +6305,7 @@ export default function Home() {
                 className="promo-pill__art"
               />
               <span className="promo-pill__text">Boy In The Bubble</span>
-              <span className="promo-pill__badge">NEW</span>
+              <span className="promo-pill__badge">APR 10</span>
             </Link>
           </motion.div>
         )}
@@ -6702,9 +6702,9 @@ export default function Home() {
             <div className="album-cell__bg" style={{ backgroundImage: `url(${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg)` }} />
             <div className="album-cell__glow" />
             <div className="album-cell__content">
-              <span className="album-cell__badge">New Album</span>
+              <span className="album-cell__badge">Coming April 10</span>
               <h3 className="album-cell__title">Boy In The Bubble</h3>
-              <p className="album-cell__subtitle">6 tracks of becoming</p>
+              <p className="album-cell__subtitle">New single + album pre-save</p>
               <span className="album-cell__cta">Explore &rarr;</span>
             </div>
           </div>

@@ -36,7 +36,7 @@ const registry = [
     /* static fallback when Supabase is unavailable */
     defaultState: {
       exposure_mode: 'splash',  // preview | splash | takeover | archived
-      rollout_phase: 'album-live', // pre-single | single-live | pre-album | album-live
+      rollout_phase: 'pre-single', // pre-single | single-live | pre-album | album-live
     },
   },
 ];

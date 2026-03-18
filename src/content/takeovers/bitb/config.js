@@ -126,7 +126,7 @@ export const dates = {
 /* ── CTAs (keyed by rollout_phase) ───────────────────────── */
 export const ctas = {
   'pre-single': {
-    primary:   { label: 'Listen on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-presave' },
+    primary:   { label: 'Pre-save on Spotify', url: 'https://open.spotify.com/album/1evTMGldNCiaD5jQuAiAdC', utmCampaign: 'bitb-presave' },
     secondary: { label: 'Open EPK', url: '/music/boy-in-the-bubble/epk' },
   },
   'single-live': {
