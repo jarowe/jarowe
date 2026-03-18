@@ -161,7 +161,9 @@
 
 .cell-music {
     grid-column: span 1;
-    grid-row: span 2;
+    grid-row: span 3;
+    container-type: inline-size;
+    container-name: music-cell;
 }
 
 /* Album Promo Cell — spans cols 2-4 so no gap next to Currently */
@@ -174,32 +176,23 @@
 .album-cell__bg {
     position: absolute;
     inset: 0;
+    z-index: 0;
     background-size: cover;
-    background-position: center 30%;
-    filter: brightness(0.35) saturate(0.8) contrast(1.1);
-    transition: filter 0.6s ease, transform 0.6s ease;
+    background-position: center center;
+    opacity: 0.4;
+    transition: opacity 0.3s ease, transform 0.5s ease;
 }
 
 .cell-album:hover .album-cell__bg {
-    filter: brightness(0.45) saturate(0.9) contrast(1.1);
+    opacity: 0.6;
     transform: scale(1.05);
 }
 
 .album-cell__glow {
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(ellipse at 20% 50%, rgba(201, 168, 108, 0.15), transparent 50%),
-        radial-gradient(ellipse at 80% 50%, rgba(196, 98, 106, 0.10), transparent 50%),
-        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.6));
     pointer-events: none;
     z-index: 1;
-    animation: album-glow-pulse 4s ease-in-out infinite alternate;
-}
-
-@keyframes album-glow-pulse {
-    0%   { opacity: 0.7; }
-    100% { opacity: 1; }
 }
 
 .album-cell__content {
@@ -211,6 +204,7 @@
     height: 100%;
     padding: 1.5rem;
     gap: 0.3rem;
+    background: linear-gradient(to top, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0) 100%);
 }
 
 .album-cell__badge {
@@ -1829,8 +1823,8 @@
     }
 
     .cell-music {
-        grid-column: span 1;
-        grid-row: span 2;
+        grid-column: span 2;
+        grid-row: span 1;
     }
 
     .cell-album {
@@ -2802,4 +2796,69 @@
     font-size: 0.7rem;
     color: rgba(251, 191, 36, 0.7);
     letter-spacing: 0.02em;
+}
+
+/* ── Promo Pill (persistent after splash dismiss) ─────── */
+.promo-pill {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    z-index: 900;
+}
+
+.promo-pill__link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+    background: rgba(10, 14, 26, 0.82);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 999px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    text-decoration: none;
+    transition: all 220ms ease;
+}
+
+.promo-pill__link:hover {
+    border-color: rgba(201, 168, 108, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(201, 168, 108, 0.12);
+}
+
+.promo-pill__art {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.promo-pill__text {
+    font-family: 'Manrope', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #ede6db;
+    letter-spacing: 0.02em;
+}
+
+.promo-pill__badge {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #0a0e1a;
+    background: linear-gradient(135deg, #dbb978, #c9a86c);
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+    .promo-pill {
+        bottom: 5rem;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .promo-pill__link:hover {
+        transform: translateX(0) translateY(-2px);
+    }
 }

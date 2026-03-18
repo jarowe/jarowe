@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Shuffle, Music2, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Shuffle, Music2, Volume2, ListMusic } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import './MusicCell.css';
 
@@ -75,6 +75,10 @@ export default function MusicCell({ onOpenPlayer }) {
                         </div>
                     )}
                     <div className="artwork-gloss" />
+                    <div className="artwork-playlist-hint">
+                        <ListMusic size={14} />
+                        <span>Playlist</span>
+                    </div>
                 </div>
             </div>
 

@@ -6702,7 +6702,7 @@ export default function Home() {
 
           {/* ALBUM PROMO CELL */}
           <div className="bento-cell cell-album clickable" onClick={() => navigate('/music/boy-in-the-bubble')}>
-            <div className="album-cell__bg" style={{ backgroundImage: `url(${BASE}images/music/Boy In The Bubble/jarowe_boyinthebubble_album-art.jpg)` }} />
+            <div className="album-cell__bg" style={{ backgroundImage: `url(${BASE}images/music/bitb-cosmic-bubble.jpg)` }} />
             <div className="album-cell__glow" />
             <div className="album-cell__content">
               <span className="album-cell__badge">Coming April 10</span>

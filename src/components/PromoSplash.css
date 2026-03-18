@@ -252,60 +252,6 @@
   color: rgba(237, 230, 219, 0.8);
 }
 
-/* ── Persistent promo pill ──────────────────────────────── */
-
-.promo-pill {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 1.5rem;
-  z-index: 900;
-}
-
-.promo-pill__link {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
-  background: rgba(10, 14, 26, 0.82);
-  border: 1px solid rgba(201, 168, 108, 0.15);
-  border-radius: 999px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  text-decoration: none;
-  transition: all 220ms ease;
-}
-
-.promo-pill__link:hover {
-  border-color: rgba(201, 168, 108, 0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(201, 168, 108, 0.12);
-}
-
-.promo-pill__art {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.promo-pill__text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #ede6db;
-  letter-spacing: 0.02em;
-}
-
-.promo-pill__badge {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: #0a0e1a;
-  background: linear-gradient(135deg, #dbb978, #c9a86c);
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-}
-
 /* ── Mobile ─────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
@@ -316,15 +262,5 @@
 
   .promo-splash__artwork {
     border-radius: 16px;
-  }
-
-  .promo-pill {
-    bottom: 5rem;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .promo-pill__link:hover {
-    transform: translateX(0) translateY(-2px);
   }
 }

@@ -1,8 +1,10 @@
 .music-suno-active {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     height: 100%;
+    gap: 0.4rem;
 }
 
 /* ── Showcase: 3D album art + vinyl disc ── */
@@ -12,7 +14,7 @@
     align-items: center;
     justify-content: center;
     padding: 8px 0 4px;
-    min-height: 140px;
+    min-height: 160px;
 }
 
 /* Vinyl wrapper handles the slide transition */
@@ -25,13 +27,13 @@
 }
 
 .music-vinyl-wrap.out {
-    transform: translateX(45px);
+    transform: translateX(55px);
 }
 
 /* Vinyl disc */
 .music-vinyl {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     background:
         radial-gradient(circle at 50% 50%, #333 0%, #111 18%, transparent 19%),
@@ -114,8 +116,8 @@
 /* 3D album art container — clickable to open full player */
 .music-artwork-3d {
     position: relative;
-    width: 130px;
-    height: 130px;
+    width: 190px;
+    height: 190px;
     flex-shrink: 0;
     z-index: 2;
     cursor: pointer;
@@ -130,8 +132,8 @@
 }
 
 .music-artwork-3d .music-artwork {
-    width: 130px;
-    height: 130px;
+    width: 190px;
+    height: 190px;
     border-radius: 10px;
     object-fit: cover;
     box-shadow:
@@ -148,6 +150,36 @@
         0 12px 40px rgba(124, 58, 237, 0.5),
         0 4px 12px rgba(0, 0, 0, 0.7),
         0 0 60px rgba(124, 58, 237, 0.15);
+}
+
+/* Playlist hint — appears on artwork hover */
+.artwork-playlist-hint {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.music-artwork-3d:hover .artwork-playlist-hint {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* Glossy reflection overlay */
@@ -167,8 +199,8 @@
 
 /* Fallback icon (no artwork) */
 .music-art-icon {
-    width: 130px;
-    height: 130px;
+    width: 190px;
+    height: 190px;
     background: linear-gradient(135deg, #7c3aed, #38bdf8, #f472b6, #7c3aed);
     background-size: 300% 300%;
     border-radius: 10px;
@@ -196,6 +228,7 @@
 .music-top {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
     margin-top: 0.5rem;
 }
@@ -236,6 +269,7 @@
 /* ── Track info ── */
 .music-meta {
     margin-top: 0.6rem;
+    text-align: center;
 }
 
 .music-meta .song-title {
@@ -312,12 +346,15 @@
     box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
 }
 
-/* ── Bottom row: volume full-width ── */
+/* ── Bottom row: volume ── */
 .music-bottom-row {
     display: flex;
     align-items: center;
+    justify-content: center;
     margin-top: 0.5rem;
     gap: 6px;
+    width: 100%;
+    max-width: 220px;
 }
 
 .music-volume-slider {
@@ -355,5 +392,102 @@
     box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
     border: none;
     cursor: pointer;
+}
+
+/* ── Wide cell (> 400px): horizontal layout ── */
+@container music-cell (min-width: 400px) {
+    .music-suno-active {
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .music-showcase {
+        min-height: unset;
+        padding: 0;
+        flex-shrink: 0;
+    }
+
+    .music-artwork-3d,
+    .music-artwork-3d .music-artwork {
+        width: 180px;
+        height: 180px;
+    }
+
+    .music-vinyl-wrap {
+        display: none;
+    }
+
+    .music-top {
+        margin-top: 0;
+        justify-content: flex-start;
+    }
+
+    .music-meta {
+        margin-top: 0.5rem;
+        text-align: left;
+    }
+
+    .music-meta .song-title {
+        font-size: 1.3rem;
+    }
+
+    .music-controls-bar {
+        margin-top: 0.6rem;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+
+    .play-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .prev-btn,
+    .next-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .music-bottom-row {
+        margin-top: 0.6rem;
+        max-width: 280px;
+        justify-content: flex-start;
+    }
+}
+
+/* ── Extra-wide cell (> 600px): bigger art, roomier ── */
+@container music-cell (min-width: 600px) {
+    .music-artwork-3d,
+    .music-artwork-3d .music-artwork {
+        width: 220px;
+        height: 220px;
+    }
+
+    .music-meta .song-title {
+        font-size: 1.5rem;
+    }
+
+    .music-meta .song-artist {
+        font-size: 1rem;
+    }
+
+    .play-btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    .prev-btn,
+    .next-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .shuffle-btn {
+        width: 36px;
+        height: 36px;
+    }
 }
 
