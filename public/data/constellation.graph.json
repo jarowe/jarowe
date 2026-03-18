@@ -20303,8 +20303,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.62,
-      "size": 0.76,
+      "significance": 0.61,
+      "size": 0.75,
       "source": "carbonmade",
       "sourceId": "blog-3-2019-12-20",
       "status": "published",
@@ -22460,8 +22460,8 @@
         "/data/media/cm-p-022/image-29.jpg",
         "/data/media/cm-p-022/image-30.jpg"
       ],
-      "significance": 0.69,
-      "size": 0.82,
+      "significance": 0.68,
+      "size": 0.81,
       "source": "carbonmade",
       "sourceId": "5401056",
       "status": "published",
@@ -22613,8 +22613,8 @@
         "https://carbon-media.accelerator.net/0000000exsu/fhghxwEdVHretnImNgptOW;960x38.jpeg?auto=webp",
         "/data/media/cm-p-025/image-01.jpg"
       ],
-      "significance": 0.71,
-      "size": 0.84,
+      "significance": 0.7,
+      "size": 0.83,
       "source": "carbonmade",
       "sourceId": "5431540",
       "status": "published",
@@ -23108,8 +23108,8 @@
         "https://carbon-media.accelerator.net/0000000exsu/4eDjWZEwXTIdxyZ67h56T6;960x281.png?auto=webp",
         "/data/media/cm-p-034/image-01.png"
       ],
-      "significance": 0.79,
-      "size": 0.91,
+      "significance": 0.78,
+      "size": 0.9,
       "source": "carbonmade",
       "sourceId": "5431545",
       "status": "published",
@@ -35923,8 +35923,8 @@
         "images/instagram/posts/202405/18032843638955398.jpg",
         "images/instagram/posts/202405/18236394499268396.jpg"
       ],
-      "significance": 0.71,
-      "size": 0.84,
+      "significance": 0.7,
+      "size": 0.83,
       "source": "instagram",
       "sourceId": "ig_hfxkf6",
       "sourceMeta": {
@@ -37516,7 +37516,9 @@
       "id": "ms-004",
       "isHub": false,
       "location": null,
-      "media": [],
+      "media": [
+        "images/couple-golden-hour.jpg"
+      ],
       "significance": 0.93,
       "size": 1.04,
       "source": "manual",
@@ -37637,7 +37639,9 @@
       "id": "ms-006",
       "isHub": false,
       "location": null,
-      "media": [],
+      "media": [
+        "images/boys-selfie.jpg"
+      ],
       "significance": 0.88,
       "size": 0.99,
       "source": "manual",
@@ -38149,7 +38153,9 @@
       "id": "ms-015",
       "isHub": false,
       "location": null,
-      "media": [],
+      "media": [
+        "images/greek-island.jpg"
+      ],
       "significance": 0.85,
       "size": 0.97,
       "source": "manual",
@@ -38236,7 +38242,9 @@
       "id": "ms-017",
       "isHub": false,
       "location": null,
-      "media": [],
+      "media": [
+        "images/family-alps.jpg"
+      ],
       "significance": 0.78,
       "size": 0.9,
       "source": "manual",
@@ -38335,7 +38343,9 @@
         }
       ],
       "location": null,
-      "media": [],
+      "media": [
+        "images/TwitchCon-2025-Panel.jpg"
+      ],
       "significance": 0.68,
       "size": 0.81,
       "source": "manual",
