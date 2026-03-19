@@ -85,11 +85,19 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const handleEnd = () => {
       if (isFlyingRef.current) return;
       const { focusedNodeId, cameraMode } = useConstellationStore.getState();
-      if (focusedNodeId || cameraMode === 'tunnel') return;
+      if (cameraMode === 'tunnel') return;
 
-      autoRotateTimer.current = setTimeout(() => {
-        startAutoRotateRamp(controls);
-      }, 5000);
+      if (focusedNodeId) {
+        // Resume gentle cinematic orbit after user interaction while focused
+        autoRotateTimer.current = setTimeout(() => {
+          controls.autoRotate = true;
+          controls.autoRotateSpeed = 0.15;
+        }, 2000);
+      } else {
+        autoRotateTimer.current = setTimeout(() => {
+          startAutoRotateRamp(controls);
+        }, 5000);
+      }
     };
 
     controls.addEventListener('start', handleStart);
@@ -377,7 +385,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       // Disable zoom so scroll always navigates nodes, never zooms
       controls.enableZoom = false;
 
-      // Pause auto-rotate
+      // Pause auto-rotate during fly-to; will resume at gentle speed on complete
       controls.autoRotate = false;
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (rampInterval.current) clearInterval(rampInterval.current);
@@ -432,6 +440,9 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         onUpdate: () => controls.update(),
         onComplete: () => {
           isFlyingRef.current = false;
+          // Gentle cinematic orbit around focused node
+          controls.autoRotate = true;
+          controls.autoRotateSpeed = 0.15;
         },
       });
       tl.to(

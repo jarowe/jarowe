@@ -1,6 +1,8 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
+import { HalfFloatType } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import NodeCloud from './NodeCloud';
@@ -10,6 +12,74 @@ import HoverLabel from './HoverLabel';
 import CameraController from './CameraController';
 import Starfield from './Starfield';
 import HelixBackbone from './HelixBackbone';
+
+/**
+ * Cinematic depth-of-field that intensifies when a node is focused.
+ * Smoothly lerps DOF parameters each frame for a seamless transition.
+ */
+function CinematicDOF() {
+  const dofRef = useRef();
+  const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
+  const nodes = useConstellationStore((s) => s.nodes);
+  const { camera } = useThree();
+
+  // Track current animated values for smooth lerping (world units)
+  const current = useRef({ bokeh: 1, focusDist: 120, focusRange: 80 });
+
+  useFrame(() => {
+    if (!dofRef.current) return;
+
+    let targetBokeh, targetFocusDist, targetFocusRange;
+
+    if (focusedNodeId) {
+      // Find the focused node to calculate distance from camera
+      const node = nodes.find((n) => n.id === focusedNodeId);
+      if (node) {
+        const dx = camera.position.x - node.x;
+        const dy = camera.position.y - node.y;
+        const dz = camera.position.z - node.z;
+        targetFocusDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      } else {
+        targetFocusDist = 50;
+      }
+      // Cinematic close-up: strong bokeh, narrow focus range
+      targetBokeh = 6;
+      targetFocusRange = 12;
+    } else {
+      // Unfocused: very subtle DOF for atmosphere
+      targetFocusDist = 120;
+      targetBokeh = 1;
+      targetFocusRange = 80;
+    }
+
+    // Smooth lerp toward targets
+    const speed = 0.04;
+    current.current.bokeh += (targetBokeh - current.current.bokeh) * speed;
+    current.current.focusDist += (targetFocusDist - current.current.focusDist) * speed;
+    current.current.focusRange += (targetFocusRange - current.current.focusRange) * speed;
+
+    // Update the effect properties via postprocessing API
+    const effect = dofRef.current;
+    effect.bokehScale = current.current.bokeh;
+    const coc = effect.cocMaterial;
+    if (coc) {
+      coc.focusDistance = current.current.focusDist;
+      coc.focusRange = current.current.focusRange;
+    }
+  });
+
+  return (
+    <EffectComposer frameBufferType={HalfFloatType} disableNormalPass>
+      <DepthOfField
+        ref={dofRef}
+        focusDistance={120}
+        focalLength={80}
+        bokehScale={1}
+      />
+      <Vignette eskil={false} offset={0.15} darkness={0.5} />
+    </EffectComposer>
+  );
+}
 
 /**
  * GPU tier-based configuration.
@@ -200,6 +270,8 @@ export default function ConstellationCanvas() {
       )}
 
       <Starfield starCount={gpuConfig.starParticles} />
+
+      {gpuConfig.bloom && <CinematicDOF />}
     </Canvas>
   );
 }
