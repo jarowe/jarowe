@@ -325,6 +325,31 @@
     {
       "evidence": [
         {
+          "description": "The pride of a dad, captured twice",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A father's perspective shaping both art and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A fatherhood story arc spanning 11 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-b-002",
+      "target": "ms-006",
+      "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
           "description": "Watching his boys grow — the thread that connects",
           "signal": "shared-motif",
           "type": "thematic",
@@ -406,58 +431,27 @@
     {
       "evidence": [
         {
-          "description": "Both milestones on the path of growth",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "Growth visible across both life and career",
+          "description": "Creative vision flowing between work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A growth story arc spanning 3 years",
+          "description": "A craft story arc spanning 18 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
       "source": "cm-b-003",
-      "target": "ms-013",
+      "target": "ms-001",
       "weight": 1.65
-    },
-    {
-      "evidence": [
-        {
-          "description": "An echo across time: both captured in October (2020 & 2024)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 4 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-003",
-      "target": "ms-021",
-      "weight": 1.7
     },
     {
       "evidence": [
@@ -487,82 +481,51 @@
     {
       "evidence": [
         {
-          "description": "Both woven into the Growth chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Community and connection link these",
+          "description": "From one creative role to the next",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The people who span both worlds",
+          "description": "The professional thread connecting portfolio to life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "The evolution of friendship: from January 7, 2019 to November 25, 2019",
+          "description": "A career story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
-      "source": "cm-b-005",
-      "target": "fb-2174",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Community and connection link these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The people who span both worlds",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A friendship story arc spanning 5 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-005",
-      "target": "ig-024",
+      "source": "cm-b-004",
+      "target": "ms-021",
       "weight": 1.65
     },
     {
       "evidence": [
         {
-          "description": "The crew that shows up in both stories",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The people who span both worlds",
+          "description": "Creative vision flowing between work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A friendship story arc spanning 5 years",
+          "description": "A craft story arc spanning 17 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
       "source": "cm-b-005",
-      "target": "ig-027",
+      "target": "ms-001",
       "weight": 1.65
     },
     {
@@ -589,6 +552,37 @@
       "source": "cm-b-007",
       "target": "ms-001",
       "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Growth chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "The builder's mindset connects both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "Innovation driving the work forward and the life forward",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A technology story arc spanning 2 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-b-007",
+      "target": "ms-012",
+      "weight": 1.7
     },
     {
       "evidence": [
@@ -643,6 +637,62 @@
     {
       "evidence": [
         {
+          "description": "Building what should exist — in both cases",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "Innovation driving the work forward and the life forward",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A technology story arc spanning 5 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-b-007",
+      "target": "ms-021",
+      "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Growth chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Professional growth threading through both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "The professional thread connecting portfolio to life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A career story arc spanning 2 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-b-008",
+      "target": "ms-012",
+      "weight": 1.7
+    },
+    {
+      "evidence": [
+        {
           "description": "From one creative role to the next",
           "signal": "shared-motif",
           "type": "thematic",
@@ -668,26 +718,26 @@
     {
       "evidence": [
         {
-          "description": "Both expressions of creative vision",
+          "description": "Professional growth threading through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "Creative vision flowing between work and life",
+          "description": "The professional thread connecting portfolio to life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A craft story arc spanning 17 years",
+          "description": "A career story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
-      "source": "cm-b-009",
-      "target": "ms-001",
+      "source": "cm-b-008",
+      "target": "ms-021",
       "weight": 1.65
     },
     {
@@ -782,31 +832,6 @@
       "source": "cm-b-011",
       "target": "ms-020",
       "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both expressions of creative vision",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Creative vision flowing between work and life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A craft story arc spanning 17 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-012",
-      "target": "ms-001",
-      "weight": 1.65
     },
     {
       "evidence": [
@@ -944,6 +969,56 @@
       "source": "cm-b-013",
       "target": "ms-019",
       "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
+          "description": "From one creative role to the next",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "The professional thread connecting portfolio to life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A career story arc spanning 5 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-b-013",
+      "target": "ms-021",
+      "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
+          "description": "Twin stars from the same day: May 11, 2019",
+          "signal": "same-day",
+          "type": "temporal",
+          "weight": 0.8
+        },
+        {
+          "description": "Both carry the spirit of #animation",
+          "signal": "shared-tags",
+          "type": "semantic",
+          "weight": 0.4
+        },
+        {
+          "description": "The arc of a career connecting these",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        }
+      ],
+      "source": "cm-b-015",
+      "target": "cm-b-017",
+      "weight": 1.7
     },
     {
       "evidence": [
@@ -1087,118 +1162,6 @@
       "source": "cm-b-017",
       "target": "ms-002",
       "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "The hustle that built the next chapter",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.66
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-017",
-      "target": "ms-010",
-      "weight": 1.81
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Growth chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "From one creative role to the next",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of career: from May 11, 2019 to March 31, 2020",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-017",
-      "target": "ms-011",
-      "weight": 1.78
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Growth chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Chapters in the same professional journey",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-017",
-      "target": "ms-012",
-      "weight": 1.78
-    },
-    {
-      "evidence": [
-        {
-          "description": "Chapters in the same professional journey",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 5 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-b-017",
-      "target": "ms-021",
-      "weight": 1.73
     },
     {
       "evidence": [
@@ -1470,56 +1433,6 @@
     {
       "evidence": [
         {
-          "description": "Both milestones on the path of growth",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 6 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-m-001",
-      "target": "ig-007",
-      "weight": 1.65
-    },
-    {
-      "evidence": [
-        {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 5 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-m-001",
-      "target": "ig-013",
-      "weight": 1.65
-    },
-    {
-      "evidence": [
-        {
           "description": "Chapters in the same professional journey",
           "signal": "shared-motif",
           "type": "thematic",
@@ -1573,7 +1486,7 @@
           "description": "From one creative role to the next",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.74
+          "weight": 0.66
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -1590,7 +1503,7 @@
       ],
       "source": "cm-m-001",
       "target": "ms-010",
-      "weight": 1.89
+      "weight": 1.81
     },
     {
       "evidence": [
@@ -1604,7 +1517,7 @@
           "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -1621,7 +1534,7 @@
       ],
       "source": "cm-m-001",
       "target": "ms-011",
-      "weight": 1.86
+      "weight": 1.78
     },
     {
       "evidence": [
@@ -1635,7 +1548,7 @@
           "description": "Professional growth threading through both",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.74
+          "weight": 0.66
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -1652,7 +1565,7 @@
       ],
       "source": "cm-m-001",
       "target": "ms-012",
-      "weight": 1.94
+      "weight": 1.86
     },
     {
       "evidence": [
@@ -1766,7 +1679,7 @@
           "description": "Professional growth threading through both",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -1783,7 +1696,7 @@
       ],
       "source": "cm-m-001",
       "target": "ms-021",
-      "weight": 1.81
+      "weight": 1.73
     },
     {
       "evidence": [
@@ -2138,81 +2051,6 @@
       "source": "cm-m-002",
       "target": "ms-018",
       "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
-          "description": "Connected by the people who matter",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The people who span both worlds",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A friendship story arc spanning 5 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-m-003",
-      "target": "fb-2174",
-      "weight": 1.65
-    },
-    {
-      "evidence": [
-        {
-          "description": "Connected by the people who matter",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The people who span both worlds",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A friendship story arc spanning 10 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-m-003",
-      "target": "ig-024",
-      "weight": 1.65
-    },
-    {
-      "evidence": [
-        {
-          "description": "The bonds of friendship shine in both",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The people who span both worlds",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A friendship story arc spanning 10 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-m-003",
-      "target": "ig-027",
-      "weight": 1.65
     },
     {
       "evidence": [
@@ -3026,78 +2864,16 @@
     {
       "evidence": [
         {
-          "description": "Both woven into the Growth chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "The crew that shows up in both stories",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The people who span both worlds",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A friendship story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-002",
-      "target": "fb-2174",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
           "description": "Each one pushed the boundary a little further",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.58
+          "weight": 0.25
         },
         {
           "description": "Growth visible across both life and career",
           "signal": "cross-source-echo",
           "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 7 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-002",
-      "target": "ig-015",
-      "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
-          "description": "An echo across time: both captured in December (2011 & 2017)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
+          "weight": 0.3
         },
         {
           "description": "A growth story arc spanning 6 years",
@@ -3107,8 +2883,8 @@
         }
       ],
       "source": "cm-p-002",
-      "target": "ms-006",
-      "weight": 1.7
+      "target": "ms-013",
+      "weight": 1.1
     },
     {
       "evidence": [
@@ -3127,6 +2903,62 @@
       ],
       "source": "cm-p-003",
       "target": "fb-0695",
+      "weight": 1.75
+    },
+    {
+      "evidence": [
+        {
+          "description": "An echo across time: both captured in December (2014 & 2016)",
+          "signal": "seasonal-echo",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Both woven into the Career Start chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Both expressions of creative vision",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "Creative vision flowing between work and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A craft story arc spanning 2 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-p-003",
+      "target": "fb-1270",
+      "weight": 1.75
+    },
+    {
+      "evidence": [
+        {
+          "description": "United by Gatlin in both stories",
+          "signal": "shared-entity",
+          "type": "semantic",
+          "weight": 0.8
+        },
+        {
+          "description": "Gatlin present in both moments",
+          "signal": "shared-identity",
+          "type": "identity",
+          "weight": 0.95
+        }
+      ],
+      "source": "cm-p-003",
+      "target": "fb-2087",
       "weight": 1.75
     },
     {
@@ -3182,37 +3014,6 @@
     {
       "evidence": [
         {
-          "description": "An echo across time: both captured in December (2011 & 2016)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "The journey of becoming connects these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 5 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-003",
-      "target": "ms-006",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
           "description": "Both woven into the Career Start chapter",
           "signal": "life-chapter",
           "type": "temporal",
@@ -3247,7 +3048,7 @@
           "description": "From one creative role to the next",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -3264,7 +3065,7 @@
       ],
       "source": "cm-p-003",
       "target": "ms-011",
-      "weight": 1.81
+      "weight": 1.73
     },
     {
       "evidence": [
@@ -3272,7 +3073,7 @@
           "description": "Chapters in the same professional journey",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "The professional thread connecting portfolio to life",
@@ -3289,7 +3090,7 @@
       ],
       "source": "cm-p-003",
       "target": "ms-012",
-      "weight": 1.81
+      "weight": 1.73
     },
     {
       "evidence": [
@@ -3345,31 +3146,6 @@
       ],
       "source": "cm-p-003",
       "target": "ms-018",
-      "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
-          "description": "Chapters in the same professional journey",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 8 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-003",
-      "target": "ms-021",
       "weight": 1.73
     },
     {
@@ -3923,6 +3699,31 @@
     {
       "evidence": [
         {
+          "description": "Twin stars from the same day: December 31, 2013",
+          "signal": "same-day",
+          "type": "temporal",
+          "weight": 0.8
+        },
+        {
+          "description": "Both carry the spirit of #Motion Designer",
+          "signal": "shared-tags",
+          "type": "semantic",
+          "weight": 0.4
+        },
+        {
+          "description": "The same creative DNA runs through both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        }
+      ],
+      "source": "cm-p-018",
+      "target": "cm-p-019",
+      "weight": 1.7
+    },
+    {
+      "evidence": [
+        {
           "description": "An echo across time: both captured in December (2013 & 2014)",
           "signal": "seasonal-echo",
           "type": "temporal",
@@ -3993,93 +3794,6 @@
       "source": "cm-p-019",
       "target": "fb-1270",
       "weight": 1.75
-    },
-    {
-      "evidence": [
-        {
-          "description": "An echo across time: both captured in December (2011 & 2013)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Evolution and progress linking these moments",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-019",
-      "target": "ms-006",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Career Start chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "The hustle that built the next chapter",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.66
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 4 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-019",
-      "target": "ms-010",
-      "weight": 1.86
-    },
-    {
-      "evidence": [
-        {
-          "description": "Chapters in the same professional journey",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 11 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-019",
-      "target": "ms-021",
-      "weight": 1.73
     },
     {
       "evidence": [
@@ -4208,87 +3922,6 @@
     {
       "evidence": [
         {
-          "description": "An echo across time: both captured in December (2007 & 2011)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Both milestones on the path of growth",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 4 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-023",
-      "target": "ms-006",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "The arc of a career connecting these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 14 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-023",
-      "target": "ms-012",
-      "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
-          "description": "The arc of a career connecting these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.58
-        },
-        {
-          "description": "The professional thread connecting portfolio to life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A career story arc spanning 17 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-023",
-      "target": "ms-021",
-      "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
           "description": "Twin stars from the same day: December 31, 2010",
           "signal": "same-day",
           "type": "temporal",
@@ -4391,6 +4024,56 @@
       "source": "cm-p-028",
       "target": "ms-008",
       "weight": 1.81
+    },
+    {
+      "evidence": [
+        {
+          "description": "Chapters in the same professional journey",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.66
+        },
+        {
+          "description": "The professional thread connecting portfolio to life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A career story arc spanning 7 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-p-028",
+      "target": "ms-010",
+      "weight": 1.81
+    },
+    {
+      "evidence": [
+        {
+          "description": "From one creative role to the next",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.58
+        },
+        {
+          "description": "The professional thread connecting portfolio to life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A career story arc spanning 10 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-p-028",
+      "target": "ms-011",
+      "weight": 1.73
     },
     {
       "evidence": [
@@ -4551,6 +4234,31 @@
     {
       "evidence": [
         {
+          "description": "Chapters in the same professional journey",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.66
+        },
+        {
+          "description": "The professional thread connecting portfolio to life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A career story arc spanning 8 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "cm-p-033",
+      "target": "ms-010",
+      "weight": 1.81
+    },
+    {
+      "evidence": [
+        {
           "description": "Both woven into the Present chapter",
           "signal": "life-chapter",
           "type": "temporal",
@@ -4578,6 +4286,62 @@
       "source": "fb-0692",
       "target": "ig-011",
       "weight": 1.7
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "The journey of fatherhood runs through both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A father's perspective shaping both art and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "The evolution of fatherhood: from June 1, 2024 to July 23, 2025",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "fb-0692",
+      "target": "ig-012",
+      "weight": 1.7
+    },
+    {
+      "evidence": [
+        {
+          "description": "Fatherhood shaped both of these moments",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A father's perspective shaping both art and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A fatherhood story arc spanning 14 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "fb-0692",
+      "target": "ms-006",
+      "weight": 1.65
     },
     {
       "evidence": [
@@ -5006,6 +4770,31 @@
     {
       "evidence": [
         {
+          "description": "The pride of a dad, captured twice",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A father's perspective shaping both art and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A fatherhood story arc spanning 6 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "fb-1062",
+      "target": "ms-006",
+      "weight": 1.65
+    },
+    {
+      "evidence": [
+        {
           "description": "Both woven into the Career Start chapter",
           "signal": "life-chapter",
           "type": "temporal",
@@ -5189,6 +4978,31 @@
       "source": "fb-1127",
       "target": "ig-020",
       "weight": 1.73
+    },
+    {
+      "evidence": [
+        {
+          "description": "Fatherhood shaped both of these moments",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A father's perspective shaping both art and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "A fatherhood story arc spanning 5 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "fb-1127",
+      "target": "ms-006",
+      "weight": 1.65
     },
     {
       "evidence": [
@@ -6387,10 +6201,16 @@
     {
       "evidence": [
         {
-          "description": "Fatherhood shaped both of these moments",
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Watching his boys grow — the thread that connects",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.58
+          "weight": 0.5
         },
         {
           "description": "A father's perspective shaping both art and life",
@@ -6399,107 +6219,14 @@
           "weight": 0.6
         },
         {
-          "description": "A fatherhood story arc spanning 14 years",
+          "description": "The evolution of fatherhood: from January 14, 2025 to May 25, 2025",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
       "source": "ig-005",
-      "target": "ms-006",
-      "weight": 1.73
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Evolution and progress linking these moments",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-005",
-      "target": "ms-013",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "A growth story arc spanning 2 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-007",
-      "target": "ms-013",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "The journey of becoming connects these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of growth: from October 14, 2024 to April 20, 2025",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-007",
-      "target": "ms-021",
+      "target": "ms-017",
       "weight": 1.7
     },
     {
@@ -6531,6 +6258,37 @@
       ],
       "source": "ig-009",
       "target": "ig-023",
+      "weight": 1.15
+    },
+    {
+      "evidence": [
+        {
+          "description": "An echo across time: both captured in April (2024 & 2025)",
+          "signal": "seasonal-echo",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Connected by the awe of the natural world",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "The evolution of nature: from April 28, 2024 to April 17, 2025",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "ig-009",
+      "target": "ig-024",
       "weight": 1.15
     },
     {
@@ -6604,16 +6362,41 @@
           "weight": 0.05
         },
         {
+          "description": "Evolution and progress linking these moments",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.25
+        },
+        {
+          "description": "The evolution of growth: from May 28, 2024 to February 12, 2025",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "ig-013",
+      "target": "ig-065",
+      "weight": 0.85
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
           "description": "The journey of becoming connects these",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.5
+          "weight": 0.25
         },
         {
           "description": "Growth visible across both life and career",
           "signal": "cross-source-echo",
           "type": "narrative",
-          "weight": 0.6
+          "weight": 0.3
         },
         {
           "description": "The evolution of growth: from January 14, 2023 to May 28, 2024",
@@ -6624,7 +6407,7 @@
       ],
       "source": "ig-013",
       "target": "ms-013",
-      "weight": 1.7
+      "weight": 1.15
     },
     {
       "evidence": [
@@ -6635,58 +6418,21 @@
           "weight": 0.05
         },
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "Two stops on the same journey around the world",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of growth: from May 28, 2024 to October 14, 2024",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-013",
-      "target": "ms-021",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Both milestones on the path of growth",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Growth visible across both life and career",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of growth: from January 14, 2023 to May 15, 2024",
+          "description": "The evolution of travel: from May 15, 2024 to July 1, 2025",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
         }
       ],
       "source": "ig-015",
-      "target": "ms-013",
-      "weight": 1.7
+      "target": "ig-045",
+      "weight": 1.1
     },
     {
       "evidence": [
@@ -6712,6 +6458,37 @@
       "source": "ig-015",
       "target": "ms-015",
       "weight": 1.23
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Fellow chapters in the story of exploration",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "The journey from portfolio to passport",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "The evolution of travel: from May 15, 2024 to January 14, 2025",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "ig-015",
+      "target": "ms-017",
+      "weight": 1.7
     },
     {
       "evidence": [
@@ -6768,6 +6545,31 @@
       "source": "ig-016",
       "target": "ms-017",
       "weight": 1.78
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both from the same fortnight",
+          "signal": "temporal-proximity",
+          "type": "temporal",
+          "weight": 0.15
+        },
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Syros, Naxos, the islands — the backdrop to both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        }
+      ],
+      "source": "ig-017",
+      "target": "ig-024",
+      "weight": 0.7
     },
     {
       "evidence": [
@@ -6940,6 +6742,31 @@
     {
       "evidence": [
         {
+          "description": "Captured within the same week of life",
+          "signal": "temporal-proximity",
+          "type": "temporal",
+          "weight": 0.15
+        },
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Nature's beauty captured in both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.58
+        }
+      ],
+      "source": "ig-022",
+      "target": "ig-024",
+      "weight": 0.78
+    },
+    {
+      "evidence": [
+        {
           "description": "Both from the same fortnight",
           "signal": "temporal-proximity",
           "type": "temporal",
@@ -6984,6 +6811,56 @@
         }
       ],
       "source": "ig-022",
+      "target": "ms-015",
+      "weight": 1.15
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both from the same fortnight",
+          "signal": "temporal-proximity",
+          "type": "temporal",
+          "weight": 0.15
+        },
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "The Greek chapter where everything changed",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.58
+        }
+      ],
+      "source": "ig-024",
+      "target": "ig-030",
+      "weight": 0.78
+    },
+    {
+      "evidence": [
+        {
+          "description": "Both woven into the Present chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Salt air and sunlight threading through both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "The Greek chapter echoing across life and work",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        }
+      ],
+      "source": "ig-024",
       "target": "ms-015",
       "weight": 1.15
     },
@@ -7245,37 +7122,6 @@
           "weight": 0.05
         },
         {
-          "description": "A father's love connecting these moments",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A father's perspective shaping both art and life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of fatherhood: from March 14, 2024 to January 14, 2025",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-034",
-      "target": "ms-017",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
           "description": "United by Maria in both stories",
           "signal": "shared-entity",
           "type": "semantic",
@@ -7344,47 +7190,16 @@
           "weight": 0.05
         },
         {
-          "description": "Two stops on the same journey around the world",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The journey from portfolio to passport",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of travel: from January 14, 2025 to July 1, 2025",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ig-045",
-      "target": "ms-017",
-      "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
           "description": "Evolution and progress linking these moments",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.5
+          "weight": 0.25
         },
         {
           "description": "Growth visible across both life and career",
           "signal": "cross-source-echo",
           "type": "narrative",
-          "weight": 0.6
+          "weight": 0.3
         },
         {
           "description": "A growth story arc spanning 2 years",
@@ -7395,7 +7210,7 @@
       ],
       "source": "ig-065",
       "target": "ms-013",
-      "weight": 1.7
+      "weight": 1.15
     },
     {
       "evidence": [
@@ -7577,6 +7392,25 @@
       ],
       "source": "ms-002",
       "target": "ms-019",
+      "weight": 1.05
+    },
+    {
+      "evidence": [
+        {
+          "description": "The arc of a career connecting these",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "A career story arc spanning 21 years",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
+      "source": "ms-002",
+      "target": "ms-021",
       "weight": 1.05
     },
     {
@@ -7788,82 +7622,6 @@
     {
       "evidence": [
         {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A growth story arc spanning 6 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-006",
-      "target": "ms-010",
-      "weight": 1.05
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both milestones on the path of growth",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A growth story arc spanning 9 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-006",
-      "target": "ms-011",
-      "weight": 1.05
-    },
-    {
-      "evidence": [
-        {
-          "description": "Evolution and progress linking these moments",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A growth story arc spanning 10 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-006",
-      "target": "ms-012",
-      "weight": 1.05
-    },
-    {
-      "evidence": [
-        {
-          "description": "The journey of becoming connects these",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A growth story arc spanning 12 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-006",
-      "target": "ms-013",
-      "weight": 1.05
-    },
-    {
-      "evidence": [
-        {
           "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
@@ -8061,7 +7819,7 @@
           "description": "From one creative role to the next",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "A career story arc spanning 3 years",
@@ -8072,7 +7830,7 @@
       ],
       "source": "ms-010",
       "target": "ms-011",
-      "weight": 1.61
+      "weight": 1.53
     },
     {
       "evidence": [
@@ -8092,7 +7850,7 @@
           "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "A career story arc spanning 4 years",
@@ -8103,26 +7861,7 @@
       ],
       "source": "ms-010",
       "target": "ms-012",
-      "weight": 1.66
-    },
-    {
-      "evidence": [
-        {
-          "description": "Each one pushed the boundary a little further",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "A growth story arc spanning 6 years",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-010",
-      "target": "ms-013",
-      "weight": 1.05
+      "weight": 1.58
     },
     {
       "evidence": [
@@ -8211,7 +7950,7 @@
           "description": "Both milestones on the path of growth",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.5
+          "weight": 0.25
         },
         {
           "description": "A growth story arc spanning 3 years",
@@ -8222,7 +7961,7 @@
       ],
       "source": "ms-011",
       "target": "ms-013",
-      "weight": 1.05
+      "weight": 0.8
     },
     {
       "evidence": [
@@ -8261,7 +8000,7 @@
           "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.58
+          "weight": 0.5
         },
         {
           "description": "A career story arc spanning 4 years",
@@ -8272,7 +8011,7 @@
       ],
       "source": "ms-011",
       "target": "ms-021",
-      "weight": 1.53
+      "weight": 1.45
     },
     {
       "evidence": [
@@ -8280,7 +8019,7 @@
           "description": "Each one pushed the boundary a little further",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.5
+          "weight": 0.25
         },
         {
           "description": "A growth story arc spanning 2 years",
@@ -8291,7 +8030,7 @@
       ],
       "source": "ms-012",
       "target": "ms-013",
-      "weight": 1.05
+      "weight": 0.8
     },
     {
       "evidence": [
@@ -8380,7 +8119,7 @@
           "description": "Professional growth threading through both",
           "signal": "shared-motif",
           "type": "thematic",
-          "weight": 0.66
+          "weight": 0.58
         },
         {
           "description": "A career story arc spanning 3 years",
@@ -8391,32 +8130,7 @@
       ],
       "source": "ms-012",
       "target": "ms-021",
-      "weight": 1.61
-    },
-    {
-      "evidence": [
-        {
-          "description": "Both woven into the Present chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Evolution and progress linking these moments",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "The evolution of growth: from January 14, 2023 to October 14, 2024",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "ms-013",
-      "target": "ms-021",
-      "weight": 1.1
+      "weight": 1.53
     },
     {
       "evidence": [
@@ -8787,6 +8501,7 @@
         "ig-005",
         "ig-011",
         "ig-012",
+        "ms-006",
         "ms-007",
         "ms-009",
         "ms-017"
@@ -8808,8 +8523,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.6,
+      "size": 0.74,
       "source": "carbonmade",
       "sourceId": "blog-1-2022-06-15",
       "status": "published",
@@ -8822,8 +8537,7 @@
     {
       "confidence": 1,
       "connections": [
-        "ms-013",
-        "ms-021"
+        "ms-001"
       ],
       "date": "2020-10-07",
       "description": "The opportunity to have 100% creative control of the vision of a project is rare and at this magnitude it is unheard of. So I was really excited to let my creative freedom shine with this intro video for Nadeshot given the opportunity to have full control and trust. Inspired by modern, clean, design trends and the 100 Thieves swagger, I was motivated to tell the story of his rise to the top of esports through perseverance - it was a special story to tell through conceptual designs. I animated the CGI in Cinema 4D and the final project was compiled and finished in After Effects. Most importantly this project served as a testing ground for me using OTOY's new RNDR network to render almost instantaneously with 10,000 samples in extremely complex and unoptimized scenes.",
@@ -8844,8 +8558,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.53,
+      "size": 0.68,
       "source": "carbonmade",
       "sourceId": "blog-2-2020-10-07",
       "status": "published",
@@ -8858,7 +8572,8 @@
     {
       "confidence": 1,
       "connections": [
-        "ms-019"
+        "ms-019",
+        "ms-021"
       ],
       "date": "2019-12-20",
       "description": "When creative freedom is given – you have to run with it. Here is an intro video for a popular League of Legends Streamer that turned into a great opportunity to change my workflow up a bit and test the waters out in Unreal Engine. What a fantastic tool for kitbashing and environment creation. The foliage tool and the rendering engine leveraging the sequencer is a massive game changer when brought into After Effects. I had to get craft with how I tracked the camera and used EXR information to squeeze out some mattes from the passes I rendered from Unreal. The models were created by my talented friend, Jeffrey Halalay, in ZBrush and brought into Element 3D for me to work into my scene. Also wanted to give a shout-out to www.productioncrate.com for having really helpful compositing effects and sound designs.",
@@ -8882,8 +8597,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.59,
+      "size": 0.73,
       "source": "carbonmade",
       "sourceId": "blog-3-2019-12-20",
       "status": "published",
@@ -8896,9 +8611,7 @@
     {
       "confidence": 1,
       "connections": [
-        "fb-2174",
-        "ig-024",
-        "ig-027"
+        "ms-001"
       ],
       "date": "2019-11-26",
       "description": "I had the pleasure of writing/voicing this piece and working alongside an extremely talented team to produce this Black Friday Sale animation for VBI. Such amazing work comes from working together and planning ahead. This was a quick turnaround and I am thrilled with the result. Animator: Julian Sanchez | Sound: Pedro Chediak",
@@ -8920,8 +8633,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.53,
+      "size": 0.68,
       "source": "carbonmade",
       "sourceId": "blog-4-2019-11-26",
       "status": "published",
@@ -8935,8 +8648,10 @@
       "confidence": 1,
       "connections": [
         "ms-001",
+        "ms-012",
         "ms-019",
-        "ms-020"
+        "ms-020",
+        "ms-021"
       ],
       "date": "2019-11-11",
       "description": "Recently created a quick turnaround presentation video to showcase the ultimate FPS Stream Deck Icon pack we have created to give away for free at VBI. The visual design and the concept for this video was sparked from the idea I originally had to scope up and shoot the Stream Deck and have it do the same to us. I am very happy with how this turned out from an idea I had to this.",
@@ -8967,7 +8682,9 @@
     {
       "confidence": 1,
       "connections": [
-        "ms-019"
+        "ms-012",
+        "ms-019",
+        "ms-021"
       ],
       "date": "2019-06-26",
       "description": "Here is a quick turnaround product explainer video which includes character creation and animation. There was a great moment on the initial client consultation where we mentioned the idea and briefly explained it and it was a wonderful ah-ha moment for everyone on the call to kick off with confidence. I love when projects can begin and end with momentum!",
@@ -8987,8 +8704,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.56,
-      "size": 0.7,
+      "significance": 0.58,
+      "size": 0.72,
       "source": "carbonmade",
       "sourceId": "blog-7-2019-06-26",
       "status": "published",
@@ -9001,7 +8718,6 @@
     {
       "confidence": 1,
       "connections": [
-        "ms-001",
         "ms-020"
       ],
       "date": "2019-05-12",
@@ -9106,7 +8822,6 @@
     {
       "confidence": 1,
       "connections": [
-        "ms-001",
         "ms-020"
       ],
       "date": "2019-05-12",
@@ -9143,7 +8858,8 @@
         "cm-b-015",
         "cm-b-017",
         "ms-002",
-        "ms-019"
+        "ms-019",
+        "ms-021"
       ],
       "date": "2019-05-12",
       "description": "I remember growing up and watching movies that had the Morgan Creek logo animation in it. That being said this was a great project to work on with Lead Animator Jeff Halalay who did an incredible job making sure we pleased the client.",
@@ -9164,8 +8880,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.59,
+      "size": 0.73,
       "source": "carbonmade",
       "sourceId": "blog-12-2019-05-12",
       "status": "published",
@@ -9210,6 +8926,7 @@
       "confidence": 1,
       "connections": [
         "cm-b-013",
+        "cm-b-017",
         "ms-002"
       ],
       "date": "2019-05-12",
@@ -9232,8 +8949,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.54,
-      "size": 0.69,
+      "significance": 0.56,
+      "size": 0.7,
       "source": "carbonmade",
       "sourceId": "blog-14-2019-05-12",
       "status": "published",
@@ -9282,11 +8999,8 @@
       "confidence": 1,
       "connections": [
         "cm-b-013",
-        "ms-002",
-        "ms-010",
-        "ms-011",
-        "ms-012",
-        "ms-021"
+        "cm-b-015",
+        "ms-002"
       ],
       "date": "2019-05-12",
       "description": "There's a journey with every client to learn how to tell their story in a way that they will appreciate and within their budget. This project was a great effort to achieve an animation within scope of the budget. I decided it would be best if we created a video with pose-driven illustrations and camera movement with depth and parallax.",
@@ -9305,8 +9019,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.61,
-      "size": 0.75,
+      "significance": 0.57,
+      "size": 0.71,
       "source": "carbonmade",
       "sourceId": "blog-16-2019-05-12",
       "status": "published",
@@ -9405,8 +9119,8 @@
       "isHub": false,
       "location": null,
       "media": [],
-      "significance": 0.59,
-      "size": 0.73,
+      "significance": 0.6,
+      "size": 0.74,
       "source": "carbonmade",
       "sourceId": "blog-19-2019-05-12",
       "status": "published",
@@ -9419,8 +9133,6 @@
     {
       "confidence": 1,
       "connections": [
-        "ig-007",
-        "ig-013",
         "ms-005",
         "ms-008",
         "ms-010",
@@ -9512,9 +9224,6 @@
     {
       "confidence": 1,
       "connections": [
-        "fb-2174",
-        "ig-024",
-        "ig-027",
         "ms-003",
         "ms-005",
         "ms-008",
@@ -9689,9 +9398,7 @@
       "confidence": 1,
       "connections": [
         "cm-p-004",
-        "fb-2174",
-        "ig-015",
-        "ms-006"
+        "ms-013"
       ],
       "date": "2018-01-01",
       "description": "I am always working hard to bring in projects that allow my team and I to create something that we are proud of. These are the projects that push us to grow stronger as artists and storytellers. It's wonderful when those opportunities surface.\nThe incredible teams at Sony PlayStation and Digital Narrative certainly gave us the creative freedom to flourish with this fully animated product launch video.\nFrom the very beginning we were given the opportunity to mold and create this story. From conceptualization, writing, and storyboarding, all the way through illustrating, rigging, animating, editing, sound designing, and delivering international versions.\n\nIn order to create this project from the ground up, we dove deep into the product to fully understand its value. It's interesting when you get to create a video for a product that you are using in order to create the video itself!",
@@ -9778,15 +9485,15 @@
       "confidence": 1,
       "connections": [
         "fb-0695",
+        "fb-1270",
+        "fb-2087",
         "ms-003",
         "ms-005",
-        "ms-006",
         "ms-008",
         "ms-011",
         "ms-012",
         "ms-014",
-        "ms-018",
-        "ms-021"
+        "ms-018"
       ],
       "date": "2017-01-01",
       "description": "A passion project of mine that quickly turned into a reality after I created the initial concept video to pitch to the Eezy team and my brother Gatlin to see if he would want to help me create it.\nVideezy Direct is an add-on for Adobe Premiere Pro that gives you the ability to resource and edit faster than ever before. All without leaving the Premiere Pro environment.\nIt was very exciting to see the validation this received and that Pond5 and Shutterstock ended up making a similar add-on with their product after. We were first to market which was really fun.\nWith lightning-fast previews you can search through Videezy's expansive library of free HD & 4K stock footage, motion backgrounds, and video assets. Instantly import free downloads directly into your Premiere Pro project. You'll finish your entire project without ever leaving the Premiere Pro.\nI worked directly with the Videezy development team to create an API that my brother Gatlin was then able to create the producer panel for Adobe Premiere.\nWe have many aspirations for this panel and a new version has just been released that enables purchases and license features.\nOut of the many ideas that I have drafted up over the years to improve the tools and processes for creators, this is one that I have seen through to its completion. For many years I have wanted to contribute to the creative community by offering tools to increase productivity for my fellow video creators. I knew as soon as I had joined the team at Eezy that this was going to be something I wanted to create.\nI am happy to have worked very closely with my brother Gatlin on this project. We learned a lot about the abilities and restrictions in the Adobe extensions framework.",
@@ -9832,8 +9539,8 @@
         "/data/media/cm-p-003/image-08.jpg",
         "/data/media/cm-p-003/image-09.gif"
       ],
-      "significance": 0.87,
-      "size": 0.98,
+      "significance": 0.88,
+      "size": 0.99,
       "source": "carbonmade",
       "sourceId": "7148273",
       "status": "published",
@@ -10543,8 +10250,8 @@
         "/data/media/cm-p-015/image-07.jpg",
         "/data/media/cm-p-015/image-08.jpg"
       ],
-      "significance": 0.62,
-      "size": 0.76,
+      "significance": 0.63,
+      "size": 0.77,
       "source": "carbonmade",
       "sourceId": "5427488",
       "status": "published",
@@ -10659,6 +10366,7 @@
     {
       "confidence": 1,
       "connections": [
+        "cm-p-019",
         "fb-1270"
       ],
       "date": "2014-01-01",
@@ -10688,8 +10396,8 @@
         "https://carbon-media.accelerator.net/0000000exsu/7Hg1jHHlAICbpYeXp0WAsg;960x281.png?auto=webp",
         "/data/media/cm-p-018/image-01.png"
       ],
-      "significance": 0.62,
-      "size": 0.76,
+      "significance": 0.64,
+      "size": 0.78,
       "source": "carbonmade",
       "sourceId": "5431437",
       "status": "published",
@@ -10702,10 +10410,8 @@
     {
       "confidence": 1,
       "connections": [
-        "fb-1270",
-        "ms-006",
-        "ms-010",
-        "ms-021"
+        "cm-p-018",
+        "fb-1270"
       ],
       "date": "2014-01-01",
       "description": "Walt Disney World Resort is home to the newest and largest Four Seasons Hotel.  The lobby has it's very own Disney Information Counter where Disney Cast Members will answer questions and get you started on your Disney experience while you are visiting.\nThe task was to create a minimal/themed display for digital signage for this new Disney Counter.\nThis displays the process of this creation from start to finish.",
@@ -10980,10 +10686,7 @@
       "connections": [
         "ms-001",
         "ms-003",
-        "ms-005",
-        "ms-006",
-        "ms-012",
-        "ms-021"
+        "ms-005"
       ],
       "date": "2008-01-01",
       "description": "Since I was a young child I've been a storyteller and after attending Film School I went on to become a filmmaker and here are some of the feature films I have been a part of creating along with my brother.\nThere is so much that goes into making a film, especially a feature.  In 2008 Out On Parole was our very first feature length film and it was one of the greatest yet toughest things I've ever been a part of.  I worked with some incredibly talented people and we pulled off some miraculous scenes that took every ounce of our energy to get it right.\nOut On Parole is currently being adapted into a web series for release in 2015.  We are working with the talented and amazing hip-hop group \"The Solillaquists of Sound\" to produce a custom soundtrack and score for the series/film.\nWithin Reach came shortly after Out On Parole and was our very first feature length documentary film.  We raised over $25,000 on Kickstarter for finishing funds and are currently working with a distribution partner to allow the world to know and see this fantastic film.  A film about a young couples bike journey across the country to visit over 100 sustainable communities hopefully to call one their home.  The distribution is in the screening kit stage and looking to move into internet rentals next month.  This film is currently being translated into 8 different languages and is also receiving a new website backend & makeover.\nOne Simple Question just had its World Premiere at the Blue Ocean Film Festival in Tampa, FL.  It's been submitted and accepted to Film Festivals across the country and I am excited to see it on the big screen again.",
@@ -11225,7 +10928,9 @@
       "confidence": 1,
       "connections": [
         "cm-p-010",
-        "ms-008"
+        "ms-008",
+        "ms-010",
+        "ms-011"
       ],
       "date": "2011-01-01",
       "description": "My company Doctrine Creative partnered with The Kimball Companies for years to create a lot of material for the web and television.  With the focus to bring families back to the dinner table, I enjoyed working for such a great cause and amongst great people to create something special.\nHere are also a few Family Philosopher clips we teamed with Carnegie Mellon Actors to bring a comedic vibe to the experience.",
@@ -11259,8 +10964,8 @@
         "/data/media/cm-p-028/image-03.jpg",
         "/data/media/cm-p-028/image-04.jpg"
       ],
-      "significance": 0.77,
-      "size": 0.89,
+      "significance": 0.8,
+      "size": 0.92,
       "source": "carbonmade",
       "sourceId": "5431577",
       "status": "published",
@@ -11481,7 +11186,8 @@
       "confidence": 1,
       "connections": [
         "cm-p-035",
-        "ms-003"
+        "ms-003",
+        "ms-010"
       ],
       "date": "2010-01-01",
       "description": "The Full Frame Documentary Film Festival is the nations largest festival for documentaries.\nIn 2010 my company created this animation which played before every single film that was premiered at the festival as a way to set the mood for the theater.\nIt was also was played before 'Food Inc.' on the World Premiere night and that was really special.",
@@ -11509,8 +11215,8 @@
         "https://carbon-media.accelerator.net/0000000exsu/avWCe8r6NXSgpU8y9xRJuD;960x281.png?auto=webp",
         "/data/media/cm-p-033/image-01.png"
       ],
-      "significance": 0.7,
-      "size": 0.83,
+      "significance": 0.72,
+      "size": 0.85,
       "source": "carbonmade",
       "sourceId": "5435069",
       "status": "published",
@@ -11649,6 +11355,8 @@
       "connections": [
         "cm-b-002",
         "ig-011",
+        "ig-012",
+        "ms-006",
         "ms-007",
         "ms-009",
         "ms-017"
@@ -11671,8 +11379,8 @@
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/10106948720625533.jpg",
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10106948731229283.jpg"
       ],
-      "significance": 0.55,
-      "size": 0.7,
+      "significance": 0.57,
+      "size": 0.71,
       "source": "facebook",
       "sourceId": "fb_b0at9",
       "sourceMeta": {
@@ -12337,8 +12045,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/videos/10103264663650243.mp4"
       ],
-      "significance": 0.51,
-      "size": 0.66,
+      "significance": 0.52,
+      "size": 0.67,
       "source": "facebook",
       "sourceId": "fb_8edoyh",
       "sourceMeta": {
@@ -12481,8 +12189,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10102874856042813.jpg"
       ],
-      "significance": 0.3,
-      "size": 0.47,
+      "significance": 0.31,
+      "size": 0.48,
       "source": "facebook",
       "sourceId": "fb_3g1ep7",
       "sourceMeta": {
@@ -12843,6 +12551,7 @@
         "ig-019",
         "ig-020",
         "ig-039",
+        "ms-006",
         "ms-007",
         "ms-009"
       ],
@@ -13034,6 +12743,7 @@
         "ig-016",
         "ig-019",
         "ig-020",
+        "ms-006",
         "ms-007",
         "ms-009"
       ],
@@ -13054,8 +12764,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10101986287206883.jpg"
       ],
-      "significance": 0.53,
-      "size": 0.68,
+      "significance": 0.54,
+      "size": 0.69,
       "source": "facebook",
       "sourceId": "fb_uc5kfi",
       "sourceMeta": {
@@ -13126,8 +12836,8 @@
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10101898103512713.jpg",
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10101898103567603.jpg"
       ],
-      "significance": 0.43,
-      "size": 0.59,
+      "significance": 0.44,
+      "size": 0.6,
       "source": "facebook",
       "sourceId": "fb_5su9jn",
       "sourceMeta": {
@@ -13719,6 +13429,7 @@
       "connections": [
         "cm-m-004",
         "cm-m-005",
+        "cm-p-003",
         "cm-p-005",
         "cm-p-006",
         "cm-p-008",
@@ -13751,8 +13462,8 @@
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10101234814229753.jpg",
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10101234814269673.jpg"
       ],
-      "significance": 0.58,
-      "size": 0.72,
+      "significance": 0.6,
+      "size": 0.74,
       "source": "facebook",
       "sourceId": "fb_6e2fom",
       "sourceMeta": {
@@ -14329,8 +14040,8 @@
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100445632156953.jpg",
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100445632196873.jpg"
       ],
-      "significance": 0.34,
-      "size": 0.51,
+      "significance": 0.35,
+      "size": 0.52,
       "source": "facebook",
       "sourceId": "fb_usbtal",
       "sourceMeta": {
@@ -14569,8 +14280,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/your_posts/10102871307309503.jpg"
       ],
-      "significance": 0.31,
-      "size": 0.48,
+      "significance": 0.32,
+      "size": 0.49,
       "source": "facebook",
       "sourceId": "fb_lpjknk",
       "sourceMeta": {
@@ -14860,8 +14571,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/595847305633.jpg"
       ],
-      "significance": 0.35,
-      "size": 0.52,
+      "significance": 0.11,
+      "size": 0.3,
       "source": "facebook",
       "sourceId": "fb_xl0czq",
       "sourceMeta": {
@@ -14870,7 +14581,7 @@
         "reshareReason": null
       },
       "status": "published",
-      "theme": "nostalgia",
+      "theme": null,
       "tier": "particle",
       "title": "FCP 6 ugh. I'm used to 7.",
       "type": "moment",
@@ -15004,8 +14715,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/607936044703.jpg"
       ],
-      "significance": 0.11,
-      "size": 0.3,
+      "significance": 0.12,
+      "size": 0.31,
       "source": "facebook",
       "sourceId": "fb_yvbras",
       "sourceMeta": {
@@ -15148,8 +14859,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/643323757443.jpg"
       ],
-      "significance": 0.12,
-      "size": 0.31,
+      "significance": 0.13,
+      "size": 0.32,
       "source": "facebook",
       "sourceId": "fb_k224ac",
       "sourceMeta": {
@@ -15292,8 +15003,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/658593960833.jpg"
       ],
-      "significance": 0.13,
-      "size": 0.32,
+      "significance": 0.14,
+      "size": 0.33,
       "source": "facebook",
       "sourceId": "fb_aqaih7",
       "sourceMeta": {
@@ -15616,8 +15327,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/688414515203.jpg"
       ],
-      "significance": 0.14,
-      "size": 0.33,
+      "significance": 0.15,
+      "size": 0.34,
       "source": "facebook",
       "sourceId": "fb_811bkj",
       "sourceMeta": {
@@ -15724,7 +15435,7 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/702649084013.jpg"
       ],
-      "significance": 0.15,
+      "significance": 0.16,
       "size": 0.34,
       "source": "facebook",
       "sourceId": "fb_kmyuuo",
@@ -15904,8 +15615,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/797005572853.jpg"
       ],
-      "significance": 0.16,
-      "size": 0.34,
+      "significance": 0.17,
+      "size": 0.35,
       "source": "facebook",
       "sourceId": "fb_7lmodq",
       "sourceMeta": {
@@ -16084,8 +15795,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/843669333303.jpg"
       ],
-      "significance": 0.17,
-      "size": 0.35,
+      "significance": 0.18,
+      "size": 0.36,
       "source": "facebook",
       "sourceId": "fb_sgtbay",
       "sourceMeta": {
@@ -16264,8 +15975,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/864143922063.jpg"
       ],
-      "significance": 0.18,
-      "size": 0.36,
+      "significance": 0.19,
+      "size": 0.37,
       "source": "facebook",
       "sourceId": "fb_gtl04b",
       "sourceMeta": {
@@ -16444,8 +16155,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/953281439763.jpg"
       ],
-      "significance": 0.19,
-      "size": 0.37,
+      "significance": 0.2,
+      "size": 0.38,
       "source": "facebook",
       "sourceId": "fb_pm28w7",
       "sourceMeta": {
@@ -16916,8 +16627,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100222992279053.jpg"
       ],
-      "significance": 0.2,
-      "size": 0.38,
+      "significance": 0.21,
+      "size": 0.39,
       "source": "facebook",
       "sourceId": "fb_qjvpxw",
       "sourceMeta": {
@@ -17096,8 +16807,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/10100237458383863.jpg"
       ],
-      "significance": 0.21,
-      "size": 0.39,
+      "significance": 0.22,
+      "size": 0.4,
       "source": "facebook",
       "sourceId": "fb_p261ht",
       "sourceMeta": {
@@ -17312,8 +17023,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100291420832683.jpg"
       ],
-      "significance": 0.22,
-      "size": 0.4,
+      "significance": 0.23,
+      "size": 0.41,
       "source": "facebook",
       "sourceId": "fb_p42bak",
       "sourceMeta": {
@@ -17567,8 +17278,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100444931595883.jpg"
       ],
-      "significance": 0.23,
-      "size": 0.41,
+      "significance": 0.24,
+      "size": 0.42,
       "source": "facebook",
       "sourceId": "fb_kv77ed",
       "sourceMeta": {
@@ -17819,8 +17530,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100519613712323.jpg"
       ],
-      "significance": 0.24,
-      "size": 0.42,
+      "significance": 0.25,
+      "size": 0.43,
       "source": "facebook",
       "sourceId": "fb_nffogj",
       "sourceMeta": {
@@ -17891,7 +17602,7 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/iOSPhotos_10100494778133023/10100615709305983.jpg"
       ],
-      "significance": 0.25,
+      "significance": 0.26,
       "size": 0.43,
       "source": "facebook",
       "sourceId": "fb_pr0o51",
@@ -17982,6 +17693,7 @@
     {
       "confidence": 1,
       "connections": [
+        "cm-p-003",
         "fb-0695",
         "ig-021",
         "ig-036"
@@ -18006,8 +17718,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/10100744630272333.jpg"
       ],
-      "significance": 0.47,
-      "size": 0.62,
+      "significance": 0.48,
+      "size": 0.63,
       "source": "facebook",
       "sourceId": "fb_4esfy7",
       "sourceMeta": {
@@ -18402,8 +18114,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100873326264533.jpg"
       ],
-      "significance": 0.26,
-      "size": 0.43,
+      "significance": 0.27,
+      "size": 0.44,
       "source": "facebook",
       "sourceId": "fb_gm3q5s",
       "sourceMeta": {
@@ -18618,8 +18330,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Mobileuploads_522575003913/10100976234305993.jpg"
       ],
-      "significance": 0.27,
-      "size": 0.44,
+      "significance": 0.28,
+      "size": 0.45,
       "source": "facebook",
       "sourceId": "fb_2tkhht",
       "sourceMeta": {
@@ -18870,8 +18582,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/Photos_596975449823/10101240810682813.jpg"
       ],
-      "significance": 0.28,
-      "size": 0.45,
+      "significance": 0.29,
+      "size": 0.46,
       "source": "facebook",
       "sourceId": "fb_dph3ff",
       "sourceMeta": {
@@ -19374,8 +19086,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10103056417492213.jpg"
       ],
-      "significance": 0.32,
-      "size": 0.49,
+      "significance": 0.33,
+      "size": 0.5,
       "source": "facebook",
       "sourceId": "fb_xzxas0",
       "sourceMeta": {
@@ -19451,8 +19163,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10103058041562563.jpg"
       ],
-      "significance": 0.48,
-      "size": 0.63,
+      "significance": 0.49,
+      "size": 0.64,
       "source": "facebook",
       "sourceId": "fb_dejdoa",
       "sourceMeta": {
@@ -20734,11 +20446,7 @@
     },
     {
       "confidence": 1,
-      "connections": [
-        "cm-b-005",
-        "cm-m-003",
-        "cm-p-002"
-      ],
+      "connections": [],
       "date": "2019-01-08",
       "description": "",
       "entities": {
@@ -20756,8 +20464,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10103364883723413.jpg"
       ],
-      "significance": 0.48,
-      "size": 0.63,
+      "significance": 0.38,
+      "size": 0.54,
       "source": "facebook",
       "sourceId": "fb_u1eq3q",
       "sourceMeta": {
@@ -20766,7 +20474,7 @@
         "reshareReason": null
       },
       "status": "published",
-      "theme": "friendship",
+      "theme": null,
       "tier": "particle",
       "title": "Good times.",
       "type": "moment",
@@ -21044,8 +20752,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10103475425092623.jpg"
       ],
-      "significance": 0.38,
-      "size": 0.54,
+      "significance": 0.39,
+      "size": 0.55,
       "source": "facebook",
       "sourceId": "fb_2vkg6o",
       "sourceMeta": {
@@ -21374,8 +21082,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10103670535140523.jpg"
       ],
-      "significance": 0.39,
-      "size": 0.55,
+      "significance": 0.4,
+      "size": 0.56,
       "source": "facebook",
       "sourceId": "fb_k63f9l",
       "sourceMeta": {
@@ -21662,8 +21370,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/InstagramPhotos_10103043204625903/10104040419209883.jpg"
       ],
-      "significance": 0.4,
-      "size": 0.56,
+      "significance": 0.41,
+      "size": 0.57,
       "source": "facebook",
       "sourceId": "fb_pqcr0r",
       "sourceMeta": {
@@ -22022,8 +21730,8 @@
       "media": [
         "images/_fb_staged/facebook/your_facebook_activity/posts/media/videos/658593431893.mp4"
       ],
-      "significance": 0.33,
-      "size": 0.5,
+      "significance": 0.34,
+      "size": 0.51,
       "source": "facebook",
       "sourceId": "fb_dhung5",
       "sourceMeta": {
@@ -22514,8 +22222,7 @@
       "connections": [
         "cm-b-002",
         "fb-2025",
-        "ms-006",
-        "ms-013"
+        "ms-017"
       ],
       "date": "2025-05-26",
       "description": "You’ve changed my life in more ways than I can ever explain. From the moment you were born, there was something different about you. Your eyes, your spirit, the way you looked at the world as if you already knew something most people don’t.\n\nYou’re the kind of person who makes the world better just by being in it. You lift people up without even trying. You bring calm. You bring laughter. You bring heart. Every single day, someone tells me how incredible you are, and every single time, I smile because I already know.\n\nYou’ve faced challenges that could have made you bitter or discouraged, but instead, you became stronger. You became wiser. You became more compassionate. You’ve shown me how to choose joy, even when it’s gluten free. You’ve shown your brothers what kindness looks like. You’ve shown the world what it means to live with a glass half full.\n\nYou’ve helped me become the father I always hoped to be. Watching you grow up has been the greatest honor of my life. And now, as you step into your teenage years, you’re not someone still trying to figure out who they are. You already know. And you’re not afraid to be that person. You’ll inspire others to do the same.\n\nWherever your journey takes you, just know I’m always walking right behind you. Cheering you on. Learning from you. Loving you more than words can hold.\n\nI am so proud of you. And this world is better with you in it.\n\nTo the ends of the earth, happy birthday, Jace.",
@@ -22616,11 +22323,7 @@
     },
     {
       "confidence": 1,
-      "connections": [
-        "cm-m-001",
-        "ms-013",
-        "ms-021"
-      ],
+      "connections": [],
       "date": "2025-04-21",
       "description": "These buildings are growing on me.",
       "entities": {
@@ -22641,8 +22344,8 @@
         "images/_ig_staged/instagram/posts/202504/18037564316563873.jpg",
         "images/_ig_staged/instagram/posts/202504/18027296540661295.jpg"
       ],
-      "significance": 0.59,
-      "size": 0.73,
+      "significance": 0.54,
+      "size": 0.69,
       "source": "instagram",
       "sourceId": "ig_n3ke55",
       "sourceMeta": {
@@ -22651,7 +22354,7 @@
         "reshareReason": null
       },
       "status": "published",
-      "theme": "growth",
+      "theme": null,
       "tier": "particle",
       "title": "These buildings are growing on me.",
       "type": "moment",
@@ -22708,6 +22411,7 @@
       "connections": [
         "fb-0998",
         "ig-023",
+        "ig-024",
         "ig-030",
         "ig-031"
       ],
@@ -22733,8 +22437,8 @@
       "media": [
         "images/_ig_staged/instagram/posts/202504/17925512502049456.jpg"
       ],
-      "significance": 0.54,
-      "size": 0.69,
+      "significance": 0.55,
+      "size": 0.7,
       "source": "instagram",
       "sourceId": "ig_q11jer",
       "sourceMeta": {
@@ -22846,6 +22550,7 @@
       "confidence": 1,
       "connections": [
         "cm-b-002",
+        "fb-0692",
         "fb-1127"
       ],
       "date": "2024-06-02",
@@ -22894,9 +22599,8 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-m-001",
-        "ms-013",
-        "ms-021"
+        "ig-065",
+        "ms-013"
       ],
       "date": "2024-05-29",
       "description": "Just before beginning what would have been a year-long home renovation, that we had planned for years—we decided to leave the world we knew behind to start a new chapter, far from home. Along the way we expanded our understanding of what home really means. Home isn’t within new pavements or fancy tiles. Home is within us, in our togetherness. It grows richer with every new experience we share and every bit of beauty we take in. The more we learn to appreciate all of the beauty, the more we see of it…the more we experience it. \n\nThe other night, Jace asked me, ‘Daddy, has living here changed you?’ I felt the entirety of that question, and after a thoughtful pause, I said, ‘Yes, it has.’ And before I could even finish, he burst out, ‘Me too!’ \n\nThat moment will stay with me forever, melting my heart and sending the good shivers down my spine. What a wonderful world we get to live in.",
@@ -22990,11 +22694,11 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-p-002",
         "fb-2135",
         "fb-2136",
-        "ms-013",
-        "ms-015"
+        "ig-045",
+        "ms-015",
+        "ms-017"
       ],
       "date": "2024-05-16",
       "description": "Off the coast of Syros, I find myself aboard a beautiful yacht. Surrounded by new friends who inspire me, who seek beauty and lean into laughter. It’s almost a mystery how I’ve arrived here. How a series of decisions led me to this exact moment. Yet, here I am, on a sailboat in Greece, amidst mountains of wisdom, a sea of love and support, and a crew of intentional souls. Everything is illuminated.",
@@ -23090,6 +22794,7 @@
     {
       "confidence": 1,
       "connections": [
+        "ig-024",
         "ig-025",
         "ms-015"
       ],
@@ -23332,6 +23037,7 @@
       "confidence": 1,
       "connections": [
         "fb-0998",
+        "ig-024",
         "ig-030",
         "ms-015"
       ],
@@ -23358,8 +23064,8 @@
         "images/_ig_staged/instagram/posts/202405/18345453352110593.jpg",
         "images/_ig_staged/instagram/posts/202405/17995084175417243.jpg"
       ],
-      "significance": 0.68,
-      "size": 0.81,
+      "significance": 0.69,
+      "size": 0.82,
       "source": "instagram",
       "sourceId": "ig_c09nph",
       "sourceMeta": {
@@ -23427,9 +23133,12 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-b-005",
-        "cm-m-003",
-        "fb-0998"
+        "fb-0998",
+        "ig-009",
+        "ig-017",
+        "ig-022",
+        "ig-030",
+        "ms-015"
       ],
       "date": "2024-04-29",
       "description": "Rooftop vibes with my favorite crew. Hot cocoa, cool breezes, and action poses, all while enjoying the vista. I’m bottling up these goofy yet beautiful moments.",
@@ -23569,10 +23278,7 @@
     },
     {
       "confidence": 1,
-      "connections": [
-        "cm-b-005",
-        "cm-m-003"
-      ],
+      "connections": [],
       "date": "2024-04-26",
       "description": "A beautiful night with beautiful people",
       "entities": {
@@ -23595,8 +23301,8 @@
         "images/_ig_staged/instagram/posts/202404/17858887518140057.jpg",
         "images/_ig_staged/instagram/posts/202404/17861234850135058.jpg"
       ],
-      "significance": 0.59,
-      "size": 0.73,
+      "significance": 0.58,
+      "size": 0.72,
       "source": "instagram",
       "sourceId": "ig_wxbsvx",
       "sourceMeta": {
@@ -23714,6 +23420,7 @@
         "fb-0998",
         "ig-009",
         "ig-022",
+        "ig-024",
         "ms-015"
       ],
       "date": "2024-04-21",
@@ -23737,8 +23444,8 @@
         "images/_ig_staged/instagram/posts/202404/18009415715167351.jpg",
         "images/_ig_staged/instagram/posts/202404/18428844337060606.jpg"
       ],
-      "significance": 0.62,
-      "size": 0.76,
+      "significance": 0.63,
+      "size": 0.77,
       "source": "instagram",
       "sourceId": "ig_m92ckl",
       "sourceMeta": {
@@ -23865,8 +23572,8 @@
       "media": [
         "images/_ig_staged/instagram/posts/202404/18021702344135130.jpg"
       ],
-      "significance": 0.51,
-      "size": 0.66,
+      "significance": 0.52,
+      "size": 0.67,
       "source": "instagram",
       "sourceId": "ig_x93lux",
       "sourceMeta": {
@@ -23883,9 +23590,7 @@
     },
     {
       "confidence": 1,
-      "connections": [
-        "ms-017"
-      ],
+      "connections": [],
       "date": "2024-03-15",
       "description": "To my oldest, Jace, I see you. Your passion for reading, your excitement to learn, and the love and honesty you share with us all—it doesn’t go unnoticed. You’re not just a son and a brother, you’re a role model, an inspiration. Every day, you show us what it means to be a good person, and for that, I couldn’t be more proud. I’m honored to be your guide. Keep being you, son. I love you.",
       "entities": {
@@ -23903,8 +23608,8 @@
       "media": [
         "images/_ig_staged/instagram/posts/202403/18007303664140315.jpg"
       ],
-      "significance": 0.6,
-      "size": 0.74,
+      "significance": 0.59,
+      "size": 0.73,
       "source": "instagram",
       "sourceId": "ig_aplou0",
       "sourceMeta": {
@@ -24253,8 +23958,8 @@
       "connections": [
         "fb-2135",
         "fb-2136",
-        "ms-015",
-        "ms-017"
+        "ig-015",
+        "ms-015"
       ],
       "date": "2025-07-02",
       "description": "Cyclades spot in Winter Park",
@@ -24328,6 +24033,7 @@
     {
       "confidence": 1,
       "connections": [
+        "ig-013",
         "ms-013"
       ],
       "date": "2025-02-13",
@@ -24347,8 +24053,8 @@
       "media": [
         "images/_ig_staged/instagram/stories/202502/18057754408974374.mp4"
       ],
-      "significance": 0.53,
-      "size": 0.68,
+      "significance": 0.54,
+      "size": 0.69,
       "source": "instagram",
       "sourceId": "ig_bpg0bw",
       "sourceMeta": {
@@ -24367,9 +24073,9 @@
       "confidence": 1,
       "connections": [
         "cm-b-001",
+        "cm-b-003",
+        "cm-b-005",
         "cm-b-007",
-        "cm-b-009",
-        "cm-b-012",
         "cm-m-002",
         "cm-m-004",
         "cm-m-005",
@@ -24429,7 +24135,8 @@
         "ms-003",
         "ms-005",
         "ms-010",
-        "ms-019"
+        "ms-019",
+        "ms-021"
       ],
       "date": "2003-06-01",
       "description": "First taste of broadcast television production. Produced weekly live shows, built sets, and discovered the instinct for real-time production that would thread through every future chapter.",
@@ -24652,19 +24359,14 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-p-002",
-        "cm-p-003",
-        "cm-p-019",
-        "cm-p-023",
+        "cm-b-002",
+        "fb-0692",
+        "fb-1062",
+        "fb-1127",
         "fb-2025",
         "fb-2064",
-        "ig-005",
         "ms-007",
         "ms-009",
-        "ms-010",
-        "ms-011",
-        "ms-012",
-        "ms-013",
         "ms-017"
       ],
       "date": "2012-01-01",
@@ -24883,7 +24585,6 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-b-017",
         "cm-b-020",
         "cm-m-001",
         "cm-m-002",
@@ -24893,15 +24594,14 @@
         "cm-p-001",
         "cm-p-010",
         "cm-p-017",
-        "cm-p-019",
+        "cm-p-028",
+        "cm-p-033",
         "ms-002",
         "ms-003",
         "ms-005",
-        "ms-006",
         "ms-008",
         "ms-011",
         "ms-012",
-        "ms-013",
         "ms-014",
         "ms-019"
       ],
@@ -24971,7 +24671,6 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-b-017",
         "cm-b-020",
         "cm-m-001",
         "cm-m-002",
@@ -24980,7 +24679,7 @@
         "cm-p-003",
         "cm-p-010",
         "cm-p-017",
-        "ms-006",
+        "cm-p-028",
         "ms-010",
         "ms-012",
         "ms-013",
@@ -25026,7 +24725,8 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-b-017",
+        "cm-b-007",
+        "cm-b-008",
         "cm-b-020",
         "cm-m-001",
         "cm-m-002",
@@ -25034,8 +24734,6 @@
         "cm-p-001",
         "cm-p-003",
         "cm-p-017",
-        "cm-p-023",
-        "ms-006",
         "ms-010",
         "ms-011",
         "ms-013",
@@ -25120,17 +24818,11 @@
     {
       "confidence": 1,
       "connections": [
-        "cm-b-003",
-        "ig-005",
-        "ig-007",
+        "cm-p-002",
         "ig-013",
-        "ig-015",
         "ig-065",
-        "ms-006",
-        "ms-010",
         "ms-011",
-        "ms-012",
-        "ms-021"
+        "ms-012"
       ],
       "date": "2023-01-15",
       "description": "Began an intentional physical reinvention. Over the next three years, Jared lost more than 150 pounds while building toward a stronger, healthier body focused on muscle mass and longevity. Not a diet — a life design decision.",
@@ -25240,6 +24932,7 @@
         "ig-015",
         "ig-017",
         "ig-022",
+        "ig-024",
         "ig-025",
         "ig-030",
         "ig-045",
@@ -25335,9 +25028,9 @@
         "ig-001",
         "ig-003",
         "ig-004",
+        "ig-005",
+        "ig-015",
         "ig-016",
-        "ig-034",
-        "ig-045",
         "ms-006",
         "ms-007",
         "ms-009",
@@ -25559,17 +25252,14 @@
       "confidence": 1,
       "connections": [
         "cm-b-001",
-        "cm-b-003",
-        "cm-b-017",
+        "cm-b-004",
+        "cm-b-007",
+        "cm-b-008",
+        "cm-b-013",
         "cm-m-001",
-        "cm-p-003",
-        "cm-p-019",
-        "cm-p-023",
-        "ig-007",
-        "ig-013",
+        "ms-002",
         "ms-011",
         "ms-012",
-        "ms-013",
         "ms-018",
         "ms-019",
         "ms-020"

@@ -495,7 +495,7 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Generic motifs that are too broad to form strong connections alone
-  const GENERIC_MOTIFS = new Set(['family', 'love', 'celebration', 'reflection']);
+  const GENERIC_MOTIFS = new Set(['family', 'love', 'celebration', 'reflection', 'growth', 'friendship', 'nostalgia', 'home']);
 
   const motifsA = nodeA._motifs || [];
   const motifsB = nodeB._motifs || [];

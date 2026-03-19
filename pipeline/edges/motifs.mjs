@@ -195,7 +195,7 @@ export const MOTIF_TAXONOMY = {
 
   nostalgia: {
     label: 'Nostalgia & Heritage',
-    rarity: RARITY.specific,
+    rarity: RARITY.common,
     keywords: [
       'childhood', 'remember', 'throwback', 'memory', 'memories',
       'reminisce', 'heritage', 'roots', 'tradition', 'retro',
@@ -240,7 +240,7 @@ export const MOTIF_TAXONOMY = {
 
   friendship: {
     label: 'Friendship',
-    rarity: RARITY.specific,
+    rarity: RARITY.common,
     keywords: [
       'friend', 'friends', 'crew', 'team', 'squad',
       'buddy', 'gathering', 'reunion', 'community',
@@ -296,7 +296,7 @@ export const MOTIF_TAXONOMY = {
 
   growth: {
     label: 'Growth & Evolution',
-    rarity: RARITY.specific,
+    rarity: RARITY.common,
     keywords: [
       'learn', 'learning', 'new', 'first', 'start',
       'achieve', 'milestone', 'launch', 'build', 'grow',
@@ -314,7 +314,7 @@ export const MOTIF_TAXONOMY = {
 
   home: {
     label: 'Home & Belonging',
-    rarity: RARITY.specific,
+    rarity: RARITY.common,
     keywords: [
       'home', 'house', 'backyard', 'porch', 'neighborhood',
       'settle', 'rooftop',

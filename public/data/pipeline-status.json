@@ -1,10 +1,10 @@
 {
-  "lastRun": "2026-03-19T21:51:45.310Z",
+  "lastRun": "2026-03-19T22:03:51.861Z",
   "status": "success",
   "publishMode": false,
   "stats": {
     "nodeCount": 417,
-    "edgeCount": 316,
+    "edgeCount": 306,
     "bySource": {
       "carbonmade": 59,
       "facebook": 292,
@@ -47,31 +47,31 @@
     },
     "edgeQuality": {
       "avgConnectionsPerNode": 1.5,
-      "crossSourceEdges": 226,
-      "crossSourceRatio": 0.72,
-      "isolatedNodes": 299,
+      "crossSourceEdges": 213,
+      "crossSourceRatio": 0.7,
+      "isolatedNodes": 303,
       "signalDistribution": {
-        "shared-motif": 298,
-        "cross-source-echo": 223,
-        "narrative-arc": 279,
+        "shared-motif": 287,
+        "cross-source-echo": 209,
+        "narrative-arc": 262,
         "life-chapter": 125,
-        "seasonal-echo": 63,
-        "same-day": 11,
-        "shared-tags": 32,
+        "seasonal-echo": 60,
+        "same-day": 13,
+        "shared-tags": 34,
         "shared-client": 1,
         "shared-place": 3,
-        "shared-entity": 19,
-        "shared-identity": 19,
-        "temporal-proximity": 8
+        "shared-entity": 20,
+        "shared-identity": 20,
+        "temporal-proximity": 11
       }
     },
     "byAuthorship": {
       "authored": 417
     },
     "bySignificanceTier": {
-      "low": 125,
-      "medium": 191,
-      "high": 68,
+      "low": 126,
+      "medium": 189,
+      "high": 69,
       "exceptional": 33
     },
     "significanceOverridesApplied": 70,
@@ -106,14 +106,14 @@
       "faith": 2,
       "reflection": 3,
       "celebration": 4,
-      "growth": 18,
       "nature": 8,
       "brotherhood": 11,
-      "friendship": 9,
+      "growth": 6,
       "greece": 8,
       "family": 1,
       "marriage": 5,
-      "nostalgia": 2,
+      "nostalgia": 1,
+      "friendship": 2,
       "home": 1,
       "food": 4,
       "craft": 52,
