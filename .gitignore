@@ -21,10 +21,12 @@ public/data/*
 data-private/
 
 # Private media — pipeline-processed media is committed for Vercel deployment
-# Raw Instagram exports stay private
 !public/data/media/
 public/data/media/fb-*/
+
+# Instagram: raw export stays private, processed media committed via _ig_staged
 public/images/instagram/
+public/images/Instagram/
 
 # Temp patch/fix scripts
 fix_globe.cjs
