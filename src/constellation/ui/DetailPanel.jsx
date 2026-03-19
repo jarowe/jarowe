@@ -164,9 +164,10 @@ export default function DetailPanel() {
 
           {/* Hero media — first item displayed prominently */}
           {node.media && node.media.length > 0 && (() => {
-            const heroUrl = resolveMediaUrl(node.media[0]);
-            const heroType = getMediaType(node.media[0]);
-            const isVideo = heroType === 'video';
+            const rawPath = node.media[0];
+            const heroUrl = resolveMediaUrl(rawPath);
+            const isVideo = typeof rawPath === 'string' && /\.(mp4|webm|mov|m4v)$/i.test(rawPath);
+            if (rawPath) console.log('[DetailPanel hero]', { rawPath, heroUrl, isVideo });
             return (
               <div
                 className={`detail-panel__hero${isVideo ? '' : ' detail-panel__hero--image'}`}
@@ -175,10 +176,17 @@ export default function DetailPanel() {
                   role: 'button',
                   tabIndex: 0,
                 })}
-                aria-label={isVideo ? 'Video player' : 'View media fullscreen'}
               >
                 {isVideo ? (
-                  <VideoHero key={heroUrl} src={heroUrl} />
+                  <video
+                    key={heroUrl}
+                    src={heroUrl}
+                    controls
+                    playsInline
+                    loop
+                    preload="auto"
+                    style={{ width: '100%', minHeight: 200, maxHeight: 500, background: '#000', display: 'block', objectFit: 'contain' }}
+                  />
                 ) : (
                   <img
                     src={heroUrl}

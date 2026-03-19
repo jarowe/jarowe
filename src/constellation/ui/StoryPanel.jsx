@@ -265,9 +265,9 @@ export default function StoryPanel() {
                           <video
                             src={heroUrl}
                             className="story-panel__hero-video"
-                            muted
+                            controls
                             playsInline
-                            preload="metadata"
+                            preload="auto"
                           />
                         ) : (
                           <img
@@ -400,9 +400,9 @@ export default function StoryPanel() {
                           <video
                             src={heroUrl}
                             className="story-panel__hero-video"
-                            muted
+                            controls
                             playsInline
-                            preload="metadata"
+                            preload="auto"
                           />
                         ) : (
                           <img

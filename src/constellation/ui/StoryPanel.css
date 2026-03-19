@@ -98,7 +98,10 @@
 
 .story-panel__hero-video {
   width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
+  background: #000;
 }
 
 /* ─── Hero arrows + counter ─────────────────────────────────── */
