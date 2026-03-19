@@ -1,10 +1,10 @@
 {
-  "lastRun": "2026-03-19T21:28:41.134Z",
+  "lastRun": "2026-03-19T21:51:45.310Z",
   "status": "success",
   "publishMode": false,
   "stats": {
     "nodeCount": 417,
-    "edgeCount": 151,
+    "edgeCount": 316,
     "bySource": {
       "carbonmade": 59,
       "facebook": 292,
@@ -46,23 +46,23 @@
       }
     },
     "edgeQuality": {
-      "avgConnectionsPerNode": 0.7,
-      "crossSourceEdges": 109,
+      "avgConnectionsPerNode": 1.5,
+      "crossSourceEdges": 226,
       "crossSourceRatio": 0.72,
-      "isolatedNodes": 315,
+      "isolatedNodes": 299,
       "signalDistribution": {
-        "life-chapter": 69,
-        "shared-motif": 129,
-        "cross-source-echo": 106,
-        "narrative-arc": 115,
-        "seasonal-echo": 36,
-        "same-day": 12,
-        "shared-tags": 14,
+        "shared-motif": 298,
+        "cross-source-echo": 223,
+        "narrative-arc": 279,
+        "life-chapter": 125,
+        "seasonal-echo": 63,
+        "same-day": 11,
+        "shared-tags": 32,
         "shared-client": 1,
-        "shared-place": 2,
-        "shared-entity": 24,
-        "shared-identity": 24,
-        "temporal-proximity": 7
+        "shared-place": 3,
+        "shared-entity": 19,
+        "shared-identity": 19,
+        "temporal-proximity": 8
       }
     },
     "byAuthorship": {
@@ -70,8 +70,8 @@
     },
     "bySignificanceTier": {
       "low": 125,
-      "medium": 177,
-      "high": 82,
+      "medium": 191,
+      "high": 68,
       "exceptional": 33
     },
     "significanceOverridesApplied": 70,
@@ -81,8 +81,8 @@
       "publishMode": false
     },
     "byTier": {
-      "helix": 76,
-      "particle": 341,
+      "helix": 75,
+      "particle": 342,
       "helixThreshold": 0.7
     },
     "contentQuality": {
@@ -106,7 +106,7 @@
       "faith": 2,
       "reflection": 3,
       "celebration": 4,
-      "growth": 14,
+      "growth": 18,
       "nature": 8,
       "brotherhood": 11,
       "friendship": 9,
@@ -117,11 +117,11 @@
       "home": 1,
       "food": 4,
       "craft": 52,
-      "career": 31,
-      "entrepreneurship": 11,
+      "entrepreneurship": 18,
+      "career": 42,
       "filmmaking": 9,
       "adventure": 3,
-      "technology": 5,
+      "technology": 7,
       "health": 1,
       "worldschooling": 3
     },

@@ -256,16 +256,23 @@ export const MOTIF_TAXONOMY = {
     rarity: RARITY.specific,
     keywords: [
       'client', 'portfolio', 'freelance', 'agency', 'studio',
-      'conference', 'campaign', 'marketing',
+      'conference', 'campaign', 'marketing', 'streaming',
+      'broadcast', 'marketplace', 'leadership', 'panel',
+      'streamer', 'livestream', 'creator', 'creators',
+      'acquisition', 'acquired',
     ],
     clients: [
       'disney', 'hpe', 'hewlett packard', 'microsoft',
       'ea', 'electronic arts', 'nba', 'espn',
       'seaworld', 'universal', 'activision', 'sega',
     ],
+    people: [
+      'elgato', 'corsair', 'twitchcon',
+    ],
     phrases: [
       'working with', 'my company', 'over 6 years',
       'brand awareness', 'feature films',
+      'product innovation', 'on stage', 'public leadership',
     ],
   },
 
@@ -294,10 +301,14 @@ export const MOTIF_TAXONOMY = {
       'learn', 'learning', 'new', 'first', 'start',
       'achieve', 'milestone', 'launch', 'build', 'grow',
       'evolve', 'opportunity', 'breakthrough', 'level',
+      'boom', 'scale', 'accelerat', 'transition',
+      'transformation', 'reinvention', 'intentional',
     ],
     phrases: [
       'first reel', 'new chapter', 'stepping up',
       'growing on me', 'check out my first',
+      'grew to serve', 'moved online', 'at scale',
+      'life design', 'changed everything',
     ],
   },
 
@@ -348,10 +359,13 @@ export const MOTIF_TAXONOMY = {
     rarity: RARITY.specific,
     keywords: [
       'worldschool', 'homeschool', 'expat', 'nomad',
+      'education', 'community',
     ],
     phrases: [
       'learning abroad', 'boundless life', 'worldschooling',
-      'homeschooling abroad',
+      'homeschooling abroad', 'experiential education',
+      'global destinations', 'cohort-based',
+      'the world as classroom',
     ],
   },
 
@@ -375,11 +389,14 @@ export const MOTIF_TAXONOMY = {
     rarity: RARITY.specific,
     keywords: [
       'health', 'fitness', 'transformation', 'pounds', 'gym',
-      'workout', 'exercise',
+      'workout', 'exercise', 'muscle', 'body', 'longevity',
+      'weight', 'lbs', 'discipline', 'reinvention', 'healthier',
+      'stronger',
     ],
     phrases: [
       'weight loss', 'lost weight', 'health journey',
-      'health transformation',
+      'health transformation', 'lost more than',
+      'physical reinvention', 'life design',
     ],
   },
 
@@ -387,14 +404,15 @@ export const MOTIF_TAXONOMY = {
     label: 'Technology & Innovation',
     rarity: RARITY.specific,
     keywords: [
-      'coding', 'software', 'app', 'tech',
+      'coding', 'software', 'app', 'tech', 'plugin',
+      'plugins', 'platform', 'innovation',
     ],
     people: [
       'elgato',
     ],
     phrases: [
       'artificial intelligence', 'product innovation',
-      'stream deck',
+      'stream deck', 'creator tools', 'creator ecosystem',
     ],
     // 'AI' handled specially — matched as uppercase to avoid false positives
     caseKeywords: ['AI'],
@@ -405,12 +423,15 @@ export const MOTIF_TAXONOMY = {
     rarity: RARITY.specific,
     keywords: [
       'business', 'startup', 'founder', 'entrepreneur',
+      'co-founded', 'founding', 'company',
     ],
     people: [
-      'doctrine', 'eezy', 'videezy', 'starseed',
+      'doctrine', 'eezy', 'videezy', 'starseed', 'vbi',
     ],
     phrases: [
       'my company', 'co-own', 'started a company',
+      'creative solutions', 'special projects',
+      'internal ip', 'story worlds',
     ],
   },
 };

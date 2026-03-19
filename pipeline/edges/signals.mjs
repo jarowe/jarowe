@@ -474,10 +474,18 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
     p => !GENERIC_PLACES.has(String(p).toLowerCase())
   );
   if (meaningfulPlaces.length > 0) {
+    // Filter out raw GPS coordinates (purely numeric with optional dots/commas/minus)
+    const namedPlaces = meaningfulPlaces.filter(
+      p => !/^[-\d.,\s]+$/.test(String(p).trim())
+    );
+    const placeLabel = namedPlaces.length > 0
+      ? namedPlaces.join(' & ')
+      : 'the same place';
+
     signals.push({
       type: 'spatial',
       signal: 'shared-place',
-      description: `Both rooted in ${meaningfulPlaces.join(' & ')}`,
+      description: `Both rooted in ${placeLabel}`,
       weight: SIGNAL_WEIGHTS['shared-place'],
     });
   }
@@ -549,9 +557,7 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
         const earlierDate = dateA < dateB ? nodeA.date : nodeB.date;
         const laterDate = dateA < dateB ? nodeB.date : nodeA.date;
         const yearSpan = Math.abs(dateA.getFullYear() - dateB.getFullYear());
-        const motifLabel = (MOTIF_NARRATIVES[bestMotif.id] || [])[0]
-          ? bestMotif.id
-          : 'this theme';
+        const motifLabel = bestMotif.id || 'this theme';
 
         let arcDesc;
         if (yearSpan >= 2) {
