@@ -69,8 +69,56 @@ export default function ConstellationEditor({ parentGui }) {
       persist();
     };
 
-    // Wrap .onChange to auto-persist
+    // ── Undo / Redo history ──
+    const undoStack = [];
+    const redoStack = [];
+    const MAX_UNDO = 80;
+    let lastSnapshot = JSON.stringify(cfg);
+
+    const pushUndo = () => {
+      const snap = JSON.stringify(cfg);
+      if (snap === lastSnapshot) return; // no change
+      undoStack.push(lastSnapshot);
+      if (undoStack.length > MAX_UNDO) undoStack.shift();
+      redoStack.length = 0; // clear redo on new change
+      lastSnapshot = snap;
+    };
+
+    const applySnapshot = (snap) => {
+      const parsed = JSON.parse(snap);
+      Object.assign(cfg, parsed);
+      gui.controllersRecursive().forEach(c => { try { c.updateDisplay(); } catch {} });
+      persist();
+      lastSnapshot = snap;
+    };
+
+    const undo = () => {
+      if (undoStack.length === 0) return;
+      redoStack.push(JSON.stringify(cfg));
+      applySnapshot(undoStack.pop());
+    };
+
+    const redo = () => {
+      if (redoStack.length === 0) return;
+      undoStack.push(JSON.stringify(cfg));
+      applySnapshot(redoStack.pop());
+    };
+
+    const handleUndoRedo = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      } else if (e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleUndoRedo);
+
+    // Wrap .onChange to auto-persist + push undo
     const tracked = (controller) => {
+      controller.onFinishChange(() => { pushUndo(); persist(); });
       controller.onChange(() => persist());
       return controller;
     };
@@ -289,7 +337,12 @@ export default function ConstellationEditor({ parentGui }) {
       },
     }, 'exportJSON').name('Export Config');
 
+    // ── Undo / Redo buttons ──
+    gui.add({ undo }, 'undo').name('↩ Undo (Ctrl+Z)');
+    gui.add({ redo }, 'redo').name('↪ Redo (Ctrl+Shift+Z)');
+
     return () => {
+      window.removeEventListener('keydown', handleUndoRedo);
       try { gui.destroy(); } catch { /* already destroyed */ }
       guiRef.current = null;
     };
