@@ -18,25 +18,100 @@ const log = createLogger('motifs');
 // Motif Taxonomy
 // ---------------------------------------------------------------------------
 
-const MOTIF_TAXONOMY = {
+// ---------------------------------------------------------------------------
+// Rarity tiers — controls minimum score threshold for inclusion.
+// 'common' motifs are broad themes that need stronger signal to avoid noise.
+// 'specific' motifs are narrow enough that a lower threshold is fine.
+// ---------------------------------------------------------------------------
+export const RARITY = {
+  common: 'common',   // score >= 3.0 to include
+  specific: 'specific', // score >= 2.0 to include
+};
+
+export const RARITY_THRESHOLDS = {
+  [RARITY.common]: 3.0,
+  [RARITY.specific]: 2.0,
+};
+
+export const MOTIF_TAXONOMY = {
+  // ---- Family sub-categories ----
+
   family: {
     label: 'Family',
+    rarity: RARITY.common,
     keywords: [
-      'family', 'son', 'sons', 'boys', 'boy', 'brother', 'brothers',
-      'dad', 'father', 'fatherhood', 'kids', 'children', 'child',
-      'wife', 'mother', 'parents', 'siblings', 'nephew', 'niece',
-      'uncle', 'aunt', 'grandma', 'grandpa', 'cousin',
+      'family', 'nephew', 'niece', 'uncle', 'aunt',
+      'grandma', 'grandpa', 'cousin', 'parents', 'siblings',
+      'mother',
     ],
     phrases: [
-      'my boys', 'the boys', 'our boys', 'my son', 'our son',
-      'my kids', 'our children', 'family time', 'our childhood',
-      'my brothers', 'my oldest', 'mother of our children',
-      'changed my life', 'watching our boys',
+      'family time', 'our children', 'changed my life',
+      'mother of our children',
     ],
   },
 
+  fatherhood: {
+    label: 'Fatherhood',
+    rarity: RARITY.specific,
+    keywords: [
+      'dad', 'father', 'fatherhood', 'son', 'sons', 'parenting',
+      'teach', 'teaching', 'proud',
+    ],
+    phrases: [
+      'my oldest', 'my son', 'our boys', 'my boys', 'the boys',
+      'our boys', 'watching our boys',
+      'to my oldest', 'i see you', 'your passion',
+      'creative parenting', 'under his bed',
+      'tracing the paths of our childhood',
+      'mirror the adventures', 'watching grow',
+    ],
+  },
+
+  brotherhood: {
+    label: 'Brotherhood',
+    rarity: RARITY.specific,
+    keywords: [
+      'brother', 'brothers', 'sibling',
+    ],
+    people: [
+      'derek',
+    ],
+    phrases: [
+      'my brothers', 'my brother',
+    ],
+  },
+
+  marriage: {
+    label: 'Marriage & Partnership',
+    rarity: RARITY.specific,
+    keywords: [
+      'wife', 'wedding', 'anniversary', 'husband',
+    ],
+    people: [
+      'maria',
+    ],
+    phrases: [
+      'love of my life', 'my wife', 'high school sweethearts',
+    ],
+  },
+
+  childhood: {
+    label: 'Childhood & Raising Kids',
+    rarity: RARITY.specific,
+    keywords: [
+      'kids', 'children', 'child', 'boys', 'boy', 'raising',
+    ],
+    phrases: [
+      'my kids', 'our children', 'growing up', 'our childhood',
+      'my boys', 'our boys',
+    ],
+  },
+
+  // ---- Core motifs ----
+
   love: {
     label: 'Love & Devotion',
+    rarity: RARITY.common,
     keywords: [
       'love', 'heart', 'romance', 'beautiful', 'soulmate',
       'anniversary', 'wedding', 'together', 'forever',
@@ -50,6 +125,7 @@ const MOTIF_TAXONOMY = {
 
   travel: {
     label: 'Travel & Discovery',
+    rarity: RARITY.specific,
     keywords: [
       'travel', 'trip', 'vacation', 'adventure', 'flight',
       'airport', 'island', 'coast', 'abroad', 'explore',
@@ -67,10 +143,11 @@ const MOTIF_TAXONOMY = {
 
   craft: {
     label: 'Creative Vision',
+    rarity: RARITY.specific,
     keywords: [
       'design', 'animation', 'video', 'production', 'creative',
       'edit', 'render', '3d', 'motion', 'graphics', 'visual',
-      'film', 'camera', 'shoot', 'direct', 'produce', 'art',
+      'camera', 'shoot', 'direct', 'produce', 'art',
       'illustration', 'photography', 'brand', 'logo', 'web',
       'digital', 'interactive', 'ux', 'ui', 'storyteller',
       'storytelling', 'commercial', 'cinematic', 'vfx',
@@ -83,23 +160,9 @@ const MOTIF_TAXONOMY = {
     ],
   },
 
-  fatherhood: {
-    label: 'Fatherhood',
-    keywords: [
-      'dad', 'father', 'son', 'sons', 'parenting',
-      'teach', 'teaching', 'watching grow', 'proud',
-    ],
-    phrases: [
-      'my oldest', 'my son', 'our boys', 'my boys',
-      'to my oldest', 'i see you', 'your passion',
-      'creative parenting', 'under his bed',
-      'tracing the paths of our childhood',
-      'mirror the adventures',
-    ],
-  },
-
   nature: {
     label: 'Nature & Wonder',
+    rarity: RARITY.specific,
     keywords: [
       'ocean', 'sunset', 'sunrise', 'beach', 'mountain',
       'park', 'outdoor', 'waves', 'sand', 'garden', 'lake',
@@ -115,6 +178,7 @@ const MOTIF_TAXONOMY = {
 
   reflection: {
     label: 'Reflection & Meaning',
+    rarity: RARITY.common,
     keywords: [
       'meaning', 'meaningful', 'reflect', 'reflection', 'inspire',
       'inspired', 'purpose', 'soul', 'truth', 'thought',
@@ -131,6 +195,7 @@ const MOTIF_TAXONOMY = {
 
   nostalgia: {
     label: 'Nostalgia & Heritage',
+    rarity: RARITY.specific,
     keywords: [
       'childhood', 'remember', 'throwback', 'memory', 'memories',
       'reminisce', 'heritage', 'roots', 'tradition', 'retro',
@@ -144,19 +209,22 @@ const MOTIF_TAXONOMY = {
 
   celebration: {
     label: 'Celebration',
+    rarity: RARITY.common,
     keywords: [
       'birthday', 'christmas', 'easter', 'holiday', 'party',
       'celebrate', 'toast', 'cheers', 'anniversary',
-      'new year', 'thanksgiving', 'halloween',
+      'thanksgiving', 'halloween',
     ],
     phrases: [
       'happy birthday', 'perfect reflection',
       'raise a glass', 'in the room where it happens',
+      'new year',
     ],
   },
 
   food: {
     label: 'Food & Culture',
+    rarity: RARITY.specific,
     keywords: [
       'restaurant', 'dinner', 'meal', 'cooking', 'recipe',
       'brunch', 'coffee', 'food', 'cuisine', 'chef',
@@ -172,10 +240,10 @@ const MOTIF_TAXONOMY = {
 
   friendship: {
     label: 'Friendship',
+    rarity: RARITY.specific,
     keywords: [
       'friend', 'friends', 'crew', 'team', 'squad',
       'buddy', 'gathering', 'reunion', 'community',
-      'people', 'beautiful people',
     ],
     phrases: [
       'favorite crew', 'beautiful people', 'rooftop vibes',
@@ -185,10 +253,10 @@ const MOTIF_TAXONOMY = {
 
   career: {
     label: 'Professional Journey',
+    rarity: RARITY.specific,
     keywords: [
-      'client', 'company', 'business', 'portfolio',
-      'freelance', 'agency', 'studio', 'entrepreneur',
-      'startup', 'conference', 'campaign', 'marketing',
+      'client', 'portfolio', 'freelance', 'agency', 'studio',
+      'conference', 'campaign', 'marketing',
     ],
     clients: [
       'disney', 'hpe', 'hewlett packard', 'microsoft',
@@ -203,22 +271,25 @@ const MOTIF_TAXONOMY = {
 
   adventure: {
     label: 'Adventure & Play',
+    rarity: RARITY.specific,
     keywords: [
-      'coaster', 'theme park', 'surfing', 'thrill',
+      'coaster', 'surfing', 'thrill',
       'ride', 'extreme', 'play', 'fun', 'game',
-      'roller coaster', 'adrenaline',
+      'adrenaline',
     ],
     places: [
       'universal studios', 'seaworld', 'islands of adventure',
-      'disney world', 'theme park',
+      'disney world',
     ],
     phrases: [
-      'what a ride', 'adrenaline rush',
+      'what a ride', 'adrenaline rush', 'theme park',
+      'roller coaster',
     ],
   },
 
   growth: {
     label: 'Growth & Evolution',
+    rarity: RARITY.specific,
     keywords: [
       'learn', 'learning', 'new', 'first', 'start',
       'achieve', 'milestone', 'launch', 'build', 'grow',
@@ -232,6 +303,7 @@ const MOTIF_TAXONOMY = {
 
   home: {
     label: 'Home & Belonging',
+    rarity: RARITY.specific,
     keywords: [
       'home', 'house', 'backyard', 'porch', 'neighborhood',
       'settle', 'rooftop',
@@ -244,6 +316,7 @@ const MOTIF_TAXONOMY = {
 
   faith: {
     label: 'Gratitude & Spirit',
+    rarity: RARITY.specific,
     keywords: [
       'blessed', 'grateful', 'thankful', 'grace',
       'faith', 'believe', 'hope', 'spirit',
@@ -256,6 +329,7 @@ const MOTIF_TAXONOMY = {
 
   greece: {
     label: 'Greek Chapter',
+    rarity: RARITY.specific,
     keywords: [],
     places: [
       'greece', 'naxos', 'syros', 'cyclades', 'kini',
@@ -264,6 +338,79 @@ const MOTIF_TAXONOMY = {
     phrases: [
       'off the coast of syros', 'naxos', 'django gelato',
       'ancient caves', 'kini beach', 'rooftop vibes',
+    ],
+  },
+
+  // ---- New motifs ----
+
+  worldschooling: {
+    label: 'Worldschooling',
+    rarity: RARITY.specific,
+    keywords: [
+      'worldschool', 'homeschool', 'expat', 'nomad',
+    ],
+    phrases: [
+      'learning abroad', 'boundless life', 'worldschooling',
+      'homeschooling abroad',
+    ],
+  },
+
+  filmmaking: {
+    label: 'Filmmaking',
+    rarity: RARITY.specific,
+    keywords: [
+      'film', 'cinema', 'camera', 'director', 'screenplay',
+    ],
+    places: [
+      'valencia',
+    ],
+    phrases: [
+      'short film', 'film school', 'feature film',
+      'film festival', 'on set',
+    ],
+  },
+
+  health: {
+    label: 'Health & Transformation',
+    rarity: RARITY.specific,
+    keywords: [
+      'health', 'fitness', 'transformation', 'pounds', 'gym',
+      'workout', 'exercise',
+    ],
+    phrases: [
+      'weight loss', 'lost weight', 'health journey',
+      'health transformation',
+    ],
+  },
+
+  technology: {
+    label: 'Technology & Innovation',
+    rarity: RARITY.specific,
+    keywords: [
+      'coding', 'software', 'app', 'tech',
+    ],
+    people: [
+      'elgato',
+    ],
+    phrases: [
+      'artificial intelligence', 'product innovation',
+      'stream deck',
+    ],
+    // 'AI' handled specially — matched as uppercase to avoid false positives
+    caseKeywords: ['AI'],
+  },
+
+  entrepreneurship: {
+    label: 'Entrepreneurship',
+    rarity: RARITY.specific,
+    keywords: [
+      'business', 'startup', 'founder', 'entrepreneur',
+    ],
+    people: [
+      'doctrine', 'eezy', 'videezy', 'starseed',
+    ],
+    phrases: [
+      'my company', 'co-own', 'started a company',
     ],
   },
 };
@@ -291,6 +438,25 @@ function buildSearchText(node) {
 }
 
 /**
+ * Build a raw (case-preserved) text blob for case-sensitive matching.
+ * Attached as a static method on buildSearchText for co-location.
+ *
+ * @param {Object} node - Canonical node
+ * @returns {string} Combined text with original casing
+ */
+buildSearchText.raw = function (node) {
+  const parts = [
+    node.title || '',
+    node.description || '',
+    ...(node.entities?.tags || []),
+    ...(node.entities?.places || []),
+    ...(node.entities?.clients || []),
+    ...(node.entities?.people || []),
+  ];
+  return parts.join(' ');
+};
+
+/**
  * Check if text contains a word (whole-word match where practical).
  * For single words, uses word-boundary regex.
  * For phrases, uses includes() since they're multi-word.
@@ -311,12 +477,17 @@ function textContains(text, term) {
  * Scans title, description, tags, and entities against the motif taxonomy.
  * Returns scored motifs sorted by relevance.
  *
+ * Rarity-aware: common motifs need score >= 3.0, specific motifs >= 2.0.
+ *
  * @param {Object} node - Canonical node
- * @returns {Array<{id: string, label: string, score: number}>} Extracted motifs
+ * @returns {Array<{id: string, label: string, score: number, rarity: string}>} Extracted motifs
  */
 export function extractMotifs(node) {
   const text = buildSearchText(node);
   if (!text.trim()) return [];
+
+  // Also build a raw (non-lowercased) version for case-sensitive keyword matching
+  const rawText = buildSearchText.raw(node);
 
   const motifs = [];
 
@@ -324,11 +495,23 @@ export function extractMotifs(node) {
     let score = 0;
     const matchedTerms = [];
 
-    // Check keywords (1 point each)
+    // Check keywords (1 point each) — case-insensitive via lowercased text
     for (const kw of config.keywords || []) {
       if (textContains(text, kw)) {
         score += 1;
         matchedTerms.push(kw);
+      }
+    }
+
+    // Check case-sensitive keywords (1 point each) — matched against raw text
+    // Useful for acronyms like "AI" that would false-positive on lowercase
+    for (const ckw of config.caseKeywords || []) {
+      const regex = new RegExp(
+        `\\b${ckw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`
+      );
+      if (regex.test(rawText)) {
+        score += 1;
+        matchedTerms.push(ckw);
       }
     }
 
@@ -356,12 +539,24 @@ export function extractMotifs(node) {
       }
     }
 
-    // Only include motifs with meaningful signal (2+ to avoid noise)
-    if (score >= 2) {
+    // Check people (1.5 points each)
+    for (const person of config.people || []) {
+      if (text.includes(person.toLowerCase())) {
+        score += 1.5;
+        matchedTerms.push(person);
+      }
+    }
+
+    // Apply rarity-based threshold
+    const rarity = config.rarity || RARITY.specific;
+    const threshold = RARITY_THRESHOLDS[rarity];
+
+    if (score >= threshold) {
       motifs.push({
         id: motifId,
         label: config.label,
         score: Math.round(score * 10) / 10,
+        rarity,
       });
     }
   }

@@ -1,10 +1,10 @@
 {
-  "lastRun": "2026-03-18T19:50:10.597Z",
+  "lastRun": "2026-03-19T21:18:25.198Z",
   "status": "success",
   "publishMode": false,
   "stats": {
     "nodeCount": 417,
-    "edgeCount": 909,
+    "edgeCount": 151,
     "bySource": {
       "carbonmade": 59,
       "facebook": 292,
@@ -46,33 +46,33 @@
       }
     },
     "edgeQuality": {
-      "avgConnectionsPerNode": 4.4,
-      "crossSourceEdges": 268,
-      "crossSourceRatio": 0.29,
-      "isolatedNodes": 26,
+      "avgConnectionsPerNode": 0.7,
+      "crossSourceEdges": 109,
+      "crossSourceRatio": 0.72,
+      "isolatedNodes": 315,
       "signalDistribution": {
-        "shared-motif": 290,
-        "cross-source-echo": 220,
-        "narrative-arc": 276,
-        "life-chapter": 683,
-        "seasonal-echo": 114,
-        "shared-tags": 57,
-        "temporal-proximity": 506,
-        "same-day": 108,
+        "life-chapter": 69,
+        "shared-motif": 129,
+        "cross-source-echo": 106,
+        "narrative-arc": 115,
+        "seasonal-echo": 36,
+        "same-day": 12,
+        "shared-tags": 14,
         "shared-client": 1,
-        "shared-place": 3,
-        "shared-entity": 17,
-        "shared-identity": 17
+        "shared-place": 2,
+        "shared-entity": 24,
+        "shared-identity": 24,
+        "temporal-proximity": 7
       }
     },
     "byAuthorship": {
       "authored": 417
     },
     "bySignificanceTier": {
-      "low": 75,
-      "medium": 212,
-      "high": 91,
-      "exceptional": 39
+      "low": 125,
+      "medium": 177,
+      "high": 82,
+      "exceptional": 33
     },
     "significanceOverridesApplied": 70,
     "rollupPromotions": {
@@ -81,8 +81,8 @@
       "publishMode": false
     },
     "byTier": {
-      "helix": 77,
-      "particle": 340,
+      "helix": 76,
+      "particle": 341,
       "helixThreshold": 0.7
     },
     "contentQuality": {
@@ -99,23 +99,31 @@
       }
     },
     "motifs": {
-      "family": 29,
-      "fatherhood": 20,
-      "love": 18,
+      "childhood": 13,
+      "fatherhood": 24,
+      "love": 8,
       "travel": 8,
       "faith": 2,
-      "reflection": 8,
-      "celebration": 5,
-      "friendship": 13,
+      "reflection": 3,
+      "celebration": 4,
       "growth": 14,
       "nature": 8,
+      "brotherhood": 11,
+      "friendship": 9,
       "greece": 8,
+      "family": 1,
+      "marriage": 5,
       "nostalgia": 2,
       "home": 1,
       "food": 4,
-      "craft": 53,
-      "career": 36,
-      "adventure": 3
+      "craft": 52,
+      "career": 31,
+      "entrepreneurship": 11,
+      "filmmaking": 9,
+      "adventure": 3,
+      "technology": 5,
+      "health": 1,
+      "worldschooling": 3
     },
     "privacyAudit": {
       "violations": 0,

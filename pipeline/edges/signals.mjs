@@ -23,25 +23,25 @@ export const SIGNAL_WEIGHTS = Object.freeze({
   // Core signals (original, LOCKED)
   'same-day':            0.8,
   'shared-project':      0.7,
-  'shared-entity':       0.6,
+  'shared-entity':       0.8,    // Shared people = strongest real signal
   'shared-tags':         0.4,
-  'temporal-proximity':  0.3,
-  'shared-place':        0.25,
+  'temporal-proximity':  0.15,   // V2: reduced — proximity alone is weak evidence
+  'shared-place':        0.45,   // V2: increased — meaningful place overlap matters
   'shared-client':       0.35,
 
   // Thematic signals (V2 meaning engine)
-  'shared-motif':        0.5,    // Two nodes share thematic motifs
-  'cross-source-echo':   0.6,    // Same motif bridges Instagram ↔ Carbonmade
+  'shared-motif':        0.5,    // Two nodes share thematic motifs (generic motifs reduced at emit time)
+  'cross-source-echo':   0.6,    // Same motif bridges Instagram ↔ Carbonmade (generic reduced at emit time)
   'narrative-arc':       0.55,   // Temporal + thematic = story evolution
-  'life-chapter':        0.2,    // Same epoch (same phase of life)
-  'seasonal-echo':       0.15,   // Same month, different year
+  'life-chapter':        0.05,   // V2: near-zero — same epoch alone is not a real connection
+  'seasonal-echo':       0.05,   // V2: near-zero — same month different year is very weak
 
   // Identity signals (V3 identity engine)
-  'shared-identity':     0.7,    // Same resolved person (canonical name) in both nodes
+  'shared-identity':     0.95,   // V2: gold standard — resolved canonical person in both nodes
 });
 
 /** Minimum total signal weight to create an edge. */
-export const EDGE_THRESHOLD = 0.5;
+export const EDGE_THRESHOLD = 0.55;
 
 // ---------------------------------------------------------------------------
 // Narrative Description Templates
@@ -267,18 +267,16 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
     });
   }
 
-  // ---- temporal-proximity (within 30 days) ----
+  // ---- temporal-proximity (within 14 days) ----
   const dateA = parseDate(nodeA.date);
   const dateB = parseDate(nodeB.date);
   if (dateA && dateB) {
     const daysBetween = Math.abs(differenceInDays(dateA, dateB));
 
-    if (daysBetween > 0 && daysBetween <= 30) {
+    if (daysBetween > 0 && daysBetween <= 14) {
       const desc = daysBetween <= 7
         ? `Captured within the same week of life`
-        : daysBetween <= 14
-          ? `Both from the same fortnight`
-          : `Kindred moments, ${daysBetween} days apart`;
+        : `Both from the same fortnight`;
       signals.push({
         type: 'temporal',
         signal: 'temporal-proximity',
@@ -344,10 +342,10 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
 
   // ---- shared-identity (resolved canonical people) ----
   if (meaningfulPeople.length > 0) {
-    // Weight: 0.7 base + 0.15 per additional shared identity, capped at 1.2
+    // Weight: 0.95 base + 0.15 per additional shared identity, capped at 1.5
     const identityWeight = Math.min(
       SIGNAL_WEIGHTS['shared-identity'] + (meaningfulPeople.length - 1) * 0.15,
-      1.2
+      1.5
     );
 
     // Build description, enriched with relationship if identity map available
@@ -395,11 +393,19 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
 
   // ---- shared-place ----
   const sharedPlaces = intersect(entA.places || [], entB.places || []);
-  if (sharedPlaces.length > 0) {
+  // Filter out overly generic places (countries alone are too broad to be meaningful)
+  const GENERIC_PLACES = new Set([
+    'united states', 'usa', 'us', 'america',
+    'spain', 'greece', 'italy', 'germany', 'austria', 'france', 'uk', 'england',
+  ]);
+  const meaningfulPlaces = sharedPlaces.filter(
+    p => !GENERIC_PLACES.has(String(p).toLowerCase())
+  );
+  if (meaningfulPlaces.length > 0) {
     signals.push({
       type: 'spatial',
       signal: 'shared-place',
-      description: `Both rooted in ${sharedPlaces.join(' & ')}`,
+      description: `Both rooted in ${meaningfulPlaces.join(' & ')}`,
       weight: SIGNAL_WEIGHTS['shared-place'],
     });
   }
@@ -407,6 +413,9 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
   // ═══════════════════════════════════════════════════════════════════════════
   // THEMATIC SIGNALS (V2 meaning engine)
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // Generic motifs that are too broad to form strong connections alone
+  const GENERIC_MOTIFS = new Set(['family', 'love', 'celebration', 'reflection']);
 
   const motifsA = nodeA._motifs || [];
   const motifsB = nodeB._motifs || [];
@@ -428,9 +437,13 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
     const narratives = MOTIF_NARRATIVES[bestMotif.id] || [`Both share the spirit of ${bestMotif.id}`];
     const desc = seededPick(narratives, seed);
 
-    // Weight scales with number of shared motifs (0.5 base + 0.08 per extra, max 0.8)
+    // Generic motifs (family, love, celebration, reflection) get halved weight
+    const isGenericMotif = GENERIC_MOTIFS.has(bestMotif.id);
+    const baseMotifWeight = isGenericMotif ? 0.25 : SIGNAL_WEIGHTS['shared-motif'];
+
+    // Weight scales with number of shared motifs (base + 0.08 per extra, max 0.8)
     const motifWeight = Math.min(
-      SIGNAL_WEIGHTS['shared-motif'] + (sharedMotifIds.length - 1) * 0.08,
+      baseMotifWeight + (sharedMotifIds.length - 1) * 0.08,
       0.8
     );
 
@@ -446,11 +459,14 @@ export function calculateSignals(nodeA, nodeB, identityMap) {
       const crossNarrative = CROSS_SOURCE_NARRATIVES[bestMotif.id] ||
         `The same theme echoing across ${nodeA.source} and ${nodeB.source}`;
 
+      // Generic motifs get halved cross-source weight
+      const crossWeight = isGenericMotif ? 0.3 : SIGNAL_WEIGHTS['cross-source-echo'];
+
       signals.push({
         type: 'narrative',
         signal: 'cross-source-echo',
         description: crossNarrative,
-        weight: SIGNAL_WEIGHTS['cross-source-echo'],
+        weight: crossWeight,
       });
     }
 

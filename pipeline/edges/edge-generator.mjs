@@ -4,9 +4,11 @@
  * V2 MEANING ENGINE: Generates deeply meaningful, story-driven edges.
  *
  * Pruning strategy (V2):
- *   1. Per-signal-type cap: top 4 edges per node per signal type
- *   2. Overall cap: top 8 edges per node (highest weight first)
- *   This produces a target density of 4-8 meaningful connections per node.
+ *   1. Drop temporal-only edges (need at least one non-temporal signal)
+ *   2. Cross-source edges require weight >= 0.7
+ *   3. Per-signal-type cap: top 6 edges per node per signal type
+ *   4. Overall cap: top 6 edges per node (highest weight first)
+ *   This produces a target density of 3-6 meaningful connections per node.
  *
  * Edge quality metrics are tracked for pipeline-status.json reporting.
  * Output: Sorted deterministically for byte-identical results.
@@ -20,8 +22,8 @@ const log = createLogger('edges');
 /** Max edges per node per signal type (prevents one signal type from dominating). */
 const MAX_EDGES_PER_SIGNAL_TYPE = 6;
 
-/** Max total edges per node (target: 4-8 meaningful connections). */
-const MAX_EDGES_PER_NODE = 8;
+/** Max total edges per node (target: 3-6 meaningful connections). */
+const MAX_EDGES_PER_NODE = 6;
 
 /**
  * Generate evidence-based edges between all node pairs.
@@ -46,6 +48,17 @@ export async function generateEdges(nodes, identityMap) {
 
       const totalWeight = signals.reduce((sum, s) => sum + s.weight, 0);
       if (totalWeight < EDGE_THRESHOLD) continue;
+
+      // ── V2: Drop edges that have ONLY temporal signals ──
+      // Every edge needs at least one non-temporal signal (semantic, spatial, thematic, identity, narrative)
+      const TEMPORAL_SIGNALS = new Set(['life-chapter', 'temporal-proximity', 'seasonal-echo', 'same-day']);
+      const hasNonTemporal = signals.some(s => !TEMPORAL_SIGNALS.has(s.signal));
+      if (!hasNonTemporal) continue;
+
+      // ── V2: Cross-source edges require higher threshold ──
+      const srcA = sorted[i].source;
+      const srcB = sorted[j].source;
+      if (srcA && srcB && srcA !== srcB && totalWeight < 0.7) continue;
 
       allEdges.push({
         source: sorted[i].id,

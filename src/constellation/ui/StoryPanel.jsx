@@ -26,11 +26,24 @@ import './StoryPanel.css';
 
 const EVIDENCE_ICON_MAP = {
   temporal: Calendar,
-  place: MapPin,
-  person: User,
-  project: Folder,
-  idea: Lightbulb,
+  semantic: Folder,   // default for semantic; refined per-signal below
+  thematic: Lightbulb,
+  narrative: Star,
+  identity: User,
+  spatial: MapPin,
 };
+
+/** Pick the best icon for a single evidence item. */
+function getEvidenceIcon(ev) {
+  if (ev.type === 'semantic' && ev.signal) {
+    const s = ev.signal.toLowerCase();
+    if (s.includes('entity') || s.includes('identity')) return User;
+    if (s.includes('project') || s.includes('client')) return Folder;
+    // tags or other semantic signals — fall back to Star
+    return Star;
+  }
+  return EVIDENCE_ICON_MAP[ev.type] || Star;
+}
 
 const INITIAL_CONNECTION_LIMIT = 5;
 
@@ -152,7 +165,7 @@ function BecauseSection({ connectionGroups, focusNode }) {
                     {group.nodeTitle}
                   </button>
                   {group.evidence.map((ev, j) => {
-                    const Icon = EVIDENCE_ICON_MAP[ev.type] || Star;
+                    const Icon = getEvidenceIcon(ev);
                     return (
                       <div key={j} className="story-panel__evidence">
                         <span className="story-panel__evidence-icon">
