@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
+import { getCfg } from '../constellationDefaults';
 
 const dummy = new THREE.Object3D();
 const tempColor = new THREE.Color();
@@ -111,9 +112,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const storeEdges = useConstellationStore((s) => s.edges);
   const storeNodes = useConstellationStore((s) => s.nodes);
 
-  // Pre-compute base scales for breathing animation
+  // Pre-compute base scales for breathing animation (reads config at compute time)
   const baseScales = useMemo(
-    () => nodes.map((n) => n.size * 1.4),
+    () => nodes.map((n) => n.size * getCfg('nodeBaseScale')),
     [nodes]
   );
 
@@ -125,13 +126,13 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     nodes.forEach((node, i) => {
       // Position + scale
       dummy.position.set(node.x, node.y, node.z);
-      dummy.scale.setScalar(node.size * 1.4);
+      dummy.scale.setScalar(node.size * getCfg('nodeBaseScale'));
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
       // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
-      const brightness = 0.5 + sig * 0.8; // range 0.5 to 1.3
+      const brightness = getCfg('nodeBrightnessBase') + sig * getCfg('nodeBrightnessRange');
       tempColor.set(getNodeColor(node)).multiplyScalar(brightness);
       mesh.setColorAt(i, tempColor);
     });
@@ -160,9 +161,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
       if (activeIds) {
         if (!activeIds.has(nodeId)) {
-          dimFactor = 0.15; // Ghost non-connected/non-matching nodes
+          dimFactor = getCfg('nodeFocusDim');
         } else if (nodeId === focusedNodeId) {
-          dimFactor = 1.3; // Brighter for focused node
+          dimFactor = getCfg('nodeFocusBright');
         }
       }
 
@@ -183,11 +184,15 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     if (!gpuConfig.pulseAnimation || !meshRef.current) return;
 
     const time = clock.getElapsedTime();
+    const pulseSpeed = getCfg('nodePulseSpeed');
+    const pulseAmpMin = getCfg('nodePulseAmpMin');
+    const pulseAmpRange = getCfg('nodePulseAmpRange');
+    const phaseSpread = getCfg('nodePhaseSpread');
 
     for (let i = 0; i < count; i++) {
       const sig = nodes[i].significance ?? 0.5;
-      const pulseAmp = 0.02 + sig * 0.06; // 0.02 for low, 0.08 for high
-      const breathe = Math.sin(time * 0.5 + i * 0.3) * pulseAmp + 1.0;
+      const pulseAmp = pulseAmpMin + sig * pulseAmpRange;
+      const breathe = Math.sin(time * pulseSpeed + i * phaseSpread) * pulseAmp + 1.0;
       const scale = baseScales[i] * breathe;
 
       meshRef.current.getMatrixAt(i, dummy.matrix);

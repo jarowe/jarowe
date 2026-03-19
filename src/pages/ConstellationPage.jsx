@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Component } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense, Component } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConstellationStore } from '../constellation/store';
 import ConstellationCanvas from '../constellation/scene/ConstellationCanvas';
@@ -11,6 +11,8 @@ import MediaLightbox from '../constellation/ui/MediaLightbox';
 import ThemeLegend from '../constellation/ui/ThemeLegend';
 import ViewToggle from '../constellation/ui/ViewToggle';
 import './ConstellationPage.css';
+
+const ConstellationEditor = lazy(() => import('../constellation/ConstellationEditor'));
 
 /** Error boundary to catch R3F Canvas crashes gracefully */
 class CanvasErrorBoundary extends Component {
@@ -100,6 +102,123 @@ export default function ConstellationPage() {
 
   // Refs for back-button history state management
   const hasConstellationState = useRef(false);
+
+  // ── Editor mode: ?editor=constellation or Ctrl+Shift+E toggle ──
+  const showEditor = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('editor') === 'constellation';
+  }, []);
+
+  const [editorActive, setEditorActive] = useState(showEditor);
+  const [editorGui, setEditorGui] = useState(null);
+
+  // Ctrl+Shift+E toggle
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        setEditorActive((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Create / destroy lil-gui when editor becomes active
+  useEffect(() => {
+    if (!editorActive) {
+      // Tear down
+      setEditorGui(null);
+      return;
+    }
+
+    let cancelled = false;
+    let containerEl = null;
+    let guiInstance = null;
+
+    // Create container div for the editor panel
+    containerEl = document.createElement('div');
+    containerEl.className = 'constellation-editor-panels';
+    document.body.appendChild(containerEl);
+
+    // Inject styles
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      .constellation-editor-panels {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 10000;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(100,180,255,0.35) transparent;
+      }
+      .constellation-editor-panels::-webkit-scrollbar { width: 6px; }
+      .constellation-editor-panels::-webkit-scrollbar-track { background: transparent; }
+      .constellation-editor-panels::-webkit-scrollbar-thumb { background: rgba(100,180,255,0.35); border-radius: 4px; }
+      .constellation-editor-panels::-webkit-scrollbar-thumb:hover { background: rgba(100,180,255,0.6); }
+
+      /* lil-gui theme — constellation blue/purple */
+      .constellation-editor-panels .lil-gui {
+        --background-color: rgba(8,12,28,0.92);
+        --title-background-color: rgba(30,50,120,0.55);
+        --title-text-color: #a8c8ff;
+        --text-color: #c0d0e8;
+        --widget-color: rgba(40,60,140,0.35);
+        --hover-color: rgba(50,80,180,0.45);
+        --focus-color: rgba(60,100,200,0.55);
+        --number-color: #7cb3ff;
+        --string-color: #9be0c8;
+        --font-size: 11px;
+        --row-height: 26px;
+        --padding: 8px;
+        --name-width: 46%;
+        --scrollbar-width: 5px;
+      }
+      .constellation-editor-panels .lil-gui { font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+      .constellation-editor-panels .lil-gui .title {
+        font-weight: 600; letter-spacing: 0.3px;
+        border-bottom: 1px solid rgba(100,140,255,0.15);
+      }
+      .constellation-editor-panels > .lil-gui > .title {
+        background: linear-gradient(135deg, rgba(30,60,160,0.6), rgba(20,30,100,0.6));
+        font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase;
+      }
+      .constellation-editor-panels .lil-gui .slider .fill { background: linear-gradient(90deg,#3a7aed,#7ab3fa); }
+      .constellation-editor-panels .lil-gui .controller.function .widget {
+        background: rgba(40,70,200,0.25); border: 1px solid rgba(100,140,255,0.2);
+        border-radius: 3px; transition: background 0.15s, border-color 0.15s;
+      }
+      .constellation-editor-panels .lil-gui .controller.function .widget:hover {
+        background: rgba(50,80,220,0.4); border-color: rgba(100,140,255,0.45);
+      }
+      .constellation-editor-panels .lil-gui input[type="checkbox"] { accent-color: #3a7aed; }
+      .constellation-editor-panels .lil-gui select { background: rgba(20,35,80,0.7); border-color: rgba(100,140,255,0.2); }
+      .constellation-editor-panels .lil-gui .controller.color .display { border-radius: 3px; border: 1px solid rgba(100,140,255,0.2); }
+      .constellation-editor-panels .lil-gui .children::-webkit-scrollbar { width: 4px; }
+      .constellation-editor-panels .lil-gui .children::-webkit-scrollbar-track { background: transparent; }
+      .constellation-editor-panels .lil-gui .children::-webkit-scrollbar-thumb { background: rgba(100,140,255,0.25); border-radius: 3px; }
+    `;
+    document.head.appendChild(styleEl);
+
+    import('lil-gui').then(({ default: GUI }) => {
+      if (cancelled) { containerEl.remove(); styleEl.remove(); return; }
+
+      guiInstance = new GUI({ container: containerEl, title: 'Constellation Editor', width: 320 });
+      setEditorGui(guiInstance);
+    });
+
+    return () => {
+      cancelled = true;
+      if (guiInstance) {
+        try { guiInstance.destroy(); } catch { /* already gone */ }
+      }
+      if (containerEl && containerEl.parentNode) containerEl.remove();
+      if (styleEl && styleEl.parentNode) styleEl.remove();
+      setEditorGui(null);
+    };
+  }, [editorActive]);
 
   // Load constellation data on mount
   useEffect(() => {
@@ -270,6 +389,13 @@ export default function ConstellationPage() {
           <DetailPanel />
           <MediaLightbox />
         </div>
+      )}
+
+      {/* Editor panel — activated via ?editor=constellation or Ctrl+Shift+E */}
+      {editorGui && (
+        <Suspense fallback={null}>
+          <ConstellationEditor parentGui={editorGui} />
+        </Suspense>
       )}
     </div>
   );

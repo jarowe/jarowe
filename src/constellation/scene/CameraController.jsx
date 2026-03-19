@@ -3,6 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber';
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
+import { getCfg } from '../constellationDefaults';
 
 const TUNNEL_FOV = 100;
 const HELIX_FOV = 60;
@@ -61,10 +62,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0;
     rampInterval.current = setInterval(() => {
-      if (controls.autoRotateSpeed < 0.35) {
+      const target = getCfg('autoRotateSpeed');
+      if (controls.autoRotateSpeed < target) {
         controls.autoRotateSpeed += 0.015;
       } else {
-        controls.autoRotateSpeed = 0.35;
+        controls.autoRotateSpeed = target;
         clearInterval(rampInterval.current);
       }
     }, 50);
@@ -91,7 +93,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         // Resume gentle cinematic orbit after user interaction while focused
         autoRotateTimer.current = setTimeout(() => {
           controls.autoRotate = true;
-          controls.autoRotateSpeed = 0.15;
+          controls.autoRotateSpeed = getCfg('focusedRotateSpeed');
         }, 2000);
       } else {
         autoRotateTimer.current = setTimeout(() => {
@@ -391,14 +393,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       if (rampInterval.current) clearInterval(rampInterval.current);
 
       // Camera offset differs: tunnel pulls back wide, helix stays close
-      const dist = mode === 'tunnel' ? 80 : 35;
-      const yLift = mode === 'tunnel' ? 12 : 8;
+      const dist = mode === 'tunnel' ? 80 : getCfg('focusDistance');
+      const yLift = mode === 'tunnel' ? 12 : getCfg('focusYLift');
       const camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
 
       // Shorter duration for stepping between nodes, longer for first focus
       const prevNode = prevFocusRef.current;
       const isStepping = prevNode && sortedHelixNodes.length > 1;
-      const duration = isStepping ? 0.8 : 1.5;
+      const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
       // In tunnel mode: re-enable controls temporarily for the fly-out animation
@@ -442,7 +444,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
           isFlyingRef.current = false;
           // Gentle cinematic orbit around focused node
           controls.autoRotate = true;
-          controls.autoRotateSpeed = 0.15;
+          controls.autoRotateSpeed = getCfg('focusedRotateSpeed');
         },
       });
       tl.to(

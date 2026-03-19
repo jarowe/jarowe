@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { getCfg } from '../constellationDefaults';
 
 /** Theme-based color palette (same as NodeCloud) */
 const THEME_COLORS = {
@@ -137,13 +138,13 @@ export default function HelixBackbone({ positions, disabled }) {
 
       const color = getNodeColor(node);
       const sig = node.significance ?? 0.5;
-      tempColor.set(color).multiplyScalar(0.6 + sig * 0.6);
+      tempColor.set(color).multiplyScalar(getCfg('markerBrightnessBase') + sig * getCfg('markerBrightnessRange'));
       col[i * 3] = tempColor.r;
       col[i * 3 + 1] = tempColor.g;
       col[i * 3 + 2] = tempColor.b;
 
       // Size scaled by significance — subtle range
-      sz[i] = 3.0 + sig * 4.0;
+      sz[i] = getCfg('markerSizeBase') + sig * getCfg('markerSizeRange');
     }
 
     const geo = new THREE.BufferGeometry();
@@ -172,10 +173,10 @@ export default function HelixBackbone({ positions, disabled }) {
       {strand0Points.length >= 2 && (
         <Line
           points={strand0Points}
-          color={[0.3, 0.6, 1.0]}
-          lineWidth={1.8}
+          color={getCfg('strandColor0')}
+          lineWidth={getCfg('strandWidth')}
           transparent
-          opacity={0.18}
+          opacity={getCfg('strandOpacity')}
           toneMapped={false}
         />
       )}
@@ -184,10 +185,10 @@ export default function HelixBackbone({ positions, disabled }) {
       {strand1Points.length >= 2 && (
         <Line
           points={strand1Points}
-          color={[1.0, 0.4, 0.7]}
-          lineWidth={1.8}
+          color={getCfg('strandColor1')}
+          lineWidth={getCfg('strandWidth')}
           transparent
-          opacity={0.18}
+          opacity={getCfg('strandOpacity')}
           toneMapped={false}
         />
       )}
@@ -197,10 +198,10 @@ export default function HelixBackbone({ positions, disabled }) {
         <Line
           key={`rung-${i}`}
           points={pair}
-          color={[0.7, 0.7, 1.0]}
-          lineWidth={0.8}
+          color={getCfg('rungColor')}
+          lineWidth={getCfg('rungWidth')}
           transparent
-          opacity={0.08}
+          opacity={getCfg('rungOpacity')}
           toneMapped={false}
         />
       ))}

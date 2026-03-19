@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
+import { getCfg } from '../constellationDefaults';
 
 /** Theme-based color palette (matches NodeCloud) */
 const THEME_COLORS = {
@@ -160,7 +161,7 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       col[i * 3 + 2] = tempColor.b;
 
       // Size
-      sz[i] = 6.0 + sig * 6.0;
+      sz[i] = getCfg('particleSizeBase') + sig * getCfg('particleSizeRange');
 
       // Shape: theme-based if themed, otherwise deterministic from node ID
       if (node.theme && THEME_SHAPES[node.theme] !== undefined) {
@@ -179,7 +180,7 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
       vertexShader,
       fragmentShader,
       uniforms: {
-        uOpacity: { value: 0.6 },
+        uOpacity: { value: getCfg('particleOpacity') },
       },
       vertexColors: true,
       transparent: true,
@@ -202,27 +203,34 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
   // Focus dimming + tunnel mode dimming
   useEffect(() => {
     if (tunnelMode) {
-      shaderMaterial.uniforms.uOpacity.value = 0.12;
+      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacityTunnel');
     } else if (focusedNodeId) {
-      shaderMaterial.uniforms.uOpacity.value = 0.3;
+      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacityFocused');
     } else {
-      shaderMaterial.uniforms.uOpacity.value = 0.65;
+      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacity');
     }
   }, [focusedNodeId, tunnelMode, shaderMaterial]);
 
-  // Gentle floating drift animation
+  // Gentle floating drift animation (reads config every frame for live tuning)
   useFrame(({ clock }) => {
     if (!pointsRef.current) return;
     const time = clock.getElapsedTime();
     const posAttr = pointsRef.current.geometry.attributes.position;
     if (!posAttr) return;
 
+    const driftSX = getCfg('particleDriftSpeedX');
+    const driftSY = getCfg('particleDriftSpeedY');
+    const driftSZ = getCfg('particleDriftSpeedZ');
+    const driftAX = getCfg('particleDriftAmplitudeX');
+    const driftAY = getCfg('particleDriftAmplitudeY');
+    const driftAZ = getCfg('particleDriftAmplitudeZ');
+
     const arr = posAttr.array;
     for (let i = 0; i < count; i++) {
       const phase = i * 0.73;
-      arr[i * 3] = basePositions[i * 3] + Math.sin(time * 0.15 + phase) * 0.8;
-      arr[i * 3 + 1] = basePositions[i * 3 + 1] + Math.sin(time * 0.1 + phase * 0.5) * 0.4;
-      arr[i * 3 + 2] = basePositions[i * 3 + 2] + Math.cos(time * 0.12 + phase * 0.3) * 0.8;
+      arr[i * 3] = basePositions[i * 3] + Math.sin(time * driftSX + phase) * driftAX;
+      arr[i * 3 + 1] = basePositions[i * 3 + 1] + Math.sin(time * driftSY + phase * 0.5) * driftAY;
+      arr[i * 3 + 2] = basePositions[i * 3 + 2] + Math.cos(time * driftSZ + phase * 0.3) * driftAZ;
     }
 
     posAttr.needsUpdate = true;

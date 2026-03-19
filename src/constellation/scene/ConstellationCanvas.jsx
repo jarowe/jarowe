@@ -5,6 +5,7 @@ import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocess
 import { HalfFloatType } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
+import { getCfg } from '../constellationDefaults';
 import NodeCloud from './NodeCloud';
 import ParticleCloud from './ParticleCloud';
 import ConnectionLines from './ConnectionLines';
@@ -43,17 +44,17 @@ function CinematicDOF() {
         targetFocusDist = 50;
       }
       // Cinematic close-up: strong bokeh, narrow focus range
-      targetBokeh = 6;
-      targetFocusRange = 12;
+      targetBokeh = getCfg('focusedBokehScale');
+      targetFocusRange = getCfg('focusedFocusRange');
     } else {
       // Unfocused: very subtle DOF for atmosphere
-      targetFocusDist = 120;
-      targetBokeh = 1;
-      targetFocusRange = 80;
+      targetFocusDist = getCfg('unfocusedFocusDist');
+      targetBokeh = getCfg('unfocusedBokehScale');
+      targetFocusRange = getCfg('unfocusedFocusRange');
     }
 
     // Smooth lerp toward targets
-    const speed = 0.04;
+    const speed = getCfg('dofLerpSpeed');
     current.current.bokeh += (targetBokeh - current.current.bokeh) * speed;
     current.current.focusDist += (targetFocusDist - current.current.focusDist) * speed;
     current.current.focusRange += (targetFocusRange - current.current.focusRange) * speed;
@@ -72,11 +73,11 @@ function CinematicDOF() {
     <EffectComposer frameBufferType={HalfFloatType} disableNormalPass>
       <DepthOfField
         ref={dofRef}
-        focusDistance={120}
-        focalLength={80}
-        bokehScale={1}
+        focusDistance={getCfg('unfocusedFocusDist')}
+        focalLength={getCfg('unfocusedFocusRange')}
+        bokehScale={getCfg('unfocusedBokehScale')}
       />
-      <Vignette eskil={false} offset={0.15} darkness={0.5} />
+      <Vignette eskil={false} offset={getCfg('vignetteOffset')} darkness={getCfg('vignetteDarkness')} />
     </EffectComposer>
   );
 }
@@ -230,9 +231,9 @@ export default function ConstellationCanvas() {
       <OrbitControls
         ref={controlsRef}
         autoRotate
-        autoRotateSpeed={0.35}
+        autoRotateSpeed={getCfg('autoRotateSpeed')}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={getCfg('dampingFactor')}
         enablePan={false}
         minPolarAngle={Math.PI * (15 / 180)}
         maxPolarAngle={Math.PI * (165 / 180)}
@@ -249,7 +250,7 @@ export default function ConstellationCanvas() {
 
       <HoverLabel nodes={helixNodes.length > 0 ? helixNodes : layoutNodes} />
 
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={getCfg('ambientLightIntensity')} />
 
       <HelixBackbone
         positions={helixNodes.length > 0 ? helixNodes : layoutNodes}

@@ -2,6 +2,7 @@ import { useMemo, useRef, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import { useConstellationStore } from '../store';
+import { getCfg } from '../constellationDefaults';
 
 /** Linear interpolation. */
 function lerp(a, b, t) {
@@ -9,10 +10,10 @@ function lerp(a, b, t) {
 }
 
 /**
- * Evidence-type color palette.
- * Each edge is tinted by its strongest (highest-weight) evidence type.
+ * Evidence-type color palette (static fallback).
+ * Live values read from config via getEvidenceColors().
  */
-const EVIDENCE_COLORS = {
+const EVIDENCE_COLORS_STATIC = {
   temporal: [0.376, 0.647, 0.98],   // #60a5fa  blue
   semantic: [0.655, 0.545, 0.98],    // #a78bfa  purple
   identity: [0.655, 0.545, 0.98],    // #a78bfa  purple (same family)
@@ -20,6 +21,32 @@ const EVIDENCE_COLORS = {
   narrative: [0.984, 0.749, 0.141],  // #fbbf24  amber
   spatial: [0.984, 0.573, 0.235],    // #fb923c  orange
 };
+
+/** Parse hex to [r,g,b] 0-1 */
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.substring(0, 2), 16) / 255,
+    parseInt(h.substring(2, 4), 16) / 255,
+    parseInt(h.substring(4, 6), 16) / 255,
+  ];
+}
+
+/** Read evidence colors from live config (hex) and convert to RGB arrays */
+function getEvidenceColors() {
+  try {
+    return {
+      temporal: hexToRgb(getCfg('colorTemporal')),
+      semantic: hexToRgb(getCfg('colorSemantic')),
+      identity: hexToRgb(getCfg('colorSemantic')),
+      thematic: hexToRgb(getCfg('colorThematic')),
+      narrative: hexToRgb(getCfg('colorNarrative')),
+      spatial: hexToRgb(getCfg('colorSpatial')),
+    };
+  } catch {
+    return EVIDENCE_COLORS_STATIC;
+  }
+}
 
 /** Fallback color (slightly blue-white, matches original) */
 const DEFAULT_COLOR = [1.5, 1.5, 2.0];
@@ -47,11 +74,14 @@ function getStrongestEvidenceType(evidence) {
  */
 function getEdgeColor(evidence, isHighlighted) {
   const type = getStrongestEvidenceType(evidence);
-  const base = EVIDENCE_COLORS[type] || null;
+  const colors = getEvidenceColors();
+  const base = colors[type] || null;
   if (!base) return DEFAULT_COLOR;
 
   // When highlighted (focused/filtered), show stronger tint; otherwise keep subtle
-  const tintStrength = isHighlighted ? 0.6 : 0.35;
+  const tintStrength = isHighlighted
+    ? getCfg('lineTintStrengthHighlight')
+    : getCfg('lineTintStrength');
   return [
     lerp(1.5, base[0] * 2.5, tintStrength),
     lerp(1.5, base[1] * 2.5, tintStrength),
@@ -85,8 +115,8 @@ function AnimatedLine({ points, color, lineWidth, opacity, lineKey, onRef, flowS
       opacity={opacity}
       toneMapped={false}
       dashed
-      dashSize={1.8}
-      gapSize={1.2}
+      dashSize={getCfg('lineDashSize')}
+      gapSize={getCfg('lineGapSize')}
       dashOffset={0}
     />
   );
@@ -234,34 +264,42 @@ export default function ConnectionLines({ positions }) {
         const isConnected =
           edge.source === focusedNodeId || edge.target === focusedNodeId;
         if (isConnected) {
-          opacity = isHelixToHelix ? lerp(0.5, 0.9, w) : lerp(0.2, 0.4, w);
-          lineWidth = isHelixToHelix ? lerp(1.0, 2.0, w) : lerp(0.5, 1.0, w);
+          opacity = isHelixToHelix
+            ? lerp(getCfg('lineOpacityFocusedMin'), getCfg('lineOpacityFocusedMax'), w)
+            : lerp(0.2, 0.4, w);
+          lineWidth = isHelixToHelix
+            ? lerp(getCfg('lineWidthFocusedMin'), getCfg('lineWidthFocusedMax'), w)
+            : lerp(0.5, 1.0, w);
           isHighlighted = true;
         } else {
-          opacity = 0.015;
-          lineWidth = 0.3;
+          opacity = getCfg('lineOpacityDim');
+          lineWidth = getCfg('lineWidthDim');
         }
       } else if (filteredNodeIds) {
         const sourceMatch = filteredNodeIds.has(edge.source);
         const targetMatch = filteredNodeIds.has(edge.target);
         if (sourceMatch && targetMatch) {
-          opacity = isHelixToHelix ? lerp(0.4, 0.7, w) : lerp(0.15, 0.3, w);
-          lineWidth = isHelixToHelix ? lerp(1.0, 2.0, w) : lerp(0.5, 1.0, w);
+          opacity = isHelixToHelix
+            ? lerp(getCfg('lineOpacityFocusedMin') * 0.8, getCfg('lineOpacityFocusedMax') * 0.78, w)
+            : lerp(0.15, 0.3, w);
+          lineWidth = isHelixToHelix
+            ? lerp(getCfg('lineWidthFocusedMin'), getCfg('lineWidthFocusedMax'), w)
+            : lerp(0.5, 1.0, w);
           isHighlighted = true;
         } else {
           opacity = 0.01;
-          lineWidth = 0.3;
+          lineWidth = getCfg('lineWidthDim');
         }
       } else {
         // Default: tier-based visual hierarchy
         if (isHelixToHelix) {
           // T2: helix-to-helix — visible but secondary to backbone
-          opacity = lerp(0.03, 0.10, w);
-          lineWidth = lerp(0.4, 1.0, w);
+          opacity = lerp(getCfg('lineOpacityHelixMin'), getCfg('lineOpacityHelixMax'), w);
+          lineWidth = lerp(getCfg('lineWidthHelixMin'), getCfg('lineWidthHelixMax'), w);
         } else if (involvesParticle) {
           // T3: involves particle node — very subtle
-          opacity = lerp(0.015, 0.04, w);
-          lineWidth = lerp(0.3, 0.6, w);
+          opacity = lerp(getCfg('lineOpacityParticleMin'), getCfg('lineOpacityParticleMax'), w);
+          lineWidth = lerp(getCfg('lineWidthDim'), getCfg('lineWidthHelixMin') + 0.2, w);
         }
       }
 
@@ -269,7 +307,7 @@ export default function ConnectionLines({ positions }) {
       const color = getEdgeColor(edge.evidence, isHighlighted);
 
       // Flow speed: faster when highlighted, very gentle otherwise
-      const flowSpeed = isHighlighted ? 1.2 : 0.3;
+      const flowSpeed = isHighlighted ? getCfg('lineFlowSpeedHighlight') : getCfg('lineFlowSpeed');
 
       result.push({
         key: `${edge.source}-${edge.target}`,
