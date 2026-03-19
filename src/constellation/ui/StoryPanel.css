@@ -431,13 +431,14 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0.6rem 0;
+  padding: 0.7rem 0;
   background: none;
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   font-size: 0.85rem;
+  font-family: inherit;
   transition: color 0.2s;
 }
 
@@ -454,24 +455,61 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding-bottom: 0.5rem;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
 }
 
-.story-panel__conn-group {
-  padding-left: 0.5rem;
+/* ─── Connection card (glass morphism) ───────────────────────── */
+
+.story-panel__conn-card {
+  position: relative;
+  display: flex;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
 }
+
+.story-panel__conn-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Strength bar — left edge accent */
+.story-panel__conn-strength {
+  flex-shrink: 0;
+  border-radius: 10px 0 0 10px;
+  transition: opacity 0.3s;
+}
+
+.story-panel__conn-card:hover .story-panel__conn-strength {
+  opacity: 0.8 !important;
+}
+
+.story-panel__conn-inner {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+}
+
+/* ─── Connection title (clickable to navigate) ───────────────── */
 
 .story-panel__conn-title {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  width: 100%;
   background: none;
   border: none;
-  padding: 0.2rem 0;
+  padding: 0.15rem 0 0.35rem;
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 600;
+  font-family: inherit;
   transition: filter 0.15s;
 }
 
@@ -479,44 +517,142 @@
   filter: brightness(1.3);
 }
 
-.story-panel__conn-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.story-panel__conn-title:hover .story-panel__conn-arrow {
+  opacity: 1;
+  transform: translateX(2px);
 }
 
+.story-panel__conn-title-text {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-panel__conn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: box-shadow 0.3s;
+}
+
+.story-panel__conn-card:hover .story-panel__conn-dot {
+  box-shadow: 0 0 6px 1px var(--conn-color, rgba(255,255,255,0.3));
+}
+
+/* Pulse animation on the dot when card is hovered */
+@keyframes conn-pulse {
+  0%, 100% { box-shadow: 0 0 4px 0px var(--conn-color, rgba(255,255,255,0.3)); }
+  50%      { box-shadow: 0 0 8px 3px var(--conn-color, rgba(255,255,255,0.3)); }
+}
+
+.story-panel__conn-card:hover .story-panel__conn-dot {
+  animation: conn-pulse 1.8s ease-in-out infinite;
+}
+
+.story-panel__conn-arrow {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  color: inherit;
+}
+
+/* ─── Evidence items ─────────────────────────────────────────── */
+
 .story-panel__evidence {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 0.4rem;
-  padding: 0.15rem 0 0.15rem 1rem;
+  padding: 0.25rem 0.4rem;
+  margin-top: 0.15rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 4px 4px 0;
+  transition: background 0.2s, border-left-color 0.2s;
+  cursor: default;
+}
+
+.story-panel__evidence:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .story-panel__evidence-icon {
   flex-shrink: 0;
-  opacity: 0.4;
+  opacity: 0.6;
   margin-top: 1px;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.story-panel__evidence:hover .story-panel__evidence-icon {
+  opacity: 1;
 }
 
 .story-panel__evidence-desc {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.45;
+  font-style: italic;
+  transition: color 0.2s;
 }
+
+.story-panel__evidence:hover .story-panel__evidence-desc {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ─── Evidence tooltip ───────────────────────────────────────── */
+
+.story-panel__evidence-tip {
+  position: absolute;
+  right: 0;
+  top: -1.7rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.story-panel__evidence-tip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Show more button ───────────────────────────────────────── */
 
 .story-panel__show-more {
   background: none;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
   font-size: 0.78rem;
-  padding: 0.3rem 0;
-  transition: color 0.2s;
+  font-family: inherit;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.25rem;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
 
 .story-panel__show-more:hover {
   color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /* ─── Mobile: bottom sheet ──────────────────────────────────── */

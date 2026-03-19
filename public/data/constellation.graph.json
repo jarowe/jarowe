@@ -9,7 +9,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -40,7 +40,7 @@
           "weight": 0.05
         },
         {
-          "description": "A father's love connecting these moments",
+          "description": "Fatherhood shaped both of these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -77,7 +77,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "A father's love connecting these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -108,7 +108,7 @@
           "weight": 0.05
         },
         {
-          "description": "A father's love connecting these moments",
+          "description": "The journey of fatherhood runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -145,7 +145,7 @@
           "weight": 0.05
         },
         {
-          "description": "A father's love connecting these moments",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -182,7 +182,7 @@
           "weight": 0.05
         },
         {
-          "description": "The journey of fatherhood runs through both",
+          "description": "Watching his boys grow — the thread that connects",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -207,7 +207,7 @@
     {
       "evidence": [
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "Each one pushed the boundary a little further",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -232,7 +232,7 @@
     {
       "evidence": [
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "Both milestones on the path of growth",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -294,7 +294,7 @@
           "weight": 0.05
         },
         {
-          "description": "The bonds of friendship shine in both",
+          "description": "Community and connection link these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -319,7 +319,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the people who matter",
+          "description": "The bonds of friendship shine in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -344,7 +344,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the people who matter",
+          "description": "Community and connection link these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -369,7 +369,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the people who matter",
+          "description": "The crew that shows up in both stories",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -400,19 +400,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of technology",
+          "description": "The builder's mindset connects both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "Innovation driving the work forward and the life forward",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 2 years",
+          "description": "A technology story arc spanning 2 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -431,7 +431,7 @@
           "weight": 0.05
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "The creative fire burns in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -462,19 +462,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of brotherhood",
+          "description": "A brotherhood forged across decades",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The same theme echoing across carbonmade and instagram",
+          "description": "The Rowe brothers — partners in both work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 5 years",
+          "description": "A brotherhood story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -493,7 +493,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -561,7 +561,7 @@
           "weight": 0.4
         },
         {
-          "description": "Chapters in the same professional journey",
+          "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -611,7 +611,7 @@
           "weight": 0.4
         },
         {
-          "description": "Professional growth threading through both",
+          "description": "The arc of a career connecting these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -624,19 +624,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of brotherhood",
+          "description": "A brotherhood forged across decades",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "The Rowe brothers — partners in both work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 14 years",
+          "description": "A brotherhood story arc spanning 14 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -649,7 +649,7 @@
     {
       "evidence": [
         {
-          "description": "Both expressions of creative vision",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -680,7 +680,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "The creative fire burns in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -705,7 +705,7 @@
     {
       "evidence": [
         {
-          "description": "Both expressions of creative vision",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -730,7 +730,7 @@
     {
       "evidence": [
         {
-          "description": "The creative fire burns in both",
+          "description": "Craft and vision linking these works",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -755,7 +755,7 @@
     {
       "evidence": [
         {
-          "description": "Craft and vision linking these works",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -786,19 +786,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of technology",
+          "description": "Tech and creation linking these chapters",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "Innovation driving the work forward and the life forward",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 2 years",
+          "description": "A technology story arc spanning 2 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -835,7 +835,7 @@
           "weight": 0.45
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -916,7 +916,7 @@
     {
       "evidence": [
         {
-          "description": "Both expressions of creative vision",
+          "description": "Craft and vision linking these works",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -941,7 +941,7 @@
     {
       "evidence": [
         {
-          "description": "Community and connection link these",
+          "description": "Connected by the people who matter",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -972,19 +972,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of entrepreneurship",
+          "description": "Business and vision connecting these chapters",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "The builder's instinct — same DNA in business and in life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "The evolution of this theme: from December 31, 2014 to May 31, 2015",
+          "description": "The evolution of entrepreneurship: from December 31, 2014 to May 31, 2015",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -1003,7 +1003,7 @@
           "weight": 0.05
         },
         {
-          "description": "Chapters in the same professional journey",
+          "description": "The arc of a career connecting these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -1034,7 +1034,7 @@
           "weight": 0.05
         },
         {
-          "description": "The arc of a career connecting these",
+          "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -1065,7 +1065,7 @@
           "weight": 0.05
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "The creative fire burns in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -1096,7 +1096,7 @@
           "weight": 0.05
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1127,7 +1127,7 @@
           "weight": 0.05
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -1164,7 +1164,7 @@
           "weight": 0.4
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.74
@@ -1208,7 +1208,7 @@
     {
       "evidence": [
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -1245,7 +1245,7 @@
           "weight": 0.4
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1264,7 +1264,7 @@
           "weight": 0.05
         },
         {
-          "description": "Community and connection link these",
+          "description": "The crew that shows up in both stories",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1295,7 +1295,7 @@
           "weight": 0.05
         },
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "Each one pushed the boundary a little further",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1326,7 +1326,7 @@
           "weight": 0.05
         },
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "The journey of becoming connects these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1382,7 +1382,7 @@
           "weight": 0.05
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1426,19 +1426,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of brotherhood",
+          "description": "A brotherhood forged across decades",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across carbonmade and instagram",
+          "description": "The Rowe brothers — partners in both work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 8 years",
+          "description": "A brotherhood story arc spanning 8 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -1463,7 +1463,7 @@
           "weight": 0.05
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "The creative fire burns in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1562,7 +1562,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "Craft and vision linking these works",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1593,7 +1593,7 @@
           "weight": 0.05
         },
         {
-          "description": "Chapters in the same professional journey",
+          "description": "The arc of a career connecting these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -1630,7 +1630,7 @@
           "weight": 0.4
         },
         {
-          "description": "The arc of a career connecting these",
+          "description": "Professional growth threading through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -1643,19 +1643,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of brotherhood",
+          "description": "A brotherhood forged across decades",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "The Rowe brothers — partners in both work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 5 years",
+          "description": "A brotherhood story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -1668,7 +1668,7 @@
     {
       "evidence": [
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -1693,19 +1693,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of entrepreneurship",
+          "description": "The entrepreneur's spirit runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "The builder's instinct — same DNA in business and in life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 5 years",
+          "description": "A entrepreneurship story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -1730,7 +1730,7 @@
           "weight": 0.4
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1749,7 +1749,7 @@
           "weight": 0.05
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "Craft and vision linking these works",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1811,7 +1811,7 @@
           "weight": 0.4
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1820,43 +1820,6 @@
       "source": "cm-p-018",
       "target": "cm-p-019",
       "weight": 1.7
-    },
-    {
-      "evidence": [
-        {
-          "description": "An echo across time: both captured in December (2013 & 2014)",
-          "signal": "seasonal-echo",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "Both woven into the Career Start chapter",
-          "signal": "life-chapter",
-          "type": "temporal",
-          "weight": 0.05
-        },
-        {
-          "description": "The creative fire burns in both",
-          "signal": "shared-motif",
-          "type": "thematic",
-          "weight": 0.5
-        },
-        {
-          "description": "Creative vision flowing between work and life",
-          "signal": "cross-source-echo",
-          "type": "narrative",
-          "weight": 0.6
-        },
-        {
-          "description": "The evolution of craft: from December 31, 2013 to December 27, 2014",
-          "signal": "narrative-arc",
-          "type": "narrative",
-          "weight": 0.55
-        }
-      ],
-      "source": "cm-p-018",
-      "target": "fb-1270",
-      "weight": 1.75
     },
     {
       "evidence": [
@@ -1891,6 +1854,43 @@
           "weight": 0.55
         }
       ],
+      "source": "cm-p-018",
+      "target": "fb-1270",
+      "weight": 1.75
+    },
+    {
+      "evidence": [
+        {
+          "description": "An echo across time: both captured in December (2013 & 2014)",
+          "signal": "seasonal-echo",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "Both woven into the Career Start chapter",
+          "signal": "life-chapter",
+          "type": "temporal",
+          "weight": 0.05
+        },
+        {
+          "description": "The creative fire burns in both",
+          "signal": "shared-motif",
+          "type": "thematic",
+          "weight": 0.5
+        },
+        {
+          "description": "Creative vision flowing between work and life",
+          "signal": "cross-source-echo",
+          "type": "narrative",
+          "weight": 0.6
+        },
+        {
+          "description": "The evolution of craft: from December 31, 2013 to December 27, 2014",
+          "signal": "narrative-arc",
+          "type": "narrative",
+          "weight": 0.55
+        }
+      ],
       "source": "cm-p-019",
       "target": "fb-1270",
       "weight": 1.75
@@ -1904,7 +1904,7 @@
           "weight": 0.05
         },
         {
-          "description": "The creative fire burns in both",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -1935,7 +1935,7 @@
           "weight": 0.05
         },
         {
-          "description": "Adventure binds these moments",
+          "description": "Say yes first, figure it out later",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1966,7 +1966,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -1997,19 +1997,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of filmmaking",
+          "description": "The camera was rolling for both moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.74
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "The filmmaker's eye — always on, in work and life",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 2 years",
+          "description": "A filmmaking story arc spanning 2 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2028,7 +2028,7 @@
           "weight": 0.05
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "Two facets of the same artistic pursuit",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -2053,7 +2053,7 @@
     {
       "evidence": [
         {
-          "description": "Both expressions of creative vision",
+          "description": "The same creative DNA runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -2090,7 +2090,7 @@
           "weight": 0.4
         },
         {
-          "description": "Craft and vision linking these works",
+          "description": "Both expressions of creative vision",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2115,7 +2115,7 @@
           "weight": 0.4
         },
         {
-          "description": "Both expressions of creative vision",
+          "description": "Craft and vision linking these works",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2134,7 +2134,7 @@
           "weight": 0.05
         },
         {
-          "description": "The rush of living fully connects these",
+          "description": "Say yes first, figure it out later",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2184,19 +2184,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of marriage",
+          "description": "The partnership that built everything connects these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The same theme echoing across carbonmade and facebook",
+          "description": "Maria's influence bridging the personal and professional",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 12 years",
+          "description": "A marriage story arc spanning 12 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2215,19 +2215,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of marriage",
+          "description": "The partnership that built everything connects these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The same theme echoing across carbonmade and manual",
+          "description": "Maria's influence bridging the personal and professional",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 2 years",
+          "description": "A marriage story arc spanning 2 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2252,7 +2252,7 @@
           "weight": 0.4
         },
         {
-          "description": "The arc of a career connecting these",
+          "description": "The hustle that built the next chapter",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
@@ -2271,7 +2271,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "Fatherhood shaped both of these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2315,7 +2315,7 @@
     {
       "evidence": [
         {
-          "description": "Hearts intertwined across time",
+          "description": "The warmth of love connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.25
@@ -2340,19 +2340,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of marriage",
+          "description": "Maria — the constant through every chapter",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The same theme echoing across facebook and manual",
+          "description": "Maria's influence bridging the personal and professional",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 14 years",
+          "description": "A marriage story arc spanning 14 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2365,7 +2365,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the awe of the natural world",
+          "description": "Nature stopped them both in their tracks",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2415,7 +2415,7 @@
     {
       "evidence": [
         {
-          "description": "Nature's beauty captured in both",
+          "description": "Nature stopped them both in their tracks",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2440,7 +2440,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the awe of the natural world",
+          "description": "Nature's beauty captured in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2465,7 +2465,7 @@
     {
       "evidence": [
         {
-          "description": "Connected by the awe of the natural world",
+          "description": "Nature stopped them both in their tracks",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2490,7 +2490,7 @@
     {
       "evidence": [
         {
-          "description": "The journey of fatherhood runs through both",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2521,7 +2521,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2552,7 +2552,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "A father's love connecting these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2583,7 +2583,7 @@
           "weight": 0.05
         },
         {
-          "description": "The journey of fatherhood runs through both",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2608,7 +2608,7 @@
     {
       "evidence": [
         {
-          "description": "A father's love connecting these moments",
+          "description": "Fatherhood shaped both of these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2633,19 +2633,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of childhood",
+          "description": "The magic of childhood captured in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 8 years",
+          "description": "A childhood story arc spanning 8 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2658,19 +2658,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of childhood",
+          "description": "The magic of childhood captured in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 8 years",
+          "description": "A childhood story arc spanning 8 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2683,7 +2683,7 @@
     {
       "evidence": [
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "A father's love connecting these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2708,19 +2708,19 @@
     {
       "evidence": [
         {
-          "description": "Both share the spirit of childhood",
+          "description": "Raising the next generation connects these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 8 years",
+          "description": "A childhood story arc spanning 8 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2764,7 +2764,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "A father's love connecting these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2789,7 +2789,7 @@
     {
       "evidence": [
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -2820,19 +2820,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of childhood",
+          "description": "Raising the next generation connects these",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.66
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 10 years",
+          "description": "A childhood story arc spanning 10 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2882,19 +2882,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of childhood",
+          "description": "The magic of childhood captured in both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 10 years",
+          "description": "A childhood story arc spanning 10 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -2913,7 +2913,7 @@
           "weight": 0.05
         },
         {
-          "description": "A father's love connecting these moments",
+          "description": "Fatherhood shaped both of these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2944,7 +2944,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "Watching his boys grow — the thread that connects",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -2975,7 +2975,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "The journey of fatherhood runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3025,7 +3025,7 @@
     {
       "evidence": [
         {
-          "description": "Wanderlust woven through both",
+          "description": "Fellow chapters in the story of exploration",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3056,7 +3056,7 @@
           "weight": 0.05
         },
         {
-          "description": "Wanderlust woven through both",
+          "description": "The spirit of discovery connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3106,7 +3106,7 @@
     {
       "evidence": [
         {
-          "description": "Fellow chapters in the story of exploration",
+          "description": "The spirit of discovery connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3162,7 +3162,7 @@
           "weight": 0.05
         },
         {
-          "description": "The spirit of discovery connects these moments",
+          "description": "Fellow chapters in the story of exploration",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3187,7 +3187,7 @@
     {
       "evidence": [
         {
-          "description": "The spirit of discovery connects these moments",
+          "description": "Two stops on the same journey around the world",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3237,7 +3237,7 @@
     {
       "evidence": [
         {
-          "description": "The journey of fatherhood runs through both",
+          "description": "The pride of a dad, captured twice",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -3268,19 +3268,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of childhood",
+          "description": "Kids being kids — the joy threading through",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 5 years",
+          "description": "A childhood story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -3299,7 +3299,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "A father's love connecting these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -3330,19 +3330,19 @@
           "weight": 0.05
         },
         {
-          "description": "Both share the spirit of childhood",
+          "description": "Through the eyes of his boys, both moments shine",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The same theme echoing across facebook and instagram",
+          "description": "The kids inspiring both the work and the living",
           "signal": "cross-source-echo",
           "type": "narrative",
           "weight": 0.6
         },
         {
-          "description": "A this theme story arc spanning 5 years",
+          "description": "A childhood story arc spanning 5 years",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -3498,13 +3498,13 @@
           "weight": 0.95
         },
         {
-          "description": "Both share the spirit of childhood",
+          "description": "Kids being kids — the joy threading through",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
         },
         {
-          "description": "The evolution of this theme: from May 10, 2025 to February 12, 2026",
+          "description": "The evolution of childhood: from May 10, 2025 to February 12, 2026",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55
@@ -3523,7 +3523,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fellow chapters in the story of exploration",
+          "description": "Two stops on the same journey around the world",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3554,7 +3554,7 @@
           "weight": 0.05
         },
         {
-          "description": "Wanderlust woven through both",
+          "description": "The spirit of discovery connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3579,7 +3579,7 @@
     {
       "evidence": [
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "Fatherhood shaped both of these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -3647,7 +3647,7 @@
           "weight": 0.05
         },
         {
-          "description": "Connected by the awe of the natural world",
+          "description": "The earth and sky unite these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3672,7 +3672,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fatherhood: the constant thread",
+          "description": "The journey of fatherhood runs through both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -3709,7 +3709,7 @@
           "weight": 0.05
         },
         {
-          "description": "Both chapters of the Greek odyssey",
+          "description": "The Greek chapter where everything changed",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -3877,7 +3877,7 @@
           "weight": 0.05
         },
         {
-          "description": "The Aegean connects these moments",
+          "description": "Syros, Naxos, the islands — the backdrop to both",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.58
@@ -3896,7 +3896,7 @@
           "weight": 0.05
         },
         {
-          "description": "Nourishment of body and soul in both",
+          "description": "Breaking bread connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -4039,7 +4039,7 @@
           "weight": 0.05
         },
         {
-          "description": "Nourishment of body and soul in both",
+          "description": "Breaking bread connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -4182,7 +4182,7 @@
           "weight": 0.95
         },
         {
-          "description": "Hearts intertwined across time",
+          "description": "The warmth of love connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.25
@@ -4207,7 +4207,7 @@
           "weight": 0.05
         },
         {
-          "description": "Fellow chapters in the story of exploration",
+          "description": "The spirit of discovery connects these moments",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -4238,7 +4238,7 @@
           "weight": 0.05
         },
         {
-          "description": "Evolution and progress linking these moments",
+          "description": "Both milestones on the path of growth",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
@@ -4275,13 +4275,13 @@
           "weight": 0.4
         },
         {
-          "description": "Both share the spirit of technology",
+          "description": "Tech and creation linking these chapters",
           "signal": "shared-motif",
           "type": "thematic",
           "weight": 0.5
         },
         {
-          "description": "The evolution of this theme: from October 14, 2024 to May 14, 2025",
+          "description": "The evolution of technology: from October 14, 2024 to May 14, 2025",
           "signal": "narrative-arc",
           "type": "narrative",
           "weight": 0.55

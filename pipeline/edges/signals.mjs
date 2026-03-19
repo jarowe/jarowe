@@ -52,41 +52,69 @@ const MOTIF_NARRATIVES = {
     'The thread of family weaves through both',
     'United by the heartbeat of family',
     'Family ties binding these moments',
+    'The Rowe family story continues in both',
   ],
   love: [
     'Both shine with love and devotion',
     'The warmth of love connects these moments',
     'Hearts intertwined across time',
+    'A love story told in two chapters',
   ],
   travel: [
     'Fellow chapters in the story of exploration',
     'The spirit of discovery connects these moments',
     'Wanderlust woven through both',
+    'Two stops on the same journey around the world',
   ],
   craft: [
     'Both expressions of creative vision',
     'The creative fire burns in both',
     'Craft and vision linking these works',
+    'The same creative DNA runs through both',
+    'Two facets of the same artistic pursuit',
   ],
   fatherhood: [
     'The journey of fatherhood runs through both',
     'A father\'s love connecting these moments',
-    'Fatherhood: the constant thread',
+    'Watching his boys grow — the thread that connects',
+    'The pride of a dad, captured twice',
+    'Fatherhood shaped both of these moments',
+  ],
+  brotherhood: [
+    'The bond between brothers connects these',
+    'A brotherhood forged across decades',
+    'Brothers in life and in creation',
+    'Derek and Jared — the partnership echoes here',
+  ],
+  marriage: [
+    'Maria — the constant through every chapter',
+    'High school sweethearts, still writing the story',
+    'The partnership that built everything connects these',
+    'Two moments in a love story that keeps unfolding',
+  ],
+  childhood: [
+    'Through the eyes of his boys, both moments shine',
+    'Raising the next generation connects these',
+    'The magic of childhood captured in both',
+    'Kids being kids — the joy threading through',
   ],
   nature: [
     'Nature\'s beauty captured in both',
     'Connected by the awe of the natural world',
     'The earth and sky unite these moments',
+    'Nature stopped them both in their tracks',
   ],
   reflection: [
     'Both born from deep reflection',
     'Meaning and purpose thread through each',
     'Moments of clarity, connected',
+    'The same search for meaning echoes in both',
   ],
   nostalgia: [
     'Memory bridges these moments across time',
     'The past echoing into the present',
     'Heritage and memory intertwining',
+    'Looking back to see the path forward',
   ],
   celebration: [
     'Both mark moments worth celebrating',
@@ -96,27 +124,32 @@ const MOTIF_NARRATIVES = {
   food: [
     'The joy of food and culture unite these',
     'Shared love of flavor and gathering',
-    'Nourishment of body and soul in both',
+    'Breaking bread connects these moments',
   ],
   friendship: [
     'The bonds of friendship shine in both',
     'Connected by the people who matter',
     'Community and connection link these',
+    'The crew that shows up in both stories',
   ],
   career: [
     'Chapters in the same professional journey',
     'The arc of a career connecting these',
     'Professional growth threading through both',
+    'The hustle that built the next chapter',
+    'From one creative role to the next',
   ],
   adventure: [
     'Both sparked by the thrill of adventure',
     'The rush of living fully connects these',
     'Adventure binds these moments',
+    'Say yes first, figure it out later',
   ],
   growth: [
     'Both milestones on the path of growth',
     'Evolution and progress linking these moments',
     'The journey of becoming connects these',
+    'Each one pushed the boundary a little further',
   ],
   home: [
     'Both rooted in the feeling of home',
@@ -131,12 +164,43 @@ const MOTIF_NARRATIVES = {
   greece: [
     'Both chapters of the Greek odyssey',
     'The Aegean connects these moments',
-    'Greece: the backdrop to both stories',
+    'Syros, Naxos, the islands — the backdrop to both',
+    'The Greek chapter where everything changed',
+    'Salt air and sunlight threading through both',
   ],
   music: [
     'Music threads through both moments',
     'Connected by rhythm and sound',
     'The soundtrack of life linking these',
+  ],
+  worldschooling: [
+    'The world as classroom — both moments prove it',
+    'Learning by living, captured twice',
+    'Worldschooling shaped both of these experiences',
+    'Education without walls connects these',
+  ],
+  filmmaking: [
+    'The filmmaker\'s eye captured both',
+    'From film school to now — the lens never stops',
+    'Storytelling on screen connects these',
+    'The camera was rolling for both moments',
+  ],
+  health: [
+    'The transformation journey connects these',
+    'Health and renewal threading through both',
+    'The discipline that changed everything echoes here',
+  ],
+  technology: [
+    'Innovation and technology bridge these moments',
+    'The builder\'s mindset connects both',
+    'Tech and creation linking these chapters',
+    'Building what should exist — in both cases',
+  ],
+  entrepreneurship: [
+    'The entrepreneur\'s spirit runs through both',
+    'Building something from nothing, twice',
+    'The same drive that built Doctrine echoes here',
+    'Business and vision connecting these chapters',
   ],
 };
 
@@ -146,6 +210,9 @@ const CROSS_SOURCE_NARRATIVES = {
   travel: 'The journey from portfolio to passport',
   craft: 'Creative vision flowing between work and life',
   fatherhood: 'A father\'s perspective shaping both art and life',
+  brotherhood: 'The Rowe brothers — partners in both work and life',
+  marriage: 'Maria\'s influence bridging the personal and professional',
+  childhood: 'The kids inspiring both the work and the living',
   nature: 'Nature inspiring both the art and the artist',
   reflection: 'Deep thought bridging the professional and personal',
   career: 'The professional thread connecting portfolio to life',
@@ -159,6 +226,11 @@ const CROSS_SOURCE_NARRATIVES = {
   home: 'The sense of belonging woven through everything',
   faith: 'Gratitude connecting the maker and the man',
   music: 'Music bridging the creative and the personal',
+  worldschooling: 'The world classroom shaping both creativity and family',
+  filmmaking: 'The filmmaker\'s eye — always on, in work and life',
+  health: 'The transformation fueling both personal and professional growth',
+  technology: 'Innovation driving the work forward and the life forward',
+  entrepreneurship: 'The builder\'s instinct — same DNA in business and in life',
 };
 
 // ---------------------------------------------------------------------------

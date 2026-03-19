@@ -33,6 +33,16 @@ const EVIDENCE_ICON_MAP = {
   spatial: MapPin,
 };
 
+/** Color palette for evidence type left-border accent */
+const EVIDENCE_COLORS = {
+  temporal:  '#60a5fa', // blue
+  semantic:  '#a78bfa', // purple
+  thematic:  '#34d399', // green
+  narrative: '#fbbf24', // amber
+  identity:  '#f472b6', // pink
+  spatial:   '#fb923c', // orange
+};
+
 /** Pick the best icon for a single evidence item. */
 function getEvidenceIcon(ev) {
   if (ev.type === 'semantic' && ev.signal) {
@@ -43,6 +53,57 @@ function getEvidenceIcon(ev) {
     return Star;
   }
   return EVIDENCE_ICON_MAP[ev.type] || Star;
+}
+
+/** Build a contextual tooltip string for an evidence item */
+function getEvidenceTooltip(ev) {
+  const signal = ev.signal || '';
+  switch (ev.type) {
+    case 'temporal':
+      if (signal === 'same-day') return 'Same day';
+      if (signal === 'seasonal-echo') return 'Seasonal echo';
+      if (signal === 'temporal-proximity') return 'Close in time';
+      if (signal === 'life-chapter') return 'Same life chapter';
+      return 'Temporal link';
+    case 'semantic':
+      if (signal === 'shared-entity') {
+        const match = ev.description?.match(/United by (.+?) in/);
+        return match ? `Shared: ${match[1]}` : 'Shared entity';
+      }
+      if (signal === 'shared-client') {
+        const match = ev.description?.match(/partnership with (.+)/);
+        return match ? `Client: ${match[1]}` : 'Same client';
+      }
+      if (signal === 'shared-tags') {
+        const match = ev.description?.match(/#(\w+)/);
+        return match ? `Tag: #${match[1]}` : 'Shared tags';
+      }
+      return 'Semantic link';
+    case 'thematic':
+      if (signal === 'shared-motif') {
+        // Extract the motif from descriptions like "Both expressions of creative vision"
+        return 'Shared motif';
+      }
+      return 'Thematic link';
+    case 'narrative':
+      if (signal === 'narrative-arc') return 'Story arc';
+      if (signal === 'cross-source-echo') return 'Cross-source echo';
+      return 'Narrative thread';
+    case 'identity':
+      if (signal === 'shared-identity') {
+        const match = ev.description?.match(/^(\w+) present/);
+        return match ? `Person: ${match[1]}` : 'Shared identity';
+      }
+      return 'Identity link';
+    case 'spatial':
+      if (signal === 'shared-place') {
+        const match = ev.description?.match(/rooted in (.+)/);
+        return match ? match[1] : 'Same place';
+      }
+      return 'Spatial link';
+    default:
+      return ev.type || 'Connection';
+  }
 }
 
 const INITIAL_CONNECTION_LIMIT = 5;
@@ -110,6 +171,49 @@ function Badges({ node }) {
   );
 }
 
+/* ─── Evidence item with tooltip ──────────────────────────────── */
+
+function EvidenceItem({ ev }) {
+  const [showTip, setShowTip] = useState(false);
+  const Icon = getEvidenceIcon(ev);
+  const color = EVIDENCE_COLORS[ev.type] || '#888';
+  const tooltip = getEvidenceTooltip(ev);
+
+  return (
+    <div
+      className="story-panel__evidence"
+      style={{ borderLeftColor: color }}
+      onMouseEnter={() => setShowTip(true)}
+      onMouseLeave={() => setShowTip(false)}
+    >
+      <span className="story-panel__evidence-icon" style={{ color }}>
+        <Icon size={12} />
+      </span>
+      <span className="story-panel__evidence-desc">
+        {ev.description}
+      </span>
+      <AnimatePresence>
+        {showTip && (
+          <motion.span
+            className="story-panel__evidence-tip"
+            style={{ backgroundColor: `${color}22`, color, borderColor: `${color}44` }}
+            initial={{ opacity: 0, y: 4, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+          >
+            <span
+              className="story-panel__evidence-tip-dot"
+              style={{ backgroundColor: color }}
+            />
+            {tooltip}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ─── Because section ──────────────────────────────────────────── */
 
 function BecauseSection({ connectionGroups, focusNode }) {
@@ -146,38 +250,69 @@ function BecauseSection({ connectionGroups, focusNode }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            {visible.map((group) => {
+            {visible.map((group, idx) => {
               const connStyle =
                 TYPE_COLORS[group.nodeType] || TYPE_COLORS.moment;
+              // Compute average weight for strength indicator (0-1 scale, capped)
+              const avgWeight =
+                group.evidence.length > 0
+                  ? Math.min(
+                      group.evidence.reduce((s, e) => s + (e.weight || 0), 0) /
+                        group.evidence.length,
+                      1
+                    )
+                  : 0.3;
+              // Map weight to glow opacity (0.08 to 0.3)
+              const glowOpacity = 0.08 + avgWeight * 0.22;
+
               return (
-                <div key={group.nodeId} className="story-panel__conn-group">
-                  <button
-                    className="story-panel__conn-title"
-                    onClick={() => focusNode(group.nodeId)}
-                    style={{ color: connStyle.text }}
-                  >
-                    <span
-                      className="story-panel__conn-dot"
-                      style={{ backgroundColor: connStyle.text }}
-                    />
-                    {group.nodeTitle}
-                  </button>
-                  {group.evidence.map((ev, j) => {
-                    const Icon = getEvidenceIcon(ev);
-                    return (
-                      <div key={j} className="story-panel__evidence">
-                        <span className="story-panel__evidence-icon">
-                          <Icon size={12} />
-                        </span>
-                        <span className="story-panel__evidence-desc">
-                          {ev.description}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <motion.div
+                  key={group.nodeId}
+                  className="story-panel__conn-card"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04, duration: 0.2 }}
+                  style={{
+                    '--conn-color': connStyle.text,
+                    '--conn-glow': glowOpacity,
+                  }}
+                >
+                  {/* Strength bar — thicker = stronger connection */}
+                  <div
+                    className="story-panel__conn-strength"
+                    style={{
+                      backgroundColor: connStyle.text,
+                      opacity: 0.15 + avgWeight * 0.55,
+                      width: `${Math.max(2, avgWeight * 4)}px`,
+                    }}
+                  />
+
+                  <div className="story-panel__conn-inner">
+                    <button
+                      className="story-panel__conn-title"
+                      onClick={() => focusNode(group.nodeId)}
+                      style={{ color: connStyle.text }}
+                    >
+                      <span
+                        className="story-panel__conn-dot"
+                        style={{ backgroundColor: connStyle.text }}
+                      />
+                      <span className="story-panel__conn-title-text">
+                        {group.nodeTitle}
+                      </span>
+                      <ChevronRight
+                        size={14}
+                        className="story-panel__conn-arrow"
+                      />
+                    </button>
+
+                    {group.evidence.map((ev, j) => (
+                      <EvidenceItem key={j} ev={ev} />
+                    ))}
+                  </div>
+                </motion.div>
               );
             })}
 
