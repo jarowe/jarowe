@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check, ChevronLeft, ChevronRight, StickyNote, ExternalLink, MapPin, User, Folder, Lightbulb, Star } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Search, Eye, EyeOff, Calendar, Gamepad2, Globe2, ChevronDown, ChevronUp, Pencil, Play, LayoutGrid, List, X, Plus, AlertTriangle, RotateCcw, Cloud, CloudOff, Check, ChevronLeft, ChevronRight, StickyNote, ExternalLink, MapPin, User, Folder, Lightbulb, Star, Music, Volume2 } from 'lucide-react';
 import { resolveMediaUrl, getMediaType } from '../constellation/media/resolveMediaUrl';
 import { TYPE_COLORS, THEME_COLORS } from '../constellation/ui/DetailPanel';
 import AdminGate from '../components/AdminGate';
@@ -489,6 +489,235 @@ function NodesTab() {
   );
 }
 
+// ─── ADMIN AUDIO SECTION ────────────────────────────────────────────────
+
+function AdminAudioSection({ node }) {
+  const audioUrl = resolveMediaUrl(node.audio);
+  const trackName = decodeURIComponent(node.audio.split('/').pop().replace(/\.mp3$/i, ''));
+  const audioRef = useRef(null);
+  const trackBarRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const draggingRef = useRef(null); // 'start' | 'in' | 'out' | null
+
+  const initKey = `jarowe_audioInit_${node.id}`;
+  const inKey = `jarowe_audioLoopIn_${node.id}`;
+  const outKey = `jarowe_audioLoopOut_${node.id}`;
+
+  const [startPt, setStartPt] = useState(() => {
+    const s = localStorage.getItem(initKey);
+    return s != null ? Number(s) : (node.audioStart || 0);
+  });
+  const [inPt, setInPt] = useState(() => {
+    const s = localStorage.getItem(inKey);
+    return s != null ? Number(s) : (node.audioLoopIn || 0);
+  });
+  const [outPt, setOutPt] = useState(() => {
+    const s = localStorage.getItem(outKey);
+    return s != null ? Number(s) : (node.audioLoopOut || 0);
+  });
+
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const effectiveOut = outPt > inPt ? outPt : duration;
+  const loopLen = effectiveOut - inPt;
+
+  const saveStart = (v) => { const n = Math.max(0, Math.floor(v)); setStartPt(n); localStorage.setItem(initKey, n); node.audioStart = n; };
+  const saveIn = (v) => { const n = Math.max(0, Math.floor(v)); setInPt(n); localStorage.setItem(inKey, n); node.audioLoopIn = n; };
+  const saveOut = (v) => { const n = Math.max(0, Math.floor(v)); setOutPt(n); localStorage.setItem(outKey, n); node.audioLoopOut = n; };
+
+  // Loop: when playback passes outPt, jump to inPt
+  const handleTimeUpdate = useCallback(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    setCurrentTime(a.currentTime);
+    const end = outPt > inPt ? outPt : 0;
+    if (end > 0 && a.currentTime >= end) {
+      a.currentTime = inPt;
+    }
+  }, [inPt, outPt]);
+
+  const togglePlay = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); } else { a.currentTime = startPt; a.play().catch(() => {}); }
+  };
+
+  // Drag handlers
+  const pctFromEvent = useCallback((e) => {
+    const bar = trackBarRef.current;
+    if (!bar || !duration) return 0;
+    const rect = bar.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  }, [duration]);
+
+  const onPointerDown = useCallback((which, e) => {
+    e.preventDefault();
+    draggingRef.current = which;
+    const onMove = (ev) => {
+      const sec = pctFromEvent(ev) * duration;
+      if (draggingRef.current === 'start') saveStart(sec);
+      else if (draggingRef.current === 'in') saveIn(Math.min(sec, (outPt || duration) - 1));
+      else saveOut(Math.max(sec, inPt + 1));
+    };
+    const onUp = () => {
+      draggingRef.current = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [duration, startPt, inPt, outPt, pctFromEvent]);
+
+  const seekBar = (e) => {
+    if (draggingRef.current) return;
+    const a = audioRef.current;
+    if (!a || !duration) return;
+    a.currentTime = pctFromEvent(e) * duration;
+  };
+
+  const startPct = duration ? (startPt / duration) * 100 : 0;
+  const inPct = duration ? (inPt / duration) * 100 : 0;
+  const outPct = duration ? ((outPt > inPt ? outPt : duration) / duration) * 100 : 100;
+  const playPct = duration ? (currentTime / duration) * 100 : 0;
+
+  const TimeInput = ({ label, value, onChange, color }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: 'rgba(255,255,255,0.05)', borderRadius: 6, border: `1px solid ${color}33`, overflow: 'hidden' }}>
+        <button onClick={() => onChange(Math.max(0, value - 1))} style={{ width: 22, height: 26, border: 'none', background: 'transparent', color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronDown size={12} />
+        </button>
+        <input
+          type="number" min="0" step="1" value={value}
+          onChange={e => onChange(Number(e.target.value) || 0)}
+          style={{ width: 38, background: 'transparent', border: 'none', borderLeft: `1px solid ${color}22`, borderRight: `1px solid ${color}22`, color: '#fff', padding: '0.15rem 0', fontSize: '0.75rem', textAlign: 'center' }}
+        />
+        <button onClick={() => onChange(value + 1)} style={{ width: 22, height: 26, border: 'none', background: 'transparent', color, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronUp size={12} />
+        </button>
+      </div>
+      <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>{fmt(value)}</span>
+    </div>
+  );
+
+  const SetBtn = ({ label, color, onClick }) => (
+    <button onClick={onClick} style={{ fontSize: '0.62rem', color, background: `${color}14`, border: `1px solid ${color}28`, borderRadius: 4, padding: '0.15rem 0.35rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      {label}
+    </button>
+  );
+
+  return (
+    <>
+      <h4><Music size={12} style={{ verticalAlign: '-1px', marginRight: '0.3rem' }} />Audio Track</h4>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '0.85rem', marginBottom: '0.75rem' }}>
+        {/* Track name + play */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.7rem' }}>
+          <button
+            onClick={togglePlay}
+            style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(100,160,255,0.25)', background: playing ? 'rgba(100,160,255,0.2)' : 'rgba(255,255,255,0.04)', color: 'rgb(140,190,255)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}
+          >
+            {playing ? <span style={{ fontSize: 12 }}>⏸</span> : <Play size={14} style={{ marginLeft: 2 }} />}
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{trackName}</div>
+            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+              {fmt(currentTime)} / {fmt(duration)}
+              {loopLen > 0 && loopLen < duration ? ` · loop ${fmt(loopLen)}` : ''}
+              {startPt > 0 ? ` · starts ${fmt(startPt)}` : ''}
+            </div>
+          </div>
+        </div>
+
+        {/* IG-style trim bar */}
+        <div style={{ position: 'relative', marginBottom: '0.7rem' }}>
+          <div
+            ref={trackBarRef}
+            onClick={seekBar}
+            style={{ position: 'relative', height: 38, background: 'rgba(255,255,255,0.04)', borderRadius: 6, cursor: 'pointer', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            {/* Dimmed regions outside loop selection */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: `${inPct}%`, height: '100%', background: 'rgba(0,0,0,0.45)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, right: 0, width: `${100 - outPct}%`, height: '100%', background: 'rgba(0,0,0,0.45)', pointerEvents: 'none' }} />
+
+            {/* Loop region highlight */}
+            <div style={{ position: 'absolute', top: 0, left: `${inPct}%`, width: `${outPct - inPct}%`, height: '100%', background: 'rgba(100,160,255,0.06)', borderTop: '2px solid rgba(100,160,255,0.25)', borderBottom: '2px solid rgba(100,160,255,0.25)', pointerEvents: 'none' }} />
+
+            {/* Playhead */}
+            <div style={{ position: 'absolute', top: 0, left: `${playPct}%`, width: 2, height: '100%', background: '#fff', opacity: 0.8, pointerEvents: 'none', transition: 'left 0.15s linear' }} />
+
+            {/* Start handle (yellow/amber triangle) */}
+            <div
+              onPointerDown={(e) => onPointerDown('start', e)}
+              style={{ position: 'absolute', top: 0, left: `${startPct}%`, transform: 'translateX(-50%)', width: 16, height: '100%', cursor: 'ew-resize', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '8px solid rgb(250,190,80)', filter: 'drop-shadow(0 0 4px rgba(250,190,80,0.5))' }} />
+            </div>
+
+            {/* In handle (green bar) */}
+            <div
+              onPointerDown={(e) => onPointerDown('in', e)}
+              style={{ position: 'absolute', top: 0, left: `${inPct}%`, transform: 'translateX(-50%)', width: 14, height: '100%', cursor: 'ew-resize', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: 4, height: 22, borderRadius: 2, background: 'rgb(52,211,153)', boxShadow: '0 0 6px rgba(52,211,153,0.4)' }} />
+            </div>
+
+            {/* Out handle (red bar) */}
+            <div
+              onPointerDown={(e) => onPointerDown('out', e)}
+              style={{ position: 'absolute', top: 0, left: `${outPct}%`, transform: 'translateX(-50%)', width: 14, height: '100%', cursor: 'ew-resize', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: 4, height: 22, borderRadius: 2, background: 'rgb(248,113,113)', boxShadow: '0 0 6px rgba(248,113,113,0.4)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Three-point controls */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.25rem' }}>
+          <TimeInput label="Start" value={startPt} onChange={saveStart} color="rgb(250,190,80)" />
+          <TimeInput label="Loop In" value={inPt} onChange={saveIn} color="rgb(52,211,153)" />
+
+          {/* Center: set-to-current buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 14 }}>
+            <SetBtn label="Set Start" color="rgb(250,190,80)" onClick={() => { if (audioRef.current) saveStart(Math.floor(audioRef.current.currentTime)); }} />
+            <SetBtn label="Set In" color="rgb(52,211,153)" onClick={() => { if (audioRef.current) saveIn(Math.floor(audioRef.current.currentTime)); }} />
+            <SetBtn label="Set Out" color="rgb(248,113,113)" onClick={() => { if (audioRef.current) saveOut(Math.floor(audioRef.current.currentTime)); }} />
+            {(startPt > 0 || outPt > 0 || inPt > 0) && (
+              <button
+                onClick={() => { saveStart(0); saveIn(0); saveOut(0); }}
+                style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', marginTop: 1 }}
+              >
+                Reset all
+              </button>
+            )}
+          </div>
+
+          <TimeInput label="Loop Out" value={outPt || Math.floor(duration)} onChange={saveOut} color="rgb(248,113,113)" />
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginTop: '0.6rem', fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)' }}>
+          <span><span style={{ display: 'inline-block', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid rgb(250,190,80)', verticalAlign: 'middle', marginRight: 3 }} />Start</span>
+          <span><span style={{ display: 'inline-block', width: 3, height: 8, borderRadius: 1, background: 'rgb(52,211,153)', verticalAlign: 'middle', marginRight: 3 }} />Loop In</span>
+          <span><span style={{ display: 'inline-block', width: 3, height: 8, borderRadius: 1, background: 'rgb(248,113,113)', verticalAlign: 'middle', marginRight: 3 }} />Loop Out</span>
+        </div>
+      </div>
+
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); if (audioRef.current) { audioRef.current.currentTime = inPt; audioRef.current.play().catch(() => {}); } }}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+        style={{ display: 'none' }}
+      />
+    </>
+  );
+}
+
 // ─── NODE DETAIL PANEL ──────────────────────────────────────────────────
 
 const ENTITY_GROUPS = [
@@ -727,8 +956,35 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
       {/* ─── PREVIEW MODE ─── */}
       {previewMode ? (
         <div className="admin-preview-visitor">
-          {/* Mirrors the public DetailPanel layout exactly */}
+          {/* Mirrors the public StoryPanel layout */}
           <div className="admin-preview-visitor-inner">
+            {/* Hero media */}
+            {media.length > 0 && (() => {
+              const raw = typeof media[0] === 'string' ? media[0] : media[0].url;
+              const url = resolveMediaUrl(raw);
+              const type = getMediaType(raw);
+              return (
+                <div style={{ position: 'relative', width: '100%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', maxHeight: '50vh', overflow: 'hidden', borderRadius: '6px 6px 0 0' }}>
+                  {type === 'video' ? (
+                    <video src={url} controls muted playsInline preload="auto" style={{ width: '100%', maxHeight: '50vh', objectFit: 'contain' }} />
+                  ) : (
+                    <img src={url} alt="" style={{ width: '100%', maxHeight: '50vh', objectFit: 'contain' }} loading="eager" onClick={() => setLightboxIdx(0)} />
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Audio bar */}
+            {node.audio && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+                <Music size={14} />
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {decodeURIComponent(node.audio.split('/').pop().replace(/\.mp3$/i, ''))}
+                </span>
+                <Volume2 size={14} />
+              </div>
+            )}
+
             {/* Header */}
             <div className="admin-pv-header">
               <div className="admin-pv-meta">
@@ -751,17 +1007,17 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
               <p className="admin-pv-description">{effectiveDesc || <span style={{ opacity: 0.3, fontStyle: 'italic' }}>No description</span>}</p>
             </div>
 
-            {/* Media gallery */}
-            {media.length > 0 && (
+            {/* Media gallery (rest of images) */}
+            {media.length > 1 && (
               <div className="admin-pv-section">
-                <h3 className="admin-pv-section-title">Media</h3>
+                <h3 className="admin-pv-section-title">Gallery</h3>
                 <div className="admin-pv-media-grid">
-                  {media.map((m, i) => {
+                  {media.slice(1).map((m, i) => {
                     const raw = typeof m === 'string' ? m : m.url;
                     const url = resolveMediaUrl(raw);
                     const type = getMediaType(raw);
                     return (
-                      <button key={i} className="admin-pv-media-thumb" onClick={() => setLightboxIdx(i)}>
+                      <button key={i} className="admin-pv-media-thumb" onClick={() => setLightboxIdx(i + 1)}>
                         {type === 'video' ? (
                           <video src={url} muted playsInline preload="metadata" />
                         ) : (
@@ -917,6 +1173,9 @@ function NodeDetailPanel({ node, curation, vis, flags, saveState, supabaseConnec
               />
             </>
           )}
+
+          {/* Audio / Music */}
+          {node.audio && <AdminAudioSection node={node} />}
 
           {/* Grouped Entities */}
           {entityGroups.total > 0 && (

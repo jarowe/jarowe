@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   X,
@@ -12,9 +12,13 @@ import {
   Folder,
   Lightbulb,
   Star,
+  Music,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import { useConstellationStore } from '../store';
+import { useAudio } from '../../context/AudioContext';
 import { TYPE_COLORS, THEME_COLORS } from './DetailPanel';
 import EntityChip from './EntityChip';
 import useNodeConnections from './useNodeConnections';
@@ -201,6 +205,152 @@ export default function StoryPanel() {
     }
   }, [node]);
 
+  // ─── Shared media mute state ─────────────────────────────────
+  // Unmute one video or node audio → all subsequent media plays with sound
+  const { duckForNodeAudio, restoreFromDuck } = useAudio();
+  const videoRef = useRef(null);
+  const nodeAudioRef = useRef(null);
+  const [nodeAudioMuted, setNodeAudioMuted] = useState(
+    () => sessionStorage.getItem('jarowe_video_unmuted') !== '1'
+  );
+
+  const handleVideoRef = useCallback((el) => {
+    videoRef.current = el;
+    if (!el) return;
+    const wantSound = sessionStorage.getItem('jarowe_video_unmuted') === '1';
+    if (wantSound) {
+      const tryUnmute = () => {
+        el.muted = false;
+        duckForNodeAudio();
+        el.removeEventListener('playing', tryUnmute);
+      };
+      el.addEventListener('playing', tryUnmute);
+    }
+  }, [duckForNodeAudio]);
+
+  const handleVolumeChange = useCallback((e) => {
+    const vid = e.currentTarget;
+    const unmuted = !vid.muted;
+    sessionStorage.setItem('jarowe_video_unmuted', unmuted ? '1' : '0');
+    setNodeAudioMuted(!unmuted);
+    if (unmuted) duckForNodeAudio();
+    else restoreFromDuck();
+  }, [duckForNodeAudio, restoreFromDuck]);
+
+  // ─── Node background audio (for photo posts with music) ─────
+  const audioSrc = node?.audio
+    ? `${import.meta.env.BASE_URL}${node.audio.replace(/^\//, '')}`
+    : null;
+  // Three-point audio: Start (initial), Loop In, Loop Out
+  // Check localStorage overrides first (set via admin panel), then graph data
+  const audioInitTime = (() => {
+    const s = node?.id ? localStorage.getItem(`jarowe_audioInit_${node.id}`) : null;
+    return s != null ? Number(s) : (node?.audioStart || 0);
+  })();
+  const audioLoopIn = (() => {
+    const s = node?.id ? localStorage.getItem(`jarowe_audioLoopIn_${node.id}`) : null;
+    return s != null ? Number(s) : (node?.audioLoopIn || 0);
+  })();
+  const audioLoopOut = (() => {
+    const s = node?.id ? localStorage.getItem(`jarowe_audioLoopOut_${node.id}`) : null;
+    return s != null ? Number(s) : (node?.audioLoopOut || 0);
+  })();
+
+  // Extract song name from filename for display
+  const audioLabel = node?.audio
+    ? decodeURIComponent(node.audio.split('/').pop().replace(/\.mp3$/i, ''))
+    : null;
+
+  useEffect(() => {
+    if (!audioSrc) return;
+
+    const audio = new Audio(audioSrc);
+    audio.loop = true;
+    audio.volume = 0;
+    audio.preload = 'auto';
+    nodeAudioRef.current = audio;
+
+    const wantSound = sessionStorage.getItem('jarowe_video_unmuted') === '1';
+    setNodeAudioMuted(!wantSound);
+
+    // Set initial start time (one-time, first play)
+    const onCanPlay = () => {
+      if (audioInitTime > 0) audio.currentTime = audioInitTime;
+      audio.removeEventListener('canplay', onCanPlay);
+    };
+    audio.addEventListener('canplay', onCanPlay);
+
+    // Loop enforcement: Start → plays through → hits Loop Out → jumps to Loop In
+    // From then on loops between Loop In ↔ Loop Out
+    const onTimeUpdate = () => {
+      if (audioLoopOut > audioLoopIn && audio.currentTime >= audioLoopOut) {
+        audio.currentTime = audioLoopIn;
+      }
+    };
+    audio.addEventListener('timeupdate', onTimeUpdate);
+
+    audio.play().then(() => {
+      if (wantSound) {
+        duckForNodeAudio();
+        let v = 0;
+        const fade = setInterval(() => {
+          v = Math.min(v + 0.05, 0.6);
+          audio.volume = v;
+          if (v >= 0.6) clearInterval(fade);
+        }, 50);
+      }
+    }).catch(() => {});
+
+    return () => {
+      // Fade out and cleanup
+      const a = nodeAudioRef.current;
+      if (a) {
+        a.removeEventListener('timeupdate', onTimeUpdate);
+        let v = a.volume;
+        const fade = setInterval(() => {
+          v = Math.max(v - 0.05, 0);
+          a.volume = v;
+          if (v <= 0) {
+            clearInterval(fade);
+            a.pause();
+            a.src = '';
+          }
+        }, 30);
+      }
+      nodeAudioRef.current = null;
+      restoreFromDuck();
+    };
+  }, [audioSrc, duckForNodeAudio, restoreFromDuck]);
+
+  const toggleNodeAudio = useCallback(() => {
+    const a = nodeAudioRef.current;
+    if (!a) return;
+    const willUnmute = nodeAudioMuted;
+    setNodeAudioMuted(!willUnmute);
+    sessionStorage.setItem('jarowe_video_unmuted', willUnmute ? '1' : '0');
+
+    if (willUnmute) {
+      // Unmute: fade in + duck GlobalPlayer
+      a.play().catch(() => {});
+      duckForNodeAudio();
+      let v = a.volume;
+      const fade = setInterval(() => {
+        v = Math.min(v + 0.05, 0.6);
+        a.volume = v;
+        if (v >= 0.6) clearInterval(fade);
+      }, 50);
+    } else {
+      // Mute: fade out + restore GlobalPlayer
+      let v = a.volume;
+      const fade = setInterval(() => {
+        v = Math.max(v - 0.05, 0);
+        a.volume = v;
+        if (v <= 0) clearInterval(fade);
+      }, 30);
+      restoreFromDuck();
+    }
+  }, [nodeAudioMuted, duckForNodeAudio, restoreFromDuck]);
+
   // Detect mobile for animation direction
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
@@ -248,7 +398,7 @@ export default function StoryPanel() {
               {profile === 'A' && (
                 <>
                   <motion.div
-                    className="story-panel__hero"
+                    className={`story-panel__hero${heroType === 'video' ? ' story-panel__hero--video' : ''}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
@@ -263,11 +413,16 @@ export default function StoryPanel() {
                       >
                         {heroType === 'video' ? (
                           <video
+                            key={heroUrl}
+                            ref={handleVideoRef}
                             src={heroUrl}
                             className="story-panel__hero-video"
                             controls
+                            autoPlay
+                            muted
                             playsInline
                             preload="auto"
+                            onVolumeChange={handleVolumeChange}
                           />
                         ) : (
                           <img
@@ -305,15 +460,41 @@ export default function StoryPanel() {
                       </>
                     )}
 
-                    {/* Gradient overlay with title */}
-                    <div className="story-panel__hero-overlay">
+                    {/* Gradient overlay with title — only for images */}
+                    {heroType !== 'video' && (
+                      <div className="story-panel__hero-overlay">
+                        <Badges node={node} />
+                        <h2 className="story-panel__title">{node.title}</h2>
+                        <span className="story-panel__date">
+                          {formatDate(node.date)}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Title info below hero for videos */}
+                  {heroType === 'video' && (
+                    <div className="story-panel__hero-info">
                       <Badges node={node} />
                       <h2 className="story-panel__title">{node.title}</h2>
                       <span className="story-panel__date">
                         {formatDate(node.date)}
                       </span>
                     </div>
-                  </motion.div>
+                  )}
+
+                  {/* Node audio bar */}
+                  {audioLabel && (
+                    <button
+                      className="story-panel__audio-bar"
+                      onClick={toggleNodeAudio}
+                      title={nodeAudioMuted ? 'Play music' : 'Mute music'}
+                    >
+                      <Music size={14} />
+                      <span className="story-panel__audio-label">{audioLabel}</span>
+                      {nodeAudioMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                    </button>
+                  )}
 
                   <div className="story-panel__body">
                     {node.epoch && (
@@ -383,7 +564,7 @@ export default function StoryPanel() {
               {profile === 'B' && (
                 <>
                   <motion.div
-                    className="story-panel__hero story-panel__hero--article"
+                    className={`story-panel__hero story-panel__hero--article${heroType === 'video' ? ' story-panel__hero--video' : ''}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.3 }}
@@ -398,11 +579,16 @@ export default function StoryPanel() {
                       >
                         {heroType === 'video' ? (
                           <video
+                            key={heroUrl}
+                            ref={handleVideoRef}
                             src={heroUrl}
                             className="story-panel__hero-video"
                             controls
+                            autoPlay
+                            muted
                             playsInline
                             preload="auto"
+                            onVolumeChange={handleVolumeChange}
                           />
                         ) : (
                           <img
@@ -440,6 +626,19 @@ export default function StoryPanel() {
                       </>
                     )}
                   </motion.div>
+
+                  {/* Node audio bar */}
+                  {audioLabel && (
+                    <button
+                      className="story-panel__audio-bar"
+                      onClick={toggleNodeAudio}
+                      title={nodeAudioMuted ? 'Play music' : 'Mute music'}
+                    >
+                      <Music size={14} />
+                      <span className="story-panel__audio-label">{audioLabel}</span>
+                      {nodeAudioMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                    </button>
+                  )}
 
                   <div className="story-panel__body">
                     <motion.div

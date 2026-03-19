@@ -210,6 +210,23 @@ export function AudioProvider({ children }) {
     // Track whether the home-page MusicCell is visible (IntersectionObserver)
     const [musicCellVisible, setMusicCellVisible] = useState(true);
 
+    // Duck / restore for node-level audio (constellation panel music or unmuted video)
+    const duckedRef = useRef(false);
+    const duckForNodeAudio = () => {
+        if (soundRef.current && isPlaying && !duckedRef.current) {
+            duckedRef.current = true;
+            soundRef.current.fade(soundRef.current.volume(), 0, 800);
+        }
+    };
+    const restoreFromDuck = () => {
+        if (duckedRef.current) {
+            duckedRef.current = false;
+            if (soundRef.current) {
+                soundRef.current.fade(soundRef.current.volume(), 1.0, 800);
+            }
+        }
+    };
+
     const value = {
         isPlaying,
         currentTrackIndex,
@@ -224,6 +241,8 @@ export function AudioProvider({ children }) {
         shuffle,
         toggleShuffle,
         pausePlayback,
+        duckForNodeAudio,
+        restoreFromDuck,
         musicCellVisible,
         setMusicCellVisible
     };
