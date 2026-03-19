@@ -60,7 +60,7 @@ function AdminInner() {
 
   const dashboardCards = [
     { to: '/admin/games', icon: Gamepad2, label: 'Game Lab', desc: `Test all ${GAME_COUNT} games`, color: '#a78bfa' },
-    { to: '/?editor=jarowe', icon: Settings, label: 'Editors', desc: 'Globe + Glint editors', color: '#60a5fa', external: true },
+    { to: '/admin/editors', icon: Settings, label: 'Editors', desc: 'All live visual editors', color: '#60a5fa' },
     { to: '/admin/users', icon: Users, label: 'Users', desc: userCount != null ? `${userCount} registered` : 'Manage users', color: '#f472b6' },
     { to: '/admin/content', icon: FileText, label: 'Content', desc: nodeCount != null ? `${nodeCount} nodes` : 'Browse content', color: '#34d399' },
     { to: '/admin/campaigns', icon: Radio, label: 'Campaigns', desc: 'Release takeovers', color: '#fbbf24' },

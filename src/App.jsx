@@ -29,6 +29,7 @@ const AdminGames = lazyRetry(() => import('./pages/AdminGames'));
 const AdminUsers = lazyRetry(() => import('./pages/AdminUsers'));
 const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
+const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 
 import GameOverlay from './components/GameOverlay';
@@ -286,6 +287,11 @@ function AppContent() {
           <Route path="/admin/campaigns" element={
             <Suspense fallback={<LazyFallback label="Loading Campaigns..." />}>
               <AdminCampaigns />
+            </Suspense>
+          } />
+          <Route path="/admin/editors" element={
+            <Suspense fallback={<LazyFallback label="Loading Editors..." />}>
+              <AdminEditors />
             </Suspense>
           } />
         </Routes>

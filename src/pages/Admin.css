@@ -527,6 +527,66 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+/* ---- Editor Hub (AdminEditors page) ---- */
+
+.admin-editors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.admin-editor-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, border-color 0.2s;
+  cursor: pointer;
+}
+
+.admin-editor-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--hub-color, rgba(255, 255, 255, 0.15));
+}
+
+.admin-editor-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--hub-color, #60a5fa) 15%, transparent);
+  color: var(--hub-color, rgba(255, 255, 255, 0.7));
+}
+
+.admin-editor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-editor-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.admin-editor-desc {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .admin-editors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Game Grid (AdminGames page) ---- */
 
 .admin-game-grid {
