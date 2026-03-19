@@ -49,7 +49,7 @@ function getEvidenceColors() {
 }
 
 /** Fallback color (slightly blue-white, matches original) */
-const DEFAULT_COLOR = [1.5, 1.5, 2.0];
+const DEFAULT_COLOR_RGB = [1.5, 1.5, 2.0];
 
 /**
  * Determine the strongest evidence type on an edge.
@@ -69,16 +69,14 @@ function getStrongestEvidenceType(evidence) {
 }
 
 /**
- * Get the tinted color for an edge based on its evidence type.
- * Blends the evidence color with white to keep it subtle.
+ * Compute tinted color for an edge (reads live config).
+ * Returns [r, g, b] array.
  */
-function getEdgeColor(evidence, isHighlighted) {
-  const type = getStrongestEvidenceType(evidence);
+function computeEdgeColor(evidenceType, isHighlighted) {
   const colors = getEvidenceColors();
-  const base = colors[type] || null;
-  if (!base) return DEFAULT_COLOR;
+  const base = colors[evidenceType] || null;
+  if (!base) return DEFAULT_COLOR_RGB;
 
-  // When highlighted (focused/filtered), show stronger tint; otherwise keep subtle
   const tintStrength = isHighlighted
     ? getCfg('lineTintStrengthHighlight')
     : getCfg('lineTintStrength');
@@ -90,29 +88,26 @@ function getEdgeColor(evidence, isHighlighted) {
 }
 
 /**
- * AnimatedLine — a single connection line with dashed directional flow.
- * Receives a ref-setter callback so the parent can batch-animate dashOffset.
+ * StructuralLine — renders a <Line> and registers its ref for batch updates.
+ * Initial visual props are placeholders; the real values are set every frame
+ * by the parent's useFrame hook via the registered ref.
  */
-function AnimatedLine({ points, color, lineWidth, opacity, lineKey, onRef, flowSpeed }) {
-  const lineRef = useRef();
-
-  // Register/unregister ref with parent for batch animation
+function StructuralLine({ points, lineKey, onRef }) {
   const setRef = useCallback(
     (node) => {
-      lineRef.current = node;
-      if (onRef) onRef(lineKey, node, flowSpeed);
+      if (onRef) onRef(lineKey, node);
     },
-    [lineKey, onRef, flowSpeed]
+    [lineKey, onRef]
   );
 
   return (
     <Line
       ref={setRef}
       points={points}
-      color={color}
-      lineWidth={lineWidth}
+      color={[1.5, 1.5, 2.0]}
+      lineWidth={0.3}
       transparent
-      opacity={opacity}
+      opacity={0.03}
       toneMapped={false}
       dashed
       dashSize={getCfg('lineDashSize')}
@@ -135,6 +130,8 @@ function AnimatedLine({ points, color, lineWidth, opacity, lineKey, onRef, flowS
  * - Animated dash flow from older node to newer node (chronological direction)
  * - Focus-aware: connected lines brighten, non-connected lines fade.
  * - Entity-filter-aware: only edges involving the filtered entity are visible.
+ * - All visual styling (opacity/width/color/dashSize/flowSpeed) read from config
+ *   every frame so editor sliders take effect in real-time.
  */
 export default function ConnectionLines({ positions }) {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
@@ -142,31 +139,25 @@ export default function ConnectionLines({ positions }) {
   const storeEdges = useConstellationStore((s) => s.edges);
   const storeNodes = useConstellationStore((s) => s.nodes);
 
-  // Refs map for batch dash-offset animation: key → { node, speed }
+  // Refs map for batch animation: key → { node }
   const lineRefsMap = useRef(new Map());
 
-  // Callback for AnimatedLine to register itself
-  const handleLineRef = useCallback((key, node, speed) => {
+  // Snapshot focusedNodeId and filteredNodeIds into refs so useFrame can read
+  // the current value without being re-created on every change.
+  const focusedNodeIdRef = useRef(focusedNodeId);
+  focusedNodeIdRef.current = focusedNodeId;
+
+  const filterEntityRef = useRef(filterEntity);
+  filterEntityRef.current = filterEntity;
+
+  // Callback for StructuralLine to register itself
+  const handleLineRef = useCallback((key, node) => {
     if (node) {
-      lineRefsMap.current.set(key, { node, speed });
+      lineRefsMap.current.set(key, { node });
     } else {
       lineRefsMap.current.delete(key);
     }
   }, []);
-
-  // Single useFrame that batch-updates all dash offsets
-  useFrame((_, delta) => {
-    const map = lineRefsMap.current;
-    if (map.size === 0) return;
-    for (const entry of map.values()) {
-      const { node, speed } = entry;
-      if (node && node.material) {
-        // Negative dashOffset = flow in the positive point-order direction
-        // (which we set up as older → newer)
-        node.material.dashOffset -= speed * delta;
-      }
-    }
-  });
 
   // Build a map from node ID to position for O(1) lookups
   const positionMap = useMemo(() => {
@@ -227,112 +218,163 @@ export default function ConnectionLines({ positions }) {
     return matching.size > 0 ? matching : null;
   }, [filterEntity, storeNodes, storeEdges]);
 
-  // Build line data with computed opacity, width, color, and direction
+  const filteredNodeIdsRef = useRef(filteredNodeIds);
+  filteredNodeIdsRef.current = filteredNodeIds;
+
+  // Build STRUCTURAL line data only — no visual styling.
+  // This useMemo only depends on topology (which edges exist, positions, ordering).
+  // Visual properties are computed per-frame in useFrame below.
   const lines = useMemo(() => {
     const result = [];
 
     for (const edge of storeEdges) {
-      let sourcePos = positionMap.get(edge.source);
-      let targetPos = positionMap.get(edge.target);
+      const sourcePos = positionMap.get(edge.source);
+      const targetPos = positionMap.get(edge.target);
       if (!sourcePos || !targetPos) continue;
 
       // Determine chronological direction: points go from older → newer
       const sourceDate = dateMap.get(edge.source) || 0;
       const targetDate = dateMap.get(edge.target) || 0;
-      // If source is newer, swap so points[0] is always the older node
-      let orderedPoints;
-      if (sourceDate > targetDate) {
-        orderedPoints = [targetPos, sourcePos];
-      } else {
-        orderedPoints = [sourcePos, targetPos];
-      }
+      const orderedPoints = sourceDate > targetDate
+        ? [targetPos, sourcePos]
+        : [sourcePos, targetPos];
 
       // Classify connection tier
       const sourceIsHelix = helixNodeIds.has(edge.source);
       const targetIsHelix = helixNodeIds.has(edge.target);
       const isHelixToHelix = sourceIsHelix && targetIsHelix;
-      const involvesParticle = !sourceIsHelix || !targetIsHelix;
 
-      // Weight-driven baseline opacity and width
-      const w = (edge.weight || 1) / 2.0;
+      // Normalized weight factor
+      const weight = (edge.weight || 1) / 2.0;
 
-      let opacity, lineWidth;
-      let isHighlighted = false;
-
-      if (focusedNodeId) {
-        // Focus mode: brighten connected, dim non-connected
-        const isConnected =
-          edge.source === focusedNodeId || edge.target === focusedNodeId;
-        if (isConnected) {
-          opacity = isHelixToHelix
-            ? lerp(getCfg('lineOpacityFocusedMin'), getCfg('lineOpacityFocusedMax'), w)
-            : lerp(0.2, 0.4, w);
-          lineWidth = isHelixToHelix
-            ? lerp(getCfg('lineWidthFocusedMin'), getCfg('lineWidthFocusedMax'), w)
-            : lerp(0.5, 1.0, w);
-          isHighlighted = true;
-        } else {
-          opacity = getCfg('lineOpacityDim');
-          lineWidth = getCfg('lineWidthDim');
-        }
-      } else if (filteredNodeIds) {
-        const sourceMatch = filteredNodeIds.has(edge.source);
-        const targetMatch = filteredNodeIds.has(edge.target);
-        if (sourceMatch && targetMatch) {
-          opacity = isHelixToHelix
-            ? lerp(getCfg('lineOpacityFocusedMin') * 0.8, getCfg('lineOpacityFocusedMax') * 0.78, w)
-            : lerp(0.15, 0.3, w);
-          lineWidth = isHelixToHelix
-            ? lerp(getCfg('lineWidthFocusedMin'), getCfg('lineWidthFocusedMax'), w)
-            : lerp(0.5, 1.0, w);
-          isHighlighted = true;
-        } else {
-          opacity = 0.01;
-          lineWidth = getCfg('lineWidthDim');
-        }
-      } else {
-        // Default: tier-based visual hierarchy
-        if (isHelixToHelix) {
-          // T2: helix-to-helix — visible but secondary to backbone
-          opacity = lerp(getCfg('lineOpacityHelixMin'), getCfg('lineOpacityHelixMax'), w);
-          lineWidth = lerp(getCfg('lineWidthHelixMin'), getCfg('lineWidthHelixMax'), w);
-        } else if (involvesParticle) {
-          // T3: involves particle node — very subtle
-          opacity = lerp(getCfg('lineOpacityParticleMin'), getCfg('lineOpacityParticleMax'), w);
-          lineWidth = lerp(getCfg('lineWidthDim'), getCfg('lineWidthHelixMin') + 0.2, w);
-        }
-      }
-
-      // Evidence-based color tinting
-      const color = getEdgeColor(edge.evidence, isHighlighted);
-
-      // Flow speed: faster when highlighted, very gentle otherwise
-      const flowSpeed = isHighlighted ? getCfg('lineFlowSpeedHighlight') : getCfg('lineFlowSpeed');
+      // Strongest evidence type (stable — depends only on edge data)
+      const evidenceType = getStrongestEvidenceType(edge.evidence);
 
       result.push({
         key: `${edge.source}-${edge.target}`,
+        sourceId: edge.source,
+        targetId: edge.target,
         points: orderedPoints,
-        opacity,
-        lineWidth,
-        color,
-        flowSpeed,
+        weight,
+        isHelixToHelix,
+        evidenceType,
       });
     }
 
     return result;
-  }, [positionMap, dateMap, helixNodeIds, focusedNodeId, filteredNodeIds, storeEdges]);
+  }, [positionMap, dateMap, helixNodeIds, storeEdges]);
+
+  // Store lines in a ref so useFrame can access the current structural data
+  const linesRef = useRef(lines);
+  linesRef.current = lines;
+
+  // Single useFrame that batch-updates ALL line visual properties every frame.
+  // Reads getCfg() live so editor slider changes take effect immediately.
+  useFrame((_, delta) => {
+    const map = lineRefsMap.current;
+    if (map.size === 0) return;
+
+    const currentLines = linesRef.current;
+    const currentFocused = focusedNodeIdRef.current;
+    const currentFiltered = filteredNodeIdsRef.current;
+
+    // Read config values once per frame (not per line)
+    const opHelixMin = getCfg('lineOpacityHelixMin');
+    const opHelixMax = getCfg('lineOpacityHelixMax');
+    const opParticleMin = getCfg('lineOpacityParticleMin');
+    const opParticleMax = getCfg('lineOpacityParticleMax');
+    const opFocusedMin = getCfg('lineOpacityFocusedMin');
+    const opFocusedMax = getCfg('lineOpacityFocusedMax');
+    const opDim = getCfg('lineOpacityDim');
+    const wdHelixMin = getCfg('lineWidthHelixMin');
+    const wdHelixMax = getCfg('lineWidthHelixMax');
+    const wdFocusedMin = getCfg('lineWidthFocusedMin');
+    const wdFocusedMax = getCfg('lineWidthFocusedMax');
+    const wdDim = getCfg('lineWidthDim');
+    const flowSpeed = getCfg('lineFlowSpeed');
+    const flowSpeedHL = getCfg('lineFlowSpeedHighlight');
+    const dashSize = getCfg('lineDashSize');
+    const gapSize = getCfg('lineGapSize');
+
+    for (const line of currentLines) {
+      const entry = map.get(line.key);
+      if (!entry || !entry.node || !entry.node.material) continue;
+
+      const mat = entry.node.material;
+      const w = line.weight;
+      let opacity, lineWidth;
+      let isHighlighted = false;
+
+      if (currentFocused) {
+        // Focus mode: brighten connected, dim non-connected
+        const isConnected =
+          line.sourceId === currentFocused || line.targetId === currentFocused;
+        if (isConnected) {
+          opacity = line.isHelixToHelix
+            ? lerp(opFocusedMin, opFocusedMax, w)
+            : lerp(0.2, 0.4, w);
+          lineWidth = line.isHelixToHelix
+            ? lerp(wdFocusedMin, wdFocusedMax, w)
+            : lerp(0.5, 1.0, w);
+          isHighlighted = true;
+        } else {
+          opacity = opDim;
+          lineWidth = wdDim;
+        }
+      } else if (currentFiltered) {
+        const sourceMatch = currentFiltered.has(line.sourceId);
+        const targetMatch = currentFiltered.has(line.targetId);
+        if (sourceMatch && targetMatch) {
+          opacity = line.isHelixToHelix
+            ? lerp(opFocusedMin * 0.8, opFocusedMax * 0.78, w)
+            : lerp(0.15, 0.3, w);
+          lineWidth = line.isHelixToHelix
+            ? lerp(wdFocusedMin, wdFocusedMax, w)
+            : lerp(0.5, 1.0, w);
+          isHighlighted = true;
+        } else {
+          opacity = 0.01;
+          lineWidth = wdDim;
+        }
+      } else {
+        // Default: tier-based visual hierarchy
+        if (line.isHelixToHelix) {
+          opacity = lerp(opHelixMin, opHelixMax, w);
+          lineWidth = lerp(wdHelixMin, wdHelixMax, w);
+        } else {
+          // Involves particle — very subtle
+          opacity = lerp(opParticleMin, opParticleMax, w);
+          lineWidth = lerp(wdDim, wdHelixMin + 0.2, w);
+        }
+      }
+
+      // Apply opacity
+      mat.opacity = opacity;
+
+      // Apply linewidth (LineMaterial uses lowercase 'linewidth')
+      mat.linewidth = lineWidth;
+
+      // Apply dash properties
+      mat.dashSize = dashSize;
+      mat.gapSize = gapSize;
+
+      // Apply flow speed as dash offset animation
+      const speed = isHighlighted ? flowSpeedHL : flowSpeed;
+      mat.dashOffset -= speed * delta;
+
+      // Apply evidence-based color tinting
+      const rgb = computeEdgeColor(line.evidenceType, isHighlighted);
+      mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+    }
+  });
 
   return (
     <group>
       {lines.map((line) => (
-        <AnimatedLine
+        <StructuralLine
           key={line.key}
           lineKey={line.key}
           points={line.points}
-          color={line.color}
-          lineWidth={line.lineWidth}
-          opacity={line.opacity}
-          flowSpeed={line.flowSpeed}
           onRef={handleLineRef}
         />
       ))}
