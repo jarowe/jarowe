@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import {
@@ -11,6 +11,9 @@ import {
   ToneMapping,
 } from '@react-three/postprocessing';
 import { BlendFunction, ToneMappingMode } from 'postprocessing';
+// Note: All effects stay mounted always. Disabled effects have intensity/opacity set to 0
+// via useFrame. This avoids the circular-reference crash that happens when React tries to
+// serialize Three.js objects during EffectComposer remount.
 import { Vector2 } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
@@ -41,21 +44,16 @@ function CinematicDOF() {
   const bloomRef = useRef();
   const caRef = useRef();
   const noiseRef = useRef();
+  const vignetteRef = useRef();
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const nodes = useConstellationStore((s) => s.nodes);
   const { camera } = useThree();
 
-  // Track current animated values for smooth lerping (world units)
+  // Track current animated values for smooth lerping
   const current = useRef({ bokeh: 1, focusDist: 120, focusRange: 80 });
 
-  // Reusable Vector2 for chromatic aberration offset (avoid GC)
+  // Reusable Vector2 for chromatic aberration offset
   const caOffset = useMemo(() => new Vector2(0.0005, 0.0005), []);
-
-  // Toggle state — polled every frame, forces re-mount of EffectComposer when changed.
-  // This is necessary because getCfg() reads window.__constellationConfig which doesn't
-  // trigger React re-renders. We check every frame (cheap string compare) and setState
-  // only when a toggle actually changes.
-  const [toggleKey, setToggleKey] = useState(() => buildToggleKey());
 
   useFrame(() => {
     // ── DOF lerp ──
@@ -94,36 +92,32 @@ function CinematicDOF() {
       }
     }
 
-    // ── Bloom live params ──
+    // ── Bloom: set intensity to 0 when disabled ──
     if (bloomRef.current) {
-      bloomRef.current.intensity = getCfg('bloomIntensity');
+      bloomRef.current.intensity = getCfg('bloomEnabled') ? getCfg('bloomIntensity') : 0;
     }
 
-    // ── Chromatic Aberration live offset ──
+    // ── Chromatic Aberration: set offset to 0 when disabled ──
     if (caRef.current) {
-      const off = getCfg('chromaticOffset');
+      const off = getCfg('chromaticEnabled') ? getCfg('chromaticOffset') : 0;
       caOffset.set(off, off);
       caRef.current.offset = caOffset;
     }
 
-    // ── Film Grain live opacity ──
+    // ── Film Grain: set opacity to 0 when disabled ──
     if (noiseRef.current) {
-      noiseRef.current.blendMode.opacity.value = getCfg('grainOpacity');
+      noiseRef.current.blendMode.opacity.value = getCfg('grainEnabled') ? getCfg('grainOpacity') : 0;
     }
 
-    // ── Poll toggle changes — cheap string compare, setState only on diff ──
-    const nextKey = buildToggleKey();
-    if (nextKey !== toggleKey) setToggleKey(nextKey);
+    // ── Vignette live update ──
+    if (vignetteRef.current) {
+      vignetteRef.current.uniforms.get('offset').value = getCfg('vignetteOffset');
+      vignetteRef.current.uniforms.get('darkness').value = getCfg('vignetteDarkness');
+    }
   });
 
-  // Parse current toggles from the key
-  const bloomOn = toggleKey.includes('b1');
-  const chromaOn = toggleKey.includes('c1');
-  const grainOn = toggleKey.includes('g1');
-  const toneOn = toggleKey.includes('t1');
-
   return (
-    <EffectComposer key={toggleKey} disableNormalPass>
+    <EffectComposer disableNormalPass>
       <DepthOfField
         ref={dofRef}
         focusDistance={getCfg('unfocusedFocusDist')}
@@ -131,59 +125,34 @@ function CinematicDOF() {
         bokehScale={getCfg('unfocusedBokehScale')}
       />
 
-      {bloomOn && (
-        <Bloom
-          ref={bloomRef}
-          intensity={getCfg('bloomIntensity')}
-          luminanceThreshold={getCfg('bloomThreshold')}
-          luminanceSmoothing={getCfg('bloomSmoothing')}
-          radius={getCfg('bloomRadius')}
-          mipmapBlur
-        />
-      )}
+      <Bloom
+        ref={bloomRef}
+        intensity={getCfg('bloomEnabled') ? getCfg('bloomIntensity') : 0}
+        luminanceThreshold={getCfg('bloomThreshold')}
+        luminanceSmoothing={getCfg('bloomSmoothing')}
+      />
 
-      {chromaOn && (
-        <ChromaticAberration
-          ref={caRef}
-          offset={caOffset}
-          radialModulation
-          modulationOffset={0.2}
-        />
-      )}
+      <ChromaticAberration
+        ref={caRef}
+        offset={caOffset}
+      />
 
-      {grainOn && (
-        <Noise
-          ref={noiseRef}
-          premultiply
-          blendFunction={BlendFunction.SOFT_LIGHT}
-        />
-      )}
+      <Noise
+        ref={noiseRef}
+        premultiply
+        blendFunction={BlendFunction.SOFT_LIGHT}
+      />
 
       <Vignette
+        ref={vignetteRef}
         eskil={false}
         offset={getCfg('vignetteOffset')}
         darkness={getCfg('vignetteDarkness')}
       />
 
-      {toneOn && (
-        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-      )}
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>
   );
-}
-
-/** Build a toggle key string from current config state */
-function buildToggleKey() {
-  try {
-    return [
-      getCfg('bloomEnabled') ? 'b1' : 'b0',
-      getCfg('chromaticEnabled') ? 'c1' : 'c0',
-      getCfg('grainEnabled') ? 'g1' : 'g0',
-      getCfg('toneMappingEnabled') ? 't1' : 't0',
-    ].join('-');
-  } catch {
-    return 'b1-c1-g1-t1';
-  }
 }
 
 /**
