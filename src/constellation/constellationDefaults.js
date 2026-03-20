@@ -70,6 +70,10 @@ export const CONSTELLATION_DEFAULTS = {
   nodePulseAmpRange: 0.06,
   nodePulseSpeed: 0.5,
   nodePhaseSpread: 0.3,
+  nodeEmissiveIntensity: 0.6,
+  nodeEmissiveRange: 1.4,
+  nodeFocusedEmissivePulse: 2.5,
+  nodeFocusedPulseSpeed: 2.0,
 
   // ── Particle Cloud ──
   particleSizeBase: 6.0,
@@ -87,22 +91,39 @@ export const CONSTELLATION_DEFAULTS = {
   // ── Helix Backbone ──
   strandColor0: '#4d99ff',
   strandColor1: '#ff66b2',
-  strandOpacity: 0.18,
-  strandWidth: 1.8,
+  strandOpacity: 0.35,
+  strandWidth: 2.2,
   rungColor: '#b3b3ff',
-  rungOpacity: 0.08,
-  rungWidth: 0.8,
+  rungOpacity: 0.12,
+  rungWidth: 1.0,
   markerSizeBase: 3.0,
   markerSizeRange: 4.0,
-  markerBrightnessBase: 0.6,
-  markerBrightnessRange: 0.6,
+  markerBrightnessBase: 0.8,
+  markerBrightnessRange: 0.8,
+  markerGlowRadius: 0.6,
+  markerGlowFalloff: 2.5,
 
   // ── Starfield ──
   starCount: 2200,
   starRadius: 200,
   starDepth: 100,
-  starBrightness: 4,
-  starTwinkleSpeed: 1,
+  starBrightness: 5,
+  starTwinkleSpeed: 1.2,
+  starColorVariation: 0.15,
+  starWarmRatio: 0.3,
+
+  // ── Nebula Fog ──
+  nebulaEnabled: true,
+  nebulaOpacity: 0.06,
+  nebulaSecondaryOpacity: 0.04,
+  nebulaAccentOpacity: 0.07,
+  nebulaScale: 1.0,
+
+  // ── Scene Fog ──
+  fogEnabled: true,
+  fogNear: 150,
+  fogFar: 420,
+  fogColor: '#080810',
 
   // ── Evidence Colors ──
   colorTemporal: '#60a5fa',

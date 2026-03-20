@@ -2,6 +2,7 @@ import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import { HalfFloatType, Color } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
@@ -13,6 +14,38 @@ import HoverLabel from './HoverLabel';
 import CameraController from './CameraController';
 import Starfield from './Starfield';
 import HelixBackbone from './HelixBackbone';
+import NebulaFog from './NebulaFog';
+
+/**
+ * Scene fog that fades distant objects into darkness for atmospheric depth.
+ * Reads config every frame so the editor can tune near/far in real-time.
+ */
+function SceneFog() {
+  const { scene } = useThree();
+  const fogRef = useRef(null);
+
+  useFrame(() => {
+    const enabled = getCfg('fogEnabled');
+    if (!enabled) {
+      if (scene.fog) scene.fog = null;
+      fogRef.current = null;
+      return;
+    }
+    const near = getCfg('fogNear');
+    const far = getCfg('fogFar');
+    const color = getCfg('fogColor');
+
+    if (!fogRef.current) {
+      fogRef.current = new THREE.Fog(color, near, far);
+      scene.fog = fogRef.current;
+    }
+    fogRef.current.color.set(color);
+    fogRef.current.near = near;
+    fogRef.current.far = far;
+  });
+
+  return null;
+}
 
 /**
  * Cinematic depth-of-field that intensifies when a node is focused.
@@ -196,6 +229,44 @@ export default function ConstellationCanvas() {
     };
   }, [helixBounds]);
 
+  // Compute epoch cluster centers for nebula fog
+  const epochCenters = useMemo(() => {
+    if (!helixNodes.length) return [];
+    // Group nodes by epoch (use date year as epoch)
+    const epochMap = new Map();
+    const epochColors = [
+      '#4d99ff', '#a78bfa', '#34d399', '#f472b6',
+      '#fbbf24', '#2dd4bf', '#fb923c', '#60a5fa',
+    ];
+    for (const node of helixNodes) {
+      const year = node.date ? new Date(node.date).getFullYear() : 2000;
+      // Group into 5-year epochs
+      const epochKey = Math.floor(year / 5) * 5;
+      if (!epochMap.has(epochKey)) {
+        epochMap.set(epochKey, { x: 0, y: 0, z: 0, count: 0, epoch: epochKey });
+      }
+      const ep = epochMap.get(epochKey);
+      ep.x += node.x || 0;
+      ep.y += node.y || 0;
+      ep.z += node.z || 0;
+      ep.count++;
+    }
+    const centers = [];
+    let colorIdx = 0;
+    for (const [, ep] of epochMap) {
+      if (ep.count < 3) continue; // Skip sparse epochs
+      centers.push({
+        epoch: ep.epoch,
+        x: ep.x / ep.count,
+        y: ep.y / ep.count,
+        z: ep.z / ep.count,
+        color: epochColors[colorIdx % epochColors.length],
+      });
+      colorIdx++;
+    }
+    return centers;
+  }, [helixNodes]);
+
   // Disposal verification on unmount
   useEffect(() => {
     return () => {
@@ -257,7 +328,18 @@ export default function ConstellationCanvas() {
 
       <HoverLabel nodes={helixNodes.length > 0 ? helixNodes : layoutNodes} />
 
+      {/* Scene fog for atmospheric depth falloff */}
+      <SceneFog />
+
       <ambientLight intensity={getCfg('ambientLightIntensity')} />
+      {/* Point light at center for MeshStandardMaterial node illumination */}
+      <pointLight
+        position={[center.x, center.y, center.z]}
+        intensity={1.2}
+        distance={300}
+        decay={1.5}
+        color="#c8d8ff"
+      />
 
       <HelixBackbone
         positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
@@ -276,6 +358,12 @@ export default function ConstellationCanvas() {
       {particleNodes.length > 0 && (
         <ParticleCloud nodes={particleNodes} tunnelMode={cameraMode === 'tunnel'} />
       )}
+
+      {/* Nebula fog near epoch cluster centers */}
+      <NebulaFog
+        epochCenters={epochCenters}
+        enabled={getCfg('nebulaEnabled') && gpuConfig.bloom}
+      />
 
       <Starfield starCount={gpuConfig.starParticles} />
 

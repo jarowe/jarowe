@@ -43,9 +43,13 @@ const markerFragmentShader = `
   void main() {
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
-    // Soft glow falloff
-    float alpha = smoothstep(0.5, 0.15, dist) * 0.6;
-    gl_FragColor = vec4(vColor, alpha);
+    // Core + glow: bright center with soft extended falloff
+    float core = smoothstep(0.5, 0.05, dist);
+    float glow = smoothstep(0.5, 0.0, dist);
+    float alpha = core * 0.8 + glow * 0.35;
+    // Brighten the core center for a bloom-like effect
+    vec3 col = vColor + vColor * core * 0.5;
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 

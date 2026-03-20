@@ -7,7 +7,7 @@ import { getCfg } from '../constellationDefaults';
 const dummy = new THREE.Object3D();
 const tempColor = new THREE.Color();
 
-/** Theme-based color palette (primary motif → color) */
+/** Theme-based color palette (primary motif -> color) */
 const THEME_COLORS = {
   love:        '#f472b6',   // pink
   family:      '#fb923c',   // orange
@@ -96,7 +96,8 @@ function getFilteredNodeIds(filterEntity, nodes, edges) {
 
 /**
  * Instanced mesh rendering all constellation nodes.
- * Uses Three.js instanceColor (setColorAt) for per-instance colors.
+ * Uses MeshStandardMaterial with emissive glow for cinematic look.
+ * Per-instance colors via instanceColor, emissive drives the bloom-like effect.
  * Breathing pulse animation via useFrame.
  * Focus dimming: non-connected nodes dim to ~15% on focus.
  */
@@ -175,15 +176,34 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     }
 
     mesh.instanceColor.needsUpdate = true;
-
-    // No emissive needed with meshBasicMaterial
   }, [focusedNodeId, filterEntity, nodes, count, storeEdges, storeNodes]);
 
-  // Breathing pulse animation
+  // Breathing pulse animation + emissive pulsing for focused node
   useFrame(({ clock }) => {
-    if (!gpuConfig.pulseAnimation || !meshRef.current) return;
+    if (!meshRef.current) return;
 
     const time = clock.getElapsedTime();
+    const mat = materialRef.current;
+
+    // Animate emissive intensity: focused node pulses stronger
+    if (mat) {
+      const baseEmissive = getCfg('nodeEmissiveIntensity');
+      const emissiveRange = getCfg('nodeEmissiveRange');
+      const focusPulse = getCfg('nodeFocusedEmissivePulse');
+      const focusPulseSpeed = getCfg('nodeFocusedPulseSpeed');
+
+      if (focusedNodeId) {
+        // When focused, pulse emissive more strongly
+        const pulse = Math.sin(time * focusPulseSpeed) * 0.3 + 0.7;
+        mat.emissiveIntensity = focusPulse * pulse;
+      } else {
+        // Ambient gentle glow
+        mat.emissiveIntensity = baseEmissive + 0.5 * emissiveRange;
+      }
+    }
+
+    if (!gpuConfig.pulseAnimation) return;
+
     const pulseSpeed = getCfg('nodePulseSpeed');
     const pulseAmpMin = getCfg('nodePulseAmpMin');
     const pulseAmpRange = getCfg('nodePulseAmpRange');
@@ -236,9 +256,13 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       <sphereGeometry
         args={[1, gpuConfig.sphereSegments, gpuConfig.sphereSegments]}
       />
-      <meshBasicMaterial
+      <meshStandardMaterial
         ref={materialRef}
         color="#ffffff"
+        emissive="#ffffff"
+        emissiveIntensity={getCfg('nodeEmissiveIntensity')}
+        roughness={0.6}
+        metalness={0.1}
         toneMapped={false}
       />
     </instancedMesh>
