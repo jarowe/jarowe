@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
-import { HalfFloatType } from 'three';
+import { HalfFloatType, Color } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import { getCfg } from '../constellationDefaults';
@@ -216,8 +216,11 @@ export default function ConstellationCanvas() {
       }}
       dpr={gpuConfig.dpr}
       onPointerMissed={() => clearFocus()}
-      onCreated={({ gl }) => {
+      onCreated={({ gl, scene }) => {
         rendererRef.current = gl;
+        // Set scene background to match page — prevents black flash during
+        // EffectComposer initialization (first frame has empty framebuffer)
+        scene.background = new Color(0x080810);
         const canvas = gl.domElement;
         canvas.addEventListener('webglcontextlost', (e) => {
           e.preventDefault();
