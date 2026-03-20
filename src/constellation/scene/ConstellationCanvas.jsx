@@ -11,7 +11,7 @@ import {
   ToneMapping,
 } from '@react-three/postprocessing';
 import { BlendFunction, ToneMappingMode } from 'postprocessing';
-import { HalfFloatType, Vector2 } from 'three';
+import { Vector2 } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import { getCfg } from '../constellationDefaults';
@@ -123,7 +123,7 @@ function CinematicDOF() {
   const toneOn = toggleKey.includes('t1');
 
   return (
-    <EffectComposer key={toggleKey} frameBufferType={HalfFloatType} disableNormalPass>
+    <EffectComposer key={toggleKey} disableNormalPass>
       <DepthOfField
         ref={dofRef}
         focusDistance={getCfg('unfocusedFocusDist')}
@@ -174,12 +174,16 @@ function CinematicDOF() {
 
 /** Build a toggle key string from current config state */
 function buildToggleKey() {
-  return [
-    getCfg('bloomEnabled') ? 'b1' : 'b0',
-    getCfg('chromaticEnabled') ? 'c1' : 'c0',
-    getCfg('grainEnabled') ? 'g1' : 'g0',
-    getCfg('toneMappingEnabled') ? 't1' : 't0',
-  ].join('-');
+  try {
+    return [
+      getCfg('bloomEnabled') ? 'b1' : 'b0',
+      getCfg('chromaticEnabled') ? 'c1' : 'c0',
+      getCfg('grainEnabled') ? 'g1' : 'g0',
+      getCfg('toneMappingEnabled') ? 't1' : 't0',
+    ].join('-');
+  } catch {
+    return 'b1-c1-g1-t1';
+  }
 }
 
 /**
