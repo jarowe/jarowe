@@ -1,7 +1,7 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { EffectComposer, DepthOfField, Vignette, Bloom } from '@react-three/postprocessing';
+import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
 import { HalfFloatType, Color } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
@@ -20,7 +20,6 @@ import HelixBackbone from './HelixBackbone';
  */
 function CinematicDOF() {
   const dofRef = useRef();
-  const bloomRef = useRef();
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const nodes = useConstellationStore((s) => s.nodes);
   const { camera } = useThree();
@@ -68,11 +67,6 @@ function CinematicDOF() {
       coc.focusDistance = current.current.focusDist;
       coc.focusRange = current.current.focusRange;
     }
-
-    // Bloom: set intensity to 0 when disabled, live value otherwise
-    if (bloomRef.current) {
-      bloomRef.current.intensity = getCfg('bloomEnabled') ? getCfg('bloomIntensity') : 0;
-    }
   });
 
   return (
@@ -82,13 +76,6 @@ function CinematicDOF() {
         focusDistance={120}
         focalLength={80}
         bokehScale={1}
-      />
-      <Bloom
-        ref={bloomRef}
-        intensity={getCfg('bloomEnabled') ? getCfg('bloomIntensity') : 0}
-        luminanceThreshold={getCfg('bloomThreshold')}
-        luminanceSmoothing={getCfg('bloomSmoothing')}
-        mipmapBlur
       />
       <Vignette eskil={false} offset={getCfg('vignetteOffset')} darkness={getCfg('vignetteDarkness')} />
     </EffectComposer>
