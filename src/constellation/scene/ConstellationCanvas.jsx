@@ -128,9 +128,13 @@ export default function ConstellationCanvas() {
   const cameraMode = useConstellationStore((s) => s.cameraMode);
   const [gpuConfig] = useState(() => {
     const tier = detectGPUTier();
-    setGpuTier(tier);
     return getGPUConfig(tier);
   });
+
+  // Set GPU tier in store after render (avoids setState-during-render warning)
+  useEffect(() => {
+    setGpuTier(gpuConfig.bloom ? 2 : 1);
+  }, [setGpuTier, gpuConfig]);
 
   // Hybrid layout: use pipeline x/y/z when present, compute fallback for missing
   const layoutNodes = useMemo(() => {
