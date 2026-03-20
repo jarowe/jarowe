@@ -1,12 +1,24 @@
-# The JAROWE Constellation
+# jarowe.com — The Living World
 
 ## What This Is
 
-A living, data-woven personal website for Jared Rowe (jarowe.com) that serves as "life in webform" — two experiences in one site. A **Bento Hub** acts as a dynamic dashboard showing the pulse of Jared's life at a glance. A **Constellation** is a cinematic, explorable 3D graph where every node is a real moment (project, post, place, person, idea) and every connection is evidence-based. The site is powered by real social media data, ingested automatically, curated through an admin dashboard, and designed to be playful, experiential, and constantly evolving.
+A living personal world for Jared Rowe (jarowe.com) that serves as "life in webform" — an honest, playful, constantly evolving ecosystem of everything Jared creates and cares about. The site combines a **cinematic globe**, an **explorable 3D life constellation**, an **AI guide (Glint)**, **32+ mini-games**, **daily-changing content**, and **music** into an experience that feels alive every visit. It is the hub of an ecosystem that includes **Starseed** (the business/agency launching projects like BEAMY, AMINA, DECKIT), **Starseed Labs** (an autonomous AI business factory — its own product), and **jarowe artist** (music identity). The site should make people feel: "I have never seen a personal site feel like this."
 
 ## Core Value
 
-The Constellation must render real life data as an explorable, evidence-connected 3D experience — every node real, every connection justified, every visit a discovery.
+jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
+
+## Current Milestone: v2.0 Living World
+
+**Goal:** Transform jarowe.com from an impressive portfolio into a living, daily-pulse world with an AI operator (Glint), a branded business hub (Starseed), creation tools, and atmospheric intelligence.
+
+**Target features:**
+- Today Layer — daily-rotating homepage state with weather, moon, holiday, featured content
+- Glint Operator — bounded tool use (navigate, launch, save), command palette
+- Starseed Hub — branded business showcase replacing Workshop, using campaign-shell pattern, with project cards and client-facing presence
+- Starseed Labs Surface — creation tools (scratchpad, canvas) living under the Starseed umbrella
+- Daily Engine — weather-responsive atmosphere, Glint journal, streaks, progress signal
+- Immersive Portal — one gaussian splat memory capsule with portal transition
 
 ## Requirements
 
@@ -79,18 +91,25 @@ The Constellation must render real life data as an explorable, evidence-connecte
 - [ ] Existing pages wired into constellation data system
 - [ ] Polish and connect existing pages (Globe, Garden, Vault, Workshop, Now, Universe)
 
-### Out of Scope
+### Out of Scope (v2.0)
 
-<!-- Explicit boundaries. Includes reasoning to prevent re-adding. -->
+<!-- Explicit boundaries for THIS milestone. Captured for future milestones. -->
 
-- Live AI narrator (Gemini/LLM) — deferred to future milestone; scripted narrator first for reliability and control
-- Facebook/X/LinkedIn/Google Photos parsers — deferred until first milestone proves the pipeline with Instagram + Carbonmade
-- Multiplayer / real-time visitor presence — complexity explosion, not core to personal storytelling
+- Starseed Labs as standalone product (own auth, own domain, agentic AI factory) — v2.1+, needs Starseed Hub to exist first
+- Community infrastructure (Discord servers, subscriber system, mailing list, SMS) — v2.1+, needs ecosystem to have something to gather around
+- Content pipeline automation (hard drive → site, video channel, livestreaming) — v2.1+, needs hub and creation surface to exist first
+- Full starseed.llc independent site — v2.1+, build the hub section first within jarowe.com
+- Full multiplayer / real-time visitor presence (PartyKit) — defer until single-player daily loop proves retention
+- Voice-enabled Glint (ElevenLabs, OpenAI Realtime) — defer until text-based tool use is solid
+- StarOS desktop mode — defer until core daily loop is magnetic
+- Full editorial news operation — progress lens is curated cards, not a feed
+- VR/WebXR constellation mode — niche audience, defer to future
+- Hand-tracked Glint (MediaPipe) — high viral potential but high effort, defer
+
+**Preserved from v1.0 Out of Scope:**
+- Live AI narrator (Gemini/LLM) — scripted narrator first
+- Facebook/X/LinkedIn/Google Photos parsers — prove pipeline with existing sources first
 - Mobile native app — web-first, responsive design covers mobile
-- OAuth social login for visitors — site is public; only owner needs auth for admin
-- Web Speech API TTS narrator voice — polish feature for later
-- Lyria RealTime (live AI music generation) — experimental, defer to future exploration
-- OS-themed portfolio (desktop simulator) — doesn't fit the constellation metaphor
 
 ## Context
 
@@ -102,7 +121,13 @@ The Constellation must render real life data as an explorable, evidence-connecte
 
 **Deployment**: Vercel (primary, jarowe.com) with serverless functions for admin/API. GitHub Pages (secondary, jarowe.github.io/jarowe/) for static fallback.
 
-**Philosophy**: "The medium IS the message." The site itself demonstrates who Jared is — experience designer, innovator, technologist, storyteller, father, worldschooler. Not a resume. A playable, discoverable universe of real moments. "The language of the universe is excitement and the purpose is the balance we become."
+**Philosophy**: "The medium IS the message." The site itself demonstrates who Jared is — experience designer, innovator, technologist, storyteller, father, worldschooler. Not a resume. A playable, discoverable universe of real moments. Honesty, authenticity, reducing the masks. "The language of the universe is excitement and the purpose is the balance we become."
+
+**Ecosystem architecture**: jarowe.com is the world. Starseed is the business side (agency, projects). Starseed Labs is its own product (autonomous AI business factory). jarowe artist is the music identity. All seamlessly connected, each with its own identity but part of one authentic human's output.
+
+**Campaign-shell pattern**: The music takeover system (registry + chrome rules + shell + branded nav) is the proven model for standalone-but-integrated experiences. Starseed Hub should use this same pattern — own brand, own chrome, seamlessly returns to the main site.
+
+**Strategy documents**: Extensive planning in `.planning/future/` (11 docs) derived from 9-agent parallel research sweep on 2026-03-20, filtered through strategy reset in `.planning/JAROWE_STRATEGY_RESET_2026.md`.
 
 ## Constraints
 
@@ -126,5 +151,11 @@ The Constellation must render real life data as an explorable, evidence-connecte
 | Music auto-ingest with draft inbox | Tracks appear automatically but are curated before publish. Published tracks become constellation nodes. | — Pending |
 | Privacy-first with curation layer | Allowlists, hide lists, overrides, highlights. True without being exposed. Build fails on leaks. | — Pending |
 
+| Starseed Hub uses campaign-shell pattern | Proven model from music takeover system — own brand/chrome/nav, seamlessly returns to main site | — Pending |
+| Orbit model: World / Guide / Creation / Signal | Every idea gets the right orbit — prevents ambition without hierarchy. See .planning/future/ORBIT_MODEL.md | — Pending |
+| Daily engine before spectacle | Retention (daily pulse) before acquisition (viral moments). Strategy reset principle. | — Pending |
+| Anonymous-first auth with Supabase upgrade | No login wall. signInAnonymously() → linkIdentity() when there's value to protect. | — Pending |
+| Glint bounded tool use, not generic chatbot | Site-native intelligence with agency inside this world. Constraints make him memorable. | — Pending |
+
 ---
-*Last updated: 2026-02-27 after initialization*
+*Last updated: 2026-03-20 after v2.0 Living World milestone start*
