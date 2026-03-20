@@ -22,6 +22,24 @@ export const CONSTELLATION_DEFAULTS = {
   vignetteDarkness: 0.5,
   ambientLightIntensity: 0.15,
 
+  // ── Bloom ──
+  bloomEnabled: true,
+  bloomIntensity: 0.4,
+  bloomThreshold: 0.6,
+  bloomSmoothing: 0.9,
+  bloomRadius: 0.8,
+
+  // ── Chromatic Aberration ──
+  chromaticEnabled: true,
+  chromaticOffset: 0.0005,
+
+  // ── Film Grain ──
+  grainEnabled: true,
+  grainOpacity: 0.04,
+
+  // ── Tone Mapping ──
+  toneMappingEnabled: true,
+
   // ── Connection Lines ──
   lineDashSize: 1.8,
   lineGapSize: 1.2,

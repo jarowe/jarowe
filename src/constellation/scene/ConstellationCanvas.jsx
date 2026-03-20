@@ -1,8 +1,17 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
-import { HalfFloatType } from 'three';
+import {
+  EffectComposer,
+  DepthOfField,
+  Vignette,
+  Bloom,
+  ChromaticAberration,
+  Noise,
+  ToneMapping,
+} from '@react-three/postprocessing';
+import { BlendFunction, ToneMappingMode } from 'postprocessing';
+import { HalfFloatType, Vector2 } from 'three';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import { getCfg } from '../constellationDefaults';
@@ -15,11 +24,23 @@ import Starfield from './Starfield';
 import HelixBackbone from './HelixBackbone';
 
 /**
- * Cinematic depth-of-field that intensifies when a node is focused.
- * Smoothly lerps DOF parameters each frame for a seamless transition.
+ * Cinematic post-processing pipeline — Interstellar meets Blade Runner.
+ *
+ * Effects (all tier 2+ only, individually toggleable):
+ *   1. Depth of Field — bokeh with smooth lerping on focus
+ *   2. Bloom — soft glow on bright nodes
+ *   3. Chromatic Aberration — subtle RGB fringing
+ *   4. Film Grain (Noise) — barely-visible grain for cinema texture
+ *   5. Vignette — darkened edges
+ *   6. Tone Mapping — ACES Filmic color grading
+ *
+ * Every parameter is live-tunable via getCfg() (editor + localStorage).
  */
 function CinematicDOF() {
   const dofRef = useRef();
+  const bloomRef = useRef();
+  const caRef = useRef();
+  const noiseRef = useRef();
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const nodes = useConstellationStore((s) => s.nodes);
   const { camera } = useThree();
@@ -27,59 +48,138 @@ function CinematicDOF() {
   // Track current animated values for smooth lerping (world units)
   const current = useRef({ bokeh: 1, focusDist: 120, focusRange: 80 });
 
+  // Reusable Vector2 for chromatic aberration offset (avoid GC)
+  const caOffset = useMemo(() => new Vector2(0.0005, 0.0005), []);
+
+  // Toggle state — polled every frame, forces re-mount of EffectComposer when changed.
+  // This is necessary because getCfg() reads window.__constellationConfig which doesn't
+  // trigger React re-renders. We check every frame (cheap string compare) and setState
+  // only when a toggle actually changes.
+  const [toggleKey, setToggleKey] = useState(() => buildToggleKey());
+
   useFrame(() => {
-    if (!dofRef.current) return;
+    // ── DOF lerp ──
+    if (dofRef.current) {
+      let targetBokeh, targetFocusDist, targetFocusRange;
 
-    let targetBokeh, targetFocusDist, targetFocusRange;
-
-    if (focusedNodeId) {
-      // Find the focused node to calculate distance from camera
-      const node = nodes.find((n) => n.id === focusedNodeId);
-      if (node) {
-        const dx = camera.position.x - node.x;
-        const dy = camera.position.y - node.y;
-        const dz = camera.position.z - node.z;
-        targetFocusDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (focusedNodeId) {
+        const node = nodes.find((n) => n.id === focusedNodeId);
+        if (node) {
+          const dx = camera.position.x - node.x;
+          const dy = camera.position.y - node.y;
+          const dz = camera.position.z - node.z;
+          targetFocusDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        } else {
+          targetFocusDist = 50;
+        }
+        targetBokeh = getCfg('focusedBokehScale');
+        targetFocusRange = getCfg('focusedFocusRange');
       } else {
-        targetFocusDist = 50;
+        targetFocusDist = getCfg('unfocusedFocusDist');
+        targetBokeh = getCfg('unfocusedBokehScale');
+        targetFocusRange = getCfg('unfocusedFocusRange');
       }
-      // Cinematic close-up: strong bokeh, narrow focus range
-      targetBokeh = getCfg('focusedBokehScale');
-      targetFocusRange = getCfg('focusedFocusRange');
-    } else {
-      // Unfocused: very subtle DOF for atmosphere
-      targetFocusDist = getCfg('unfocusedFocusDist');
-      targetBokeh = getCfg('unfocusedBokehScale');
-      targetFocusRange = getCfg('unfocusedFocusRange');
+
+      const speed = getCfg('dofLerpSpeed');
+      current.current.bokeh += (targetBokeh - current.current.bokeh) * speed;
+      current.current.focusDist += (targetFocusDist - current.current.focusDist) * speed;
+      current.current.focusRange += (targetFocusRange - current.current.focusRange) * speed;
+
+      const effect = dofRef.current;
+      effect.bokehScale = current.current.bokeh;
+      const coc = effect.cocMaterial;
+      if (coc) {
+        coc.focusDistance = current.current.focusDist;
+        coc.focusRange = current.current.focusRange;
+      }
     }
 
-    // Smooth lerp toward targets
-    const speed = getCfg('dofLerpSpeed');
-    current.current.bokeh += (targetBokeh - current.current.bokeh) * speed;
-    current.current.focusDist += (targetFocusDist - current.current.focusDist) * speed;
-    current.current.focusRange += (targetFocusRange - current.current.focusRange) * speed;
-
-    // Update the effect properties via postprocessing API
-    const effect = dofRef.current;
-    effect.bokehScale = current.current.bokeh;
-    const coc = effect.cocMaterial;
-    if (coc) {
-      coc.focusDistance = current.current.focusDist;
-      coc.focusRange = current.current.focusRange;
+    // ── Bloom live params ──
+    if (bloomRef.current) {
+      bloomRef.current.intensity = getCfg('bloomIntensity');
     }
+
+    // ── Chromatic Aberration live offset ──
+    if (caRef.current) {
+      const off = getCfg('chromaticOffset');
+      caOffset.set(off, off);
+      caRef.current.offset = caOffset;
+    }
+
+    // ── Film Grain live opacity ──
+    if (noiseRef.current) {
+      noiseRef.current.blendMode.opacity.value = getCfg('grainOpacity');
+    }
+
+    // ── Poll toggle changes — cheap string compare, setState only on diff ──
+    const nextKey = buildToggleKey();
+    if (nextKey !== toggleKey) setToggleKey(nextKey);
   });
 
+  // Parse current toggles from the key
+  const bloomOn = toggleKey.includes('b1');
+  const chromaOn = toggleKey.includes('c1');
+  const grainOn = toggleKey.includes('g1');
+  const toneOn = toggleKey.includes('t1');
+
   return (
-    <EffectComposer frameBufferType={HalfFloatType} disableNormalPass>
+    <EffectComposer key={toggleKey} frameBufferType={HalfFloatType} disableNormalPass>
       <DepthOfField
         ref={dofRef}
         focusDistance={getCfg('unfocusedFocusDist')}
         focalLength={getCfg('unfocusedFocusRange')}
         bokehScale={getCfg('unfocusedBokehScale')}
       />
-      <Vignette eskil={false} offset={getCfg('vignetteOffset')} darkness={getCfg('vignetteDarkness')} />
+
+      {bloomOn && (
+        <Bloom
+          ref={bloomRef}
+          intensity={getCfg('bloomIntensity')}
+          luminanceThreshold={getCfg('bloomThreshold')}
+          luminanceSmoothing={getCfg('bloomSmoothing')}
+          radius={getCfg('bloomRadius')}
+          mipmapBlur
+        />
+      )}
+
+      {chromaOn && (
+        <ChromaticAberration
+          ref={caRef}
+          offset={caOffset}
+          radialModulation
+          modulationOffset={0.2}
+        />
+      )}
+
+      {grainOn && (
+        <Noise
+          ref={noiseRef}
+          premultiply
+          blendFunction={BlendFunction.SOFT_LIGHT}
+        />
+      )}
+
+      <Vignette
+        eskil={false}
+        offset={getCfg('vignetteOffset')}
+        darkness={getCfg('vignetteDarkness')}
+      />
+
+      {toneOn && (
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      )}
     </EffectComposer>
   );
+}
+
+/** Build a toggle key string from current config state */
+function buildToggleKey() {
+  return [
+    getCfg('bloomEnabled') ? 'b1' : 'b0',
+    getCfg('chromaticEnabled') ? 'c1' : 'c0',
+    getCfg('grainEnabled') ? 'g1' : 'g0',
+    getCfg('toneMappingEnabled') ? 't1' : 't0',
+  ].join('-');
 }
 
 /**

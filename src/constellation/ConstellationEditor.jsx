@@ -152,17 +152,56 @@ export default function ConstellationEditor({ parentGui }) {
       'unfocusedFocusRange', 'unfocusedFocusDist', 'dofLerpSpeed',
       'vignetteOffset', 'vignetteDarkness', 'ambientLightIntensity',
     ];
-    dofControllers.push(tracked(dofFolder.add(cfg, 'focusedBokehScale', 0, 15, 0.5).name('Focused Bokeh')));
+    dofControllers.push(tracked(dofFolder.add(cfg, 'focusedBokehScale', 0, 20, 0.5).name('Focused Bokeh')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'unfocusedBokehScale', 0, 10, 0.5).name('Unfocused Bokeh')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'focusedFocusRange', 1, 60, 1).name('Focused Range')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'unfocusedFocusRange', 10, 200, 5).name('Unfocused Range')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'unfocusedFocusDist', 20, 300, 5).name('Unfocused Focus Dist')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'dofLerpSpeed', 0.005, 0.2, 0.005).name('DOF Lerp Speed')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'vignetteOffset', 0, 1, 0.01).name('Vignette Offset')));
-    dofControllers.push(tracked(dofFolder.add(cfg, 'vignetteDarkness', 0, 1.5, 0.01).name('Vignette Darkness')));
+    dofControllers.push(tracked(dofFolder.add(cfg, 'vignetteDarkness', 0, 0.8, 0.01).name('Vignette Darkness')));
     dofControllers.push(tracked(dofFolder.add(cfg, 'ambientLightIntensity', 0, 1.0, 0.01).name('Ambient Light')));
     dofFolder.add({ reset: () => resetKeys(dofKeys, dofControllers) }, 'reset').name('Reset DOF');
     dofFolder.close();
+
+    // ────────────────────────────────────────────
+    // 2b. Post-Processing (Cinematic)
+    // ────────────────────────────────────────────
+    const ppFolder = gui.addFolder('Post-Processing');
+    const ppControllers = [];
+    const ppKeys = [
+      'bloomEnabled', 'bloomIntensity', 'bloomThreshold', 'bloomSmoothing', 'bloomRadius',
+      'chromaticEnabled', 'chromaticOffset',
+      'grainEnabled', 'grainOpacity',
+      'toneMappingEnabled',
+    ];
+
+    // ── Bloom ──
+    const bloomSubfolder = ppFolder.addFolder('Bloom');
+    ppControllers.push(tracked(bloomSubfolder.add(cfg, 'bloomEnabled').name('Enabled')));
+    ppControllers.push(tracked(bloomSubfolder.add(cfg, 'bloomIntensity', 0, 2.0, 0.05).name('Intensity')));
+    ppControllers.push(tracked(bloomSubfolder.add(cfg, 'bloomThreshold', 0, 1.0, 0.01).name('Luminance Threshold')));
+    ppControllers.push(tracked(bloomSubfolder.add(cfg, 'bloomSmoothing', 0, 1.0, 0.01).name('Luminance Smoothing')));
+    ppControllers.push(tracked(bloomSubfolder.add(cfg, 'bloomRadius', 0, 1.0, 0.05).name('Radius')));
+    bloomSubfolder.close();
+
+    // ── Chromatic Aberration ──
+    const caSubfolder = ppFolder.addFolder('Chromatic Aberration');
+    ppControllers.push(tracked(caSubfolder.add(cfg, 'chromaticEnabled').name('Enabled')));
+    ppControllers.push(tracked(caSubfolder.add(cfg, 'chromaticOffset', 0, 0.003, 0.0001).name('Offset')));
+    caSubfolder.close();
+
+    // ── Film Grain ──
+    const grainSubfolder = ppFolder.addFolder('Film Grain');
+    ppControllers.push(tracked(grainSubfolder.add(cfg, 'grainEnabled').name('Enabled')));
+    ppControllers.push(tracked(grainSubfolder.add(cfg, 'grainOpacity', 0, 0.15, 0.005).name('Opacity')));
+    grainSubfolder.close();
+
+    // ── Tone Mapping ──
+    ppControllers.push(tracked(ppFolder.add(cfg, 'toneMappingEnabled').name('ACES Filmic Tone Map')));
+
+    ppFolder.add({ reset: () => resetKeys(ppKeys, ppControllers) }, 'reset').name('Reset Post-Processing');
+    ppFolder.close();
 
     // ────────────────────────────────────────────
     // 3. Connection Lines
@@ -308,7 +347,7 @@ export default function ConstellationEditor({ parentGui }) {
         localStorage.removeItem(CONSTELLATION_CONFIG_KEY);
         // Update all controller displays
         const allControllers = [
-          ...camControllers, ...dofControllers, ...lineControllers,
+          ...camControllers, ...dofControllers, ...ppControllers, ...lineControllers,
           ...nodeControllers, ...partControllers, ...helixControllers,
           ...starControllers, ...colorControllers,
         ];
