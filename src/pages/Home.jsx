@@ -26,6 +26,7 @@ const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+import { getNarration, dispatch as dispatchAction } from '../utils/actionDispatcher';
 import { startTour, endTour, nextChapter, prevChapter, getTourState, isTourActive } from '../utils/globeTour';
 import { getTourChapters, TOTAL_CHAPTERS } from '../data/tourChapters';
 import { useCloudSync } from '../hooks/useCloudSync';
@@ -5051,6 +5052,8 @@ export default function Home() {
       let fullText = '';
       let buffer = '';
       let expressionSet = false;
+      let toolCalls = {};
+      let streamFinishReason = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -5090,8 +5093,63 @@ export default function Home() {
             if (data.error) {
               aiLog('Stream error:', data.error);
             }
+            // Detect tool_calls from API
+            if (data.tool_calls) {
+              for (const tc of data.tool_calls) {
+                toolCalls[tc.name || tc.index || 0] = tc;
+              }
+            }
           } catch { /* skip malformed chunk */ }
         }
+      }
+
+      // Handle tool calls — narration first, then dispatch after delay
+      const toolCallEntries = Object.values(toolCalls);
+      if (toolCallEntries.length > 0) {
+        clearTimeout(safetyTimeout);
+        const tc = toolCallEntries[0]; // Handle first tool call
+        const narr = getNarration(tc.name);
+
+        if (narr) {
+          // Phase 1: Show narration + expression change
+          window.__prismExpression = narr.expression;
+          window.__prismTalking = true;
+          setPrismBubble(narr.text);
+          setAiStreamText('');
+          setAiStreaming(false);
+
+          // Store narration as assistant message
+          setAiMessages(prev => [...prev, { role: 'assistant', content: narr.text, timestamp: Date.now(), toolCall: tc.name }]);
+
+          // Phase 2: Execute action after 500ms narration delay
+          setTimeout(() => {
+            window.__prismTalking = false;
+            let params = {};
+            try { params = JSON.parse(tc.arguments || '{}'); } catch { /* empty params */ }
+            dispatchAction(tc.name, params);
+          }, 500);
+        } else {
+          // Unknown tool — just dispatch immediately
+          setAiStreaming(false);
+          let params = {};
+          try { params = JSON.parse(tc.arguments || '{}'); } catch { /* empty params */ }
+          dispatchAction(tc.name, params);
+        }
+
+        // Reset conversation timeout
+        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+        conversationTimeoutRef.current = setTimeout(() => {
+          exitConversation();
+          setAiChatMode(false);
+        }, 60 * 1000);
+
+        playChatReceiveSound();
+        aiLog('Tool call:', tc.name, tc.arguments);
+
+        // Resume autonomy
+        const autTool = getGlintAutonomy();
+        if (autTool) autTool.resume();
+        return; // Skip normal text finalization
       }
 
       // Stream completed — clear safety timeout
@@ -5182,6 +5240,21 @@ export default function Home() {
     const aut = getGlintAutonomy();
     if (aut) aut.resume();
   }, []);
+
+  // Listen for glint-action events (from action dispatcher)
+  useEffect(() => {
+    const handleGlintAction = (e) => {
+      const { action, params } = e.detail || {};
+      if (action === 'navigate' && params?.destination) {
+        navigate(params.destination);
+      } else if (action === 'launch_game' && params?.game_id) {
+        setShowGame(params.game_id);
+      }
+      // Music control and show_daily handled by App.jsx / AudioProvider in Plan 03
+    };
+    window.addEventListener('glint-action', handleGlintAction);
+    return () => window.removeEventListener('glint-action', handleGlintAction);
+  }, [navigate]);
 
   // FAB click — toggle panel + summon Glint when opening
   const handleFabClick = useCallback(() => {
@@ -7505,10 +7578,10 @@ export default function Home() {
 
       {/* DAILY GAME MODAL */}
       <AnimatePresence>
-        {showGame && holiday?.game && (
+        {showGame && (typeof showGame === 'string' || holiday?.game) && (
           <Suspense fallback={null}>
             <GameLauncher
-              gameId={holiday.game}
+              gameId={typeof showGame === 'string' ? showGame : holiday?.game}
               holiday={holiday}
               onClose={() => { setShowGame(false); const aut = getGlintAutonomy(); if (aut) aut.resume(); }}
             />
