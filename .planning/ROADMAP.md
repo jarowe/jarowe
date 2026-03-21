@@ -98,12 +98,12 @@ Plans:
   3. Visiting starseed.llc in a browser reaches the same content as jarowe.com/starseed (DNS redirect or reverse proxy in place)
   4. `/starseed/labs/scratchpad` opens a Milkdown markdown editor with auto-save to localStorage, and `/starseed/labs/canvas` opens an Excalidraw infinite canvas with localStorage persistence -- neither loads on non-Labs routes (verified via network tab)
   5. `/starseed/labs` shows a hub page with entry point cards to scratchpad, canvas, and brainstorm -- clear navigation into each creation tool
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-- [ ] 05-03: TBD
+- [ ] 05-01-PLAN.md -- Upgrade Starseed hub with 4 data-driven project cards, contact section with mailto, Labs nav link, and starseed.llc DNS redirect checkpoint
+- [ ] 05-02-PLAN.md -- Milkdown scratchpad and Excalidraw canvas pages with localStorage persistence, Vite es2022 config, lazy-loaded routes in App.jsx
+- [ ] 05-03-PLAN.md -- Labs hub page with 3 glass cards (Scratchpad, Canvas, Brainstorm), LabsHub route, TodayRail CTA linking to scratchpad with prompt pre-load
 
 ### Phase 6: Automation & Retention
 **Goal**: The site becomes self-sustaining and return-worthy -- weather drives atmosphere, social previews generate automatically, streaks reward daily visitors, easter eggs surprise on special dates, and Glint can save ideas directly into Labs
@@ -148,10 +148,10 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 2. Data Pipeline & Privacy | v1.0 | 5/6 | Gap closure | - |
 | 3. Living Homepage | v2.0 | 0/3 | Planning complete | - |
 | 4. Glint Operator | v2.0 | 0/3 | Planning complete | - |
-| 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
+| 5. Starseed Hub & Labs | v2.0 | 0/3 | Planning complete | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-21 (Phase 4 plans created: 3 plans in 2 waves)*
+*Updated: 2026-03-21 (Phase 5 plans created: 3 plans in 2 waves)*
