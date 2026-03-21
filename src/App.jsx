@@ -36,6 +36,7 @@ const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
 const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
 const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
+const MemoryPortal = lazyRetry(() => import('./pages/MemoryPortal'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -212,6 +213,10 @@ function AppContent() {
     } else if (path.startsWith('/vault')) {
       title = 'Vault | jarowe.com';
       description = 'Unlock hidden rewards';
+    } else if (path.startsWith('/memory/')) {
+      const sceneSlug = path.split('/memory/')[1];
+      title = `Memory: ${sceneSlug.replace(/-/g, ' ')} | jarowe.com`;
+      description = 'Step into a volumetric memory -- a place that matters';
     } else if (path.startsWith('/profile')) {
       title = 'Profile | jarowe.com';
       description = 'Your jarowe.com journey';
@@ -366,6 +371,11 @@ function AppContent() {
           <Route path="/constellation/:nodeId" element={
             <Suspense fallback={<LazyFallback label="Loading Constellation..." />}>
               <ConstellationPage />
+            </Suspense>
+          } />
+          <Route path="/memory/:sceneId" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory..." />}>
+              <MemoryPortal />
             </Suspense>
           } />
           <Route path="/profile" element={

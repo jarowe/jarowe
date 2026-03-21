@@ -367,6 +367,65 @@ function StarseedTemplate() {
   );
 }
 
+function MemoryTemplate({ sceneName }) {
+  const displayName = sceneName
+    ? sceneName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : 'Memory Portal';
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      width: '100%', height: '100%',
+      background: 'linear-gradient(160deg, #0a0a1a 0%, #1a0a2e 40%, #0d0d20 100%)',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Volumetric glow circle */}
+      <div style={{
+        position: 'absolute', display: 'flex',
+        width: '300px', height: '300px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, rgba(124,58,237,0.05) 40%, transparent 70%)',
+        top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+      }} />
+      {/* Scattered particles */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          width: `${1 + (i % 3)}px`, height: `${1 + (i % 3)}px`,
+          borderRadius: '50%',
+          background: `rgba(180,160,255,${0.1 + (i % 5) * 0.08})`,
+          top: `${(i * 31 + 7) % 100}%`,
+          left: `${(i * 47 + 13) % 100}%`,
+        }} />
+      ))}
+      <div style={{
+        display: 'flex', fontSize: '18px', color: 'rgba(124,58,237,0.6)',
+        letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '16px',
+      }}>
+        Memory Portal
+      </div>
+      <div style={{
+        display: 'flex', fontSize: '56px', fontWeight: 800,
+        color: '#ffffff', letterSpacing: '-1px',
+      }}>
+        {displayName}
+      </div>
+      <div style={{
+        display: 'flex', fontSize: '22px', color: 'rgba(255,255,255,0.5)',
+        marginTop: '16px',
+      }}>
+        Step into a volumetric memory
+      </div>
+      <div style={{
+        display: 'flex', fontSize: '16px', color: 'rgba(255,255,255,0.25)',
+        marginTop: '32px',
+      }}>
+        jarowe.com/memory/{sceneName || '...'}
+      </div>
+    </div>
+  );
+}
+
 /* ── Route matching ───────────────────────────────────────────── */
 
 function getTemplateForRoute(route) {
@@ -375,6 +434,11 @@ function getTemplateForRoute(route) {
   if (r.startsWith('/constellation')) return <ConstellationTemplate />;
   if (r.includes('game')) return <GamesTemplate />;
   if (r.startsWith('/starseed')) return <StarseedTemplate />;
+  if (r.startsWith('/memory/')) {
+    const sceneName = r.split('/memory/')[1] || '';
+    return <MemoryTemplate sceneName={sceneName} />;
+  }
+  if (r.startsWith('/memory')) return <MemoryTemplate sceneName="" />;
   // Fallback to homepage
   return <HomepageTemplate />;
 }
