@@ -1,0 +1,217 @@
+.starseed-shell {
+  min-height: 100vh;
+  background: #080810;
+  color: #f0f0f0;
+  padding-bottom: 4rem;
+}
+
+/* Override jarowe.com ambient glows when inside starseed */
+.starseed-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(219,185,120,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(199,149,109,0.04) 0%, transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.starseed-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(8,8,16,0.8);
+  border-bottom: 1px solid rgba(219,185,120,0.08);
+}
+
+.starseed-escape {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.35rem 0.85rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 100px;
+  font-size: 0.75rem;
+  color: #888;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.starseed-escape:hover {
+  background: rgba(219,185,120,0.1);
+  border-color: rgba(219,185,120,0.25);
+  color: #dbb978;
+}
+
+.starseed-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.starseed-logo-icon {
+  color: #dbb978;
+}
+
+.starseed-wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  color: #dbb978;
+}
+
+.starseed-hero {
+  max-width: 800px;
+  margin: 4rem auto 3rem;
+  padding: 0 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #dbb978 0%, #f0d9a8 40%, #c7956d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+}
+
+.starseed-subtitle {
+  font-size: 1.15rem;
+  color: #9999a1;
+  line-height: 1.6;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.starseed-projects {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-section-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #dbb978;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.starseed-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.starseed-card {
+  background: rgba(219,185,120,0.04);
+  border: 1px solid rgba(219,185,120,0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.starseed-card:hover {
+  border-color: rgba(219,185,120,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(219,185,120,0.08);
+}
+
+.starseed-card__icon {
+  color: #dbb978;
+  margin-bottom: 1rem;
+}
+
+.starseed-card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.starseed-card p {
+  color: #9999a1;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.starseed-card__tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.starseed-tag {
+  padding: 0.2rem 0.6rem;
+  background: rgba(219,185,120,0.08);
+  border: 1px solid rgba(219,185,120,0.12);
+  border-radius: 100px;
+  font-size: 0.7rem;
+  color: #dbb978;
+  letter-spacing: 0.03em;
+}
+
+.starseed-card__status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.starseed-footer-cta {
+  text-align: center;
+  margin-top: 4rem;
+  padding: 2rem;
+  color: #666;
+  font-size: 0.85rem;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-link {
+  color: #a78bfa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.starseed-link:hover {
+  color: #c4b5fd;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .starseed-hero {
+    margin-top: 2rem;
+  }
+  .starseed-nav {
+    padding: 0.75rem 1rem;
+  }
+  .starseed-project-grid {
+    grid-template-columns: 1fr;
+  }
+}
