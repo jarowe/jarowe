@@ -24,6 +24,7 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
+import { checkStreak } from '../utils/streaks';
 import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import { getNarration, dispatch as dispatchAction } from '../utils/actionDispatcher';
@@ -44,6 +45,8 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
 import { applyTimeOfDay } from '../utils/timeOfDay';
 import { getMoonIllumination } from '../utils/astro';
+import { fetchWeather, applyWeatherAtmosphere, getWeatherUniforms } from '../utils/weather';
+import { checkEasterEggs } from '../utils/easterEggs';
 import TodayRail from '../components/TodayRail';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
@@ -280,6 +283,94 @@ export default function Home() {
     applyTimeOfDay();
     const interval = setInterval(() => applyTimeOfDay(), 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Weather atmosphere: fetch real weather, apply CSS + globe uniforms (additive on top of tod)
+  const weatherUniformsRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    let weatherInterval = null;
+
+    const loadWeather = async () => {
+      try {
+        const data = await fetchWeather();
+        if (cancelled) return;
+        applyWeatherAtmosphere(data);
+        const uniforms = getWeatherUniforms(data);
+        weatherUniformsRef.current = uniforms;
+        // Update globe shader uniforms if they exist
+        if (sharedUniforms.current) {
+          if (!sharedUniforms.current.uFogDensity) {
+            sharedUniforms.current.uFogDensity = { value: uniforms.uFogDensity };
+            sharedUniforms.current.uWindSpeed = { value: uniforms.uWindSpeed };
+            sharedUniforms.current.uPrecipitation = { value: uniforms.uPrecipitation };
+            sharedUniforms.current.uCloudOpacity = { value: uniforms.uCloudOpacity };
+          } else {
+            sharedUniforms.current.uFogDensity.value = uniforms.uFogDensity;
+            sharedUniforms.current.uWindSpeed.value = uniforms.uWindSpeed;
+            sharedUniforms.current.uPrecipitation.value = uniforms.uPrecipitation;
+            sharedUniforms.current.uCloudOpacity.value = uniforms.uCloudOpacity;
+          }
+        }
+      } catch {
+        // Silent fallback — apply clear-day defaults
+        if (!cancelled) applyWeatherAtmosphere(null);
+      }
+    };
+
+    loadWeather();
+    // Re-fetch every 30 minutes
+    weatherInterval = setInterval(loadWeather, 30 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      if (weatherInterval) clearInterval(weatherInterval);
+    };
+  }, []);
+
+  // Easter egg detection: check on mount, add CSS class, trigger Glint peek
+  const easterEggRef = useRef(null);
+  useEffect(() => {
+    const egg = checkEasterEggs();
+    if (!egg) return;
+    easterEggRef.current = egg;
+    document.body.classList.add(egg.cssClass);
+    // Dispatch easter-egg-detected for autonomy system
+    window.dispatchEvent(new CustomEvent('easter-egg-detected', {
+      detail: { event: egg.event, cssClass: egg.cssClass },
+    }));
+    // Trigger Glint peek after 5s delay with first dialogue line
+    const peekTimer = setTimeout(() => {
+      const line = egg.glintDialogue[0];
+      if (line) {
+        window.__prismExpression = line.expression;
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: {
+            autonomous: true,
+            triggerType: 'easter-egg',
+            text: line.text,
+            expression: line.expression,
+            pinned: false,
+            duration: 8000,
+          },
+        }));
+      }
+      // Site birthday also fires confetti
+      if (egg.event === 'birthday') {
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'],
+          scalar: 1.2,
+        });
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(peekTimer);
+      if (egg.cssClass) document.body.classList.remove(egg.cssClass);
+    };
   }, []);
 
   // Callback ref: fires when Globe actually mounts (after lazy load resolves)
@@ -722,7 +813,12 @@ export default function Home() {
     prismPulse: { value: 0.0 },
     introIntensity: { value: 1.0 },
     sunDir: { value: getSunDirection() },
-    uMoonIllumination: { value: getMoonIllumination() }
+    uMoonIllumination: { value: getMoonIllumination() },
+    // Weather uniforms (updated by weather useEffect)
+    uFogDensity: { value: 0 },
+    uWindSpeed: { value: 0 },
+    uPrecipitation: { value: 0 },
+    uCloudOpacity: { value: 0 },
   });
 
   // All tunable parameters — defaults from globeDefaults.js, editor mutates these in-place
@@ -3903,6 +3999,18 @@ export default function Home() {
 
   // Scroll to top when Home mounts (returning from release page etc.)
   useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // Streak tracking — check once on mount, dispatch milestone event for Glint
+  const streakCountRef = useRef(0);
+  useEffect(() => {
+    const result = checkStreak();
+    streakCountRef.current = result.count;
+    if (result.milestone) {
+      window.dispatchEvent(new CustomEvent('streak-milestone', {
+        detail: { milestone: result.milestone, count: result.count }
+      }));
+    }
+  }, []);
 
   // Birthday confetti entrance
   useEffect(() => {

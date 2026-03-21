@@ -185,6 +185,58 @@ function AppContent() {
     return cleanup;
   }, [navigate]);
 
+  // Dynamic OG meta tags — update per route for SPA navigation
+  useEffect(() => {
+    const path = location.pathname;
+    const OG_BASE = 'https://jarowe.com';
+    const ogImageUrl = `${OG_BASE}/api/og?route=${encodeURIComponent(path)}`;
+
+    // Route-specific titles and descriptions
+    let title = 'jarowe.com | Living World';
+    let description = 'The most alive personal world on the internet';
+    if (path.startsWith('/constellation')) {
+      title = 'Constellation | jarowe.com';
+      description = 'Explore a 3D map of life moments';
+    } else if (path.startsWith('/starseed')) {
+      title = 'Starseed | jarowe.com';
+      description = 'Creative solutions & labs';
+    } else if (path.startsWith('/universe')) {
+      title = 'Universe | jarowe.com';
+      description = 'Explore the universe of ideas';
+    } else if (path.startsWith('/garden')) {
+      title = 'Garden | jarowe.com';
+      description = 'A growing collection of creative work';
+    } else if (path.startsWith('/now')) {
+      title = 'Now | jarowe.com';
+      description = 'What Jared is up to right now';
+    } else if (path.startsWith('/vault')) {
+      title = 'Vault | jarowe.com';
+      description = 'Unlock hidden rewards';
+    } else if (path.startsWith('/profile')) {
+      title = 'Profile | jarowe.com';
+      description = 'Your jarowe.com journey';
+    }
+
+    // Helper to set or create a meta tag
+    const setMeta = (attr, key, value) => {
+      let el = document.querySelector(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', value);
+    };
+
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:image', ogImageUrl);
+    setMeta('property', 'og:image:width', '1200');
+    setMeta('property', 'og:image:height', '630');
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'twitter:image', ogImageUrl);
+  }, [location.pathname]);
+
   // Cmd+K / Ctrl+K opens command palette
   const [paletteOpen, setPaletteOpen] = useState(false);
   useEffect(() => {
