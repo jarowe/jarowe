@@ -214,9 +214,9 @@
     transform: translateY(0);
 }
 
-/* Starseed nav link — gold accent */
+/* Starseed nav link — cosmic purple accent */
 .starseed-nav-link {
-  color: #dbb978;
+  color: #a78bfa;
   opacity: 0.7;
   transition: opacity 0.2s ease, color 0.2s ease;
   display: inline-flex;
@@ -225,12 +225,12 @@
 
 .starseed-nav-link:hover {
   opacity: 1;
-  color: #f0d9a8;
+  color: #c4b5fd;
 }
 
 .starseed-nav-link.active {
   opacity: 1;
-  color: #dbb978;
+  color: #a78bfa;
 }
 
 /* Birthday Mode */

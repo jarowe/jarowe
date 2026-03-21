@@ -9,23 +9,31 @@ const tempColor = new THREE.Color();
 
 /** Theme-based color palette (primary motif -> color) */
 const THEME_COLORS = {
-  love:        '#f472b6',   // pink
-  family:      '#fb923c',   // orange
-  fatherhood:  '#fb923c',   // orange (family group)
-  career:      '#60a5fa',   // blue
-  craft:       '#38bdf8',   // sky blue
-  growth:      '#a78bfa',   // purple
-  reflection:  '#c084fc',   // lavender
-  adventure:   '#2dd4bf',   // teal
-  travel:      '#2dd4bf',   // teal (adventure group)
-  greece:      '#2dd4bf',   // teal (adventure group)
-  celebration: '#fbbf24',   // gold
-  friendship:  '#818cf8',   // indigo
-  nature:      '#34d399',   // emerald
-  food:        '#f97316',   // amber
-  nostalgia:   '#d4a574',   // warm tan
-  faith:       '#e2c6ff',   // soft purple
-  home:        '#86efac',   // light green
+  love:            '#f472b6',   // pink
+  family:          '#fb923c',   // orange
+  fatherhood:      '#fb923c',   // orange (family group)
+  brotherhood:     '#e0915a',   // warm sienna (family group)
+  marriage:        '#f9a8d4',   // rose (family group)
+  childhood:       '#fdba74',   // peach (family group)
+  career:          '#60a5fa',   // blue
+  craft:           '#38bdf8',   // sky blue
+  filmmaking:      '#67e8f9',   // cyan (creative group)
+  growth:          '#a78bfa',   // purple
+  reflection:      '#c084fc',   // lavender
+  adventure:       '#2dd4bf',   // teal
+  travel:          '#2dd4bf',   // teal (adventure group)
+  greece:          '#2dd4bf',   // teal (adventure group)
+  worldschooling:  '#5eead4',   // bright teal (adventure group)
+  celebration:     '#fbbf24',   // gold
+  friendship:      '#818cf8',   // indigo
+  nature:          '#34d399',   // emerald
+  food:            '#f97316',   // amber
+  nostalgia:       '#d4a574',   // warm tan
+  faith:           '#e2c6ff',   // soft purple
+  home:            '#86efac',   // light green
+  health:          '#4ade80',   // green
+  entrepreneurship:'#f59e0b',   // amber-gold
+  technology:      '#22d3ee',   // cyan
 };
 
 /** Fallback: type-based colors when theme is not yet in the data */
@@ -259,7 +267,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       <meshStandardMaterial
         ref={materialRef}
         color="#ffffff"
-        emissive="#ffffff"
+        emissive="#444466"
         emissiveIntensity={getCfg('nodeEmissiveIntensity')}
         roughness={0.6}
         metalness={0.1}

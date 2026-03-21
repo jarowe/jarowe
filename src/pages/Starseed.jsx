@@ -34,7 +34,7 @@ export default function Starseed() {
           Where ideas<br />become real.
         </h1>
         <p className="starseed-subtitle">
-          Creative studio. Tools. Experiments. A launchpad for what's next.
+          Creative studio. Tools. Experiments. A launchpad for what's possible.
         </p>
       </motion.section>
 

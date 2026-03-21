@@ -6,11 +6,15 @@ import { getCfg } from '../constellationDefaults';
 /** Theme-based color palette (same as NodeCloud) */
 const THEME_COLORS = {
   love: '#f472b6', family: '#fb923c', fatherhood: '#fb923c',
-  career: '#60a5fa', craft: '#38bdf8', growth: '#a78bfa',
-  reflection: '#c084fc', adventure: '#2dd4bf', travel: '#2dd4bf',
-  greece: '#2dd4bf', celebration: '#fbbf24', friendship: '#818cf8',
+  brotherhood: '#e0915a', marriage: '#f9a8d4', childhood: '#fdba74',
+  career: '#60a5fa', craft: '#38bdf8', filmmaking: '#67e8f9',
+  growth: '#a78bfa', reflection: '#c084fc',
+  adventure: '#2dd4bf', travel: '#2dd4bf', greece: '#2dd4bf',
+  worldschooling: '#5eead4',
+  celebration: '#fbbf24', friendship: '#818cf8',
   nature: '#34d399', food: '#f97316', nostalgia: '#d4a574',
   faith: '#e2c6ff', home: '#86efac',
+  health: '#4ade80', entrepreneurship: '#f59e0b', technology: '#22d3ee',
 };
 
 const TYPE_COLORS = {
