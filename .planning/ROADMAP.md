@@ -131,11 +131,11 @@ Plans:
   2. The splat scene is reachable from the globe or constellation through a portal-style camera transition (flythrough, dissolve, or dimensional shader) -- not a hard page cut
   3. Inside the splat scene, a soundtrack auto-plays and narrative text overlays tell the story of the place -- the visitor understands why this location matters to Jared
   4. Visiting `/memory/[scene-name]` directly loads the splat scene with a dynamic OG image preview, making the URL shareable on social media with a compelling card
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md -- Scene registry, GPU capability detection, splat viewer component with @mkkellogg/gaussian-splats-3d, narrative overlay, soundtrack integration, mobile fallback
+- [ ] 07-02-PLAN.md -- Route wiring in App.jsx, Memory OG template in api/og.js, portal entry point on globe with View Transitions, human verification checkpoint
 
 ## Progress
 
@@ -150,8 +150,8 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 4. Glint Operator | v2.0 | 0/3 | Planning complete | - |
 | 5. Starseed Hub & Labs | v2.0 | 0/3 | Planning complete | - |
 | 6. Automation & Retention | v2.0 | 1/3 | In Progress|  |
-| 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 7. Immersive Portal | v2.0 | 0/2 | Planning complete | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-21 (Phase 6 plans created: 3 plans in 2 waves)*
+*Updated: 2026-03-21 (Phase 7 plans created: 2 plans in 2 waves)*
