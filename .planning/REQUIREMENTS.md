@@ -40,9 +40,9 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Starseed Labs (Creation Surface)
 
-- [ ] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
-- [ ] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
-- [ ] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
+- [x] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
+- [x] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
+- [x] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
 - [ ] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
 - [ ] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
 - [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
@@ -122,9 +122,9 @@ Updated during roadmap creation.
 | STAR-05 | Phase 5 | Pending |
 | STAR-06 | Phase 5 | Pending |
 | STAR-07 | Phase 5 | Pending |
-| LABS-01 | Phase 5 | Pending |
-| LABS-02 | Phase 5 | Pending |
-| LABS-03 | Phase 5 | Pending |
+| LABS-01 | Phase 5 | Complete |
+| LABS-02 | Phase 5 | Complete |
+| LABS-03 | Phase 5 | Complete |
 | LABS-04 | Phase 6 | Pending |
 | LABS-05 | Phase 6 | Pending |
 | LABS-06 | Phase 5 | Pending |
