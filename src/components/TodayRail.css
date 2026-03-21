@@ -1,0 +1,212 @@
+.today-rail {
+  padding: 0 2rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.today-rail__inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Base card styling -- glass, consistent with bento cells */
+.today-card {
+  background: rgba(15, 15, 18, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.today-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Card 1: Today State -- highest contrast */
+.today-card--state {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 18, 0.65);
+  box-shadow: 0 0 20px rgba(124, 58, 237, var(--tod-accent-glow-opacity, 0.15));
+}
+
+.today-card__date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.today-card__date-icon {
+  color: var(--tod-hero-accent, #a78bfa);
+}
+
+.today-card__holiday {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f0f0f0;
+}
+
+.today-card__emoji {
+  font-size: 1.1rem;
+}
+
+.today-card__featured {
+  font-size: 0.85rem;
+  color: #9999a1;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* CTAs */
+.today-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tod-hero-accent, #a78bfa);
+  text-decoration: none;
+  margin-top: auto;
+  padding-top: 0.25rem;
+  transition: color 0.2s ease, gap 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+}
+
+.today-card__cta:hover {
+  gap: 10px;
+}
+
+.today-card__cta--secondary {
+  color: #a78bfa;
+}
+
+.today-card__cta--starseed {
+  color: #dbb978;
+}
+
+/* Card 2: Glint */
+.today-card--glint {
+  background: rgba(124, 58, 237, 0.04);
+  border-color: rgba(124, 58, 237, 0.08);
+}
+
+.today-card__glint-marker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.today-card__glint-line {
+  font-size: 0.9rem;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+/* Card 3: Creative Prompt */
+.today-card--prompt {
+  background: rgba(219, 185, 120, 0.03);
+  border-color: rgba(219, 185, 120, 0.08);
+}
+
+.today-card__mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.today-card__mode-chip[data-mode="write"] {
+  background: rgba(14, 165, 233, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.15);
+}
+
+.today-card__mode-chip[data-mode="sketch"] {
+  background: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.15);
+}
+
+.today-card__mode-chip[data-mode="build"] {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.15);
+}
+
+.today-card__mode-chip[data-mode="dream"] {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.15);
+}
+
+.today-card__prompt-text {
+  font-size: 0.9rem;
+  color: #ddd;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .today-rail__inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .today-card--prompt {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .today-rail {
+    padding: 0 1rem;
+  }
+  .today-rail__inner {
+    grid-template-columns: 1fr;
+  }
+  .today-card--prompt {
+    grid-column: span 1;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .today-card {
+    transition: none;
+  }
+}
+
+/* Keyboard focus */
+.today-card__cta:focus-visible {
+  outline: 2px solid var(--tod-hero-accent, #a78bfa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
