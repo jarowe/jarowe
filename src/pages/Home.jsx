@@ -43,6 +43,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
 import { applyTimeOfDay } from '../utils/timeOfDay';
 import { getMoonIllumination } from '../utils/astro';
+import TodayRail from '../components/TodayRail';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -6422,6 +6423,9 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      {/* Today Rail -- daily living content above the bento grid */}
+      {!tourCinematic && <TodayRail />}
 
       <section className="bento-container">
         <div className={`bento-grid${tourCinematic ? ' tour-dissolve' : ''}`}>

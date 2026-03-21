@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Patcher from './pages/Patcher';
@@ -46,6 +46,7 @@ import GlobalPlayer from './components/GlobalPlayer';
 import AuthModal from './components/AuthModal';
 import registry from './content/takeovers/registry';
 import { useTakeoverState } from './hooks/useTakeoverState';
+import { setupGlobalViewTransitions } from './utils/viewTransitions';
 
 /* ── Registry-driven lazy page components ──────────────────
  * Created at module level so React.lazy() is called once per page,
@@ -142,6 +143,7 @@ function HolidayBodyClass({ disabled }) {
 /* ── AppContent — route-aware layout with chrome scoping ── */
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const takeover = useTakeoverState();
   const { pausePlayback } = useAudio();
   const prevReleaseRef = useRef(false);
@@ -172,6 +174,12 @@ function AppContent() {
     }
     prevReleaseRef.current = isReleaseContext;
   }, [isReleaseContext, pausePlayback]);
+
+  // Global View Transitions -- wraps all <Link> clicks with startViewTransition
+  useEffect(() => {
+    const cleanup = setupGlobalViewTransitions(navigate);
+    return cleanup;
+  }, [navigate]);
 
   return (
     <div className="app-container">
