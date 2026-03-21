@@ -1,0 +1,67 @@
+.scratchpad-editor-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Override Milkdown frame theme to match Starseed dark palette */
+.scratchpad-editor-container .milkdown {
+  --color-background: transparent;
+  --color-surface: rgba(219,185,120,0.04);
+  --color-on-surface: #f0f0f0;
+  --color-primary: #dbb978;
+  --color-on-primary: #080810;
+  --color-outline: rgba(219,185,120,0.15);
+  --color-secondary: rgba(219,185,120,0.08);
+  color: #f0f0f0;
+}
+
+.scratchpad-editor-container .milkdown .editor {
+  min-height: 60vh;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* Toolbar styling */
+.scratchpad-editor-container .milkdown .toolbar {
+  background: rgba(8,8,16,0.9);
+  border-bottom: 1px solid rgba(219,185,120,0.1);
+}
+
+/* Code block fallback (CodeMirror disabled) */
+.scratchpad-editor-container .milkdown pre {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(219,185,120,0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.scratchpad-editor-container .milkdown pre code {
+  color: #dbb978;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+/* Links in editor */
+.scratchpad-editor-container .milkdown a {
+  color: #dbb978;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Blockquote */
+.scratchpad-editor-container .milkdown blockquote {
+  border-left: 3px solid rgba(219,185,120,0.3);
+  padding-left: 1rem;
+  color: #9999a1;
+}
+
+@media (max-width: 768px) {
+  .scratchpad-editor-container {
+    padding: 1rem;
+  }
+}

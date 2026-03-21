@@ -18,7 +18,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.0",
     "@gsap/react": "^2.1.2",
+    "@milkdown/crepe": "^7.19.0",
+    "@milkdown/react": "^7.19.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
