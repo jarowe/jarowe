@@ -58,9 +58,9 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Immersive Portal
 
-- [ ] **PORTAL-01**: One gaussian splat scene captured from a meaningful location, optimized to SPZ format, and viewable in the site via Spark.js or drei Splat
+- [x] **PORTAL-01**: One gaussian splat scene captured from a meaningful location, optimized to SPZ format, and viewable in the site via Spark.js or drei Splat
 - [ ] **PORTAL-02**: Splat scene accessible from globe or constellation with a portal-style camera transition (flythrough, dissolve, or dimensional shader)
-- [ ] **PORTAL-03**: Soundtrack auto-plays and narrative text overlay tells the story of the place within the splat scene
+- [x] **PORTAL-03**: Soundtrack auto-plays and narrative text overlay tells the story of the place within the splat scene
 - [ ] **PORTAL-04**: Direct shareable URL (`/memory/[scene-name]`) with dynamic OG image showing splat scene preview
 
 ## v2.1+ Requirements (Deferred)
@@ -134,9 +134,9 @@ Updated during roadmap creation.
 | DAILY-04 | Phase 6 | Complete |
 | DAILY-05 | Phase 6 | Complete |
 | DAILY-06 | Phase 6 | Complete |
-| PORTAL-01 | Phase 7 | Pending |
+| PORTAL-01 | Phase 7 | Complete |
 | PORTAL-02 | Phase 7 | Pending |
-| PORTAL-03 | Phase 7 | Pending |
+| PORTAL-03 | Phase 7 | Complete |
 | PORTAL-04 | Phase 7 | Pending |
 
 **Coverage:**

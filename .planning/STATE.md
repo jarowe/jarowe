@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
 status: unknown
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-03-21T18:00:49.848Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-21T20:30:57.001Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 06 — automation-retention
+**Current focus:** Phase 07 — immersive-portal
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
+Phase: 07 (immersive-portal) — EXECUTING
+Plan: 2 of 2
 
 ## v1.0 Summary
 
@@ -74,6 +74,9 @@ Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
 - [Phase 06]: Silent geolocation fallback: denied geolocation results in clear-day defaults with no error
 - [Phase 06]: Append-only scratchpad writes with markdown HR separator and Glint attribution timestamp
 - [Phase 06]: TODAY-06 (progress signal card) explicitly descoped per user decision
+- [Phase 07]: Dynamic import for splat library to code-split heavy 3D away from fallback users
+- [Phase 07]: Remote demo splat asset for placeholder scene (Hugging Face bonsai ksplat)
+- [Phase 07]: Separate Howl per scene (not global AudioProvider) for scene-specific ambient audio
 
 ### Pending Todos (from v1.0)
 
@@ -88,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T17:56:50.814Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-03-21T20:30:56.998Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
