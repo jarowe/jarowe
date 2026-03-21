@@ -16,7 +16,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
 - [ ] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
 - [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
-- [ ] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
+- [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
 
 ### Glint Operator
 
@@ -50,7 +50,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 ### Daily Engine
 
 - [x] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
-- [ ] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
+- [x] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
 - [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
 - [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
 - [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
@@ -107,7 +107,7 @@ Updated during roadmap creation.
 | TODAY-04 | Phase 6 | Pending |
 | TODAY-05 | Phase 4 | Pending |
 | TODAY-06 | Phase 6 | Pending |
-| TODAY-07 | Phase 3 | Pending |
+| TODAY-07 | Phase 3 | Complete |
 | GLINT-01 | Phase 4 | Pending |
 | GLINT-02 | Phase 4 | Pending |
 | GLINT-03 | Phase 4 | Pending |
@@ -129,7 +129,7 @@ Updated during roadmap creation.
 | LABS-05 | Phase 6 | Pending |
 | LABS-06 | Phase 5 | Pending |
 | DAILY-01 | Phase 3 | Complete |
-| DAILY-02 | Phase 3 | Pending |
+| DAILY-02 | Phase 3 | Complete |
 | DAILY-03 | Phase 6 | Pending |
 | DAILY-04 | Phase 6 | Pending |
 | DAILY-05 | Phase 6 | Pending |

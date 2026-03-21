@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
 status: unknown
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-21T05:32:22.794Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-03-21T05:38:46.884Z"
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -60,6 +60,8 @@ Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
 - [Phase 03]: Replace Workshop nav link with Starseed link (gold Sparkles icon)
 - [Phase 03]: Used djb2 hash + mulberry32 PRNG for daily seed (zero dependencies, deterministic)
 - [Phase 03]: Moon illumination modulates globe nebula/particles via shared uMoonIllumination uniform
+- [Phase 03]: 3 cards in TodayRail (not 4): Glint Thought and Progress Signal deferred to Phase 4/6
+- [Phase 03]: Global View Transitions via document-level click interceptor (capture phase) for maximum Link coverage
 
 ### Pending Todos (from v1.0)
 
@@ -74,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T05:32:22.791Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-21T05:38:46.882Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None
