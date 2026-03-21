@@ -14,7 +14,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
 - [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
 - [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
-- [ ] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
+- [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
 - [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
 - [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
 
@@ -24,7 +24,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [ ] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
 - [ ] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
 - [ ] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
-- [ ] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
+- [x] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
 - [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
 - [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
 
@@ -105,14 +105,14 @@ Updated during roadmap creation.
 | TODAY-02 | Phase 3 | Complete |
 | TODAY-03 | Phase 3 | Complete |
 | TODAY-04 | Phase 6 | Pending |
-| TODAY-05 | Phase 4 | Pending |
+| TODAY-05 | Phase 4 | Complete |
 | TODAY-06 | Phase 6 | Pending |
 | TODAY-07 | Phase 3 | Complete |
 | GLINT-01 | Phase 4 | Pending |
 | GLINT-02 | Phase 4 | Pending |
 | GLINT-03 | Phase 4 | Pending |
 | GLINT-04 | Phase 4 | Pending |
-| GLINT-05 | Phase 4 | Pending |
+| GLINT-05 | Phase 4 | Complete |
 | GLINT-06 | Phase 6 | Pending |
 | GLINT-07 | Phase 4 | Pending |
 | STAR-01 | Phase 3 | Complete |
