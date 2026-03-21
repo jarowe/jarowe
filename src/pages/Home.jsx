@@ -41,6 +41,8 @@ import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
+import { applyTimeOfDay } from '../utils/timeOfDay';
+import { getMoonIllumination } from '../utils/astro';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -263,6 +265,13 @@ export default function Home() {
     });
     if (mapContainerRef.current) observer.observe(mapContainerRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Time-of-day atmosphere: apply CSS custom properties on mount + refresh every minute
+  useEffect(() => {
+    applyTimeOfDay();
+    const interval = setInterval(() => applyTimeOfDay(), 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // Callback ref: fires when Globe actually mounts (after lazy load resolves)
@@ -704,7 +713,8 @@ export default function Home() {
     audioPulse: { value: 0 },
     prismPulse: { value: 0.0 },
     introIntensity: { value: 1.0 },
-    sunDir: { value: getSunDirection() }
+    sunDir: { value: getSunDirection() },
+    uMoonIllumination: { value: getMoonIllumination() }
   });
 
   // All tunable parameters — defaults from globeDefaults.js, editor mutates these in-place
@@ -1481,6 +1491,7 @@ export default function Home() {
               sunDir: globe.customUniforms.sunDir,
               time: globe.customUniforms.time,
               prismPulse: globe.customUniforms.prismPulse,
+              uMoonIllumination: globe.customUniforms.uMoonIllumination,
               prismGlowColor1: { value: new THREE.Vector3(...pg.prismGlowColor1) },
               prismGlowColor2: { value: new THREE.Vector3(...pg.prismGlowColor2) },
               prismGlowColor3: { value: new THREE.Vector3(...pg.prismGlowColor3) },
@@ -1505,6 +1516,7 @@ export default function Home() {
               uniform vec3 sunDir;
               uniform float time;
               uniform float prismPulse;
+              uniform float uMoonIllumination;
               uniform vec3 prismGlowColor1;
               uniform vec3 prismGlowColor2;
               uniform vec3 prismGlowColor3;
@@ -1549,6 +1561,9 @@ export default function Home() {
                 float NdotL = dot(vWorldNormal, sunDir);
                 float sunWrap = 0.5 + NdotL * 0.3;
 
+                // Moon illumination modulates nebula: full moon = 20% brighter, new moon = 40% dimmer
+                float moonFactor = mix(0.6, 1.2, uMoonIllumination);
+
                 // Seamless 3D-projected noise (no atan2 seam)
                 vec3 nPos = normalize(vWorldPos);
                 float t = time * prismGlowSpeed;
@@ -1566,7 +1581,7 @@ export default function Home() {
                 col += prismGlowColor3 * (0.5 + 0.5 * sin(phase + 4.189));
                 col = normalize(col) * length(col) * 0.5;
 
-                float baseIntensity = prismGlowIntensity * 0.3 * sunWrap;
+                float baseIntensity = prismGlowIntensity * 0.3 * sunWrap * moonFactor;
                 float pulseBoost = prismPulse * prismGlowIntensity * bopGlowBoost;
                 float intensity = (baseIntensity + pulseBoost) * fresnel * (0.5 + n2 * 0.5);
 
@@ -2378,6 +2393,7 @@ export default function Home() {
               time: globe.customUniforms.time,
               audioPulse: globe.customUniforms.audioPulse,
               prismPulse: globe.customUniforms.prismPulse,
+              uMoonIllumination: globe.customUniforms.uMoonIllumination,
               pixelRatio: { value: window.devicePixelRatio || 1 },
               mousePos: mouseUniforms,
               starTwinkleBase: { value: pp.starTwinkleBase },
@@ -2450,6 +2466,7 @@ export default function Home() {
             fragmentShader: `
               varying vec3 vColor; varying float vType; varying float vMouseDist;
               uniform float audioPulse; uniform float prismPulse; uniform float time;
+              uniform float uMoonIllumination;
               uniform float mouseRippleRadius;
               uniform float mouseRippleStrength;
               uniform float bopColorShift;
@@ -2458,7 +2475,9 @@ export default function Home() {
                 float ll = length(xy);
                 if(ll>0.5) discard;
                 float glow = (vType>0.5) ? smoothstep(0.5,0.0,ll) : smoothstep(0.5,0.4,ll);
-                float alpha = glow * (0.6 + audioPulse*0.4 + prismPulse*0.3);
+                // Moon illumination modulates particle brightness: full moon = 15% brighter, new moon = 30% dimmer
+                float moonBright = mix(0.7, 1.15, uMoonIllumination);
+                float alpha = glow * (0.6 + audioPulse*0.4 + prismPulse*0.3) * moonBright;
 
                 // Mouse proximity glow - particles near cursor glow brighter
                 float mouseGlow = (vMouseDist < mouseRippleRadius) ? (1.0 - vMouseDist / mouseRippleRadius) * 0.5 * mouseRippleStrength : 0.0;
@@ -2472,7 +2491,7 @@ export default function Home() {
                 vec3 shimmer = mix(vColor, prismatic, prismPulse * bopColorShift);
                 // Mouse makes nearby particles glow white/bright
                 shimmer += vec3(0.3, 0.5, 1.0) * mouseGlow;
-                gl_FragColor = vec4(shimmer*(1.0 + audioPulse*0.8 + prismPulse*0.3 + mouseGlow), alpha + mouseGlow * 0.3);
+                gl_FragColor = vec4(shimmer*(1.0 + audioPulse*0.8 + prismPulse*0.3 + mouseGlow) * moonBright, alpha + mouseGlow * 0.3);
               }
             `,
             transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
@@ -3071,6 +3090,11 @@ export default function Home() {
               const newSunDir = getSunDirection(ep.timeOverrideHour);
               globe.customUniforms.sunDir.value.copy(newSunDir);
               if (globe._sunLight) globe._sunLight.position.copy(newSunDir.clone().multiplyScalar(200));
+
+              // Update moon illumination (changes slowly, once per frame is fine)
+              if (globe.customUniforms.uMoonIllumination) {
+                globe.customUniforms.uMoonIllumination.value = getMoonIllumination();
+              }
 
               // Visibility toggles
               if (globe.cloudMesh) globe.cloudMesh.visible = ep.cloudsVisible;

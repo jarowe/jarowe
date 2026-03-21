@@ -30,6 +30,7 @@
     cursor: default;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 4px var(--tod-shadow-softness, 24px) rgba(0,0,0,0.3);
 }
 
 .bento-cell:not(.tilt-enabled):hover {
@@ -325,6 +326,7 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    filter: drop-shadow(var(--tod-text-glow, 0 0 0 transparent));
 }
 
 .hero-titles h2 {
@@ -2878,5 +2880,12 @@
 
     .promo-pill__link:hover {
         transform: translateX(0) translateY(-2px);
+    }
+}
+
+/* ── Reduced Motion: disable tod atmospheric transitions ── */
+@media (prefers-reduced-motion: reduce) {
+    .bento-cell {
+        transition: none;
     }
 }
