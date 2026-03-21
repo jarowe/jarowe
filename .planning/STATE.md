@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
 status: unknown
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-21T05:26:39.559Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-21T05:32:22.794Z"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 03 (living-homepage) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## v1.0 Summary
 
@@ -58,6 +58,8 @@ Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
 - Glint bounded tool use, not generic chatbot
 - [Phase 03]: Hide main Navbar on /starseed routes via isStarseedRoute (campaign-shell pattern)
 - [Phase 03]: Replace Workshop nav link with Starseed link (gold Sparkles icon)
+- [Phase 03]: Used djb2 hash + mulberry32 PRNG for daily seed (zero dependencies, deterministic)
+- [Phase 03]: Moon illumination modulates globe nebula/particles via shared uMoonIllumination uniform
 
 ### Pending Todos (from v1.0)
 
@@ -72,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T05:26:39.555Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-03-21T05:32:22.791Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None

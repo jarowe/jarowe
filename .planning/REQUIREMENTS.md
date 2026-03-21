@@ -10,9 +10,9 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Today Layer
 
-- [ ] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
-- [ ] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
-- [ ] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
+- [x] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
+- [x] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
+- [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
 - [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
 - [ ] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
 - [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
@@ -49,7 +49,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Daily Engine
 
-- [ ] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
+- [x] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
 - [ ] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
 - [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
 - [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
@@ -101,9 +101,9 @@ Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TODAY-01 | Phase 3 | Pending |
-| TODAY-02 | Phase 3 | Pending |
-| TODAY-03 | Phase 3 | Pending |
+| TODAY-01 | Phase 3 | Complete |
+| TODAY-02 | Phase 3 | Complete |
+| TODAY-03 | Phase 3 | Complete |
 | TODAY-04 | Phase 6 | Pending |
 | TODAY-05 | Phase 4 | Pending |
 | TODAY-06 | Phase 6 | Pending |
@@ -128,7 +128,7 @@ Updated during roadmap creation.
 | LABS-04 | Phase 6 | Pending |
 | LABS-05 | Phase 6 | Pending |
 | LABS-06 | Phase 5 | Pending |
-| DAILY-01 | Phase 3 | Pending |
+| DAILY-01 | Phase 3 | Complete |
 | DAILY-02 | Phase 3 | Pending |
 | DAILY-03 | Phase 6 | Pending |
 | DAILY-04 | Phase 6 | Pending |

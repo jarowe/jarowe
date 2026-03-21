@@ -67,7 +67,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Daily engine (dailySeed, astro, timeOfDay utilities), time-of-day atmosphere CSS, moon phase globe integration, creative prompt data pool
+- [x] 03-01-PLAN.md -- Daily engine (dailySeed, astro, timeOfDay utilities), time-of-day atmosphere CSS, moon phase globe integration, creative prompt data pool
 - [x] 03-02-PLAN.md -- Starseed branded hub route with campaign-shell pattern, own chrome/nav, gold accent identity, escape hatch navigation
 - [ ] 03-03-PLAN.md -- Today Rail component (3 living cards above bento grid), View Transitions API utility with fallback
 
