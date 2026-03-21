@@ -1,217 +1,149 @@
-# Requirements: The JAROWE Constellation
+# Requirements: jarowe.com Living World
 
-**Defined:** 2026-02-27
-**Core Value:** The Constellation must render real life data as an explorable, evidence-connected 3D experience -- every node real, every connection justified, every visit a discovery.
+**Defined:** 2026-03-20
+**Core Value:** jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation.
+**Canonical scope:** See `.planning/future/MASTER_PLAN.md` for strategic rationale and shipping order.
 
-## v1 Requirements
+## v2.0 Requirements
 
-Requirements for initial milestone. Each maps to roadmap phases.
+Requirements for the Living World milestone. 37 requirements across 6 categories. All ship in v2.0, sequenced into 5 waves.
 
-### Constellation Rendering
+### Today Layer
 
-- [ ] **REND-01**: Constellation page renders 150+ nodes as instanced meshes at 60fps on desktop
-- [ ] **REND-02**: User can hover any node to see tooltip with title (clean, minimal label)
-- [ ] **REND-03**: User can click any node to fly camera to it and open detail panel
-- [ ] **REND-04**: Detail panel shows node media (images/video), text content, and entity chips (people, places, tags)
-- [ ] **REND-05**: Connection lines render between nodes with evidence-based edges, dimming non-connected nodes on focus
-- [ ] **REND-06**: Nodes are positioned in double-helix temporal layout (time as spine, epoch clustering, seeded stability)
-- [ ] **REND-07**: Timeline scrubber moves camera along helix with epoch labels and year markers
-- [ ] **REND-08**: "Because..." meaning lens shows 3-5 evidence reasons for each connection in detail panel
-- [ ] **REND-09**: 2D library fallback provides searchable, keyboard-navigable node index for accessibility
-- [ ] **REND-10**: Mobile responsive with graceful degradation (no ChromaticAberration, simplified effects, touch gestures)
-- [ ] **REND-11**: ESC key and back button exit constellation cleanly, no broken state
-- [ ] **REND-12**: Three.js disposal utilities prevent GPU memory leaks on navigation
+- [ ] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
+- [ ] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
+- [ ] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
+- [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
+- [ ] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
+- [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
+- [ ] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
 
-### Narrator & Tour
+### Glint Operator
 
-- [ ] **NARR-01**: Guided tour plays ~90-second cinematic journey through curated anchor nodes
-- [ ] **NARR-02**: Tour is skippable at any point with prominent skip button, returns to orbit mode without broken state
-- [ ] **NARR-03**: Scripted narrator engine responds to user behavior (hover, click, camera movement, timeline scrub)
-- [ ] **NARR-04**: Narrator speaks in Jared's inner voice -- reflective, poetic, personal, not robotic or chatbot-like
-- [ ] **NARR-05**: 150+ unique narration lines across 3 tiers: epoch transitions, node focus, connection reveals
-- [ ] **NARR-06**: Narration selection uses behavior-responsive logic: relevance + novelty + emotional pacing
-- [ ] **NARR-07**: No narration line repeats within 60 seconds; 3+ variants per event type
-- [ ] **NARR-08**: Narration displays with typewriter animation and is dismissible
+- [ ] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
+- [ ] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
+- [ ] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
+- [ ] **GLINT-04**: Glint's tool calls are narrated in character — not robotic execution confirmations but tour-guide-style narration
+- [ ] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
+- [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
+- [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
 
-### Data Pipeline
+### Starseed Hub
 
-- [ ] **PIPE-01**: Instagram parser extracts posts, captions, media files, GPS, tagged users, and reels from 276-file export
-- [ ] **PIPE-02**: Carbonmade parser extracts 35 projects, 20 blog posts, career milestones, clients, and collaborators from JSON archive
-- [ ] **PIPE-03**: Build-time pipeline runs end-to-end: parse -> normalize (canonical schema) -> enrich -> connect (evidence-based edges) -> layout (double-helix) -> emit JSON
-- [ ] **PIPE-04**: Pipeline outputs constellation.json with nodes, edges, layout positions, and narration metadata
-- [ ] **PIPE-05**: Evidence-based edge generation uses signal weights (person +0.55, client +0.40, place +0.25, tag +0.20, temporal +0.15) with pruning (top 6 per type per node)
-- [ ] **PIPE-06**: Defensive Instagram parsing: null-safe traversal, logs unknown fields, never crashes on format changes
-- [ ] **PIPE-07**: Ingest resilience: if APIs fail or rate-limit, keep last good snapshot and surface status in admin
+- [ ] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
+- [ ] **STAR-02**: Project cards display active Starseed projects (BEAMY, AMINA, DECKIT, Starseed Labs, and future projects) with icons, descriptions, and tags
+- [ ] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes — distinct from jarowe.com main site aesthetic
+- [ ] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
+- [ ] **STAR-05**: Contact/client-facing section for Starseed business inquiries with form or mailto
+- [ ] **STAR-06**: Each project card links to its own detail page within the site or to an external project URL
+- [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) — unified URL strategy
 
-### Privacy
+### Starseed Labs (Creation Surface)
 
-- [ ] **PRIV-01**: Every node, edge, and media item has visibility tier: public / private / redacted / friends
-- [ ] **PRIV-02**: Build-time validation script FAILS build (exit code 1) if private content appears in public output
-- [ ] **PRIV-03**: GPS coordinates redacted to city-level (2 decimal places max) for public content; exact only for friends tier
-- [ ] **PRIV-04**: All EXIF metadata stripped from images during pipeline processing
-- [ ] **PRIV-05**: Minors policy enforced: no legal names, no home/school identifiers, no exact GPS, allowlisted before publish
-- [ ] **PRIV-06**: DMs, contact graphs, and close friends lists are always private (never appear in output)
-- [ ] **PRIV-07**: People visible publicly only via explicit allowlist; otherwise labeled "Friend" / "Family" / "Collaborator"
-- [ ] **PRIV-08**: Owner-controlled allowlists with gated friends visibility layer
-- [ ] **PRIV-09**: Evidence transparency: each key connection shows "Because..." reasons (evidence array visible to user)
-- [ ] **PRIV-10**: Friends-gated visibility enforced server-side (public/friends/private access control via Vercel Edge Functions)
+- [ ] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
+- [ ] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
+- [ ] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
+- [ ] **LABS-04**: Glint handoff — "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
+- [ ] **LABS-05**: Glint brainstorm mode — structured AI ideation session that generates a project brief (title, idea, mood, next steps)
+- [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
 
-### Admin Dashboard
+### Daily Engine
 
-- [ ] **ADMN-01**: Owner-only authentication via Auth.js v5 (GitHub OAuth, JWT sessions, Edge Functions for fast auth)
-- [ ] **ADMN-02**: Curation UI: publish/hide/highlight nodes with preview before publish
-- [ ] **ADMN-03**: Draft inbox: auto-ingested content lands here for review; bulk approve/reject supported
-- [ ] **ADMN-04**: Allowlist management: add/remove people names for public visibility
-- [ ] **ADMN-05**: Tour anchor management: select which nodes appear in guided tour
-- [ ] **ADMN-06**: Narration text editing: modify scripted narrator lines per node/epoch/connection
-- [ ] **ADMN-07**: Publish states: draft -> preview -> published, with undo capability
-- [ ] **ADMN-08**: Data quality view: shows missing/malformed fields per source, last sync timestamp
-- [ ] **ADMN-09**: "Pull Latest Now" button triggers on-demand data refresh from connected platforms
-- [ ] **ADMN-10**: Admin can edit and publish Garden and Now page content (not just constellation curation)
+- [ ] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation — same date always selects same content
+- [ ] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
+- [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function — route-specific social preview cards for homepage, constellation, games, Starseed
+- [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
+- [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
+- [ ] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
 
-### Automation
+### Immersive Portal
 
-- [ ] **AUTO-01**: Nightly scheduled ingest via Vercel cron pulls latest from connected platforms (Suno first)
-- [ ] **AUTO-02**: Suno music auto-ingest: tracks pulled to draft inbox, owner curates with metadata (mood, era, story)
-- [ ] **AUTO-03**: Published tracks become constellation nodes linked to relevant projects/eras and appear in site player
-- [ ] **AUTO-04**: Cron jobs authenticated via CRON_SECRET pattern to prevent external triggering
-- [ ] **AUTO-05**: Ingest respects API rate limits with exponential backoff and graceful degradation
-- [ ] **AUTO-06**: Ingest observability in admin: last run timestamp, status, errors, source health per platform
-- [ ] **AUTO-07**: On ingest failure, keep and serve last known good snapshot (no broken public state)
-- [ ] **AUTO-08**: Music source adapters support Suno + SoundCloud normalization into unified track schema
+- [ ] **PORTAL-01**: One gaussian splat scene captured from a meaningful location, optimized to SPZ format, and viewable in the site via Spark.js or drei Splat
+- [ ] **PORTAL-02**: Splat scene accessible from globe or constellation with a portal-style camera transition (flythrough, dissolve, or dimensional shader)
+- [ ] **PORTAL-03**: Soundtrack auto-plays and narrative text overlay tells the story of the place within the splat scene
+- [ ] **PORTAL-04**: Direct shareable URL (`/memory/[scene-name]`) with dynamic OG image showing splat scene preview
 
-### Bento Hub Enhancement
+## v2.1+ Requirements (Deferred)
 
-- [ ] **BENT-01**: Latest moments cell displays most recent Instagram/life moments from constellation data
-- [ ] **BENT-02**: Featured project cell shows rotating showcase from Carbonmade project nodes
-- [ ] **BENT-03**: Music player cell enhanced with Suno track metadata (mood, era, story) from constellation
-- [ ] **BENT-04**: Constellation portal cell links to /constellation with live node count and visual preview
-- [ ] **BENT-05**: Existing pages (Globe, Garden, Vault, Workshop, Now, Universe) polished and wired into constellation data system
+Acknowledged, tracked, not in current roadmap.
 
-## v1.1 Requirements
+### Ecosystem Expansion
+- **ECO-01**: Starseed Labs as standalone product with own OAuth, own domain, agentic AI business factory
+- **ECO-02**: Community infrastructure — Discord server(s) for jarowe.com/Starseed/Starseed Labs communities
+- **ECO-03**: Subscriber system — mailing list, SMS, cross-ecosystem user management
+- **ECO-04**: Content pipeline automation — hard drive creative assets to site publishing workflow
+- **ECO-05**: Video/livestreaming channel on jarowe.com
+- **ECO-06**: Full starseed.llc independent site (beyond redirect)
 
-Deferred to next iteration after v1 validates.
-
-### Constellation Polish
-- **MODE-01**: Constellation modes: "Life" / "Work" / "Ideas" (filter + edge weight + narration tone)
-- **PATH-01**: Path memory: faint glowing trail of visitor's journey through nodes
-- **DISC-01**: Discovery gamification: XP awards per node (+50), per epoch complete (+200), constellation complete (+500)
-- **DISC-02**: Discovery/idle narration tiers (tiers 4-5) added to narrator engine
-
-### Audio
-- **AUDI-01**: Ambient soundscape: cosmic drone, epoch tonal shifts
-- **AUDI-02**: Interaction sounds: hover ping, focus whoosh, discovery sparkle, narration bell
-- **AUDI-03**: Optional audio-reactive rendering (bass -> node pulse, mids -> edge glow, highs -> star twinkle)
-
-### AI Narrator
-- **AINR-01**: LLM narrator for nodes without scripted text (Vercel Edge Function + Gemini Flash)
-- **AINR-02**: Caching by (nodeId + contextHash), fallback to scripted on API failure
-- **AINR-03**: Privacy: never send private nodes to external LLM
-
-## v2+ Requirements
-
-Deferred to future milestones.
-
-### Additional Platform Parsers
-- **PLAT-01**: Facebook parser (timeline posts, albums, life events, check-ins)
-- **PLAT-02**: X/Twitter parser (tweets, retweets, influence signals)
-- **PLAT-03**: LinkedIn parser (positions, articles, recommendations)
-- **PLAT-04**: Google Photos parser with clustering (thousands -> 200-500 moment nodes)
-
-### Advanced Features
-- **ADVN-01**: Web Speech API TTS narrator voice toggle
-- **ADVN-02**: Lyria RealTime adaptive music generation
-- **ADVN-03**: Garden and Now page content editing in admin dashboard
+### Experience Expansion
+- **EXP-01**: Voice-enabled Glint (Web Speech API, ElevenLabs, OpenAI Realtime)
+- **EXP-02**: Multiplayer visitor presence via PartyKit
+- **EXP-03**: StarOS desktop mode at high engagement XP threshold
+- **EXP-04**: Additional gaussian splat memory portals
+- **EXP-05**: Hand-tracked Glint interaction via MediaPipe
+- **EXP-06**: WebGPU shader gallery and compute experiences
+- **EXP-07**: VR constellation mode via WebXR
+- **EXP-08**: Glint conversation memory persistence in Supabase
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| Live AI narrator in v1 | Unpredictable, expensive, slow. Scripted-but-responsive first to prove interaction model. |
-| Multiplayer / visitor presence | Complexity explosion. WebSocket infra, moderation, privacy. Not core to personal storytelling. |
-| VR/AR mode | Tiny audience (1-2% have headsets), massive dev cost, motion sickness concerns. |
-| Mobile native app | Web-first. Responsive design covers mobile adequately. |
-| OAuth social login for visitors | Site is public. Only owner needs auth for admin. |
-| Blockchain/NFT integration | Hype-driven, no value for personal portfolio. |
-| Auto-playing video | Accessibility fail, bandwidth hog. Click-to-play with thumbnails. |
-| Force-directed live physics layout | Non-deterministic. User wants stable, reproducible double-helix layout. |
-| Full CMS (Contentful, Sanity) | Overkill for single-owner. Custom admin dashboard with Vercel storage. |
-| react-force-graph or d3-force-3d | Physics-based, not deterministic. Custom layout algorithm preferred. |
+| Full editorial news operation | Progress lens is curated cards, not a feed. Editorial overhead is incompatible with "works for Jared." |
+| Generic autonomous internet agent | Glint is bounded to this world. Constraints make him memorable. |
+| Mobile native app | Web-first. Responsive design covers mobile. |
+| Uncontrolled auto-publishing | Automation proposes and prefills. Jared decides what becomes public. |
+| Generalized social network features | Community forms around content, not around profiles. Discord first. |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REND-01 | Phase 1: Constellation Scene | Pending |
-| REND-02 | Phase 1: Constellation Scene | Pending |
-| REND-03 | Phase 1: Constellation Scene | Pending |
-| REND-04 | Phase 1: Constellation Scene | Pending |
-| REND-05 | Phase 1: Constellation Scene | Pending |
-| REND-06 | Phase 1: Constellation Scene | Pending |
-| REND-07 | Phase 1: Constellation Scene | Pending |
-| REND-08 | Phase 1: Constellation Scene | Pending |
-| REND-09 | Phase 1: Constellation Scene | Pending |
-| REND-10 | Phase 1: Constellation Scene | Pending |
-| REND-11 | Phase 1: Constellation Scene | Pending |
-| REND-12 | Phase 1: Constellation Scene | Pending |
-| NARR-01 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-02 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-03 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-04 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-05 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-06 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-07 | Phase 3: Narrator & Guided Tour | Pending |
-| NARR-08 | Phase 3: Narrator & Guided Tour | Pending |
-| PIPE-01 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-02 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-03 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-04 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-05 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-06 | Phase 2: Data Pipeline & Privacy | Pending |
-| PIPE-07 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-01 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-02 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-03 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-04 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-05 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-06 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-07 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-08 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-09 | Phase 2: Data Pipeline & Privacy | Pending |
-| PRIV-10 | Phase 4: Admin Dashboard | Pending |
-| ADMN-01 | Phase 4: Admin Dashboard | Pending |
-| ADMN-02 | Phase 4: Admin Dashboard | Pending |
-| ADMN-03 | Phase 4: Admin Dashboard | Pending |
-| ADMN-04 | Phase 4: Admin Dashboard | Pending |
-| ADMN-05 | Phase 4: Admin Dashboard | Pending |
-| ADMN-06 | Phase 4: Admin Dashboard | Pending |
-| ADMN-07 | Phase 4: Admin Dashboard | Pending |
-| ADMN-08 | Phase 4: Admin Dashboard | Pending |
-| ADMN-09 | Phase 4: Admin Dashboard | Pending |
-| ADMN-10 | Phase 4: Admin Dashboard | Pending |
-| AUTO-01 | Phase 5: Automation | Pending |
-| AUTO-02 | Phase 5: Automation | Pending |
-| AUTO-03 | Phase 5: Automation | Pending |
-| AUTO-04 | Phase 5: Automation | Pending |
-| AUTO-05 | Phase 5: Automation | Pending |
-| AUTO-06 | Phase 5: Automation | Pending |
-| AUTO-07 | Phase 5: Automation | Pending |
-| AUTO-08 | Phase 5: Automation | Pending |
-| BENT-01 | Phase 6: Bento Hub Integration | Pending |
-| BENT-02 | Phase 6: Bento Hub Integration | Pending |
-| BENT-03 | Phase 6: Bento Hub Integration | Pending |
-| BENT-04 | Phase 6: Bento Hub Integration | Pending |
-| BENT-05 | Phase 6: Bento Hub Integration | Pending |
+| TODAY-01 | TBD | Pending |
+| TODAY-02 | TBD | Pending |
+| TODAY-03 | TBD | Pending |
+| TODAY-04 | TBD | Pending |
+| TODAY-05 | TBD | Pending |
+| TODAY-06 | TBD | Pending |
+| TODAY-07 | TBD | Pending |
+| GLINT-01 | TBD | Pending |
+| GLINT-02 | TBD | Pending |
+| GLINT-03 | TBD | Pending |
+| GLINT-04 | TBD | Pending |
+| GLINT-05 | TBD | Pending |
+| GLINT-06 | TBD | Pending |
+| GLINT-07 | TBD | Pending |
+| STAR-01 | TBD | Pending |
+| STAR-02 | TBD | Pending |
+| STAR-03 | TBD | Pending |
+| STAR-04 | TBD | Pending |
+| STAR-05 | TBD | Pending |
+| STAR-06 | TBD | Pending |
+| STAR-07 | TBD | Pending |
+| LABS-01 | TBD | Pending |
+| LABS-02 | TBD | Pending |
+| LABS-03 | TBD | Pending |
+| LABS-04 | TBD | Pending |
+| LABS-05 | TBD | Pending |
+| LABS-06 | TBD | Pending |
+| DAILY-01 | TBD | Pending |
+| DAILY-02 | TBD | Pending |
+| DAILY-03 | TBD | Pending |
+| DAILY-04 | TBD | Pending |
+| DAILY-05 | TBD | Pending |
+| DAILY-06 | TBD | Pending |
+| PORTAL-01 | TBD | Pending |
+| PORTAL-02 | TBD | Pending |
+| PORTAL-03 | TBD | Pending |
+| PORTAL-04 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 60 total
-- Mapped to phases: 60
-- Unmapped: 0
+- v2.0 requirements: 37 total
+- Mapped to phases: 0
+- Unmapped: 37
 
 ---
-*Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after roadmap creation*
+*Requirements defined: 2026-03-20*
+*Last updated: 2026-03-20 after v2.0 scope lock*
