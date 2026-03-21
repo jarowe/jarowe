@@ -81,12 +81,12 @@ Plans:
   3. Pressing Cmd+K (or Ctrl+K) opens a command palette that searches pages, constellation nodes, games, and actions -- sharing the same action dispatcher that powers Glint's tools
   4. Visitor can ask "What's new today?" and Glint responds with the current daily content, creative prompt, and any relevant daily state
   5. An AI-generated "Thought of the Day" card from Glint appears on the homepage, refreshing daily with a new journal-style reflection
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md -- Action dispatcher module, OpenAI function calling in glint-chat API, tool call streaming, client-side narration + dispatch in Home.jsx
+- [ ] 04-02-PLAN.md -- cmdk command palette with 4 categories, glint-journal Edge API endpoint, journal fallback data pool, TodayRail journal card
+- [ ] 04-03-PLAN.md -- Global palette wiring in App.jsx, music control listener in AudioProvider, show_daily handler, integration checkpoint
 
 ### Phase 5: Starseed Hub & Labs
 **Goal**: Starseed becomes a real, professional creation destination -- visitors can browse active projects, contact Jared for business, and open creation tools (scratchpad, canvas) within the Starseed brand
@@ -147,11 +147,11 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 1. Constellation Scene | v1.0 | 4/4 | Complete | 2026-02-28 |
 | 2. Data Pipeline & Privacy | v1.0 | 5/6 | Gap closure | - |
 | 3. Living Homepage | v2.0 | 0/3 | Planning complete | - |
-| 4. Glint Operator | v2.0 | 0/? | Not started | - |
+| 4. Glint Operator | v2.0 | 0/3 | Planning complete | - |
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-21 (Phase 3 plans created: 3 plans in 2 waves)*
+*Updated: 2026-03-21 (Phase 4 plans created: 3 plans in 2 waves)*
