@@ -1,0 +1,108 @@
+/* CommandPalette — dark glass Spotlight-style command palette */
+
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+}
+
+[cmdk-dialog] {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20vh;
+}
+
+[cmdk-root] {
+  width: min(90vw, 560px);
+  background: rgba(var(--tod-glass-rgb, 20, 10, 40), 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+[cmdk-input] {
+  width: 100%;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 16px;
+  outline: none;
+  font-family: inherit;
+}
+
+[cmdk-input]::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[cmdk-list] {
+  max-height: 400px;
+  overflow: auto;
+  padding: 8px;
+  overscroll-behavior: contain;
+}
+
+[cmdk-group-heading] {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[cmdk-item] {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+[cmdk-item][data-selected='true'] {
+  background: rgba(124, 58, 237, 0.25);
+  color: white;
+}
+
+[cmdk-item]:active {
+  background: rgba(124, 58, 237, 0.35);
+}
+
+[cmdk-item] svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+[cmdk-empty] {
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+}
+
+[cmdk-separator] {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [cmdk-item] {
+    transition: none;
+  }
+}

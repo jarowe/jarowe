@@ -27,6 +27,7 @@
     "animejs": "^4.3.6",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "framer-motion": "^12.34.3",
     "gsap": "^3.14.2",
     "howler": "^2.2.4",
