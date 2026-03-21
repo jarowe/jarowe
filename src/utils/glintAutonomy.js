@@ -316,6 +316,20 @@ class EventReactionManager {
       }
     };
 
+    // Easter egg detected
+    this._handlers['easter-egg-detected'] = (e) => {
+      if (!getCfg('autonomyEventReactions', true)) return;
+      const d = e.detail || {};
+      this.autonomy.triggerPeek('easter-egg', { event: d.event, cssClass: d.cssClass });
+    };
+
+    // Streak milestone (dispatched by Plan 02's streak system)
+    this._handlers['streak-milestone'] = (e) => {
+      if (!getCfg('autonomyEventReactions', true)) return;
+      const d = e.detail || {};
+      this.autonomy.triggerPeek('streak-milestone', { milestone: d.milestone, count: d.count });
+    };
+
     // Register listeners
     window.addEventListener('add-xp', this._handlers['add-xp']);
     window.addEventListener('game-complete', this._handlers['game-complete']);
@@ -323,6 +337,8 @@ class EventReactionManager {
     window.addEventListener('music-stopped', this._handlers['music-stopped']);
     document.addEventListener('visibilitychange', this._handlers['visibilitychange']);
     window.addEventListener('scroll', this._handlers['scroll'], { passive: true });
+    window.addEventListener('easter-egg-detected', this._handlers['easter-egg-detected']);
+    window.addEventListener('streak-milestone', this._handlers['streak-milestone']);
 
     log('EventReactionManager started');
   }
@@ -334,6 +350,8 @@ class EventReactionManager {
     window.removeEventListener('music-stopped', this._handlers['music-stopped']);
     document.removeEventListener('visibilitychange', this._handlers['visibilitychange']);
     window.removeEventListener('scroll', this._handlers['scroll']);
+    window.removeEventListener('easter-egg-detected', this._handlers['easter-egg-detected']);
+    window.removeEventListener('streak-milestone', this._handlers['streak-milestone']);
     if (this._scrollDebounceTimer) clearTimeout(this._scrollDebounceTimer);
     this._handlers = {};
     log('EventReactionManager stopped');
