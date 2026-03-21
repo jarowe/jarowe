@@ -22,6 +22,7 @@
     "@gsap/react": "^2.1.2",
     "@milkdown/crepe": "^7.19.0",
     "@milkdown/react": "^7.19.0",
+    "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
