@@ -6633,9 +6633,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Today Rail -- daily living content above the bento grid */}
-      {!tourCinematic && <TodayRail />}
-
       <section className="bento-container">
         <div className={`bento-grid${tourCinematic ? ' tour-dissolve' : ''}`}>
           {/* HERO IDENTITY CELL */}
@@ -6950,6 +6947,9 @@ export default function Home() {
             {/* Liquid glass edge overlay */}
             <div className="liquid-glass-edge" />
           </div>
+
+          {/* Today Rail -- daily living content below hero row */}
+          {!tourCinematic && <TodayRail />}
 
           <div className="bento-cell cell-music">
             <MusicCell onOpenPlayer={() => setShowMusicModal(true)} />

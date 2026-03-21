@@ -1,7 +1,7 @@
 // streaks.js — Visitor streak tracking with localStorage persistence
 // Tracks consecutive daily visits, streak freeze, and milestone detection.
 
-const STORAGE_KEY = 'jarowe_streak';
+import { STREAK_KEY as STORAGE_KEY } from './storageKeys';
 const MILESTONES = [3, 7, 14, 30];
 
 /**

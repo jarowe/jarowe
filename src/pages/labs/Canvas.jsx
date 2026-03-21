@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
+import { CANVAS_KEY as STORAGE_KEY } from '../../utils/storageKeys';
 import '../Starseed.css';
 import './Canvas.css';
-
-const STORAGE_KEY = 'jarowe_labs_canvas';
 
 function loadSavedScene() {
   try {

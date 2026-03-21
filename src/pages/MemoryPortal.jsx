@@ -247,7 +247,7 @@ export default function MemoryPortal() {
             </p>
             {loadError && (
               <p className="memory-fallback-error">
-                {loadError}
+                The 3D scene is temporarily unavailable. Check back soon.
               </p>
             )}
           </div>
