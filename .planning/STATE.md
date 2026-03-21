@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
-status: defining-requirements
-last_updated: "2026-03-20T20:00:00Z"
+status: ready-to-plan
+last_updated: "2026-03-20T21:00:00Z"
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,54 +17,58 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-20)
 
-**Core value:** jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation.
-**Current focus:** Defining requirements for v2.0 Living World
+**Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
+**Current focus:** Phase 3 - Living Homepage
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-20 — Milestone v2.0 Living World started
+Phase: 3 of 7 (Living Homepage) -- first phase of v2.0
+Plan: --
+Status: Ready to plan
+Last activity: 2026-03-20 -- v2.0 roadmap created (Phases 3-7, 37 requirements mapped)
 
-## v1.0 Constellation Summary
+Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending)
+
+## v1.0 Summary
 
 Phases 1-2 complete (9 plans, 1.74 hours total execution):
-- Phase 1: Constellation Scene — R3F scene, instanced mesh, helix layout, camera, detail panel, connections, 2D fallback
-- Phase 2: Data Pipeline & Privacy — Instagram + Carbonmade parsers, build-time pipeline, privacy enforcement, thin admin
-- Phases 3-6 (Narrator, Admin, Automation, Bento Enhancement) remain from v1.0 scope — deferred, not canceled
+- Phase 1: Constellation Scene (4 plans, complete)
+- Phase 2: Data Pipeline & Privacy (5/6 plans, gap closure pending)
+- Phases 3-6 from v1.0 scope deferred (Narrator, Admin, Automation, Bento Hub)
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 9 (v1.0)
+- Average duration: 11.6 min
+- Total execution time: 1.74 hours
+
+**Recent Trend:**
+- Stable (v1.0 baseline established)
 
 ## Accumulated Context
 
 ### Decisions
 
-Carried from v1.0 + new v2.0 decisions logged in PROJECT.md Key Decisions table.
+Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
+- Starseed Hub uses campaign-shell pattern (proven from music takeover)
+- Daily engine before spectacle (retention before acquisition)
+- Anonymous-first auth with Supabase upgrade path
+- Glint bounded tool use, not generic chatbot
 
 ### Pending Todos (from v1.0)
 
 - Re-enable Bloom in production mode
 - Tune node colors (instanceColor blending)
-- Instagram parser selector tuning once actual HTML export is provided
+- Instagram parser selector tuning
 - Populate allowlist.json with real names
 
-### v2.0 Planning Artifacts
+### Blockers/Concerns
 
-- `.planning/future/INDEX.md` — Master navigation for 11 planning docs
-- `.planning/future/90_DAY_PLAN.md` — 5-phase rollout with acceptance criteria
-- `.planning/future/IDENTITY.md` — Site identity and positioning
-- `.planning/future/ORBIT_MODEL.md` — Four-orbit architecture
-- `.planning/future/DAILY_ENGINE.md` — Daily pulse system
-- `.planning/future/GLINT_EVOLUTION.md` — Glint tool-use path
-- `.planning/future/STARSEED_LABS.md` — Creation layer blueprint
-- `.planning/future/IMMERSIVE_TECH.md` — Splats, shaders, portals
-- `.planning/future/PROGRESS_LENS.md` — Positive/progress signal layer
-- `.planning/future/GROWTH_PLAYBOOK.md` — Activation and metrics
-- `.planning/future/TECHNOLOGY_CATALOG.md` — Full tech catalog with ADOPT/EVALUATE/DEFER
-- `.planning/JAROWE_STRATEGY_RESET_2026.md` — Strategic filter
-- `.planning/JAROWE_VISION_2026.md` — Raw research synthesis (9 agents)
+None yet.
 
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: PROJECT.md and STATE.md updated for v2.0. Next: skip research (already done), define requirements, create roadmap.
+Stopped at: v2.0 roadmap created with 5 phases (3-7), 37 requirements mapped. Ready to plan Phase 3.
 Resume file: None

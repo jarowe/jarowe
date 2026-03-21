@@ -1,7 +1,7 @@
 # Requirements: jarowe.com Living World
 
 **Defined:** 2026-03-20
-**Core Value:** jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation.
+**Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
 **Canonical scope:** See `.planning/future/MASTER_PLAN.md` for strategic rationale and shipping order.
 
 ## v2.0 Requirements
@@ -23,7 +23,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [ ] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
 - [ ] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
 - [ ] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
-- [ ] **GLINT-04**: Glint's tool calls are narrated in character — not robotic execution confirmations but tour-guide-style narration
+- [ ] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
 - [ ] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
 - [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
 - [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
@@ -32,26 +32,26 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 - [ ] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
 - [ ] **STAR-02**: Project cards display active Starseed projects (BEAMY, AMINA, DECKIT, Starseed Labs, and future projects) with icons, descriptions, and tags
-- [ ] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes — distinct from jarowe.com main site aesthetic
+- [ ] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes -- distinct from jarowe.com main site aesthetic
 - [ ] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
 - [ ] **STAR-05**: Contact/client-facing section for Starseed business inquiries with form or mailto
 - [ ] **STAR-06**: Each project card links to its own detail page within the site or to an external project URL
-- [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) — unified URL strategy
+- [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) -- unified URL strategy
 
 ### Starseed Labs (Creation Surface)
 
 - [ ] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
 - [ ] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
 - [ ] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
-- [ ] **LABS-04**: Glint handoff — "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
-- [ ] **LABS-05**: Glint brainstorm mode — structured AI ideation session that generates a project brief (title, idea, mood, next steps)
+- [ ] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
+- [ ] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
 - [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
 
 ### Daily Engine
 
-- [ ] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation — same date always selects same content
+- [ ] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
 - [ ] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
-- [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function — route-specific social preview cards for homepage, constellation, games, Starseed
+- [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
 - [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
 - [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
 - [ ] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
@@ -69,9 +69,9 @@ Acknowledged, tracked, not in current roadmap.
 
 ### Ecosystem Expansion
 - **ECO-01**: Starseed Labs as standalone product with own OAuth, own domain, agentic AI business factory
-- **ECO-02**: Community infrastructure — Discord server(s) for jarowe.com/Starseed/Starseed Labs communities
-- **ECO-03**: Subscriber system — mailing list, SMS, cross-ecosystem user management
-- **ECO-04**: Content pipeline automation — hard drive creative assets to site publishing workflow
+- **ECO-02**: Community infrastructure -- Discord server(s) for jarowe.com/Starseed/Starseed Labs communities
+- **ECO-03**: Subscriber system -- mailing list, SMS, cross-ecosystem user management
+- **ECO-04**: Content pipeline automation -- hard drive creative assets to site publishing workflow
 - **ECO-05**: Video/livestreaming channel on jarowe.com
 - **ECO-06**: Full starseed.llc independent site (beyond redirect)
 
@@ -101,49 +101,49 @@ Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TODAY-01 | TBD | Pending |
-| TODAY-02 | TBD | Pending |
-| TODAY-03 | TBD | Pending |
-| TODAY-04 | TBD | Pending |
-| TODAY-05 | TBD | Pending |
-| TODAY-06 | TBD | Pending |
-| TODAY-07 | TBD | Pending |
-| GLINT-01 | TBD | Pending |
-| GLINT-02 | TBD | Pending |
-| GLINT-03 | TBD | Pending |
-| GLINT-04 | TBD | Pending |
-| GLINT-05 | TBD | Pending |
-| GLINT-06 | TBD | Pending |
-| GLINT-07 | TBD | Pending |
-| STAR-01 | TBD | Pending |
-| STAR-02 | TBD | Pending |
-| STAR-03 | TBD | Pending |
-| STAR-04 | TBD | Pending |
-| STAR-05 | TBD | Pending |
-| STAR-06 | TBD | Pending |
-| STAR-07 | TBD | Pending |
-| LABS-01 | TBD | Pending |
-| LABS-02 | TBD | Pending |
-| LABS-03 | TBD | Pending |
-| LABS-04 | TBD | Pending |
-| LABS-05 | TBD | Pending |
-| LABS-06 | TBD | Pending |
-| DAILY-01 | TBD | Pending |
-| DAILY-02 | TBD | Pending |
-| DAILY-03 | TBD | Pending |
-| DAILY-04 | TBD | Pending |
-| DAILY-05 | TBD | Pending |
-| DAILY-06 | TBD | Pending |
-| PORTAL-01 | TBD | Pending |
-| PORTAL-02 | TBD | Pending |
-| PORTAL-03 | TBD | Pending |
-| PORTAL-04 | TBD | Pending |
+| TODAY-01 | Phase 3 | Pending |
+| TODAY-02 | Phase 3 | Pending |
+| TODAY-03 | Phase 3 | Pending |
+| TODAY-04 | Phase 6 | Pending |
+| TODAY-05 | Phase 4 | Pending |
+| TODAY-06 | Phase 6 | Pending |
+| TODAY-07 | Phase 3 | Pending |
+| GLINT-01 | Phase 4 | Pending |
+| GLINT-02 | Phase 4 | Pending |
+| GLINT-03 | Phase 4 | Pending |
+| GLINT-04 | Phase 4 | Pending |
+| GLINT-05 | Phase 4 | Pending |
+| GLINT-06 | Phase 6 | Pending |
+| GLINT-07 | Phase 4 | Pending |
+| STAR-01 | Phase 3 | Pending |
+| STAR-02 | Phase 5 | Pending |
+| STAR-03 | Phase 3 | Pending |
+| STAR-04 | Phase 3 | Pending |
+| STAR-05 | Phase 5 | Pending |
+| STAR-06 | Phase 5 | Pending |
+| STAR-07 | Phase 5 | Pending |
+| LABS-01 | Phase 5 | Pending |
+| LABS-02 | Phase 5 | Pending |
+| LABS-03 | Phase 5 | Pending |
+| LABS-04 | Phase 6 | Pending |
+| LABS-05 | Phase 6 | Pending |
+| LABS-06 | Phase 5 | Pending |
+| DAILY-01 | Phase 3 | Pending |
+| DAILY-02 | Phase 3 | Pending |
+| DAILY-03 | Phase 6 | Pending |
+| DAILY-04 | Phase 6 | Pending |
+| DAILY-05 | Phase 6 | Pending |
+| DAILY-06 | Phase 6 | Pending |
+| PORTAL-01 | Phase 7 | Pending |
+| PORTAL-02 | Phase 7 | Pending |
+| PORTAL-03 | Phase 7 | Pending |
+| PORTAL-04 | Phase 7 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37
+- Mapped to phases: 37
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after v2.0 scope lock*
+*Last updated: 2026-03-20 after v2.0 roadmap creation (all 37 requirements mapped to Phases 3-7)*
