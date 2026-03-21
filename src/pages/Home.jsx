@@ -5381,6 +5381,22 @@ export default function Home() {
         setPrismBubble(dailySummary);
         setAiMessages(prev => [...prev, { role: 'assistant', content: dailySummary, timestamp: Date.now() }]);
         setTimeout(() => { window.__prismTalking = false; }, 3000);
+      } else if (action === 'save_idea' && params?.content) {
+        // Append to scratchpad localStorage — NEVER overwrite
+        const SCRATCHPAD_KEY = 'jarowe_labs_scratchpad';
+        const existing = localStorage.getItem(SCRATCHPAD_KEY) || '';
+        const timestamp = new Date().toLocaleString();
+        const separator = existing ? '\n\n---\n\n' : '';
+        const newEntry = `${separator}> Saved by Glint on ${timestamp}\n\n${params.content}`;
+        localStorage.setItem(SCRATCHPAD_KEY, existing + newEntry);
+
+        // Show confirmation in Glint bubble
+        window.__prismExpression = 'happy';
+        window.__prismTalking = true;
+        const confirmMsg = "Done! I saved that to your scratchpad. You can find it in Starseed Labs anytime.";
+        setPrismBubble(confirmMsg);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: confirmMsg, timestamp: Date.now() }]);
+        setTimeout(() => { window.__prismTalking = false; }, 3000);
       }
     };
     window.addEventListener('glint-action', handleGlintAction);
