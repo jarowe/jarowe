@@ -3,6 +3,7 @@
 
 import { buildSystemPrompt } from './_lib/glint-system-prompt.js';
 import { checkRateLimit } from './_lib/rate-limiter.js';
+import { getToolSchemas } from './_lib/glint-tools.js';
 
 export const config = {
   runtime: 'edge',
@@ -138,6 +139,8 @@ export default async function handler(req) {
         temperature: 0.85,
         presence_penalty: 0.3,
         frequency_penalty: 0.2,
+        tools: getToolSchemas(),
+        tool_choice: 'auto',
       }),
     });
 
@@ -162,11 +165,22 @@ export default async function handler(req) {
     const stream = new ReadableStream({
       async start(controller) {
         let buffer = '';
+        let toolCalls = {};
+        let finishReason = null;
 
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) {
+              // If stream ended with tool_calls, emit accumulated tool calls
+              if (finishReason === 'tool_calls') {
+                const calls = Object.values(toolCalls);
+                if (calls.length > 0) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ tool_calls: calls })}\n\n`)
+                  );
+                }
+              }
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
               break;
@@ -180,6 +194,15 @@ export default async function handler(req) {
               const trimmed = line.trim();
               if (!trimmed || trimmed === 'data: [DONE]') {
                 if (trimmed === 'data: [DONE]') {
+                  // Check for tool calls before sending DONE
+                  if (finishReason === 'tool_calls') {
+                    const calls = Object.values(toolCalls);
+                    if (calls.length > 0) {
+                      controller.enqueue(
+                        encoder.encode(`data: ${JSON.stringify({ tool_calls: calls })}\n\n`)
+                      );
+                    }
+                  }
                   controller.enqueue(encoder.encode('data: [DONE]\n\n'));
                 }
                 continue;
@@ -188,11 +211,38 @@ export default async function handler(req) {
 
               try {
                 const json = JSON.parse(trimmed.slice(6));
-                const token = json.choices?.[0]?.delta?.content;
+                const delta = json.choices?.[0]?.delta;
+                const fr = json.choices?.[0]?.finish_reason;
+                if (fr) finishReason = fr;
+
+                // Stream text content tokens (existing behavior)
+                const token = delta?.content;
                 if (token) {
                   controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({ token })}\n\n`)
                   );
+                }
+
+                // Accumulate tool call arguments across chunks
+                if (delta?.tool_calls) {
+                  for (const tc of delta.tool_calls) {
+                    const idx = tc.index;
+                    if (!toolCalls[idx]) {
+                      toolCalls[idx] = { id: tc.id, name: tc.function?.name || '', arguments: '' };
+                    }
+                    if (tc.function?.name) toolCalls[idx].name = tc.function.name;
+                    if (tc.function?.arguments) toolCalls[idx].arguments += tc.function.arguments;
+                  }
+                }
+
+                // When finish_reason is tool_calls, emit accumulated tool calls
+                if (fr === 'tool_calls') {
+                  const calls = Object.values(toolCalls);
+                  if (calls.length > 0) {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ tool_calls: calls })}\n\n`)
+                    );
+                  }
                 }
               } catch {
                 // skip malformed chunks
