@@ -15,7 +15,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
 - [x] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
 - [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
-- [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
+- [x] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
 - [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
 
 ### Glint Operator
@@ -25,7 +25,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
 - [x] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
 - [x] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
-- [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
+- [x] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
 - [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
 
 ### Starseed Hub
@@ -43,8 +43,8 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
 - [x] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
 - [x] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
-- [ ] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
-- [ ] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
+- [x] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
+- [x] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
 - [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
 
 ### Daily Engine
@@ -106,14 +106,14 @@ Updated during roadmap creation.
 | TODAY-03 | Phase 3 | Complete |
 | TODAY-04 | Phase 6 | Complete |
 | TODAY-05 | Phase 4 | Complete |
-| TODAY-06 | Phase 6 | Pending |
+| TODAY-06 | Phase 6 | Complete |
 | TODAY-07 | Phase 3 | Complete |
 | GLINT-01 | Phase 4 | Complete |
 | GLINT-02 | Phase 4 | Complete |
 | GLINT-03 | Phase 4 | Complete |
 | GLINT-04 | Phase 4 | Complete |
 | GLINT-05 | Phase 4 | Complete |
-| GLINT-06 | Phase 6 | Pending |
+| GLINT-06 | Phase 6 | Complete |
 | GLINT-07 | Phase 4 | Pending |
 | STAR-01 | Phase 3 | Complete |
 | STAR-02 | Phase 5 | Pending |
@@ -125,8 +125,8 @@ Updated during roadmap creation.
 | LABS-01 | Phase 5 | Complete |
 | LABS-02 | Phase 5 | Complete |
 | LABS-03 | Phase 5 | Complete |
-| LABS-04 | Phase 6 | Pending |
-| LABS-05 | Phase 6 | Pending |
+| LABS-04 | Phase 6 | Complete |
+| LABS-05 | Phase 6 | Complete |
 | LABS-06 | Phase 5 | Pending |
 | DAILY-01 | Phase 3 | Complete |
 | DAILY-02 | Phase 3 | Complete |

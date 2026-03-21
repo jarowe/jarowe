@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
 status: unknown
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-21T17:51:18.333Z"
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-03-21T17:56:50.816Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -72,6 +72,8 @@ Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
 - [Phase 06]: Node.js runtime for @vercel/og Vercel Function (not Edge)
 - [Phase 06]: Weather CSS properties are additive multipliers, never replacing --tod-* values
 - [Phase 06]: Silent geolocation fallback: denied geolocation results in clear-day defaults with no error
+- [Phase 06]: Append-only scratchpad writes with markdown HR separator and Glint attribution timestamp
+- [Phase 06]: TODAY-06 (progress signal card) explicitly descoped per user decision
 
 ### Pending Todos (from v1.0)
 
@@ -86,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T17:51:18.330Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-03-21T17:56:50.814Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None
