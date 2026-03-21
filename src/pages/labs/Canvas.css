@@ -1,0 +1,17 @@
+.canvas-editor-container {
+  height: calc(100vh - 64px);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure Excalidraw fills container (Pitfall 2 from research) */
+.canvas-editor-container .excalidraw-container {
+  height: 100% !important;
+}
+
+/* Override Excalidraw sidebar/panel colors to blend with Starseed palette */
+.canvas-editor-container .excalidraw {
+  --color-primary: #dbb978;
+  --color-primary-light: rgba(219,185,120,0.15);
+}

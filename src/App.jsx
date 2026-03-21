@@ -32,6 +32,8 @@ const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 const Starseed = lazyRetry(() => import('./pages/Starseed'));
+const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
+const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
 
 import GameOverlay from './components/GameOverlay';
@@ -277,6 +279,16 @@ function AppContent() {
           <Route path="/starseed" element={
             <Suspense fallback={<LazyFallback label="Loading Starseed..." />}>
               <Starseed />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/scratchpad" element={
+            <Suspense fallback={<LazyFallback label="Loading Scratchpad..." />}>
+              <Scratchpad />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/canvas" element={
+            <Suspense fallback={<LazyFallback label="Loading Canvas..." />}>
+              <LabsCanvas />
             </Suspense>
           } />
           <Route path="/universe" element={
