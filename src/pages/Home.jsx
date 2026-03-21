@@ -48,6 +48,8 @@ import { getMoonIllumination } from '../utils/astro';
 import { fetchWeather, applyWeatherAtmosphere, getWeatherUniforms } from '../utils/weather';
 import { checkEasterEggs } from '../utils/easterEggs';
 import TodayRail from '../components/TodayRail';
+import scenes from '../data/memoryScenes';
+import { navigateWithTransition } from '../utils/viewTransitions';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -161,6 +163,16 @@ const arcsData = [
   { startLat: 47.27, startLng: 13.33, endLat: 37.44, endLng: 24.94, color: '#38bdf8' }, // Alps → Greece
   { startLat: 37.44, startLng: 24.94, endLat: 36.43, endLng: -5.15, color: '#38bdf8' }, // Greece → Spain
 ];
+
+// Memory portal markers on globe — volumetric memory entry points
+const memoryPoints = scenes.map(s => ({
+  lat: s.coordinates.lat,
+  lng: s.coordinates.lng,
+  label: s.title,
+  sceneId: s.id,
+  size: 0.8,
+  color: 'rgba(124, 58, 237, 0.8)',
+}));
 
 export default function Home() {
   const BASE = import.meta.env.BASE_URL;
@@ -4155,6 +4167,12 @@ export default function Home() {
     playClickSound();
   }, [activeExpedition]);
 
+  // Memory portal click — navigate to /memory/:sceneId with view transition
+  const handleMemoryPointClick = useCallback((point) => {
+    playClickSound();
+    navigateWithTransition(navigate, `/memory/${point.sceneId}`);
+  }, [navigate]);
+
   // Sync activeExpedition to ref for tour closures
   useEffect(() => { activeExpeditionRef.current = activeExpedition; }, [activeExpedition]);
 
@@ -6770,6 +6788,13 @@ export default function Home() {
                         obj.userData._mat.opacity = 0.5 + Math.sin(t * 2) * 0.3;
                       }
                     }}
+
+                    pointsData={memoryPoints}
+                    pointColor={d => d.color || '#fff'}
+                    pointAltitude={0.01}
+                    pointRadius={d => d.size || 0.5}
+                    pointLabel={d => d.label}
+                    onPointClick={handleMemoryPointClick}
                   />
                 )}
               </Suspense>
@@ -6915,6 +6940,17 @@ export default function Home() {
             {!tourCinematic && (
               <button className="globe-tour-trigger" onClick={(e) => { e.stopPropagation(); startGlobeTour(0); }} aria-label="Start Globe Tour" title="Globe Tour">
                 <Play size={12} fill="currentColor" />
+              </button>
+            )}
+            {/* Memory Portal entry CTA */}
+            {scenes.length > 0 && !tourCinematic && (
+              <button
+                className="memory-portal-cta"
+                onClick={(e) => { e.stopPropagation(); navigateWithTransition(navigate, `/memory/${scenes[0].id}`); }}
+                aria-label="Enter Memory Portal"
+              >
+                <span className="portal-glow" />
+                Enter Memory Portal
               </button>
             )}
             {/* Liquid glass edge overlay */}
