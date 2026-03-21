@@ -119,7 +119,7 @@ Plans:
 
 Plans:
 - [ ] 06-01-PLAN.md -- Weather atmosphere (Open-Meteo API, CSS properties, globe uniforms) and date-locked easter eggs (5 event types with CSS effects and Glint dialogue)
-- [ ] 06-02-PLAN.md -- Visitor streak system (localStorage, freeze, milestone events) and dynamic OG social preview images (@vercel/og with 4 route-specific templates)
+- [x] 06-02-PLAN.md -- Visitor streak system (localStorage, freeze, milestone events) and dynamic OG social preview images (@vercel/og with 4 route-specific templates)
 - [ ] 06-03-PLAN.md -- Glint-to-Labs save_idea tool, brainstorm mode via system prompt, scratchpad localStorage integration (TODAY-06 descoped)
 
 ### Phase 7: Immersive Portal
@@ -149,7 +149,7 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 3. Living Homepage | v2.0 | 0/3 | Planning complete | - |
 | 4. Glint Operator | v2.0 | 0/3 | Planning complete | - |
 | 5. Starseed Hub & Labs | v2.0 | 0/3 | Planning complete | - |
-| 6. Automation & Retention | v2.0 | 0/3 | Planning complete | - |
+| 6. Automation & Retention | v2.0 | 1/3 | In Progress|  |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
 
 ---

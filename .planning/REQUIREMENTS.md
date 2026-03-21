@@ -51,8 +51,8 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 - [x] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
 - [x] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
-- [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
-- [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
+- [x] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
+- [x] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
 - [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
 - [ ] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
 
@@ -130,8 +130,8 @@ Updated during roadmap creation.
 | LABS-06 | Phase 5 | Pending |
 | DAILY-01 | Phase 3 | Complete |
 | DAILY-02 | Phase 3 | Complete |
-| DAILY-03 | Phase 6 | Pending |
-| DAILY-04 | Phase 6 | Pending |
+| DAILY-03 | Phase 6 | Complete |
+| DAILY-04 | Phase 6 | Complete |
 | DAILY-05 | Phase 6 | Pending |
 | DAILY-06 | Phase 6 | Pending |
 | PORTAL-01 | Phase 7 | Pending |
