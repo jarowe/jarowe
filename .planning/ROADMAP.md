@@ -86,7 +86,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md -- Action dispatcher module, OpenAI function calling in glint-chat API, tool call streaming, client-side narration + dispatch in Home.jsx
 - [x] 04-02-PLAN.md -- cmdk command palette with 4 categories, glint-journal Edge API endpoint, journal fallback data pool, TodayRail journal card
-- [ ] 04-03-PLAN.md -- Global palette wiring in App.jsx, music control listener in AudioProvider, show_daily handler, integration checkpoint
+- [x] 04-03-PLAN.md -- Global palette wiring in App.jsx, music control listener in AudioProvider, show_daily handler, integration checkpoint
 
 ### Phase 5: Starseed Hub & Labs
 **Goal**: Starseed becomes a real, professional creation destination -- visitors can browse active projects, contact Jared for business, and open creation tools (scratchpad, canvas) within the Starseed brand
