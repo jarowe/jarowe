@@ -64,12 +64,12 @@ Plans:
   3. Constellation particle brightness and nebula glow subtly change in response to the current moon phase (verifiable by checking on full moon vs. new moon)
   4. Navigating to `/starseed` shows a branded shell with Starseed fonts, colors, and chrome -- visually distinct from the main jarowe.com aesthetic -- with a clear escape hatch back to the main site
   5. Page transitions between React Router routes use smooth morphing animations (View Transitions API) with graceful fallback on unsupported browsers
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md -- Daily engine (dailySeed, astro, timeOfDay utilities), time-of-day atmosphere CSS, moon phase globe integration, creative prompt data pool
+- [ ] 03-02-PLAN.md -- Starseed branded hub route with campaign-shell pattern, own chrome/nav, gold accent identity, escape hatch navigation
+- [ ] 03-03-PLAN.md -- Today Rail component (3 living cards above bento grid), View Transitions API utility with fallback
 
 ### Phase 4: Glint Operator
 **Goal**: Glint becomes an actionable guide -- visitors can ask him to navigate, play games, control music, and surface daily content, with a command palette as the keyboard-first alternative
@@ -146,7 +146,7 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 |-------|-----------|----------------|--------|-----------|
 | 1. Constellation Scene | v1.0 | 4/4 | Complete | 2026-02-28 |
 | 2. Data Pipeline & Privacy | v1.0 | 5/6 | Gap closure | - |
-| 3. Living Homepage | v2.0 | 0/? | Not started | - |
+| 3. Living Homepage | v2.0 | 0/3 | Planning complete | - |
 | 4. Glint Operator | v2.0 | 0/? | Not started | - |
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
@@ -154,4 +154,4 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
+*Updated: 2026-03-21 (Phase 3 plans created: 3 plans in 2 waves)*
