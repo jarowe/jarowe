@@ -30,10 +30,10 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Starseed Hub
 
-- [ ] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
+- [x] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
 - [ ] **STAR-02**: Project cards display active Starseed projects (BEAMY, AMINA, DECKIT, Starseed Labs, and future projects) with icons, descriptions, and tags
-- [ ] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes -- distinct from jarowe.com main site aesthetic
-- [ ] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
+- [x] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes -- distinct from jarowe.com main site aesthetic
+- [x] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
 - [ ] **STAR-05**: Contact/client-facing section for Starseed business inquiries with form or mailto
 - [ ] **STAR-06**: Each project card links to its own detail page within the site or to an external project URL
 - [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) -- unified URL strategy
@@ -115,10 +115,10 @@ Updated during roadmap creation.
 | GLINT-05 | Phase 4 | Pending |
 | GLINT-06 | Phase 6 | Pending |
 | GLINT-07 | Phase 4 | Pending |
-| STAR-01 | Phase 3 | Pending |
+| STAR-01 | Phase 3 | Complete |
 | STAR-02 | Phase 5 | Pending |
-| STAR-03 | Phase 3 | Pending |
-| STAR-04 | Phase 3 | Pending |
+| STAR-03 | Phase 3 | Complete |
+| STAR-04 | Phase 3 | Complete |
 | STAR-05 | Phase 5 | Pending |
 | STAR-06 | Phase 5 | Pending |
 | STAR-07 | Phase 5 | Pending |
