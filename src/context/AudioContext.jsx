@@ -207,6 +207,20 @@ export function AudioProvider({ children }) {
         };
     }, []);
 
+    // Listen for glint-action events for music control
+    useEffect(() => {
+        const handleGlintAction = (e) => {
+            const { action, params } = e.detail || {};
+            if (action === 'control_music' && params?.action) {
+                if (params.action === 'play' && !isPlaying) togglePlay();
+                else if (params.action === 'pause' && isPlaying) togglePlay();
+                else if (params.action === 'next') handleNext();
+            }
+        };
+        window.addEventListener('glint-action', handleGlintAction);
+        return () => window.removeEventListener('glint-action', handleGlintAction);
+    }, [isPlaying, togglePlay, handleNext]);
+
     // Track whether the home-page MusicCell is visible (IntersectionObserver)
     const [musicCellVisible, setMusicCellVisible] = useState(true);
 

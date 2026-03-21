@@ -32,6 +32,7 @@ const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 const Starseed = lazyRetry(() => import('./pages/Starseed'));
+const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -181,6 +182,31 @@ function AppContent() {
     return cleanup;
   }, [navigate]);
 
+  // Cmd+K / Ctrl+K opens command palette
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Global action listener for navigation (glint-action events)
+  useEffect(() => {
+    const handleGlintAction = (e) => {
+      const { action, params } = e.detail || {};
+      if (action === 'navigate' && params?.destination) {
+        navigate(params.destination);
+      }
+    };
+    window.addEventListener('glint-action', handleGlintAction);
+    return () => window.removeEventListener('glint-action', handleGlintAction);
+  }, [navigate]);
+
   return (
     <div className="app-container">
       <HolidayBodyClass disabled={!!(isReleaseContext && chrome.disableHolidayBodyFx)} />
@@ -312,6 +338,9 @@ function AppContent() {
         </Routes>
       </main>
       <AuthModal />
+      <Suspense fallback={null}>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      </Suspense>
     </div>
   );
 }

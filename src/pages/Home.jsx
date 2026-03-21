@@ -165,6 +165,12 @@ export default function Home() {
   const { isBirthday, age, isMilestone, holiday } = useBirthday();
   const { syncFlags, syncTotalBops } = useCloudSync();
 
+  // Expose holiday to show_daily handler (glint-action)
+  useEffect(() => {
+    window.__currentHoliday = holiday;
+    return () => { window.__currentHoliday = null; };
+  }, [holiday]);
+
   // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
   const [birthdayNumbersFound, setBirthdayNumbersFound] = useState(0);
@@ -5242,19 +5248,38 @@ export default function Home() {
   }, []);
 
   // Listen for glint-action events (from action dispatcher)
+  // Navigation handled globally by App.jsx; music by AudioProvider
   useEffect(() => {
     const handleGlintAction = (e) => {
       const { action, params } = e.detail || {};
-      if (action === 'navigate' && params?.destination) {
-        navigate(params.destination);
-      } else if (action === 'launch_game' && params?.game_id) {
+      if (action === 'launch_game' && params?.game_id) {
         setShowGame(params.game_id);
+      } else if (action === 'show_daily') {
+        // Gather current daily content and show as Glint narration
+        const hol = window.__currentHoliday;
+        const parts = [];
+        if (hol?.name) parts.push(`Today is ${hol.name} ${hol.emoji || ''}.`.trim());
+        // Read from TodayRail DOM elements if available
+        const journalEl = document.querySelector('.today-card__glint-line');
+        if (journalEl?.textContent) parts.push(journalEl.textContent);
+        const promptEl = document.querySelector('.today-card__prompt-text');
+        if (promptEl?.textContent) parts.push(`Today's creative prompt: "${promptEl.textContent}"`);
+
+        const dailySummary = parts.length > 0
+          ? parts.join(' ')
+          : "The light is quiet today, but that's okay. Sometimes the best days are the ones that surprise you.";
+
+        // Show as Glint bubble
+        window.__prismExpression = 'curious';
+        window.__prismTalking = true;
+        setPrismBubble(dailySummary);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: dailySummary, timestamp: Date.now() }]);
+        setTimeout(() => { window.__prismTalking = false; }, 3000);
       }
-      // Music control and show_daily handled by App.jsx / AudioProvider in Plan 03
     };
     window.addEventListener('glint-action', handleGlintAction);
     return () => window.removeEventListener('glint-action', handleGlintAction);
-  }, [navigate]);
+  }, []);
 
   // FAB click — toggle panel + summon Glint when opening
   const handleFabClick = useCallback(() => {
@@ -5304,30 +5329,7 @@ export default function Home() {
     };
   }, []);
 
-  // Ctrl+K to toggle chat panel + summon Glint
-  useEffect(() => {
-    const handleKeys = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        const cfg = window.__prismConfig || {};
-        if (!cfg.aiChatEnabled || !cfg.aiPanelEnabled) return;
-        e.preventDefault();
-        setChatPanelOpen(prev => {
-          const next = !prev;
-          const aut = getGlintAutonomy();
-          if (aut) next ? aut.pause() : aut.resume();
-          // Summon Glint when opening
-          if (next && !peekVisibleRef.current) {
-            window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
-              detail: { context: 'summoned', side: 'left', style: 'portal', duration: 15000, pinned: true }
-            }));
-          }
-          return next;
-        });
-      }
-    };
-    window.addEventListener('keydown', handleKeys);
-    return () => window.removeEventListener('keydown', handleKeys);
-  }, []);
+  // Ctrl+K now handled globally by App.jsx (CommandPalette)
 
   useEffect(() => {
     // Skip the legacy auto-scheduler when autonomy system is active
