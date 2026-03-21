@@ -8,17 +8,15 @@ A living personal world for Jared Rowe (jarowe.com) that serves as "life in webf
 
 jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
 
-## Current Milestone: v2.0 Living World
+## Current State: v2.0 Living World — SHIPPED 2026-03-21
 
-**Goal:** Transform jarowe.com from an impressive portfolio into a living, daily-pulse world with an AI operator (Glint), a branded business hub (Starseed), creation tools, and atmospheric intelligence.
-
-**Target features:**
-- Today Layer — daily-rotating homepage state with weather, moon, holiday, featured content
-- Glint Operator — bounded tool use (navigate, launch, save), command palette
-- Starseed Hub — branded business showcase replacing Workshop, using campaign-shell pattern, with project cards and client-facing presence
-- Starseed Labs Surface — creation tools (scratchpad, canvas) living under the Starseed umbrella
-- Daily Engine — weather-responsive atmosphere, Glint journal, streaks, progress signal
-- Immersive Portal — one gaussian splat memory capsule with portal transition
+jarowe.com is now a living, daily-pulse world with:
+- **Today Layer** — time-of-day atmosphere, moon phase effects, weather-driven CSS, daily-rotating content
+- **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette
+- **Starseed Hub** — branded business showcase with 4 project cards, contact section, Labs creation tools
+- **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
+- **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
+- **Immersive Portal** — gaussian splat memory viewer with narrative overlay, soundtrack, mobile fallback
 
 ## Requirements
 
