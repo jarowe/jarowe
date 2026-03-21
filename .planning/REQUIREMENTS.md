@@ -20,10 +20,10 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 
 ### Glint Operator
 
-- [ ] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
-- [ ] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
-- [ ] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
-- [ ] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
+- [x] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
+- [x] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
+- [x] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
+- [x] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
 - [x] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
 - [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
 - [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
@@ -108,10 +108,10 @@ Updated during roadmap creation.
 | TODAY-05 | Phase 4 | Complete |
 | TODAY-06 | Phase 6 | Pending |
 | TODAY-07 | Phase 3 | Complete |
-| GLINT-01 | Phase 4 | Pending |
-| GLINT-02 | Phase 4 | Pending |
-| GLINT-03 | Phase 4 | Pending |
-| GLINT-04 | Phase 4 | Pending |
+| GLINT-01 | Phase 4 | Complete |
+| GLINT-02 | Phase 4 | Complete |
+| GLINT-03 | Phase 4 | Complete |
+| GLINT-04 | Phase 4 | Complete |
 | GLINT-05 | Phase 4 | Complete |
 | GLINT-06 | Phase 6 | Pending |
 | GLINT-07 | Phase 4 | Pending |
