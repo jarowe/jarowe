@@ -13,7 +13,7 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
 - [x] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
 - [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
-- [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
+- [x] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
 - [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
 - [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
 - [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
@@ -53,8 +53,8 @@ Requirements for the Living World milestone. 37 requirements across 6 categories
 - [x] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
 - [x] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
 - [x] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
-- [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
-- [ ] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
+- [x] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
+- [x] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
 
 ### Immersive Portal
 
@@ -104,7 +104,7 @@ Updated during roadmap creation.
 | TODAY-01 | Phase 3 | Complete |
 | TODAY-02 | Phase 3 | Complete |
 | TODAY-03 | Phase 3 | Complete |
-| TODAY-04 | Phase 6 | Pending |
+| TODAY-04 | Phase 6 | Complete |
 | TODAY-05 | Phase 4 | Complete |
 | TODAY-06 | Phase 6 | Pending |
 | TODAY-07 | Phase 3 | Complete |
@@ -132,8 +132,8 @@ Updated during roadmap creation.
 | DAILY-02 | Phase 3 | Complete |
 | DAILY-03 | Phase 6 | Complete |
 | DAILY-04 | Phase 6 | Complete |
-| DAILY-05 | Phase 6 | Pending |
-| DAILY-06 | Phase 6 | Pending |
+| DAILY-05 | Phase 6 | Complete |
+| DAILY-06 | Phase 6 | Complete |
 | PORTAL-01 | Phase 7 | Pending |
 | PORTAL-02 | Phase 7 | Pending |
 | PORTAL-03 | Phase 7 | Pending |
