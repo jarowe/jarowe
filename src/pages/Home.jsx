@@ -6712,13 +6712,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* WORKSHOP CELL */}
-          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
-            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
-            <div className="featured-badge">Tools & Builds</div>
+          {/* STARSEED CELL */}
+          <div className="bento-cell cell-project clickable" onClick={() => navigate('/starseed')}>
+            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.6) saturate(0.8) sepia(0.15)' }}></div>
+            <div className="featured-badge" style={{ background: 'linear-gradient(135deg, rgba(219,185,120,0.15), rgba(199,149,109,0.1))', color: '#dbb978', borderColor: 'rgba(219,185,120,0.2)' }}>Create</div>
             <div className="bento-content" style={{ zIndex: 1 }}>
-              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
-              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
+              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>Starseed</h3>
+              <p style={{ color: '#eee', fontSize: '0.95rem' }}>Where ideas become real.</p>
             </div>
           </div>
 

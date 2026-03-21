@@ -214,6 +214,25 @@
     transform: translateY(0);
 }
 
+/* Starseed nav link — gold accent */
+.starseed-nav-link {
+  color: #dbb978;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.starseed-nav-link:hover {
+  opacity: 1;
+  color: #f0d9a8;
+}
+
+.starseed-nav-link.active {
+  opacity: 1;
+  color: #dbb978;
+}
+
 /* Birthday Mode */
 .birthday-brand {
     background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);

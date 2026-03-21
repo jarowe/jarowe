@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Linkedin, Wrench, Instagram, Volume2, VolumeX } from 'lucide-react';
+import { Linkedin, Wrench, Instagram, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { getMuted, setMuted, playClickSound } from '../utils/sounds';
 import { useAuth } from '../context/AuthContext';
@@ -78,7 +78,7 @@ export default function Navbar() {
 
     const links = [
         { name: 'Home', path: '/' },
-        { name: 'Workshop', path: '/workshop' },
+        { name: 'Starseed', path: '/starseed', className: 'starseed-nav-link' },
         { name: 'Garden', path: '/garden' },
         { name: 'Now', path: '/now' }
     ];
@@ -115,8 +115,9 @@ export default function Navbar() {
                         <Link
                             key={link.path}
                             to={link.path}
-                            className={`nav-link ${location.pathname === link.path ? 'active' : ''}`}
+                            className={`nav-link ${link.className || ''} ${location.pathname === link.path ? 'active' : ''}`.trim()}
                         >
+                            {link.path === '/starseed' && <Sparkles size={14} style={{ marginRight: 4 }} />}
                             {link.name}
                             {location.pathname === link.path && (
                                 <motion.div

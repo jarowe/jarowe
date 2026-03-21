@@ -31,6 +31,7 @@ const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
+const Starseed = lazyRetry(() => import('./pages/Starseed'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -159,6 +160,7 @@ function AppContent() {
     location.pathname === '/artist' || location.pathname === '/epk';
   const isAliasRelease = isAliasPath && !!takeover.entry;
   const isReleaseContext = isReleaseRoute || isTakeoverHome || isAliasRelease;
+  const isStarseedRoute = location.pathname.startsWith('/starseed');
 
   // Chrome rules — only apply when in release context
   const chrome = isReleaseContext ? takeover.chrome : {};
@@ -176,7 +178,7 @@ function AppContent() {
       <HolidayBodyClass disabled={!!(isReleaseContext && chrome.disableHolidayBodyFx)} />
 
       {/* Site chrome — hidden per campaign chrome rules */}
-      {!chrome.hideNavbar && <Navbar />}
+      {!chrome.hideNavbar && !isStarseedRoute && <Navbar />}
       {!chrome.hideGameOverlay && <GameOverlay />}
       {!chrome.hideGlobalPlayer && <GlobalPlayer />}
 
@@ -238,6 +240,11 @@ function AppContent() {
           <Route path="/projects/beamy" element={<BeamyProject />} />
           <Route path="/projects/starseed" element={<StarseedProject />} />
           <Route path="/workshop" element={<Workshop />} />
+          <Route path="/starseed" element={
+            <Suspense fallback={<LazyFallback label="Loading Starseed..." />}>
+              <Starseed />
+            </Suspense>
+          } />
           <Route path="/universe" element={
             <Suspense fallback={<LazyFallback label="Loading Universe..." />}>
               <UniversePage />
