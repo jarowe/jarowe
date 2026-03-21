@@ -6,10 +6,9 @@ import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame.css';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { SCRATCHPAD_KEY as STORAGE_KEY } from '../../utils/storageKeys';
 import '../Starseed.css';
 import './Scratchpad.css';
-
-const STORAGE_KEY = 'jarowe_labs_scratchpad';
 
 function MilkdownEditor({ defaultValue, onContentChange }) {
   useEditor((root) => {

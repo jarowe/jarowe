@@ -25,6 +25,10 @@ const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
 import { checkStreak } from '../utils/streaks';
+import { dailyPick } from '../utils/dailySeed';
+import { DAILY_PROMPTS } from '../data/dailyPrompts';
+import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
+import { SCRATCHPAD_KEY } from '../utils/storageKeys';
 import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
 import { getNarration, dispatch as dispatchAction } from '../utils/actionDispatcher';
@@ -308,21 +312,10 @@ export default function Home() {
         const data = await fetchWeather();
         if (cancelled) return;
         applyWeatherAtmosphere(data);
-        const uniforms = getWeatherUniforms(data);
-        weatherUniformsRef.current = uniforms;
-        // Update globe shader uniforms if they exist
-        if (sharedUniforms.current) {
-          if (!sharedUniforms.current.uFogDensity) {
-            sharedUniforms.current.uFogDensity = { value: uniforms.uFogDensity };
-            sharedUniforms.current.uWindSpeed = { value: uniforms.uWindSpeed };
-            sharedUniforms.current.uPrecipitation = { value: uniforms.uPrecipitation };
-            sharedUniforms.current.uCloudOpacity = { value: uniforms.uCloudOpacity };
-          } else {
-            sharedUniforms.current.uFogDensity.value = uniforms.uFogDensity;
-            sharedUniforms.current.uWindSpeed.value = uniforms.uWindSpeed;
-            sharedUniforms.current.uPrecipitation.value = uniforms.uPrecipitation;
-            sharedUniforms.current.uCloudOpacity.value = uniforms.uCloudOpacity;
-          }
+        // Weather CSS custom properties are now applied — globe GLSL
+        // shader integration deferred to future work (uniforms were set
+        // but shader code never consumed them, so removed dead path)
+        if (false) { // placeholder for future globe shader weather
         }
       } catch {
         // Silent fallback — apply clear-day defaults
@@ -5379,15 +5372,14 @@ export default function Home() {
       if (action === 'launch_game' && params?.game_id) {
         setShowGame(params.game_id);
       } else if (action === 'show_daily') {
-        // Gather current daily content and show as Glint narration
+        // Gather current daily content from data modules (not DOM)
         const hol = window.__currentHoliday;
         const parts = [];
         if (hol?.name) parts.push(`Today is ${hol.name} ${hol.emoji || ''}.`.trim());
-        // Read from TodayRail DOM elements if available
-        const journalEl = document.querySelector('.today-card__glint-line');
-        if (journalEl?.textContent) parts.push(journalEl.textContent);
-        const promptEl = document.querySelector('.today-card__prompt-text');
-        if (promptEl?.textContent) parts.push(`Today's creative prompt: "${promptEl.textContent}"`);
+        const journal = dailyPick(GLINT_JOURNAL_ENTRIES, 'journal');
+        if (journal) parts.push(journal);
+        const prompt = dailyPick(DAILY_PROMPTS, 'prompt');
+        if (prompt?.text) parts.push(`Today's creative prompt: "${prompt.text}"`);
 
         const dailySummary = parts.length > 0
           ? parts.join(' ')
@@ -5401,7 +5393,6 @@ export default function Home() {
         setTimeout(() => { window.__prismTalking = false; }, 3000);
       } else if (action === 'save_idea' && params?.content) {
         // Append to scratchpad localStorage — NEVER overwrite
-        const SCRATCHPAD_KEY = 'jarowe_labs_scratchpad';
         const existing = localStorage.getItem(SCRATCHPAD_KEY) || '';
         const timestamp = new Date().toLocaleString();
         const separator = existing ? '\n\n---\n\n' : '';
@@ -5452,13 +5443,16 @@ export default function Home() {
     const handleToggle = () => {
       setChatPanelOpen(prev => !prev);
     };
+    const handleGlintOpen = () => openChatPanel();
     window.addEventListener('glint-ai-test', handleTest);
     window.addEventListener('glint-ai-clear', handleClear);
     window.addEventListener('glint-ai-toggle-panel', handleToggle);
+    window.addEventListener('glint-open', handleGlintOpen);
     return () => {
       window.removeEventListener('glint-ai-test', handleTest);
       window.removeEventListener('glint-ai-clear', handleClear);
       window.removeEventListener('glint-ai-toggle-panel', handleToggle);
+      window.removeEventListener('glint-open', handleGlintOpen);
     };
   }, [handleAiChat]);
 

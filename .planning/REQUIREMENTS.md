@@ -114,20 +114,20 @@ Updated during roadmap creation.
 | GLINT-04 | Phase 4 | Complete |
 | GLINT-05 | Phase 4 | Complete |
 | GLINT-06 | Phase 6 | Complete |
-| GLINT-07 | Phase 4 | Pending |
+| GLINT-07 | Phase 4 | Complete |
 | STAR-01 | Phase 3 | Complete |
-| STAR-02 | Phase 5 | Pending |
+| STAR-02 | Phase 5 | Complete |
 | STAR-03 | Phase 3 | Complete |
 | STAR-04 | Phase 3 | Complete |
-| STAR-05 | Phase 5 | Pending |
-| STAR-06 | Phase 5 | Pending |
-| STAR-07 | Phase 5 | Pending |
+| STAR-05 | Phase 5 | Complete |
+| STAR-06 | Phase 5 | Partial (2/4 cards linked, 2 coming-soon) |
+| STAR-07 | Phase 5 | Deferred (DNS config) |
 | LABS-01 | Phase 5 | Complete |
 | LABS-02 | Phase 5 | Complete |
 | LABS-03 | Phase 5 | Complete |
 | LABS-04 | Phase 6 | Complete |
 | LABS-05 | Phase 6 | Complete |
-| LABS-06 | Phase 5 | Pending |
+| LABS-06 | Phase 5 | Complete |
 | DAILY-01 | Phase 3 | Complete |
 | DAILY-02 | Phase 3 | Complete |
 | DAILY-03 | Phase 6 | Complete |
@@ -135,9 +135,9 @@ Updated during roadmap creation.
 | DAILY-05 | Phase 6 | Complete |
 | DAILY-06 | Phase 6 | Complete |
 | PORTAL-01 | Phase 7 | Complete |
-| PORTAL-02 | Phase 7 | Pending |
+| PORTAL-02 | Phase 7 | Partial (CSS cross-fade, not 3D flythrough) |
 | PORTAL-03 | Phase 7 | Complete |
-| PORTAL-04 | Phase 7 | Pending |
+| PORTAL-04 | Phase 7 | Partial (generic OG, not scene preview) |
 
 **Coverage:**
 - v2.0 requirements: 37 total
