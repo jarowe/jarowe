@@ -130,7 +130,10 @@ export default function TodayRail() {
               <span>{todayData.prompt.mode}</span>
             </div>
             <p className="today-card__prompt-text">{todayData.prompt.text}</p>
-            <Link to="/starseed" className="today-card__cta today-card__cta--starseed">
+            <Link
+              to={`/starseed/labs/scratchpad?prompt=${encodeURIComponent(todayData.prompt.text)}`}
+              className="today-card__cta today-card__cta--starseed"
+            >
               Start in Starseed <ArrowRight size={14} />
             </Link>
           </motion.div>

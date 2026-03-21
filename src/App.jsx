@@ -34,6 +34,7 @@ const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
 const Starseed = lazyRetry(() => import('./pages/Starseed'));
 const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
 const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
+const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
 
 import GameOverlay from './components/GameOverlay';
@@ -279,6 +280,11 @@ function AppContent() {
           <Route path="/starseed" element={
             <Suspense fallback={<LazyFallback label="Loading Starseed..." />}>
               <Starseed />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs" element={
+            <Suspense fallback={<LazyFallback label="Loading Labs..." />}>
+              <LabsHub />
             </Suspense>
           } />
           <Route path="/starseed/labs/scratchpad" element={
