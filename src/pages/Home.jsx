@@ -5038,13 +5038,11 @@ export default function Home() {
         const errData = await res.json().catch(() => ({}));
         aiLog('API error:', res.status, errData);
 
-        if (errData.fallback) {
-          // Use fallback message
-          const fallbackText = errData.message || "Glint's connection flickered. Let me try the old-fashioned way...";
-          window.__prismExpression = 'curious';
-          setPrismBubble(fallbackText);
-          setAiMessages(prev => [...prev, { role: 'assistant', content: fallbackText, timestamp: Date.now() }]);
-        }
+        // Always show a fallback message on any error (404, 500, fallback flag, etc.)
+        const fallbackText = errData.message || "Hmm, my light's a bit scattered right now... try that again?";
+        window.__prismExpression = 'curious';
+        setPrismBubble(fallbackText);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: fallbackText, timestamp: Date.now() }]);
         setAiStreaming(false);
         setAiStreamText('');
         const aut1 = getGlintAutonomy();

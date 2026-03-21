@@ -60,6 +60,8 @@ export default function CommandPalette({ open, onOpenChange }) {
       open={open}
       onOpenChange={onOpenChange}
       label="Command Palette"
+      title="Command Palette"
+      description="Search pages, games, actions, and constellation nodes"
     >
       <Command.Input placeholder="Search pages, games, actions..." />
       <Command.List>
