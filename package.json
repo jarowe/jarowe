@@ -27,6 +27,7 @@
     "@react-three/postprocessing": "^3.0.4",
     "@supabase/supabase-js": "^2.98.0",
     "@types/canvas-confetti": "^1.9.0",
+    "@vercel/og": "^0.11.1",
     "animejs": "^4.3.6",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
