@@ -1,0 +1,38 @@
+export const STARSEED_PROJECTS = [
+  {
+    id: 'beamy',
+    name: 'BEAMY',
+    description: 'Simply powerful animation engine. C++ core, React frontend.',
+    icon: 'PenTool',
+    tags: ['Animation', 'Desktop'],
+    url: '/projects/beamy',
+    status: 'active',
+  },
+  {
+    id: 'amina',
+    name: 'AMINA',
+    description: 'AI-native creative assistant. Idea capture meets intelligent expansion.',
+    icon: 'Lightbulb',
+    tags: ['AI', 'Creative'],
+    url: null,
+    status: 'coming-soon',
+  },
+  {
+    id: 'deckit',
+    name: 'DECKIT',
+    description: 'Card-based project planning. Visual thinking for teams and creators.',
+    icon: 'LayoutGrid',
+    tags: ['Productivity', 'Planning'],
+    url: null,
+    status: 'coming-soon',
+  },
+  {
+    id: 'starseed-labs',
+    name: 'Starseed Labs',
+    description: 'Scratchpad. Canvas. Brainstorm. Creation tools for the curious.',
+    icon: 'Palette',
+    tags: ['Tools', 'Creative'],
+    url: '/starseed/labs',
+    status: 'active',
+  },
+];
