@@ -115,12 +115,12 @@ Plans:
   3. A visitor who returns on consecutive days sees their streak count, Glint reacts at milestones (3, 7, 14, 30 days), and one streak freeze is available to protect the streak
   4. Visiting on special dates (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggers unique visual effects and Glint dialogue that only appear on those dates
   5. Visitor can tell Glint "Save this idea" and it creates a note in the Labs scratchpad with pre-populated content; visitor can also enter a brainstorm mode with Glint that generates a structured project brief
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
-- [ ] 06-03: TBD
+- [ ] 06-01-PLAN.md -- Weather atmosphere (Open-Meteo API, CSS properties, globe uniforms) and date-locked easter eggs (5 event types with CSS effects and Glint dialogue)
+- [ ] 06-02-PLAN.md -- Visitor streak system (localStorage, freeze, milestone events) and dynamic OG social preview images (@vercel/og with 4 route-specific templates)
+- [ ] 06-03-PLAN.md -- Glint-to-Labs save_idea tool, brainstorm mode via system prompt, scratchpad localStorage integration (TODAY-06 descoped)
 
 ### Phase 7: Immersive Portal
 **Goal**: One flagship gaussian splat memory capsule gives the site a "wow" moment worth sharing -- a volumetric 3D scene of a meaningful place, reachable through a portal transition, with soundtrack and narrative
@@ -149,9 +149,9 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 3. Living Homepage | v2.0 | 0/3 | Planning complete | - |
 | 4. Glint Operator | v2.0 | 0/3 | Planning complete | - |
 | 5. Starseed Hub & Labs | v2.0 | 0/3 | Planning complete | - |
-| 6. Automation & Retention | v2.0 | 0/? | Not started | - |
+| 6. Automation & Retention | v2.0 | 0/3 | Planning complete | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-21 (Phase 5 plans created: 3 plans in 2 waves)*
+*Updated: 2026-03-21 (Phase 6 plans created: 3 plans in 2 waves)*
