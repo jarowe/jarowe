@@ -89,5 +89,24 @@ export function getToolSchemas() {
         strict: true,
       },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'save_idea',
+        description: 'Save an idea or note to the Starseed Labs scratchpad. Use when the visitor asks to save, note down, or remember something. Also use after a brainstorm session to save the generated brief.',
+        parameters: {
+          type: 'object',
+          properties: {
+            content: {
+              type: 'string',
+              description: 'The content to save. Can be plain text or markdown.',
+            },
+          },
+          required: ['content'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
   ];
 }

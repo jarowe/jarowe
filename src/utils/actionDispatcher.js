@@ -128,6 +128,36 @@ export const TOOLS = {
     ],
     expression: 'curious',
   },
+
+  save_idea: {
+    schema: {
+      type: 'function',
+      function: {
+        name: 'save_idea',
+        description: 'Save an idea or note to the Starseed Labs scratchpad. Use when the visitor asks to save, note down, or remember something. Also use after a brainstorm session to save the generated brief.',
+        parameters: {
+          type: 'object',
+          properties: {
+            content: {
+              type: 'string',
+              description: 'The content to save to the scratchpad. Can be plain text or markdown formatted.',
+            },
+          },
+          required: ['content'],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+    narrations: [
+      "Capturing that in the scratchpad...",
+      "Let me refract this idea into your notes...",
+      "Saving to the Labs... good thinking!",
+      "Crystallizing that thought for you...",
+      "One idea, locked into the spectrum!",
+    ],
+    expression: 'happy',
+  },
 };
 
 /**
