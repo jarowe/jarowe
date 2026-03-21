@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight, PenTool, Palette, Wrench, Cloud } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useHoliday } from '../context/HolidayContext';
 import { dailyPick } from '../utils/dailySeed';
 import { getMoonPhase, getTimeOfDayPhase } from '../utils/astro';
 import { DAILY_PROMPTS } from '../data/dailyPrompts';
+import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
 import './TodayRail.css';
 
 // Featured constellation nodes for daily rotation (Phase 5 will pull from real data)
@@ -27,15 +28,6 @@ const FEATURED_NODES = [
   "The health journey -- 150 lbs lost, still going.",
 ];
 
-const GLINT_INVITATIONS = [
-  "I've been watching the stars. Got questions?",
-  "Something interesting happened today. Ask me.",
-  "I found a hidden path in the constellation.",
-  "The world shifted a little. Want to see?",
-  "I have a theory about today. Care to hear it?",
-  "There's something new here. I can show you.",
-];
-
 const MODE_ICONS = {
   write: PenTool,
   sketch: Palette,
@@ -46,15 +38,32 @@ const MODE_ICONS = {
 export default function TodayRail() {
   const { holiday } = useHoliday();
 
+  // Journal entry: start with deterministic fallback, upgrade to AI if available
+  const [journalEntry, setJournalEntry] = useState(() => {
+    return dailyPick(GLINT_JOURNAL_ENTRIES, 'glint-journal');
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/glint-journal')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data.entry) {
+          setJournalEntry(data.entry);
+        }
+      })
+      .catch(() => { /* keep fallback */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const todayData = useMemo(() => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     const featuredNode = dailyPick(FEATURED_NODES, 'featured-node');
-    const glintLine = dailyPick(GLINT_INVITATIONS, 'glint-invite');
     const prompt = dailyPick(DAILY_PROMPTS, 'prompt');
     const moonPhase = getMoonPhase(now);
     const todPhase = getTimeOfDayPhase(now);
-    return { dateStr, featuredNode, glintLine, prompt, moonPhase, todPhase };
+    return { dateStr, featuredNode, prompt, moonPhase, todPhase };
   }, []); // Stable for session -- re-mounts on page reload
 
   const ModeIcon = todayData.prompt ? MODE_ICONS[todayData.prompt.mode] || Sparkles : Sparkles;
@@ -86,7 +95,7 @@ export default function TodayRail() {
           </Link>
         </motion.div>
 
-        {/* Card 2: Glint Invitation (placeholder for Phase 4 Glint Thought) */}
+        {/* Card 2: Glint's Thought of the Day */}
         <motion.div
           className="today-card today-card--glint"
           initial={{ opacity: 0, y: 16 }}
@@ -95,13 +104,12 @@ export default function TodayRail() {
         >
           <div className="today-card__glint-marker">
             <Sparkles size={14} />
-            <span>Glint</span>
+            <span>Glint's Journal</span>
           </div>
-          <p className="today-card__glint-line">{todayData.glintLine}</p>
+          <p className="today-card__glint-line">{journalEntry}</p>
           <button
             className="today-card__cta today-card__cta--secondary"
             onClick={() => {
-              // Dispatch event for Glint FAB/chat to pick up
               window.dispatchEvent(new CustomEvent('glint-open'));
             }}
           >
