@@ -135,7 +135,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md -- Scene registry, GPU capability detection, splat viewer component with @mkkellogg/gaussian-splats-3d, narrative overlay, soundtrack integration, mobile fallback
-- [ ] 07-02-PLAN.md -- Route wiring in App.jsx, Memory OG template in api/og.js, portal entry point on globe with View Transitions, human verification checkpoint
+- [x] 07-02-PLAN.md -- Route wiring in App.jsx, Memory OG template in api/og.js, portal entry point on globe with View Transitions, human verification checkpoint
 
 ## Progress
 
