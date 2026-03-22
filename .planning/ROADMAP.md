@@ -148,7 +148,10 @@ Plans:
   1. Constellation helix nodes display their category-specific emissive colors from theme data -- each node type (milestone, project, moment, etc.) is visually distinguishable by color, not all defaulting to the same shade
   2. The InstancedMesh instanceColor attribute updates correctly when theme or focus state changes, verified by hovering/clicking nodes and observing color transitions
   3. Glint's daily journal entry on the TodayRail is always 2 sentences or fewer -- both the API-generated version and every entry in the static fallback pool
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md -- Per-instance emissive colors via onBeforeCompile shader patch in NodeCloud.jsx, journal 2-sentence cap in API prompt and fallback pool
 
 ### Phase 9: Visual Cohesion
 **Goal**: The TodayRail connects visitors to the constellation through holiday exploration, and Starseed recovers its warm gold identity with Workshop-quality card design
@@ -175,7 +178,7 @@ Phases execute in numeric order: 8 -> 9
 | 5. Starseed Hub & Labs | v2.0 | 3/3 | Complete | 2026-03-21 |
 | 6. Automation & Retention | v2.0 | 3/3 | Complete | 2026-03-21 |
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
-| 8. Regression Fixes | v2.0.1 | 0/? | Not started | - |
+| 8. Regression Fixes | v2.0.1 | 0/1 | Planning | - |
 | 9. Visual Cohesion | v2.0.1 | 0/? | Not started | - |
 
 ---
