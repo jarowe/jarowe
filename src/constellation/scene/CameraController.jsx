@@ -220,9 +220,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   }, [cameraMode, controlsRef, helixBounds, camera, setTunnelY]);
 
   // ---- Pre-compute sorted helix node list for scroll-to-next ----
+  // Only helix-tier nodes participate in scroll navigation;
+  // particles are focusable via deep-link/click but not scrollable
   const sortedHelixNodes = useMemo(() => {
     if (!positions || positions.length === 0) return [];
-    return [...positions].sort((a, b) => a.y - b.y);
+    return positions.filter((n) => n.tier !== 'particle').sort((a, b) => a.y - b.y);
   }, [positions]);
 
   // Debounce ref for scroll-to-next (prevent rapid-fire scrolling)

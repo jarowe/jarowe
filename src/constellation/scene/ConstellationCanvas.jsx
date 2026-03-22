@@ -322,7 +322,7 @@ export default function ConstellationCanvas() {
 
       <CameraController
         controlsRef={controlsRef}
-        positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
+        positions={layoutNodes}
         helixBounds={helixBounds}
       />
 

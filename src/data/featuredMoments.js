@@ -45,7 +45,7 @@ export const FEATURED_MOMENTS = [
   { id: 'ms-015', title: 'Family moves to Syros, Greece — worldschooling begins', theme: 'travel', epoch: 'Present', media: 'images/greek-island.jpg' },
   { id: 'ms-017', title: 'Family lives in Spain — European adventure deepens', theme: 'travel', epoch: 'Present', media: 'images/family-alps.jpg' },
   { id: 'ig-019', title: 'A glistening afternoon at Kini beach.', theme: 'greece', epoch: 'Present', media: null },
-  { id: 'ig-008', title: 'The lake was calm and the gradient sky was looking at me through the trees.', theme: 'nature', epoch: 'Present', media: null },
+  { id: 'ig-008', title: "In between the hustle…there's flow.", theme: 'nature', epoch: 'Present', media: null },
 
   // Filmmaking
   { id: 'cm-p-031', title: 'Cartoon Pitch - Audio Only', theme: 'filmmaking', epoch: 'Early Years', media: 'https://carbon-media.accelerator.net/0000000exsu/dt7cp7oQozIfbyBwX8oOOR;960x230.jpeg?auto=webp' },
