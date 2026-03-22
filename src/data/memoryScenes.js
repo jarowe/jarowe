@@ -18,8 +18,9 @@ const scenes = [
     location: 'Memory Lane',
     coordinates: { lat: 0, lng: 0 },
     // Remote demo asset — replaced with a real captured .spz file later
+    // Original HuggingFace URL returns 401 now; using publicly accessible alternative
     splatUrl:
-      'https://huggingface.co/datasets/mkkellogg/gaussian-splat-data/resolve/main/bonsai/bonsai_trimmed.ksplat',
+      'https://huggingface.co/cakewalk/splat-data/resolve/main/nike.splat',
     splatIsRemote: true,
     previewImage: '/images/memory/placeholder-preview.jpg',
     soundtrack: null, // no placeholder audio — Howl creation is conditional

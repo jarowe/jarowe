@@ -226,15 +226,14 @@ export default function ConstellationPage() {
   }, [loadData]);
 
   // Deep-link: auto-focus node from URL param once data is loaded.
-  // Cinematic delay: let the user see the full helix for ~1s before
-  // triggering the camera fly-to, creating a "discover then dive in" moment.
+  // Fires quickly so the camera fly-to animation plays as the scene
+  // appears — user sees the cinematic swoop into the node.
   const deepLinked = useRef(false);
   useEffect(() => {
     if (urlNodeId && dataLoaded && !deepLinked.current) {
       deepLinked.current = true;
       const focusNode = useConstellationStore.getState().focusNode;
-      const timer = setTimeout(() => focusNode(urlNodeId), 1200);
-      return () => clearTimeout(timer);
+      requestAnimationFrame(() => focusNode(urlNodeId));
     }
   }, [urlNodeId, dataLoaded]);
 
