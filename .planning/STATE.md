@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.0.1
 milestone_name: Polish & Connect
 status: unknown
-stopped_at: Completed 09-02-PLAN.md -- Starseed gold brand identity + card depth
-last_updated: "2026-03-22T03:44:15.518Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-22T03:45:36.483Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -48,6 +48,7 @@ Plan: 2 of 2
 *Updated after each plan completion*
 | Phase 08 P01 | 2min | 2 tasks | 3 files |
 | Phase 09 P02 | 3min | 2 tasks | 3 files |
+| Phase 09 P01 | 4min | 2 tasks | 2 files |
 
 ## v2.0 Summary
 
@@ -77,6 +78,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - Glint bounded tool use, not generic chatbot
 - [Phase 08]: Used onBeforeCompile with vColor.rgb multiplication to preserve MeshStandardMaterial PBR lighting for per-instance emissive colors
 - [Phase 09]: Per-card CSS custom property (--card-gradient) driven by inline style from project data for unique gradient identity
+- [Phase 09]: Holiday-constellation linking via nodeId field on T3+ calendar entries with conditional deep-link in TodayRail
 
 ### Pending Todos (carried from v1.0/v2.0)
 
@@ -90,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:44:15.514Z
-Stopped at: Completed 09-02-PLAN.md -- Starseed gold brand identity + card depth
+Last session: 2026-03-22T03:45:36.479Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
