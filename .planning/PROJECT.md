@@ -25,9 +25,9 @@ jarowe.com is now a living, daily-pulse world with:
 **Target features:**
 - ~~Fix constellation helix node rendering (InstancedMesh emissive/color regression)~~ — Validated in Phase 8
 - ~~Cap Glint journal entries to 2 sentences max (API prompt + fallback pool)~~ — Validated in Phase 8
-- Build TodayRail "Explore" card with holiday→constellation node connection
-- Restore Starseed gold warmth and improve card design to match Workshop style
-- Bring Workshop gradient background card aesthetic to Starseed project cards
+- ~~Build TodayRail "Explore" card with holiday→constellation node connection~~ — Validated in Phase 9
+- ~~Restore Starseed gold warmth and improve card design to match Workshop style~~ — Validated in Phase 9
+- ~~Bring Workshop gradient background card aesthetic to Starseed project cards~~ — Validated in Phase 9
 
 ## Requirements
 
