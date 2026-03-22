@@ -1,12 +1,14 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Sparkles, ArrowRight, PenTool, Palette, Wrench, Cloud } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, Sparkles, ArrowRight, PenTool, Palette, Wrench, Cloud, Star } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useHoliday } from '../context/HolidayContext';
 import { dailyPick } from '../utils/dailySeed';
 import { getMoonPhase, getTimeOfDayPhase } from '../utils/astro';
 import { DAILY_PROMPTS } from '../data/dailyPrompts';
 import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
+import { FEATURED_MOMENTS, CATEGORY_THEMES } from '../data/featuredMoments';
+import { navigateWithTransition } from '../utils/viewTransitions';
 import './TodayRail.css';
 
 const MODE_ICONS = {
@@ -16,8 +18,30 @@ const MODE_ICONS = {
   dream: Cloud,
 };
 
+/**
+ * Pick a featured constellation moment based on today's holiday category.
+ * If the holiday has a direct nodeId, use that. Otherwise map category → themes → pick.
+ */
+function pickFeaturedMoment(holiday) {
+  if (!holiday) return dailyPick(FEATURED_MOMENTS, 'featured-moment');
+
+  // Direct nodeId mapping — find the matching moment
+  if (holiday.nodeId) {
+    const direct = FEATURED_MOMENTS.find(m => m.id === holiday.nodeId);
+    if (direct) return direct;
+  }
+
+  // Map holiday category to constellation themes
+  const themes = CATEGORY_THEMES[holiday.category] || ['craft', 'career'];
+  const matching = FEATURED_MOMENTS.filter(m => themes.includes(m.theme));
+
+  if (matching.length === 0) return dailyPick(FEATURED_MOMENTS, 'featured-moment');
+  return dailyPick(matching, `featured-${holiday.category}`);
+}
+
 export default function TodayRail() {
   const { holiday } = useHoliday();
+  const navigate = useNavigate();
 
   // Journal entry: start with deterministic fallback, upgrade to AI if available
   const [journalEntry, setJournalEntry] = useState(() => {
@@ -43,16 +67,23 @@ export default function TodayRail() {
     const prompt = dailyPick(DAILY_PROMPTS, 'prompt');
     const moonPhase = getMoonPhase(now);
     const todPhase = getTimeOfDayPhase(now);
-    return { dateStr, prompt, moonPhase, todPhase };
-  }, []); // Stable for session -- re-mounts on page reload
+    const featured = pickFeaturedMoment(holiday);
+    return { dateStr, prompt, moonPhase, todPhase, featured };
+  }, [holiday]);
 
   const ModeIcon = todayData.prompt ? MODE_ICONS[todayData.prompt.mode] || Sparkles : Sparkles;
+
+  const handleExplore = () => {
+    if (todayData.featured) {
+      navigateWithTransition(navigate, `/constellation/${todayData.featured.id}`);
+    }
+  };
 
   return (
     <section className="today-rail">
       <div className="today-rail__inner">
 
-        {/* Card 1: Today State */}
+        {/* Card 1: Today — Day + Featured Constellation Moment */}
         <motion.div
           className="today-card today-card--state"
           initial={{ opacity: 0, y: 16 }}
@@ -69,17 +100,25 @@ export default function TodayRail() {
               <span>{holiday.name}</span>
             </div>
           )}
-          {holiday && holiday.nodeId ? (
-            <Link to={`/constellation/${holiday.nodeId}`} className="today-card__cta">
-              Explore in constellation <ArrowRight size={14} />
-            </Link>
-          ) : holiday && holiday.greeting ? (
-            <p className="today-card__featured">{holiday.greeting}</p>
-          ) : (
-            <Link to="/constellation" className="today-card__cta">
-              Explore today <ArrowRight size={14} />
-            </Link>
+          {holiday && holiday.greeting && (
+            <p className="today-card__greeting">{holiday.greeting}</p>
           )}
+
+          {/* Featured Constellation Moment */}
+          {todayData.featured && (
+            <div className="today-card__moment">
+              <div className="today-card__moment-badge">
+                <Star size={10} />
+                <span>Featured Moment</span>
+              </div>
+              <p className="today-card__moment-title">{todayData.featured.title}</p>
+              <span className="today-card__moment-epoch">{todayData.featured.epoch}</span>
+            </div>
+          )}
+
+          <button className="today-card__cta today-card__cta--explore" onClick={handleExplore}>
+            Explore this moment <ArrowRight size={14} />
+          </button>
         </motion.div>
 
         {/* Card 2: Glint's Thought of the Day */}

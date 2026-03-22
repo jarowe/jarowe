@@ -69,11 +69,74 @@
   font-size: 1.1rem;
 }
 
-.today-card__featured {
+.today-card__greeting {
   font-size: 0.85rem;
   color: #9999a1;
   line-height: 1.4;
   font-style: italic;
+}
+
+/* Featured Constellation Moment */
+.today-card__moment {
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.today-card:hover .today-card__moment {
+  border-color: rgba(124, 58, 237, 0.25);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.today-card__moment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: #a78bfa;
+}
+
+.today-card__moment-title {
+  font-size: 0.85rem;
+  color: #e0e0e4;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.today-card__moment-epoch {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Explore CTA — special styling */
+.today-card__cta--explore {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(96, 165, 250, 0.08));
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #c4b5fd;
+  transition: all 0.3s ease;
+}
+
+.today-card__cta--explore:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(96, 165, 250, 0.14));
+  border-color: rgba(124, 58, 237, 0.4);
+  color: #e0d4ff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15);
+  gap: 10px;
 }
 
 /* CTAs */
