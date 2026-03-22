@@ -166,7 +166,7 @@ Plans:
 
 Plans:
 - [ ] 09-01-PLAN.md -- Holiday-to-constellation nodeId mapping on T3+ entries, TodayRail conditional Explore deep-link
-- [ ] 09-02-PLAN.md -- Starseed gold brand restoration (purple to amber gold), Workshop-style gradient cards with translateZ depth
+- [x] 09-02-PLAN.md -- Starseed gold brand restoration (purple to amber gold), Workshop-style gradient cards with translateZ depth
 
 ## Progress
 

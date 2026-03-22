@@ -18,8 +18,8 @@ Requirements for patch release. Fixes regressions, tightens content, and improve
 ### Visual Cohesion
 
 - [ ] **VISUAL-01**: TodayRail "Explore" card links the current holiday to its constellation node (degrades gracefully when no mapped node exists)
-- [ ] **VISUAL-02**: Starseed color palette restored to gold warmth
-- [ ] **VISUAL-03**: Starseed project cards use Workshop-style gradient background aesthetic
+- [x] **VISUAL-02**: Starseed color palette restored to gold warmth
+- [x] **VISUAL-03**: Starseed project cards use Workshop-style gradient background aesthetic
 
 ## v2.0 Requirements (Shipped)
 
@@ -89,8 +89,8 @@ Deferred to future milestones. Not in current roadmap.
 | RENDER-01 | Phase 8 | Complete |
 | CONTENT-01 | Phase 8 | Complete |
 | VISUAL-01 | Phase 9 | Pending |
-| VISUAL-02 | Phase 9 | Pending |
-| VISUAL-03 | Phase 9 | Pending |
+| VISUAL-02 | Phase 9 | Complete |
+| VISUAL-03 | Phase 9 | Complete |
 
 **Coverage:**
 - v2.0.1 requirements: 5 total
