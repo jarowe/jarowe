@@ -66,9 +66,6 @@ export default function Starseed() {
               <motion.div
                 key={project.id}
                 className={`starseed-card${isDisabled ? ' starseed-card--disabled' : ''}`}
-                style={{
-                  '--card-gradient': `linear-gradient(135deg, ${project.gradient.from} 0%, ${project.gradient.mid} 38%, ${project.gradient.to} 100%)`,
-                }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 * (index + 1) }}

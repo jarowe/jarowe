@@ -1,16 +1,41 @@
+/* ──────────────────────────────────────────────────────
+   STARSEED — Monochromatic + Iridescence
+   Base: near-black, offwhite, silver-gray
+   Magic: prismatic iridescent shimmer on interaction
+   ────────────────────────────────────────────────────── */
+
+@keyframes iridescent-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%) rotate(15deg); }
+  100% { transform: translateX(200%) rotate(15deg); }
+}
+
+@keyframes border-dance {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .starseed-shell {
   min-height: 100vh;
-  background: #080810;
-  color: #f0f0f0;
+  background: #08080c;
+  color: #e0e0e4;
   padding-bottom: 4rem;
 }
 
-/* Override jarowe.com ambient glows when inside starseed */
+/* Subtle cool ambient glow — barely visible */
 .starseed-shell::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 30%, rgba(212,168,67,0.08), transparent 70%);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(120, 100, 255, 0.03), transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 100, 200, 0.02), transparent 50%);
   z-index: 0;
   pointer-events: none;
 }
@@ -25,8 +50,8 @@
   z-index: 100;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background: rgba(8,8,16,0.8);
-  border-bottom: 1px solid rgba(212,168,67,0.08);
+  background: rgba(8,8,12,0.85);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
 .starseed-escape {
@@ -34,19 +59,19 @@
   align-items: center;
   gap: 6px;
   padding: 0.35rem 0.85rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
   border-radius: 100px;
   font-size: 0.75rem;
-  color: #888;
+  color: #777;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .starseed-escape:hover {
-  background: rgba(212,168,67,0.1);
-  border-color: rgba(212,168,67,0.25);
-  color: #d4a843;
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: #ccc;
 }
 
 .starseed-brand {
@@ -56,18 +81,39 @@
 }
 
 .starseed-logo-icon {
-  color: #d4a843;
+  color: #999;
+  transition: color 0.5s ease;
 }
 
+.starseed-brand:hover .starseed-logo-icon {
+  color: #c084fc;
+}
+
+/* Wordmark: offwhite with iridescent shimmer on hover */
 .starseed-wordmark {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #f5e6c8 0%, #d4a843 50%, #f0c85a 100%);
+  color: #d0d0d4;
+  background: linear-gradient(135deg, #d0d0d4 0%, #e8e8ec 50%, #d0d0d4 100%);
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  transition: all 0.6s ease;
+}
+
+.starseed-brand:hover .starseed-wordmark {
+  background: linear-gradient(
+    135deg,
+    #ff6b9d 0%, #c084fc 20%, #60a5fa 40%, #34d399 60%, #fbbf24 80%, #ff6b9d 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: iridescent-flow 3s ease infinite;
 }
 
 .starseed-hero {
@@ -79,22 +125,38 @@
   z-index: 1;
 }
 
+/* Hero title: clean offwhite, iridescent on hover */
 .starseed-title {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: clamp(2.5rem, 5vw, 4rem);
   letter-spacing: 0.02em;
   line-height: 1.1;
-  background: linear-gradient(135deg, #f5e6c8 0%, #d4a843 40%, #f0c85a 100%);
+  color: #f0f0f4;
+  background: linear-gradient(135deg, #f0f0f4 0%, #c8c8d0 40%, #f0f0f4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  background-size: 200% 200%;
   margin-bottom: 1rem;
+  transition: all 0.8s ease;
+}
+
+.starseed-hero:hover .starseed-title {
+  background: linear-gradient(
+    135deg,
+    #e8e8ec 0%, #c084fc 25%, #60a5fa 50%, #34d399 75%, #e8e8ec 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: iridescent-flow 4s ease infinite;
 }
 
 .starseed-subtitle {
   font-size: 1.15rem;
-  color: #9999a1;
+  color: #777;
   line-height: 1.6;
   max-width: 500px;
   margin: 0 auto;
@@ -112,7 +174,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.2rem;
-  color: #d4a843;
+  color: #888;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 1.5rem;
@@ -124,25 +186,91 @@
   gap: 1.5rem;
 }
 
+/* ── Card: dark glass with iridescent border on hover ── */
 .starseed-card {
-  background: var(--card-gradient, linear-gradient(135deg, #1a1426 0%, #2a1f12 38%, #d4a843 100%));
-  background-size: 200% 200%;
-  background-position: 0% 100%;
-  border: 1px solid rgba(212,168,67,0.1);
+  background: rgba(18, 18, 24, 0.8);
+  border: 1px solid rgba(255,255,255,0.06);
   border-radius: 20px;
   padding: 2rem;
   cursor: pointer;
-  transition: all 0.35s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
   transform-style: preserve-3d;
 }
 
+/* Iridescent border glow — hidden until hover */
+.starseed-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 21px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255,107,157,0.0) 0%,
+    rgba(192,132,252,0.0) 20%,
+    rgba(96,165,250,0.0) 40%,
+    rgba(52,211,153,0.0) 60%,
+    rgba(251,191,36,0.0) 80%,
+    rgba(255,107,157,0.0) 100%
+  );
+  background-size: 300% 300%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: all 0.5s ease;
+  opacity: 0;
+}
+
+/* Shimmer sweep — diagonal light that sweeps across */
+.starseed-card::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.03),
+    transparent
+  );
+  transform: translateX(-100%) rotate(15deg);
+  pointer-events: none;
+  transition: none;
+}
+
 .starseed-card:hover {
-  border-color: rgba(212,168,67,0.4);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(212,168,67,0.12), 0 0 0 1px rgba(212,168,67,0.08);
-  background-position: 100% 0%;
+  border-color: transparent;
+  transform: translateY(-6px);
+  box-shadow:
+    0 16px 40px rgba(0,0,0,0.4),
+    0 0 30px rgba(192,132,252,0.06),
+    0 0 60px rgba(96,165,250,0.04);
+}
+
+.starseed-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(255,107,157,0.5) 0%,
+    rgba(192,132,252,0.5) 20%,
+    rgba(96,165,250,0.5) 40%,
+    rgba(52,211,153,0.5) 60%,
+    rgba(251,191,36,0.5) 80%,
+    rgba(255,107,157,0.5) 100%
+  );
+  background-size: 300% 300%;
+  animation: iridescent-flow 3s ease infinite;
+}
+
+.starseed-card:hover::after {
+  animation: shimmer-sweep 1.2s ease-out 0.2s;
 }
 
 .starseed-card__content {
@@ -154,21 +282,27 @@
 }
 
 .starseed-card__icon {
-  color: #f0c85a;
+  color: #888;
   margin-bottom: 1rem;
   transform: translateZ(15px);
+  transition: color 0.5s ease;
+}
+
+.starseed-card:hover .starseed-card__icon {
+  color: #c084fc;
 }
 
 .starseed-card h3 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.3rem;
+  color: #e8e8ec;
   margin-bottom: 0.5rem;
   transform: translateZ(20px);
 }
 
 .starseed-card p {
-  color: #9999a1;
+  color: #777;
   font-size: 0.9rem;
   line-height: 1.5;
   margin-bottom: 1rem;
@@ -184,12 +318,18 @@
 
 .starseed-tag {
   padding: 0.2rem 0.6rem;
-  background: rgba(212,168,67,0.1);
-  border: 1px solid rgba(212,168,67,0.15);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 100px;
   font-size: 0.7rem;
-  color: #d4a843;
+  color: #999;
   letter-spacing: 0.03em;
+  transition: all 0.4s ease;
+}
+
+.starseed-card:hover .starseed-tag {
+  border-color: rgba(192,132,252,0.2);
+  color: #bbb;
 }
 
 .starseed-card__status {
@@ -197,7 +337,7 @@
   top: 1rem;
   right: 1rem;
   font-size: 0.65rem;
-  color: #666;
+  color: #555;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -206,31 +346,38 @@
   text-align: center;
   margin-top: 4rem;
   padding: 2rem;
-  color: #666;
+  color: #555;
   font-size: 0.85rem;
   position: relative;
   z-index: 1;
 }
 
 .starseed-link {
-  color: #d4a843;
+  color: #999;
   text-decoration: underline;
   text-underline-offset: 2px;
+  transition: color 0.3s ease;
 }
 
 .starseed-link:hover {
-  color: #f0c85a;
+  color: #c084fc;
 }
 
-/* Disabled card (no URL) */
+/* Disabled card */
 .starseed-card--disabled {
   cursor: default;
-  opacity: 0.7;
+  opacity: 0.5;
 }
 .starseed-card--disabled:hover {
   transform: none;
   box-shadow: none;
-  background-position: 0% 100%;
+  border-color: rgba(255,255,255,0.06);
+}
+.starseed-card--disabled:hover::before {
+  opacity: 0;
+}
+.starseed-card--disabled:hover::after {
+  animation: none;
 }
 
 /* Contact section */
@@ -243,7 +390,7 @@
 }
 
 .starseed-contact__text {
-  color: #9999a1;
+  color: #777;
   font-size: 1rem;
   line-height: 1.6;
   margin-bottom: 1.5rem;
@@ -254,31 +401,55 @@
   align-items: center;
   gap: 8px;
   padding: 0.65rem 1.5rem;
-  background: rgba(212,168,67,0.08);
-  border: 1px solid rgba(212,168,67,0.2);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 100px;
-  color: #d4a843;
+  color: #999;
   text-decoration: none;
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.starseed-contact__link::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #c084fc, #60a5fa, #34d399);
+  background-size: 200% 200%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
 .starseed-contact__link:hover {
-  background: rgba(212,168,67,0.15);
-  border-color: rgba(212,168,67,0.35);
+  color: #e0e0e4;
+  background: rgba(255,255,255,0.05);
+}
+
+.starseed-contact__link:hover::after {
+  opacity: 1;
+  animation: iridescent-flow 3s ease infinite;
 }
 
 /* Nav link to Labs */
 .starseed-nav-link {
   font-size: 0.8rem;
-  color: #888;
+  color: #666;
   text-decoration: none;
   letter-spacing: 0.04em;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
 }
 
 .starseed-nav-link:hover {
-  color: #d4a843;
+  color: #c084fc;
 }
 
 /* Responsive */
