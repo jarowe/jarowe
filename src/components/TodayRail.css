@@ -29,9 +29,10 @@
 }
 
 .today-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  transform: translateY(-1px) scale(1.012);
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-color: rgba(124, 58, 237, 0.3);
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(124, 58, 237, 0.3);
+  z-index: 10;
 }
 
 /* Card 1: Today State -- highest contrast */
@@ -190,12 +191,65 @@
   font-size: 0.9rem;
   color: #ccc;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.today-card__glint-expand {
+  font-size: 0.72rem;
+  color: #888;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: color 0.2s ease;
+}
+
+.today-card__glint-expand:hover {
+  color: #a78bfa;
+}
+
+.today-card__glint-line.expanded {
+  -webkit-line-clamp: unset;
 }
 
 /* Card 3: Creative Prompt */
 .today-card--prompt {
   background: rgba(124, 58, 237, 0.03);
   border-color: rgba(124, 58, 237, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover artwork background — fades in on hover */
+.today-card--prompt .today-card__artwork {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.today-card--prompt .today-card__artwork::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(15, 15, 18, 0.7) 0%, rgba(15, 15, 18, 0.85) 100%);
+}
+
+.today-card--prompt:hover .today-card__artwork {
+  opacity: 1;
+}
+
+.today-card--prompt > *:not(.today-card__artwork) {
+  position: relative;
+  z-index: 1;
 }
 
 .today-card__mode-chip {

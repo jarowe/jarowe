@@ -230,7 +230,7 @@ export const GLOBE_DEFAULTS = {
 
   // ── Globe Breakout (sphere pokes above bento card) ──
   globeBreakout: true,
-  globeBreakoutPx: 130,
+  globeBreakoutPx: 220,
   glassClipTop: 0,
   glassClipFeather: 200,
   breakoutSoftBlend: 46,

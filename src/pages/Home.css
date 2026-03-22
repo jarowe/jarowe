@@ -5,6 +5,7 @@
 
 .bento-container {
     padding: 0 2rem 4rem;
+    margin-top: -80px;
     position: relative;
     z-index: 1;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight, PenTool, Palette, Wrench, Cloud, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -39,9 +39,29 @@ function pickFeaturedMoment(holiday) {
   return dailyPick(matching, `featured-${holiday.category}`);
 }
 
+// Creative artwork pool — random on each hover
+const CREATIVE_ARTWORKS = [
+  'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=600&q=60',
+  'https://images.unsplash.com/photo-1549490349-8643362247b5?w=600&q=60',
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=60',
+  'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=600&q=60',
+  'https://images.unsplash.com/photo-1563089145-599997674d42?w=600&q=60',
+  'https://images.unsplash.com/photo-1550859492-d5da9d8e45f3?w=600&q=60',
+  'https://images.unsplash.com/photo-1579547945413-497e1b99dac0?w=600&q=60',
+  'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=600&q=60',
+];
+
 export default function TodayRail() {
   const { holiday } = useHoliday();
   const navigate = useNavigate();
+  const [journalExpanded, setJournalExpanded] = useState(false);
+  const [artworkUrl, setArtworkUrl] = useState(CREATIVE_ARTWORKS[0]);
+
+  // Randomize artwork on each hover
+  const handlePromptHover = useCallback(() => {
+    const idx = Math.floor(Math.random() * CREATIVE_ARTWORKS.length);
+    setArtworkUrl(CREATIVE_ARTWORKS[idx]);
+  }, []);
 
   // Journal entry: start with deterministic fallback, upgrade to AI if available
   const [journalEntry, setJournalEntry] = useState(() => {
@@ -132,7 +152,12 @@ export default function TodayRail() {
             <Sparkles size={14} />
             <span>Glint's Journal</span>
           </div>
-          <p className="today-card__glint-line">{journalEntry}</p>
+          <p className={`today-card__glint-line${journalExpanded ? ' expanded' : ''}`}>{journalEntry}</p>
+          {!journalExpanded && journalEntry.length > 120 && (
+            <button className="today-card__glint-expand" onClick={() => setJournalExpanded(true)}>
+              ...read more
+            </button>
+          )}
           <button
             className="today-card__cta today-card__cta--secondary"
             onClick={() => {
@@ -150,7 +175,12 @@ export default function TodayRail() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
+            onMouseEnter={handlePromptHover}
           >
+            <div
+              className="today-card__artwork"
+              style={{ backgroundImage: `url(${artworkUrl})` }}
+            />
             <div className="today-card__mode-chip" data-mode={todayData.prompt.mode}>
               <ModeIcon size={12} />
               <span>{todayData.prompt.mode}</span>
