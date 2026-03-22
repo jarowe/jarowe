@@ -162,7 +162,11 @@ Plans:
   2. When no constellation node maps to the current holiday, the Explore card degrades gracefully -- showing the holiday without a broken link or missing content
   3. The Starseed hub and project cards use warm gold tones (not washed-out or desaturated) -- the brand warmth matches the original Starseed identity
   4. Starseed project cards use Workshop-style gradient backgrounds with depth and texture -- not flat solid-color cards
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md -- Holiday-to-constellation nodeId mapping on T3+ entries, TodayRail conditional Explore deep-link
+- [ ] 09-02-PLAN.md -- Starseed gold brand restoration (purple to amber gold), Workshop-style gradient cards with translateZ depth
 
 ## Progress
 
@@ -179,8 +183,8 @@ Phases execute in numeric order: 8 -> 9
 | 6. Automation & Retention | v2.0 | 3/3 | Complete | 2026-03-21 |
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
 | 8. Regression Fixes | v2.0.1 | 1/1 | Complete | 2026-03-22 |
-| 9. Visual Cohesion | v2.0.1 | 0/? | Not started | - |
+| 9. Visual Cohesion | v2.0.1 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-21 (v2.0 shipped, v2.0.1 phases 8-9 added)*
+*Updated: 2026-03-22 (Phase 9 planned — 2 plans)*
