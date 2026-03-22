@@ -7,7 +7,7 @@ export const STARSEED_PROJECTS = [
     tags: ['Animation', 'Desktop'],
     url: '/projects/beamy',
     status: 'active',
-    gradient: { from: '#1a1426', mid: '#2a1f12', to: '#d4a843' },
+    bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800',
   },
   {
     id: 'amina',
@@ -17,7 +17,7 @@ export const STARSEED_PROJECTS = [
     tags: ['AI', 'Creative'],
     url: null,
     status: 'coming-soon',
-    gradient: { from: '#1a1420', mid: '#2a1a14', to: '#e8b84a' },
+    bgImage: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&q=80&w=800',
   },
   {
     id: 'deckit',
@@ -27,7 +27,7 @@ export const STARSEED_PROJECTS = [
     tags: ['Productivity', 'Planning'],
     url: null,
     status: 'coming-soon',
-    gradient: { from: '#1a1628', mid: '#261f14', to: '#c49a3a' },
+    bgImage: 'https://images.unsplash.com/photo-1557672172-298e090bd0f1?auto=format&fit=crop&q=80&w=800',
   },
   {
     id: 'starseed-labs',
@@ -37,6 +37,6 @@ export const STARSEED_PROJECTS = [
     tags: ['Tools', 'Creative'],
     url: '/starseed/labs',
     status: 'active',
-    gradient: { from: '#1a1224', mid: '#2a1c10', to: '#f0c85a' },
+    bgImage: 'https://images.unsplash.com/photo-1579547945413-497e1b99dac0?auto=format&fit=crop&q=80&w=800',
   },
 ];

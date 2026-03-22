@@ -1,17 +1,66 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Sparkles, PenTool, Palette, Lightbulb, LayoutGrid, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, PenTool, Palette, Lightbulb, LayoutGrid, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { STARSEED_PROJECTS } from '../data/starseedProjects';
+import { playClickSound, playHoverSound } from '../utils/sounds';
 import './Starseed.css';
 
 const ICON_MAP = { PenTool, Lightbulb, LayoutGrid, Palette };
 
 export default function Starseed() {
   const navigate = useNavigate();
+  const gridRef = useRef();
+
+  // 3D Tilt — same as Workshop
+  useEffect(() => {
+    const cells = gridRef.current?.querySelectorAll('.starseed-card:not(.starseed-card--disabled)');
+    if (!cells) return;
+
+    const handleMouseMove = (e) => {
+      const cell = e.currentTarget;
+      const rect = cell.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const rotateX = ((y - centerY) / centerY) * -8;
+      const rotateY = ((x - centerX) / centerX) * 8;
+      cell.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+      cell.style.zIndex = 10;
+    };
+
+    const handleMouseLeave = (e) => {
+      const cell = e.currentTarget;
+      cell.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      void cell.offsetHeight;
+      cell.style.transform = '';
+      cell.style.zIndex = '';
+    };
+
+    const handleMouseEnter = (e) => {
+      const cell = e.currentTarget;
+      cell.style.transition = 'none';
+      playHoverSound();
+    };
+
+    cells.forEach(cell => {
+      cell.addEventListener('mousemove', handleMouseMove);
+      cell.addEventListener('mouseleave', handleMouseLeave);
+      cell.addEventListener('mouseenter', handleMouseEnter);
+    });
+
+    return () => {
+      cells.forEach(cell => {
+        cell.removeEventListener('mousemove', handleMouseMove);
+        cell.removeEventListener('mouseleave', handleMouseLeave);
+        cell.removeEventListener('mouseenter', handleMouseEnter);
+      });
+    };
+  }, []);
 
   return (
     <div className="starseed-shell" data-brand="starseed">
-      {/* Starseed internal nav */}
       <nav className="starseed-nav">
         <Link to="/" className="starseed-escape">
           <ArrowLeft size={16} />
@@ -24,7 +73,6 @@ export default function Starseed() {
         </div>
       </nav>
 
-      {/* Hero section */}
       <motion.section className="starseed-hero"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -38,27 +86,20 @@ export default function Starseed() {
         </p>
       </motion.section>
 
-      {/* Project grid -- data-driven from starseedProjects.js */}
       <section className="starseed-projects">
         <h2 className="starseed-section-heading">Active Projects</h2>
-        <div className="starseed-project-grid">
+        <div className="starseed-project-grid" ref={gridRef}>
           {STARSEED_PROJECTS.map((project, index) => {
             const Icon = ICON_MAP[project.icon];
             const isDisabled = !project.url;
-            const isExternal = project.url && project.url.startsWith('http');
 
             const handleClick = () => {
               if (!project.url) return;
-              if (isExternal) {
+              playClickSound();
+              if (project.url.startsWith('http')) {
                 window.open(project.url, '_blank');
               } else {
                 navigate(project.url);
-              }
-            };
-
-            const handleKeyDown = (e) => {
-              if (e.key === 'Enter' && project.url) {
-                handleClick();
               }
             };
 
@@ -66,14 +107,19 @@ export default function Starseed() {
               <motion.div
                 key={project.id}
                 className={`starseed-card${isDisabled ? ' starseed-card--disabled' : ''}`}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 * (index + 1) }}
+                transition={{ delay: 0.15 * (index + 1), ease: [0.175, 0.885, 0.32, 1.275] }}
                 onClick={project.url ? handleClick : undefined}
                 role={project.url ? 'link' : undefined}
                 tabIndex={project.url ? 0 : undefined}
-                onKeyDown={project.url ? handleKeyDown : undefined}
+                onKeyDown={project.url && ((e) => e.key === 'Enter' && handleClick())}
               >
+                {/* Workshop-style bg image reveal */}
+                <div
+                  className="starseed-card__bg"
+                  style={{ backgroundImage: `url(${project.bgImage})` }}
+                />
                 <div className="starseed-card__content">
                   <div className="starseed-card__icon">
                     {Icon && <Icon size={28} />}
@@ -85,6 +131,11 @@ export default function Starseed() {
                       <span key={tag} className="starseed-tag">{tag}</span>
                     ))}
                   </div>
+                  {project.url && (
+                    <div className="starseed-card__launch">
+                      Launch <ArrowRight size={14} />
+                    </div>
+                  )}
                 </div>
                 {project.status === 'coming-soon' && (
                   <span className="starseed-card__status">Coming soon</span>
@@ -95,7 +146,6 @@ export default function Starseed() {
         </div>
       </section>
 
-      {/* Contact section */}
       <section className="starseed-contact">
         <h2 className="starseed-section-heading">Work With Starseed</h2>
         <p className="starseed-contact__text">
@@ -107,9 +157,8 @@ export default function Starseed() {
         </a>
       </section>
 
-      {/* Footer CTA */}
       <section className="starseed-footer-cta">
-        <p>Starseed is a satellite of <Link to="/" className="starseed-link">jarowe.com</Link> -- a living creative world.</p>
+        <p>Starseed is a satellite of <Link to="/" className="starseed-link">jarowe.com</Link> — a living creative world.</p>
       </section>
     </div>
   );
