@@ -361,7 +361,7 @@ export default function ConstellationPage() {
     <div className="constellation-page">
       {viewMode === '3d' ? (
         <>
-          {!canvasReady && (
+          {!canvasReady && !dataLoaded && (
             <div className="constellation-loading">
               Initializing Constellation...
             </div>

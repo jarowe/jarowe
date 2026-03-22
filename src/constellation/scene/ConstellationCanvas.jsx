@@ -326,7 +326,7 @@ export default function ConstellationCanvas() {
         helixBounds={helixBounds}
       />
 
-      <HoverLabel nodes={helixNodes.length > 0 ? helixNodes : layoutNodes} />
+      <HoverLabel nodes={layoutNodes} />
 
       {/* Scene fog for atmospheric depth falloff */}
       <SceneFog />

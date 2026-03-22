@@ -310,12 +310,9 @@ export default function ConnectionLines({ positions }) {
         const isConnected =
           line.sourceId === currentFocused || line.targetId === currentFocused;
         if (isConnected) {
-          opacity = line.isHelixToHelix
-            ? lerp(opFocusedMin, opFocusedMax, w)
-            : lerp(0.2, 0.4, w);
-          lineWidth = line.isHelixToHelix
-            ? lerp(wdFocusedMin, wdFocusedMax, w)
-            : lerp(0.5, 1.0, w);
+          // Same brightness for all connected edges — helix or particle
+          opacity = lerp(opFocusedMin, opFocusedMax, w);
+          lineWidth = lerp(wdFocusedMin, wdFocusedMax, w);
           isHighlighted = true;
         } else {
           opacity = opDim;
