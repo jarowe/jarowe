@@ -10,8 +10,7 @@
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 20%, rgba(124,58,237,0.06) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 80%, rgba(14,165,163,0.04) 0%, transparent 50%);
+  background: radial-gradient(ellipse at 50% 30%, rgba(212,168,67,0.08), transparent 70%);
   z-index: 0;
   pointer-events: none;
 }
@@ -27,7 +26,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   background: rgba(8,8,16,0.8);
-  border-bottom: 1px solid rgba(124,58,237,0.08);
+  border-bottom: 1px solid rgba(212,168,67,0.08);
 }
 
 .starseed-escape {
@@ -45,9 +44,9 @@
 }
 
 .starseed-escape:hover {
-  background: rgba(124,58,237,0.1);
-  border-color: rgba(124,58,237,0.25);
-  color: #a78bfa;
+  background: rgba(212,168,67,0.1);
+  border-color: rgba(212,168,67,0.25);
+  color: #d4a843;
 }
 
 .starseed-brand {
@@ -57,7 +56,7 @@
 }
 
 .starseed-logo-icon {
-  color: #a78bfa;
+  color: #d4a843;
 }
 
 .starseed-wordmark {
@@ -65,7 +64,7 @@
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #a78bfa 0%, #0ea5a3 100%);
+  background: linear-gradient(135deg, #f5e6c8 0%, #d4a843 50%, #f0c85a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -86,7 +85,7 @@
   font-size: clamp(2.5rem, 5vw, 4rem);
   letter-spacing: 0.02em;
   line-height: 1.1;
-  background: linear-gradient(135deg, #e8e0f0 0%, #c4b5fd 40%, #0ea5a3 100%);
+  background: linear-gradient(135deg, #f5e6c8 0%, #d4a843 40%, #f0c85a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -113,7 +112,7 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.2rem;
-  color: #a78bfa;
+  color: #d4a843;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 1.5rem;
@@ -126,24 +125,38 @@
 }
 
 .starseed-card {
-  background: rgba(124,58,237,0.04);
-  border: 1px solid rgba(124,58,237,0.1);
+  background: var(--card-gradient, linear-gradient(135deg, #1a1426 0%, #2a1f12 38%, #d4a843 100%));
+  background-size: 200% 200%;
+  background-position: 0% 100%;
+  border: 1px solid rgba(212,168,67,0.1);
   border-radius: 20px;
   padding: 2rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.35s ease;
   position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
 }
 
 .starseed-card:hover {
-  border-color: rgba(124,58,237,0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(124,58,237,0.1), 0 0 0 1px rgba(14,165,163,0.06);
+  border-color: rgba(212,168,67,0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(212,168,67,0.12), 0 0 0 1px rgba(212,168,67,0.08);
+  background-position: 100% 0%;
+}
+
+.starseed-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .starseed-card__icon {
-  color: #a78bfa;
+  color: #f0c85a;
   margin-bottom: 1rem;
+  transform: translateZ(15px);
 }
 
 .starseed-card h3 {
@@ -151,6 +164,7 @@
   font-weight: 700;
   font-size: 1.3rem;
   margin-bottom: 0.5rem;
+  transform: translateZ(20px);
 }
 
 .starseed-card p {
@@ -158,21 +172,23 @@
   font-size: 0.9rem;
   line-height: 1.5;
   margin-bottom: 1rem;
+  transform: translateZ(10px);
 }
 
 .starseed-card__tags {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  transform: translateZ(12px);
 }
 
 .starseed-tag {
   padding: 0.2rem 0.6rem;
-  background: rgba(124,58,237,0.08);
-  border: 1px solid rgba(124,58,237,0.12);
+  background: rgba(212,168,67,0.1);
+  border: 1px solid rgba(212,168,67,0.15);
   border-radius: 100px;
   font-size: 0.7rem;
-  color: #a78bfa;
+  color: #d4a843;
   letter-spacing: 0.03em;
 }
 
@@ -197,13 +213,13 @@
 }
 
 .starseed-link {
-  color: #a78bfa;
+  color: #d4a843;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .starseed-link:hover {
-  color: #c4b5fd;
+  color: #f0c85a;
 }
 
 /* Disabled card (no URL) */
@@ -214,6 +230,7 @@
 .starseed-card--disabled:hover {
   transform: none;
   box-shadow: none;
+  background-position: 0% 100%;
 }
 
 /* Contact section */
@@ -237,18 +254,18 @@
   align-items: center;
   gap: 8px;
   padding: 0.65rem 1.5rem;
-  background: rgba(124,58,237,0.08);
-  border: 1px solid rgba(124,58,237,0.2);
+  background: rgba(212,168,67,0.08);
+  border: 1px solid rgba(212,168,67,0.2);
   border-radius: 100px;
-  color: #a78bfa;
+  color: #d4a843;
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.2s ease;
 }
 
 .starseed-contact__link:hover {
-  background: rgba(124,58,237,0.15);
-  border-color: rgba(124,58,237,0.35);
+  background: rgba(212,168,67,0.15);
+  border-color: rgba(212,168,67,0.35);
 }
 
 /* Nav link to Labs */
@@ -261,7 +278,7 @@
 }
 
 .starseed-nav-link:hover {
-  color: #a78bfa;
+  color: #d4a843;
 }
 
 /* Responsive */

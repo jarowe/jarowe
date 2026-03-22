@@ -66,6 +66,9 @@ export default function Starseed() {
               <motion.div
                 key={project.id}
                 className={`starseed-card${isDisabled ? ' starseed-card--disabled' : ''}`}
+                style={{
+                  '--card-gradient': `linear-gradient(135deg, ${project.gradient.from} 0%, ${project.gradient.mid} 38%, ${project.gradient.to} 100%)`,
+                }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 * (index + 1) }}
@@ -74,15 +77,17 @@ export default function Starseed() {
                 tabIndex={project.url ? 0 : undefined}
                 onKeyDown={project.url ? handleKeyDown : undefined}
               >
-                <div className="starseed-card__icon">
-                  {Icon && <Icon size={28} />}
-                </div>
-                <h3>{project.name}</h3>
-                <p>{project.description}</p>
-                <div className="starseed-card__tags">
-                  {project.tags.map((tag) => (
-                    <span key={tag} className="starseed-tag">{tag}</span>
-                  ))}
+                <div className="starseed-card__content">
+                  <div className="starseed-card__icon">
+                    {Icon && <Icon size={28} />}
+                  </div>
+                  <h3>{project.name}</h3>
+                  <p>{project.description}</p>
+                  <div className="starseed-card__tags">
+                    {project.tags.map((tag) => (
+                      <span key={tag} className="starseed-tag">{tag}</span>
+                    ))}
+                  </div>
                 </div>
                 {project.status === 'coming-soon' && (
                   <span className="starseed-card__status">Coming soon</span>
