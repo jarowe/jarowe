@@ -7,6 +7,7 @@ export const STARSEED_PROJECTS = [
     tags: ['Animation', 'Desktop'],
     url: '/projects/beamy',
     status: 'active',
+    gradient: { from: '#1a1426', mid: '#2a1f12', to: '#d4a843' },
   },
   {
     id: 'amina',
@@ -16,6 +17,7 @@ export const STARSEED_PROJECTS = [
     tags: ['AI', 'Creative'],
     url: null,
     status: 'coming-soon',
+    gradient: { from: '#1a1420', mid: '#2a1a14', to: '#e8b84a' },
   },
   {
     id: 'deckit',
@@ -25,6 +27,7 @@ export const STARSEED_PROJECTS = [
     tags: ['Productivity', 'Planning'],
     url: null,
     status: 'coming-soon',
+    gradient: { from: '#1a1628', mid: '#261f14', to: '#c49a3a' },
   },
   {
     id: 'starseed-labs',
@@ -34,5 +37,6 @@ export const STARSEED_PROJECTS = [
     tags: ['Tools', 'Creative'],
     url: '/starseed/labs',
     status: 'active',
+    gradient: { from: '#1a1224', mid: '#2a1c10', to: '#f0c85a' },
   },
 ];
