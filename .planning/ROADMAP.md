@@ -151,7 +151,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md -- Per-instance emissive colors via onBeforeCompile shader patch in NodeCloud.jsx, journal 2-sentence cap in API prompt and fallback pool
+- [x] 08-01-PLAN.md -- Per-instance emissive colors via onBeforeCompile shader patch in NodeCloud.jsx, journal 2-sentence cap in API prompt and fallback pool
 
 ### Phase 9: Visual Cohesion
 **Goal**: The TodayRail connects visitors to the constellation through holiday exploration, and Starseed recovers its warm gold identity with Workshop-quality card design

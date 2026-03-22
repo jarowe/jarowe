@@ -9,11 +9,11 @@ Requirements for patch release. Fixes regressions, tightens content, and improve
 
 ### Rendering
 
-- [ ] **RENDER-01**: Constellation helix nodes display correct emissive/instance colors from theme data (fix InstancedMesh color regression)
+- [x] **RENDER-01**: Constellation helix nodes display correct emissive/instance colors from theme data (fix InstancedMesh color regression)
 
 ### Content
 
-- [ ] **CONTENT-01**: Glint journal entries are capped at 2 sentences max (both API prompt and fallback pool)
+- [x] **CONTENT-01**: Glint journal entries are capped at 2 sentences max (both API prompt and fallback pool)
 
 ### Visual Cohesion
 
@@ -86,8 +86,8 @@ Deferred to future milestones. Not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RENDER-01 | Phase 8 | Pending |
-| CONTENT-01 | Phase 8 | Pending |
+| RENDER-01 | Phase 8 | Complete |
+| CONTENT-01 | Phase 8 | Complete |
 | VISUAL-01 | Phase 9 | Pending |
 | VISUAL-02 | Phase 9 | Pending |
 | VISUAL-03 | Phase 9 | Pending |
