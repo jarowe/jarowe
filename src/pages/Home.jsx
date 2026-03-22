@@ -3901,7 +3901,7 @@ export default function Home() {
                   // Shift the frustum DOWN so the globe renders centered in the card area, not canvas center.
                   const breakoutPx = ep.globeBreakoutPx || 60;
                   const extraAbove = breakoutPx - 10; // how much more canvas above vs below
-                  const shiftPx = extraAbove * 0.35; // less downshift = globe renders higher in frame
+                  const shiftPx = extraAbove * 0.15; // minimal downshift = globe dome reaches top of canvas
                   const dpr = renderer.getPixelRatio();
                   cam.setViewOffset(canvasW, canvasH, 0, Math.round(-shiftPx * dpr), canvasW, canvasH);
 
