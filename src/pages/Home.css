@@ -4,7 +4,7 @@
 }
 
 .bento-container {
-    padding: 0 2rem 4rem;
+    padding: 4rem 2rem;
     position: relative;
     z-index: 1;
 }
@@ -346,8 +346,8 @@
 .map-container {
     position: absolute;
     top: -10px;
-    left: -20px;
-    width: calc(100% + 40px);
+    left: -10px;
+    width: calc(100% + 20px);
     height: calc(100% + 20px);
     opacity: 1;
     z-index: 0;
@@ -1984,8 +1984,8 @@
    PP shader clips left/right/bottom to card rect, top is open. */
 .bento-cell.cell-map.globe-breakout .map-container {
     top: calc(-1 * var(--globe-breakout-px, 60px));
-    left: -20px;
-    width: calc(100% + 40px);
+    left: -10px;
+    width: calc(100% + 20px);
     height: calc(100% + var(--globe-breakout-px, 60px) + 10px);
 }
 /* Hide top gradient in breakout mode (would cover dome) */
