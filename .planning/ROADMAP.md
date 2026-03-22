@@ -135,7 +135,7 @@ Plans:
 
 **Milestone Goal:** Fix regressions from v2.0, tighten content output, and improve visual cohesion across Starseed brand and TodayRail connections.
 
-- [ ] **Phase 8: Regression Fixes** - Fix constellation helix node colors and cap Glint journal to 2 sentences
+- [x] **Phase 8: Regression Fixes** - Fix constellation helix node colors and cap Glint journal to 2 sentences (completed 2026-03-22)
 - [ ] **Phase 9: Visual Cohesion** - TodayRail explore-to-constellation connection, Starseed gold warmth restoration, and Workshop-style gradient cards
 
 ## Phase Details
@@ -178,7 +178,7 @@ Phases execute in numeric order: 8 -> 9
 | 5. Starseed Hub & Labs | v2.0 | 3/3 | Complete | 2026-03-21 |
 | 6. Automation & Retention | v2.0 | 3/3 | Complete | 2026-03-21 |
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
-| 8. Regression Fixes | v2.0.1 | 0/1 | Planning | - |
+| 8. Regression Fixes | v2.0.1 | 1/1 | Complete | 2026-03-22 |
 | 9. Visual Cohesion | v2.0.1 | 0/? | Not started | - |
 
 ---
