@@ -225,14 +225,16 @@ export default function ConstellationPage() {
     loadData();
   }, [loadData]);
 
-  // Deep-link: auto-focus node from URL param once data is loaded
+  // Deep-link: auto-focus node from URL param once data is loaded.
+  // Cinematic delay: let the user see the full helix for ~1s before
+  // triggering the camera fly-to, creating a "discover then dive in" moment.
   const deepLinked = useRef(false);
   useEffect(() => {
     if (urlNodeId && dataLoaded && !deepLinked.current) {
       deepLinked.current = true;
       const focusNode = useConstellationStore.getState().focusNode;
-      // Small delay to let canvas initialize
-      requestAnimationFrame(() => focusNode(urlNodeId));
+      const timer = setTimeout(() => focusNode(urlNodeId), 1200);
+      return () => clearTimeout(timer);
     }
   }, [urlNodeId, dataLoaded]);
 
