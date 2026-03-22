@@ -108,7 +108,7 @@ export default function TodayRail() {
           className="today-card today-card--state"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ y: -5, scale: 1.01 }}
+          whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <div className="today-card__date">
@@ -153,7 +153,7 @@ export default function TodayRail() {
           className="today-card today-card--glint"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ y: -5, scale: 1.01 }}
+          whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className="today-card__glint-marker">
@@ -182,7 +182,7 @@ export default function TodayRail() {
             className="today-card today-card--prompt"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -5, scale: 1.01 }}
+            whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
             transition={{ duration: 0.5, delay: 0.3 }}
             onMouseEnter={handlePromptHover}
           >
