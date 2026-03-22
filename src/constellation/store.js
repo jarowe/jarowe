@@ -98,6 +98,8 @@ if (typeof window !== 'undefined') {
   window.addEventListener('constellation-data-changed', () => {
     useConstellationStore.getState().loadData({ force: true });
   });
+  // Expose store for Playwright tests
+  window.__constellationStore = useConstellationStore;
 }
 
 export { useConstellationStore };
