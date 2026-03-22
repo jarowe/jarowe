@@ -124,9 +124,15 @@ export default function TodayRail() {
             <p className="today-card__greeting">{holiday.greeting}</p>
           )}
 
-          {/* Featured Constellation Moment */}
+          {/* Featured Constellation Moment — with blurred media preview on hover */}
           {todayData.featured && (
             <div className="today-card__moment">
+              {todayData.featured.media && (
+                <div
+                  className="today-card__moment-bg"
+                  style={{ backgroundImage: `url(${todayData.featured.media.startsWith('http') ? todayData.featured.media : `${import.meta.env.BASE_URL}${todayData.featured.media}`})` }}
+                />
+              )}
               <div className="today-card__moment-badge">
                 <Star size={10} />
                 <span>Featured Moment</span>

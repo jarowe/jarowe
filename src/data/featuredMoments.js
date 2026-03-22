@@ -1,11 +1,9 @@
 /**
  * Featured constellation moments for the TodayRail Day card.
- *
  * Maps holiday categories → constellation themes → curated moments.
- * Lightweight — only includes fields needed for the Day card preview.
+ * Includes media URLs for blurred background preview on hover.
  */
 
-// Holiday category → constellation theme(s) mapping
 export const CATEGORY_THEMES = {
   food:      ['food', 'celebration', 'friendship'],
   family:    ['fatherhood', 'childhood', 'brotherhood', 'marriage', 'love'],
@@ -22,70 +20,69 @@ export const CATEGORY_THEMES = {
   spooky:    ['reflection', 'nostalgia', 'craft'],
 };
 
-// Curated constellation moments with preview data
 export const FEATURED_MOMENTS = [
-  // Craft / Creative
-  { id: 'cm-b-003', title: 'The opportunity to have 100% creative control of the vision of a project is rare...', theme: 'craft', epoch: 'Growth' },
-  { id: 'cm-b-004', title: 'When creative freedom is given — you have to run with it.', theme: 'craft', epoch: 'Growth' },
-  { id: 'cm-b-017', title: "There's a journey with every client to learn how to tell their story in a way that resonates.", theme: 'craft', epoch: 'Growth' },
-  { id: 'cm-b-020', title: 'Every video project has its own interesting creative solutions.', theme: 'craft', epoch: 'Growth' },
+  // Craft / Creative (with media)
+  { id: 'cm-p-001', title: '2019 Sizzle Demo Reel', theme: 'craft', epoch: 'Growth', media: 'https://carbon-media.accelerator.net/0000000exsu/dPbC0V9vTNibPC47ilT6fn;960x38.jpeg?auto=webp' },
+  { id: 'cm-p-005', title: 'Character Animated Commercial', theme: 'craft', epoch: 'Career Start', media: 'https://carbon-media.accelerator.net/0000000exsu/dK0oWSJr3zebX7EWcbnLvz;960x658.jpeg?auto=webp' },
+  { id: 'cm-p-006', title: 'Demo Reel - Visual Storytelling', theme: 'craft', epoch: 'Career Start', media: 'https://carbon-media.accelerator.net/0000000exsu/iVTVo9W3aG5fhqFvzYDCuc;960x281.png?auto=webp' },
+  { id: 'cm-b-004', title: 'When creative freedom is given — you have to run with it.', theme: 'craft', epoch: 'Growth', media: null },
 
-  // Career
-  { id: 'cm-b-001', title: 'Another fantastic example of a client handing over full creative control.', theme: 'career', epoch: 'Present' },
-  { id: 'cm-m-001', title: 'Co-owner & Head of Product at Visuals by Impulse', theme: 'career', epoch: 'Growth' },
+  // Career (with media)
+  { id: 'cm-p-004', title: 'Brand Awareness - HPE', theme: 'career', epoch: 'Growth', media: 'https://carbon-media.accelerator.net/0000000exsu/aStIiVJWlDsd8ffBkPap9x;960x356.jpeg?auto=webp' },
+  { id: 'cm-p-007', title: 'Code Based Animation - SVG', theme: 'career', epoch: 'Career Start', media: 'https://carbon-media.accelerator.net/0000000exsu/bEopsEr4MHcdQfVxE07COS;960x356.jpeg?auto=webp' },
+  { id: 'cm-p-008', title: 'Motion Capture - Golf Swing App', theme: 'career', epoch: 'Career Start', media: 'https://carbon-media.accelerator.net/0000000exsu/3G5n2Zz4Ywyf23v9LJSxi8;960x540.jpeg?auto=webp' },
 
   // Fatherhood
-  { id: 'ms-006', title: 'Jace born — first son, fatherhood begins', theme: 'fatherhood', epoch: 'College' },
-  { id: 'ms-007', title: 'Gatlin born — second son joins the adventure', theme: 'fatherhood', epoch: 'Career Start' },
-  { id: 'ms-009', title: 'Jole born — three boys, the family is complete', theme: 'fatherhood', epoch: 'Career Start' },
+  { id: 'ms-006', title: 'Jace born — first son, fatherhood begins', theme: 'fatherhood', epoch: 'College', media: 'images/boys-selfie.jpg' },
+  { id: 'ms-007', title: 'Gatlin born — second son joins the adventure', theme: 'fatherhood', epoch: 'Career Start', media: null },
+  { id: 'ms-009', title: 'Jole born — three boys, the family is complete', theme: 'fatherhood', epoch: 'Career Start', media: null },
 
   // Marriage / Love
-  { id: 'ms-004', title: 'Married Maria — high school sweethearts become life partners', theme: 'marriage', epoch: 'Early Years' },
-  { id: 'ig-028', title: "You're the love of my life.", theme: 'love', epoch: 'Present' },
+  { id: 'ms-004', title: 'Married Maria — high school sweethearts become life partners', theme: 'marriage', epoch: 'Early Years', media: 'images/couple-golden-hour.jpg' },
+  { id: 'ig-028', title: "You're the love of my life.", theme: 'love', epoch: 'Present', media: null },
 
   // Travel / Nature / Greece
-  { id: 'ms-015', title: 'Family moves to Syros, Greece — worldschooling begins', theme: 'travel', epoch: 'Present' },
-  { id: 'ig-019', title: 'A glistening afternoon at Kini beach.', theme: 'greece', epoch: 'Present' },
-  { id: 'ig-008', title: 'The lake was calm and the gradient sky was looking at me through the trees.', theme: 'nature', epoch: 'Present' },
-  { id: 'ig-014', title: 'This mural watches the sun rise.', theme: 'nature', epoch: 'Present' },
+  { id: 'ms-015', title: 'Family moves to Syros, Greece — worldschooling begins', theme: 'travel', epoch: 'Present', media: 'images/greek-island.jpg' },
+  { id: 'ms-017', title: 'Family lives in Spain — European adventure deepens', theme: 'travel', epoch: 'Present', media: 'images/family-alps.jpg' },
+  { id: 'ig-019', title: 'A glistening afternoon at Kini beach.', theme: 'greece', epoch: 'Present', media: null },
+  { id: 'ig-008', title: 'The lake was calm and the gradient sky was looking at me through the trees.', theme: 'nature', epoch: 'Present', media: null },
 
   // Filmmaking
-  { id: 'ms-003', title: 'Valencia Film Program — film school formation', theme: 'filmmaking', epoch: 'Early Years' },
-  { id: 'cm-b-012', title: 'ASUS is doing some exciting things for professional gamers.', theme: 'filmmaking', epoch: 'Growth' },
+  { id: 'cm-p-031', title: 'Cartoon Pitch - Audio Only', theme: 'filmmaking', epoch: 'Early Years', media: 'https://carbon-media.accelerator.net/0000000exsu/dt7cp7oQozIfbyBwX8oOOR;960x230.jpeg?auto=webp' },
+  { id: 'ms-003', title: 'Valencia Film Program — film school formation', theme: 'filmmaking', epoch: 'Early Years', media: null },
 
   // Food
-  { id: 'ig-003', title: 'From morning homemade waffles to evening Django gelato, our days are sweet.', theme: 'food', epoch: 'Present' },
-  { id: 'ig-010', title: "There's nothing quite like a pick and roll for breakfast.", theme: 'food', epoch: 'Present' },
+  { id: 'ig-003', title: 'From morning homemade waffles to evening Django gelato, our days are sweet.', theme: 'food', epoch: 'Present', media: null },
+  { id: 'ig-010', title: "There's nothing quite like a pick and roll for breakfast.", theme: 'food', epoch: 'Present', media: null },
 
   // Celebration
-  { id: 'ig-017', title: 'Happy birthday Daba!!!!', theme: 'celebration', epoch: 'Present' },
-  { id: 'ig-018', title: "You've changed my life in more ways than I can ever explain.", theme: 'celebration', epoch: 'Present' },
+  { id: 'ig-017', title: 'Happy birthday Daba!!!!', theme: 'celebration', epoch: 'Present', media: null },
+  { id: 'ig-018', title: "You've changed my life in more ways than I can ever explain.", theme: 'celebration', epoch: 'Present', media: null },
 
   // Brotherhood
-  { id: 'ms-002', title: 'Derek & Jared launch Doctrine — 20-year creative partnership begins', theme: 'brotherhood', epoch: 'Early Years' },
-  { id: 'cm-b-005', title: 'I had the pleasure of writing and voicing this piece alongside my brother.', theme: 'brotherhood', epoch: 'Growth' },
+  { id: 'cm-p-010', title: 'Motion Graphic Commercial — Visuals by Impulse', theme: 'brotherhood', epoch: 'Growth', media: 'https://carbon-media.accelerator.net/0000000exsu/7RQbHGG7oz6d50QR9lVEbc;960x281.jpeg?auto=webp' },
+  { id: 'ms-002', title: 'Derek & Jared launch Doctrine — 20-year creative partnership begins', theme: 'brotherhood', epoch: 'Early Years', media: null },
 
   // Childhood
-  { id: 'ig-007', title: "I really enjoyed taking my boys out on the pontoon today.", theme: 'childhood', epoch: 'Present' },
-  { id: 'ig-023', title: "Jace wrote a lyrical poem while we were in Naxos.", theme: 'childhood', epoch: 'Present' },
+  { id: 'ig-007', title: "I really enjoyed taking my boys out on the pontoon today.", theme: 'childhood', epoch: 'Present', media: null },
+  { id: 'ig-023', title: "Jace wrote a lyrical poem while we were in Naxos.", theme: 'childhood', epoch: 'Present', media: null },
+
+  // Adventure
+  { id: 'cm-p-020', title: 'Unity Game Design - iOS', theme: 'adventure', epoch: 'College', media: 'https://carbon-media.accelerator.net/0000000exsu/8iKe7CmClMwcXi2HLCq0QH;960x356.jpeg?auto=webp' },
 
   // Friendship
-  { id: 'ig-024', title: 'Rooftop vibes with my favorite crew. Hot cocoa, cool breezes.', theme: 'friendship', epoch: 'Present' },
+  { id: 'ig-024', title: 'Rooftop vibes with my favorite crew. Hot cocoa, cool breezes.', theme: 'friendship', epoch: 'Present', media: null },
 
   // Reflection / Growth
-  { id: 'ig-016', title: 'Every challenge presents a call to leap, expanding our horizon.', theme: 'reflection', epoch: 'Present' },
-  { id: 'ms-011', title: 'VBI pandemic acceleration — marketplace boom', theme: 'growth', epoch: 'Growth' },
+  { id: 'ig-016', title: 'Every challenge presents a call to leap, expanding our horizon.', theme: 'reflection', epoch: 'Present', media: null },
+  { id: 'ms-011', title: 'VBI pandemic acceleration — marketplace boom', theme: 'growth', epoch: 'Growth', media: null },
 
-  // Health
-  { id: 'ms-013', title: 'Health transformation begins — 150+ lbs journey', theme: 'health', epoch: 'Present' },
+  // Health / Entrepreneurship / Technology
+  { id: 'ms-013', title: 'Health transformation begins — 150+ lbs journey', theme: 'health', epoch: 'Present', media: null },
+  { id: 'ms-014', title: 'Starseed — creative solutions company and story IP home', theme: 'entrepreneurship', epoch: 'Growth', media: null },
+  { id: 'ms-020', title: 'Call of Duty: Black Ops 6 — official Elgato Marketplace collaboration', theme: 'technology', epoch: 'Present', media: null },
 
-  // Entrepreneurship / Technology
-  { id: 'ms-014', title: 'Starseed — creative solutions company and story IP home', theme: 'entrepreneurship', epoch: 'Growth' },
-  { id: 'ms-020', title: 'Call of Duty: Black Ops 6 — official Elgato Marketplace collaboration', theme: 'technology', epoch: 'Present' },
-
-  // Worldschooling
-  { id: 'ms-016', title: 'Joined Boundless Life community — found a global family', theme: 'worldschooling', epoch: 'Present' },
-
-  // Nostalgia
-  { id: 'ig-011', title: 'Tracing the paths of our childhood, my boys nearly mirror the same adventures.', theme: 'nostalgia', epoch: 'Present' },
+  // Worldschooling / Nostalgia
+  { id: 'ms-016', title: 'Joined Boundless Life community — found a global family', theme: 'worldschooling', epoch: 'Present', media: null },
+  { id: 'ig-011', title: 'Tracing the paths of our childhood, my boys nearly mirror the same adventures.', theme: 'nostalgia', epoch: 'Present', media: null },
 ];

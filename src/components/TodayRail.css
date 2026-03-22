@@ -88,12 +88,36 @@
   gap: 0.35rem;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.3s ease, background 0.3s ease;
+  transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Blurred media preview — hidden until parent card hover */
+.today-card__moment-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px) saturate(0.6);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: 0;
+}
+
+.today-card__moment-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 10, 30, 0.75) 0%, rgba(15, 10, 30, 0.6) 100%);
+}
+
+.today-card:hover .today-card__moment-bg {
+  opacity: 1;
 }
 
 .today-card:hover .today-card__moment {
-  border-color: rgba(124, 58, 237, 0.25);
+  border-color: rgba(124, 58, 237, 0.35);
   background: rgba(124, 58, 237, 0.1);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.1);
 }
 
 .today-card__moment-badge {
@@ -105,6 +129,8 @@
   letter-spacing: 0.08em;
   font-weight: 600;
   color: #a78bfa;
+  position: relative;
+  z-index: 1;
 }
 
 .today-card__moment-title {
@@ -112,6 +138,8 @@
   color: #e0e0e4;
   line-height: 1.4;
   font-weight: 500;
+  position: relative;
+  z-index: 1;
 }
 
 .today-card__moment-epoch {
@@ -119,6 +147,8 @@
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  position: relative;
+  z-index: 1;
 }
 
 /* Explore CTA — special styling */
