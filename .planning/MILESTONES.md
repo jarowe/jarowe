@@ -1,5 +1,17 @@
 # Milestones
 
+## v2.0.1 Polish & Connect (Shipped: 2026-03-22)
+
+**Phases completed:** 2 phases, 3 plans, 6 tasks
+
+**Key accomplishments:**
+
+- Per-instance emissive shader patch for constellation node colors, plus 2-sentence cap on Glint journal entries
+- 20 T3+ holidays mapped to constellation nodes with conditional "Explore in constellation" deep-link in TodayRail
+- Starseed hub rebranded from purple/violet to warm amber gold (#d4a843-#f0c85a) with per-card gradient backgrounds and Workshop-style translateZ depth layering
+
+---
+
 ## v2.0 Living World (Shipped: 2026-03-21)
 
 **Phases completed:** 5 phases, 14 plans, 20 tasks

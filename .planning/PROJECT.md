@@ -8,26 +8,19 @@ A living personal world for Jared Rowe (jarowe.com) that serves as "life in webf
 
 jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
 
-## Current State: v2.0 Living World — SHIPPED 2026-03-21
+## Current State: v2.0.1 Polish & Connect — SHIPPED 2026-03-22
 
-jarowe.com is now a living, daily-pulse world with:
+jarowe.com is a living, daily-pulse world with polished visual cohesion:
 - **Today Layer** — time-of-day atmosphere, moon phase effects, weather-driven CSS, daily-rotating content
-- **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette
-- **Starseed Hub** — branded business showcase with 4 project cards, contact section, Labs creation tools
+- **TodayRail → Constellation** — holiday Explore card deep-links T3+ holidays to constellation nodes
+- **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette; journal entries capped at 2 sentences
+- **Starseed Hub** — warm gold brand identity with per-card gradient backgrounds, Workshop-style depth layering, contact section, Labs creation tools
 - **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
 - **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
 - **Immersive Portal** — gaussian splat memory viewer with narrative overlay, soundtrack, mobile fallback
+- **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
-## Current Milestone: v2.0.1 Polish & Connect
-
-**Goal:** Fix regressions, tighten visual cohesion, and wire up intended connections from v2.0.
-
-**Target features:**
-- ~~Fix constellation helix node rendering (InstancedMesh emissive/color regression)~~ — Validated in Phase 8
-- ~~Cap Glint journal entries to 2 sentences max (API prompt + fallback pool)~~ — Validated in Phase 8
-- ~~Build TodayRail "Explore" card with holiday→constellation node connection~~ — Validated in Phase 9
-- ~~Restore Starseed gold warmth and improve card design to match Workshop style~~ — Validated in Phase 9
-- ~~Bring Workshop gradient background card aesthetic to Starseed project cards~~ — Validated in Phase 9
+## Current Milestone: None — planning next
 
 ## Requirements
 
@@ -100,7 +93,7 @@ jarowe.com is now a living, daily-pulse world with:
 - [ ] Existing pages wired into constellation data system
 - [ ] Polish and connect existing pages (Globe, Garden, Vault, Workshop, Now, Universe)
 
-### Out of Scope (v2.0)
+### Out of Scope
 
 <!-- Explicit boundaries for THIS milestone. Captured for future milestones. -->
 
@@ -184,4 +177,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v2.0.1 Polish & Connect milestone start*
+*Last updated: 2026-03-22 after v2.0.1 Polish & Connect milestone*
