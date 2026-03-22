@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0.1
 milestone_name: Polish & Connect
-status: defining_requirements
+status: ready_to_plan
 stopped_at: null
 last_updated: "2026-03-21"
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,35 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Defining requirements for v2.0.1
+**Current focus:** Phase 8 - Regression Fixes
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-21 — Milestone v2.0.1 started
+Phase: 8 of 9 (Regression Fixes)
+Plan: --
+Status: Ready to plan
+Last activity: 2026-03-21 -- Roadmap created for v2.0.1
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0 (v2.0.1)
+- Average duration: --
+- Total execution time: --
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+- Last 5 plans: --
+- Trend: --
+
+*Updated after each plan completion*
 
 ## v2.0 Summary
 
@@ -44,7 +65,6 @@ Phases 1-2 complete (9 plans, 1.74 hours total execution):
 
 - Phase 1: Constellation Scene (4 plans, complete)
 - Phase 2: Data Pipeline & Privacy (5/6 plans, gap closure pending)
-- Phases 3-6 from v1.0 scope deferred (Narrator, Admin, Automation, Bento Hub)
 
 ## Accumulated Context
 
@@ -54,13 +74,11 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 
 - Starseed Hub uses campaign-shell pattern (proven from music takeover)
 - Daily engine before spectacle (retention before acquisition)
-- Anonymous-first auth with Supabase upgrade path
 - Glint bounded tool use, not generic chatbot
 
 ### Pending Todos (carried from v1.0/v2.0)
 
 - Re-enable Bloom in production mode
-- Tune node colors (instanceColor blending) ← **addressed in v2.0.1**
 - Instagram parser selector tuning
 - Populate allowlist.json with real names
 
@@ -71,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-21
-Stopped at: null
+Stopped at: Roadmap created for v2.0.1 -- ready to plan Phase 8
 Resume file: None

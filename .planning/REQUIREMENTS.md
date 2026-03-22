@@ -1,7 +1,7 @@
 # Requirements: jarowe.com
 
 **Defined:** 2026-03-20 (v2.0), updated 2026-03-21 (v2.0.1)
-**Core Value:** jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation.
+**Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
 
 ## v2.0.1 Requirements
 
@@ -39,7 +39,7 @@ Requirements for patch release. Fixes regressions, tightens content, and improve
 
 ### Starseed Hub
 - [x] **STAR-01** through **STAR-06**: Campaign-shell branded hub, project cards, contact section
-- [ ] **STAR-07**: starseed.llc DNS redirect (deferred — DNS config)
+- [ ] **STAR-07**: starseed.llc DNS redirect (deferred -- DNS config)
 
 ### Starseed Labs
 - [x] **LABS-01** through **LABS-06**: Scratchpad, canvas, Glint handoff, brainstorm mode, hub page
@@ -49,8 +49,8 @@ Requirements for patch release. Fixes regressions, tightens content, and improve
 
 ### Immersive Portal
 - [x] **PORTAL-01**, **PORTAL-03**: Splat scene with soundtrack + narrative overlay
-- [ ] **PORTAL-02**: 3D flythrough portal transition (partial — CSS cross-fade shipped)
-- [ ] **PORTAL-04**: Scene-specific OG preview (partial — generic OG shipped)
+- [ ] **PORTAL-02**: 3D flythrough portal transition (partial -- CSS cross-fade shipped)
+- [ ] **PORTAL-04**: Scene-specific OG preview (partial -- generic OG shipped)
 
 ## Future Requirements
 
@@ -75,7 +75,7 @@ Deferred to future milestones. Not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Constellation Editor overhaul | Not a defect — save for dedicated milestone |
+| Constellation Editor overhaul | Not a defect -- save for dedicated milestone |
 | New data pipeline parsers | Prove pipeline with existing sources first |
 | Bloom re-enable | Separate concern, not part of this patch |
 | Full editorial news operation | Progress lens is curated cards, not a feed |
@@ -86,17 +86,17 @@ Deferred to future milestones. Not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RENDER-01 | — | Pending |
-| CONTENT-01 | — | Pending |
-| VISUAL-01 | — | Pending |
-| VISUAL-02 | — | Pending |
-| VISUAL-03 | — | Pending |
+| RENDER-01 | Phase 8 | Pending |
+| CONTENT-01 | Phase 8 | Pending |
+| VISUAL-01 | Phase 9 | Pending |
+| VISUAL-02 | Phase 9 | Pending |
+| VISUAL-03 | Phase 9 | Pending |
 
 **Coverage:**
 - v2.0.1 requirements: 5 total
-- Mapped to phases: 0
-- Unmapped: 5 ⚠️
+- Mapped to phases: 5
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-20 (v2.0)*
-*Last updated: 2026-03-21 after v2.0.1 patch requirements definition*
+*Last updated: 2026-03-21 after v2.0.1 roadmap creation*
