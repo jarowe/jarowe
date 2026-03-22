@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
@@ -113,6 +113,15 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const meshRef = useRef();
   const materialRef = useRef();
   const count = nodes.length;
+
+  // Shader patch: inject per-instance color into emissive channel
+  const handleShaderCompile = useCallback((shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+       totalEmissiveRadiance *= vColor.rgb;`
+    );
+  }, []);
 
   const focusNode = useConstellationStore((s) => s.focusNode);
   const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
@@ -267,11 +276,12 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       <meshStandardMaterial
         ref={materialRef}
         color="#ffffff"
-        emissive="#444466"
+        emissive="#ffffff"
         emissiveIntensity={getCfg('nodeEmissiveIntensity')}
         roughness={0.6}
         metalness={0.1}
         toneMapped={false}
+        onBeforeCompile={handleShaderCompile}
       />
     </instancedMesh>
   );
