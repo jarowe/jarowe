@@ -1,149 +1,102 @@
-# Requirements: jarowe.com Living World
+# Requirements: jarowe.com
 
-**Defined:** 2026-03-20
-**Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Canonical scope:** See `.planning/future/MASTER_PLAN.md` for strategic rationale and shipping order.
+**Defined:** 2026-03-20 (v2.0), updated 2026-03-21 (v2.0.1)
+**Core Value:** jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation.
 
-## v2.0 Requirements
+## v2.0.1 Requirements
 
-Requirements for the Living World milestone. 37 requirements across 6 categories. All ship in v2.0, sequenced into 5 waves.
+Requirements for patch release. Fixes regressions, tightens content, and improves visual cohesion from v2.0.
+
+### Rendering
+
+- [ ] **RENDER-01**: Constellation helix nodes display correct emissive/instance colors from theme data (fix InstancedMesh color regression)
+
+### Content
+
+- [ ] **CONTENT-01**: Glint journal entries are capped at 2 sentences max (both API prompt and fallback pool)
+
+### Visual Cohesion
+
+- [ ] **VISUAL-01**: TodayRail "Explore" card links the current holiday to its constellation node (degrades gracefully when no mapped node exists)
+- [ ] **VISUAL-02**: Starseed color palette restored to gold warmth
+- [ ] **VISUAL-03**: Starseed project cards use Workshop-style gradient background aesthetic
+
+## v2.0 Requirements (Shipped)
+
+37 requirements across 6 categories. All shipped in v2.0 (Phases 3-7).
 
 ### Today Layer
-
-- [x] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
-- [x] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
+- [x] **TODAY-01**: Visitor sees date-specific content within 5 seconds of homepage load
+- [x] **TODAY-02**: Homepage color temperature shifts based on time of day via CSS custom properties
 - [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
-- [x] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
-- [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
-- [x] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
-- [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
+- [x] **TODAY-04**: Real weather data drives atmospheric visuals
+- [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day"
+- [x] **TODAY-06**: Daily progress signal card
+- [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA
 
 ### Glint Operator
-
-- [x] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
-- [x] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
-- [x] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
-- [x] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
-- [x] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
-- [x] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
-- [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
+- [x] **GLINT-01** through **GLINT-07**: Full tool-use system (navigate, launch games, control music, show daily, save ideas, command palette)
 
 ### Starseed Hub
+- [x] **STAR-01** through **STAR-06**: Campaign-shell branded hub, project cards, contact section
+- [ ] **STAR-07**: starseed.llc DNS redirect (deferred — DNS config)
 
-- [x] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
-- [ ] **STAR-02**: Project cards display active Starseed projects (BEAMY, AMINA, DECKIT, Starseed Labs, and future projects) with icons, descriptions, and tags
-- [x] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes -- distinct from jarowe.com main site aesthetic
-- [x] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
-- [ ] **STAR-05**: Contact/client-facing section for Starseed business inquiries with form or mailto
-- [ ] **STAR-06**: Each project card links to its own detail page within the site or to an external project URL
-- [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) -- unified URL strategy
-
-### Starseed Labs (Creation Surface)
-
-- [x] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
-- [x] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
-- [x] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
-- [x] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
-- [x] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
-- [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
+### Starseed Labs
+- [x] **LABS-01** through **LABS-06**: Scratchpad, canvas, Glint handoff, brainstorm mode, hub page
 
 ### Daily Engine
-
-- [x] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
-- [x] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
-- [x] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
-- [x] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
-- [x] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
-- [x] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
+- [x] **DAILY-01** through **DAILY-06**: Daily seed, view transitions, OG images, streaks, easter eggs, weather
 
 ### Immersive Portal
+- [x] **PORTAL-01**, **PORTAL-03**: Splat scene with soundtrack + narrative overlay
+- [ ] **PORTAL-02**: 3D flythrough portal transition (partial — CSS cross-fade shipped)
+- [ ] **PORTAL-04**: Scene-specific OG preview (partial — generic OG shipped)
 
-- [x] **PORTAL-01**: One gaussian splat scene captured from a meaningful location, optimized to SPZ format, and viewable in the site via Spark.js or drei Splat
-- [ ] **PORTAL-02**: Splat scene accessible from globe or constellation with a portal-style camera transition (flythrough, dissolve, or dimensional shader)
-- [x] **PORTAL-03**: Soundtrack auto-plays and narrative text overlay tells the story of the place within the splat scene
-- [ ] **PORTAL-04**: Direct shareable URL (`/memory/[scene-name]`) with dynamic OG image showing splat scene preview
+## Future Requirements
 
-## v2.1+ Requirements (Deferred)
+Deferred to future milestones. Not in current roadmap.
 
-Acknowledged, tracked, not in current roadmap.
+### Constellation Editor
+- **EDITOR-01**: Enhanced effect controls and visual refinement tools in Constellation Editor page
+
+### Constellation Core (from v1.0)
+- **CONST-01**: Scripted narrator engine with 5-tier event-driven narration
+- **CONST-02**: Guided tour (~90 seconds, cinematic, skippable)
+- **CONST-03**: Constellation modes: "Life" / "Work" / "Ideas"
+- **CONST-04**: Path memory: faint glowing trail of visitor's journey
 
 ### Ecosystem Expansion
-- **ECO-01**: Starseed Labs as standalone product with own OAuth, own domain, agentic AI business factory
-- **ECO-02**: Community infrastructure -- Discord server(s) for jarowe.com/Starseed/Starseed Labs communities
-- **ECO-03**: Subscriber system -- mailing list, SMS, cross-ecosystem user management
-- **ECO-04**: Content pipeline automation -- hard drive creative assets to site publishing workflow
-- **ECO-05**: Video/livestreaming channel on jarowe.com
-- **ECO-06**: Full starseed.llc independent site (beyond redirect)
+- **ECO-01** through **ECO-06**: Starseed Labs standalone, community, subscribers, content pipeline, video, independent site
 
 ### Experience Expansion
-- **EXP-01**: Voice-enabled Glint (Web Speech API, ElevenLabs, OpenAI Realtime)
-- **EXP-02**: Multiplayer visitor presence via PartyKit
-- **EXP-03**: StarOS desktop mode at high engagement XP threshold
-- **EXP-04**: Additional gaussian splat memory portals
-- **EXP-05**: Hand-tracked Glint interaction via MediaPipe
-- **EXP-06**: WebGPU shader gallery and compute experiences
-- **EXP-07**: VR constellation mode via WebXR
-- **EXP-08**: Glint conversation memory persistence in Supabase
+- **EXP-01** through **EXP-08**: Voice Glint, multiplayer, StarOS, more portals, hand tracking, WebGPU, VR, conversation memory
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Full editorial news operation | Progress lens is curated cards, not a feed. Editorial overhead is incompatible with "works for Jared." |
-| Generic autonomous internet agent | Glint is bounded to this world. Constraints make him memorable. |
-| Mobile native app | Web-first. Responsive design covers mobile. |
-| Uncontrolled auto-publishing | Automation proposes and prefills. Jared decides what becomes public. |
-| Generalized social network features | Community forms around content, not around profiles. Discord first. |
+| Constellation Editor overhaul | Not a defect — save for dedicated milestone |
+| New data pipeline parsers | Prove pipeline with existing sources first |
+| Bloom re-enable | Separate concern, not part of this patch |
+| Full editorial news operation | Progress lens is curated cards, not a feed |
+| Generic autonomous internet agent | Glint is bounded to this world |
+| Mobile native app | Web-first, responsive design covers mobile |
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TODAY-01 | Phase 3 | Complete |
-| TODAY-02 | Phase 3 | Complete |
-| TODAY-03 | Phase 3 | Complete |
-| TODAY-04 | Phase 6 | Complete |
-| TODAY-05 | Phase 4 | Complete |
-| TODAY-06 | Phase 6 | Complete |
-| TODAY-07 | Phase 3 | Complete |
-| GLINT-01 | Phase 4 | Complete |
-| GLINT-02 | Phase 4 | Complete |
-| GLINT-03 | Phase 4 | Complete |
-| GLINT-04 | Phase 4 | Complete |
-| GLINT-05 | Phase 4 | Complete |
-| GLINT-06 | Phase 6 | Complete |
-| GLINT-07 | Phase 4 | Complete |
-| STAR-01 | Phase 3 | Complete |
-| STAR-02 | Phase 5 | Complete |
-| STAR-03 | Phase 3 | Complete |
-| STAR-04 | Phase 3 | Complete |
-| STAR-05 | Phase 5 | Complete |
-| STAR-06 | Phase 5 | Partial (2/4 cards linked, 2 coming-soon) |
-| STAR-07 | Phase 5 | Deferred (DNS config) |
-| LABS-01 | Phase 5 | Complete |
-| LABS-02 | Phase 5 | Complete |
-| LABS-03 | Phase 5 | Complete |
-| LABS-04 | Phase 6 | Complete |
-| LABS-05 | Phase 6 | Complete |
-| LABS-06 | Phase 5 | Complete |
-| DAILY-01 | Phase 3 | Complete |
-| DAILY-02 | Phase 3 | Complete |
-| DAILY-03 | Phase 6 | Complete |
-| DAILY-04 | Phase 6 | Complete |
-| DAILY-05 | Phase 6 | Complete |
-| DAILY-06 | Phase 6 | Complete |
-| PORTAL-01 | Phase 7 | Complete |
-| PORTAL-02 | Phase 7 | Partial (CSS cross-fade, not 3D flythrough) |
-| PORTAL-03 | Phase 7 | Complete |
-| PORTAL-04 | Phase 7 | Partial (generic OG, not scene preview) |
+| RENDER-01 | — | Pending |
+| CONTENT-01 | — | Pending |
+| VISUAL-01 | — | Pending |
+| VISUAL-02 | — | Pending |
+| VISUAL-03 | — | Pending |
 
 **Coverage:**
-- v2.0 requirements: 37 total
-- Mapped to phases: 37
-- Unmapped: 0
+- v2.0.1 requirements: 5 total
+- Mapped to phases: 0
+- Unmapped: 5 ⚠️
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after v2.0 roadmap creation (all 37 requirements mapped to Phases 3-7)*
+*Requirements defined: 2026-03-20 (v2.0)*
+*Last updated: 2026-03-21 after v2.0.1 patch requirements definition*
