@@ -9,25 +9,6 @@ import { DAILY_PROMPTS } from '../data/dailyPrompts';
 import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
 import './TodayRail.css';
 
-// Featured constellation nodes for daily rotation (Phase 5 will pull from real data)
-const FEATURED_NODES = [
-  "Venice, 2024 -- a floating city of light.",
-  "Valencia Film School, 2005 -- where it all started.",
-  "Syros, Greece -- three months of sun and wonder.",
-  "Elgato HQ, Munich -- the innovation lab.",
-  "Doctrine Studios -- where Derek and I built everything.",
-  "Videezy launch -- 3 million creatives served.",
-  "Spain, 2025 -- worldschooling continues.",
-  "SeaWorld Orlando -- VelociCoaster with the crew.",
-  "Boy In The Bubble sessions -- music as medicine.",
-  "BEAMY engine -- animation from the ground up.",
-  "First Starseed project -- creative solutions, limitless.",
-  "Rome with Maria -- eternal city, eternal love.",
-  "Austria road trip -- alps and adventures.",
-  "TwitchCon 2025 -- panels and possibilities.",
-  "The health journey -- 150 lbs lost, still going.",
-];
-
 const MODE_ICONS = {
   write: PenTool,
   sketch: Palette,
@@ -59,11 +40,10 @@ export default function TodayRail() {
   const todayData = useMemo(() => {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    const featuredNode = dailyPick(FEATURED_NODES, 'featured-node');
     const prompt = dailyPick(DAILY_PROMPTS, 'prompt');
     const moonPhase = getMoonPhase(now);
     const todPhase = getTimeOfDayPhase(now);
-    return { dateStr, featuredNode, prompt, moonPhase, todPhase };
+    return { dateStr, prompt, moonPhase, todPhase };
   }, []); // Stable for session -- re-mounts on page reload
 
   const ModeIcon = todayData.prompt ? MODE_ICONS[todayData.prompt.mode] || Sparkles : Sparkles;
@@ -89,10 +69,17 @@ export default function TodayRail() {
               <span>{holiday.name}</span>
             </div>
           )}
-          <p className="today-card__featured">{todayData.featuredNode}</p>
-          <Link to="/constellation" className="today-card__cta">
-            Explore today <ArrowRight size={14} />
-          </Link>
+          {holiday && holiday.nodeId ? (
+            <Link to={`/constellation/${holiday.nodeId}`} className="today-card__cta">
+              Explore in constellation <ArrowRight size={14} />
+            </Link>
+          ) : holiday && holiday.greeting ? (
+            <p className="today-card__featured">{holiday.greeting}</p>
+          ) : (
+            <Link to="/constellation" className="today-card__cta">
+              Explore today <ArrowRight size={14} />
+            </Link>
+          )}
         </motion.div>
 
         {/* Card 2: Glint's Thought of the Day */}
