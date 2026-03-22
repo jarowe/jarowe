@@ -1,30 +1,42 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Living World
-status: unknown
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-21T21:05:22.466Z"
+milestone: v2.0.1
+milestone_name: Polish & Connect
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-03-21"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 07 — immersive-portal
+**Current focus:** Defining requirements for v2.0.1
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-21 — Milestone v2.0.1 started
+
+## v2.0 Summary
+
+Phases 03-07 complete (14 plans):
+
+- Phase 03: Starseed Hub + Today Layer
+- Phase 04: Glint Operator + Command Palette
+- Phase 05: Starseed Labs (Scratchpad + Canvas)
+- Phase 06: Daily Engine (Weather, Streaks, Easter Eggs, OG)
+- Phase 07: Immersive Portal (Gaussian Splat)
 
 ## v1.0 Summary
 
@@ -34,54 +46,21 @@ Phases 1-2 complete (9 plans, 1.74 hours total execution):
 - Phase 2: Data Pipeline & Privacy (5/6 plans, gap closure pending)
 - Phases 3-6 from v1.0 scope deferred (Narrator, Admin, Automation, Bento Hub)
 
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 9 (v1.0)
-- Average duration: 11.6 min
-- Total execution time: 1.74 hours
-
-**Recent Trend:**
-
-- Stable (v1.0 baseline established)
-
 ## Accumulated Context
 
 ### Decisions
 
-Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
+Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forward:
 
 - Starseed Hub uses campaign-shell pattern (proven from music takeover)
 - Daily engine before spectacle (retention before acquisition)
 - Anonymous-first auth with Supabase upgrade path
 - Glint bounded tool use, not generic chatbot
-- [Phase 03]: Hide main Navbar on /starseed routes via isStarseedRoute (campaign-shell pattern)
-- [Phase 03]: Replace Workshop nav link with Starseed link (gold Sparkles icon)
-- [Phase 03]: Used djb2 hash + mulberry32 PRNG for daily seed (zero dependencies, deterministic)
-- [Phase 03]: Moon illumination modulates globe nebula/particles via shared uMoonIllumination uniform
-- [Phase 03]: 3 cards in TodayRail (not 4): Glint Thought and Progress Signal deferred to Phase 4/6
-- [Phase 03]: Global View Transitions via document-level click interceptor (capture phase) for maximum Link coverage
-- [Phase 04]: Used cmdk data-attribute selectors for CSS matching library convention
-- [Phase 04]: Journal API returns 200 even on error for seamless client fallback pattern
-- [Phase 04]: Dual tool schema definition (client + API) due to Edge/browser runtime boundary
-- [Phase 04]: 500ms narration delay before action dispatch for two-phase UX feel
-- [Phase 05]: Disabled Milkdown CodeMirror/Latex/ImageBlock to reduce bundle size
-- [Phase 05]: Canvas persists only 5 essential appState fields (not full state) to avoid serialization issues
-- [Phase 06]: DOM manipulation for OG meta tags instead of react-helmet-async (fewer deps)
-- [Phase 06]: Node.js runtime for @vercel/og Vercel Function (not Edge)
-- [Phase 06]: Weather CSS properties are additive multipliers, never replacing --tod-* values
-- [Phase 06]: Silent geolocation fallback: denied geolocation results in clear-day defaults with no error
-- [Phase 06]: Append-only scratchpad writes with markdown HR separator and Glint attribution timestamp
-- [Phase 06]: TODAY-06 (progress signal card) explicitly descoped per user decision
-- [Phase 07]: Dynamic import for splat library to code-split heavy 3D away from fallback users
-- [Phase 07]: Remote demo splat asset for placeholder scene (Hugging Face bonsai ksplat)
-- [Phase 07]: Separate Howl per scene (not global AudioProvider) for scene-specific ambient audio
 
-### Pending Todos (from v1.0)
+### Pending Todos (carried from v1.0/v2.0)
 
 - Re-enable Bloom in production mode
-- Tune node colors (instanceColor blending)
+- Tune node colors (instanceColor blending) ← **addressed in v2.0.1**
 - Instagram parser selector tuning
 - Populate allowlist.json with real names
 
@@ -91,6 +70,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:30:56.998Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-21
+Stopped at: null
 Resume file: None

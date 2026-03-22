@@ -18,6 +18,17 @@ jarowe.com is now a living, daily-pulse world with:
 - **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
 - **Immersive Portal** — gaussian splat memory viewer with narrative overlay, soundtrack, mobile fallback
 
+## Current Milestone: v2.0.1 Polish & Connect
+
+**Goal:** Fix regressions, tighten visual cohesion, and wire up intended connections from v2.0.
+
+**Target features:**
+- Fix constellation helix node rendering (InstancedMesh emissive/color regression)
+- Cap Glint journal entries to 2 sentences max (API prompt + fallback pool)
+- Build TodayRail "Explore" card with holiday→constellation node connection
+- Restore Starseed gold warmth and improve card design to match Workshop style
+- Bring Workshop gradient background card aesthetic to Starseed project cards
+
 ## Requirements
 
 ### Validated
@@ -155,5 +166,22 @@ jarowe.com is now a living, daily-pulse world with:
 | Anonymous-first auth with Supabase upgrade | No login wall. signInAnonymously() → linkIdentity() when there's value to protect. | — Pending |
 | Glint bounded tool use, not generic chatbot | Site-native intelligence with agency inside this world. Constraints make him memorable. | — Pending |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-20 after v2.0 Living World milestone start*
+*Last updated: 2026-03-21 after v2.0.1 Polish & Connect milestone start*
