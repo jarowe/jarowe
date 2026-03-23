@@ -4168,10 +4168,48 @@ export default function Home() {
     playClickSound();
   }, [activeExpedition]);
 
-  // Memory portal click — navigate to /memory/:sceneId with view transition
+  // Memory portal click — navigate to /memory/:sceneId through portal VFX
   const handleMemoryPointClick = useCallback((point) => {
     playClickSound();
-    navigateWithTransition(navigate, `/memory/${point.sceneId}`);
+
+    // Mark portal entry so CapsuleShell knows this wasn't a direct URL access
+    sessionStorage.setItem('jarowe_portal_entry', '1');
+
+    // Use click coordinates as portal origin (globe marker position)
+    const rect = document.querySelector('.memory-portal-globe')?.getBoundingClientRect?.();
+    // Default to center if globe marker rect unavailable
+    const ox = rect ? `${((rect.left + rect.width / 2) / window.innerWidth) * 100}%` : '50%';
+    const oy = rect ? `${((rect.top + rect.height / 2) / window.innerHeight) * 100}%` : '50%';
+
+    const cfg = window.__prismConfig || {};
+    const gatherMs = cfg.portalGatherMs ?? 500;
+    const seepEnabled = cfg.portalSeepEnabled !== false;
+    const seepDuration = cfg.portalSeepDuration ?? 800;
+    const t0 = seepEnabled ? seepDuration : 0;
+
+    // Start portal VFX
+    setPortalOrigin({ x: ox, y: oy });
+    setPortalPhase('seep');
+
+    // Phase timers
+    const timers = [];
+    const eT = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+
+    eT(() => setPortalPhase('gathering'), t0);
+
+    // Navigate during rupture — the threshold moment
+    eT(() => {
+      setPortalPhase('rupture');
+      navigateWithTransition(navigate, `/memory/${point.sceneId}`);
+    }, t0 + gatherMs);
+
+    // Clean up portal phase after navigation starts
+    eT(() => setPortalPhase('emerging'), t0 + gatherMs + (cfg.portalRuptureMs ?? 500));
+    eT(() => setPortalPhase('residual'), t0 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900));
+    eT(() => setPortalPhase(null), t0 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900) + (cfg.portalResidualMs ?? 1800));
+
+    // Cleanup on unmount (navigation will unmount Home.jsx)
+    return () => timers.forEach(clearTimeout);
   }, [navigate]);
 
   // Sync activeExpedition to ref for tour closures
@@ -7293,6 +7331,30 @@ export default function Home() {
 
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
+
+        {/* Phase 12 test: Portal entry to test-capsule — remove after flagship wiring */}
+        {import.meta.env.DEV && (
+          <button
+            className="memory-portal-test-btn"
+            onClick={() => handleMemoryPointClick({ sceneId: 'test-capsule' })}
+            style={{
+              position: 'fixed',
+              bottom: 16,
+              left: 16,
+              zIndex: 9999,
+              padding: '8px 16px',
+              background: 'rgba(124, 58, 237, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            Test Capsule Portal
+          </button>
+        )}
 
         {/* HIDDEN CHARACTER - always mounted so Canvas never remounts (no lag) */}
         {(() => {
