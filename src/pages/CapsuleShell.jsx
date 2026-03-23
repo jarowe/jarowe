@@ -290,11 +290,13 @@ function DisplacedMeshRenderer({ scene, tier }) {
 }
 
 // ---------------------------------------------------------------------------
-// ParallaxFallback — CSS parallax + Ken Burns (extracted from MemoryPortal)
+// ParallaxFallback — multi-layer Ken Burns with depth-based separation
 // ---------------------------------------------------------------------------
 function ParallaxFallback({ scene, loadError }) {
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
+  const containerRef = useRef(null);
 
+  // Mouse/touch parallax
   const handleMouseMove = useCallback((e) => {
     setMousePos({
       x: e.clientX / window.innerWidth,
@@ -302,26 +304,69 @@ function ParallaxFallback({ scene, loadError }) {
     });
   }, []);
 
+  // Gyroscope parallax for mobile
   useEffect(() => {
+    const handleOrientation = (e) => {
+      if (e.gamma != null && e.beta != null) {
+        setMousePos({
+          x: 0.5 + (e.gamma / 90) * 0.3, // -90..90 → 0.2..0.8
+          y: 0.5 + ((e.beta - 45) / 90) * 0.3, // centered around 45deg tilt
+        });
+      }
+    };
+    window.addEventListener('deviceorientation', handleOrientation);
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, [handleMouseMove]);
 
-  const previewUrl = resolveAsset(scene.previewImage, false);
-  const px = (mousePos.x - 0.5) * 20;
-  const py = (mousePos.y - 0.5) * 12;
+  const previewUrl = resolveAsset(scene.previewImage);
+  const photoUrl = resolveAsset(scene.photoUrl || scene.previewImage);
+
+  // Parallax offsets: foreground moves more than background
+  const bgX = (mousePos.x - 0.5) * 12;
+  const bgY = (mousePos.y - 0.5) * 8;
+  const fgX = (mousePos.x - 0.5) * 28;
+  const fgY = (mousePos.y - 0.5) * 18;
 
   return (
-    <div className="memory-portal__bg">
-      {previewUrl && (
+    <div className="memory-portal__bg" ref={containerRef}>
+      {/* Background layer — slower parallax */}
+      {(photoUrl || previewUrl) && (
         <motion.div
-          className="memory-portal__hero-image"
-          style={{ backgroundImage: `url(${previewUrl})`, x: px, y: py }}
-          initial={{ scale: 1.3, opacity: 0 }}
-          animate={{ scale: 1.1, opacity: 1 }}
-          transition={{ duration: 3, ease: 'easeOut' }}
+          className="memory-portal__hero-image memory-portal__layer-bg"
+          style={{
+            backgroundImage: `url(${photoUrl || previewUrl})`,
+            x: bgX,
+            y: bgY,
+          }}
+          initial={{ scale: 1.0, opacity: 0 }}
+          animate={{ scale: [1.0, 1.05, 1.0], opacity: 1 }}
+          transition={{
+            scale: { duration: 20, repeat: Infinity, ease: 'easeInOut' },
+            opacity: { duration: 2, ease: 'easeOut' },
+          }}
         />
       )}
+
+      {/* Foreground layer — faster parallax (same image with brightness/blur separation) */}
+      {(photoUrl || previewUrl) && (
+        <motion.div
+          className="memory-portal__hero-image memory-portal__layer-fg"
+          style={{
+            backgroundImage: `url(${photoUrl || previewUrl})`,
+            x: fgX,
+            y: fgY,
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.35 }}
+          transition={{ duration: 3, delay: 1 }}
+        />
+      )}
+
+      {/* Atmospheric overlays */}
       <div className="memory-portal__vignette" />
       <motion.div
         className="memory-portal__grain"
@@ -330,10 +375,10 @@ function ParallaxFallback({ scene, loadError }) {
       />
       <motion.div
         className="memory-portal__light-leak"
-        style={{ x: px * 2, y: py * 2 }}
+        style={{ x: fgX * 1.5, y: fgY * 1.5 }}
       />
 
-      {/* Fallback center content */}
+      {/* Center content */}
       <motion.div
         className="memory-portal__center"
         initial={{ opacity: 0, y: 30 }}

@@ -247,3 +247,22 @@
     height: 40px;
   }
 }
+
+/* ── Multi-layer parallax fallback ──────────────────────── */
+.memory-portal__layer-bg {
+  filter: brightness(0.7) saturate(1.1);
+  z-index: 0;
+}
+
+.memory-portal__layer-fg {
+  position: absolute;
+  inset: -60px;
+  background-size: cover;
+  background-position: center top;
+  filter: brightness(1.3) blur(0px);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%);
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+}
