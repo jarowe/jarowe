@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
 status: planning
-stopped_at: Defining requirements
+stopped_at: Roadmap created — ready for Phase 10 planning
 last_updated: "2026-03-23T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,20 +19,35 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Defining requirements for v2.1 Memory Capsules
+**Current focus:** v2.1 Memory Capsules -- roadmap complete, ready for Phase 10 planning
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-23 — Milestone v2.1 started
+Phase: 10 (Foundation + Asset Pipeline) -- not started
+Plan: --
+Status: Roadmap complete, awaiting first plan
+Last activity: 2026-03-23 -- Roadmap created for v2.1 (4 phases, 21 requirements)
+
+## v2.1 Roadmap Summary
+
+| Phase | Name | Requirements | Status |
+|-------|------|-------------|--------|
+| 10 | Foundation + Asset Pipeline | DEPTH-01/02/03/04, SHELL-01/02/03, ASSET-01 | Not started |
+| 11 | Cinematic Polish | CINE-01/02/03/04, PORT-02, PORT-04 | Not started |
+| 12 | Flagship Scene + Portal | SHELL-04, PORT-01/03, ARC-01/02/03 | Not started |
+| 13 | Integration + Expansion | PORT-05, ASSET-02 | Not started |
+
+**Phase ordering rationale:**
+- Phase 10 first: WebGL context lifecycle and depth artifact mitigation cannot be retrofitted
+- Phase 11 second: Camera choreography + atmosphere must exist before flagship evaluation (screensaver gives false negative)
+- Phase 12 third: Flagship capsule is the milestone anchor -- validates the concept with real emotional content
+- Phase 13 last: Constellation integration + editor tooling only matter if flagship proves the experience
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.0.1)
+- Total plans completed: 0 (v2.1)
 - Average duration: --
 - Total execution time: --
 
@@ -42,15 +57,22 @@ Last activity: 2026-03-23 — Milestone v2.1 started
 |-------|-------|-------|----------|
 | - | - | - | - |
 
-**Recent Trend:**
+**Recent Trend (from v2.0.1):**
 
-- Last 5 plans: --
-- Trend: --
-
-*Updated after each plan completion*
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
 | Phase 08 P01 | 2min | 2 tasks | 3 files |
 | Phase 09 P02 | 3min | 2 tasks | 3 files |
 | Phase 09 P01 | 4min | 2 tasks | 2 files |
+
+*Updated after each plan completion*
+
+## v2.0.1 Summary
+
+Phases 08-09 complete (3 plans):
+
+- Phase 08: Per-instance emissive shader colors, journal 2-sentence cap
+- Phase 09: TodayRail holiday-constellation links, Starseed gold brand restoration
 
 ## v2.0 Summary
 
@@ -82,6 +104,12 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 09]: Per-card CSS custom property (--card-gradient) driven by inline style from project data for unique gradient identity
 - [Phase 09]: Holiday-constellation linking via nodeId field on T3+ calendar entries with conditional deep-link in TodayRail
 
+### v2.1 Research Flags
+
+- **Phase 10 (WebGL context disposal):** react-globe.gl does not expose clean disposal API -- may need ref to globe instance + `globe.renderer().dispose()`. Validate against current Home.jsx globe code.
+- **Phase 11 (iOS audio):** Interaction between `Howler.ctx.resume()` and existing `AudioContext.jsx` needs mapping before building capsule soundtrack.
+- **Phase 12 (flagship photo selection):** "Capsule-worthy" checklist defined in research -- which specific Jared photo is the flagship candidate needs visual assessment (Syros sunset is strong candidate).
+
 ### Pending Todos (carried from v1.0/v2.0)
 
 - Re-enable Bloom in production mode
@@ -94,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T03:45:36.479Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-23
+Stopped at: Roadmap created for v2.1 Memory Capsules
 Resume file: None

@@ -91,16 +91,41 @@ Deferred to future milestones. Not in current roadmap.
 
 ## Traceability
 
-Updated during roadmap creation.
+Updated during roadmap creation (2026-03-23).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | | |
+| DEPTH-01 | Phase 10 | Not started |
+| DEPTH-02 | Phase 10 | Not started |
+| DEPTH-03 | Phase 10 | Not started |
+| DEPTH-04 | Phase 10 | Not started |
+| CINE-01 | Phase 11 | Not started |
+| CINE-02 | Phase 11 | Not started |
+| CINE-03 | Phase 11 | Not started |
+| CINE-04 | Phase 11 | Not started |
+| PORT-01 | Phase 12 | Not started |
+| PORT-02 | Phase 11 | Not started |
+| PORT-03 | Phase 12 | Not started |
+| PORT-04 | Phase 11 | Not started |
+| PORT-05 | Phase 13 | Not started |
+| ASSET-01 | Phase 10 | Not started |
+| ASSET-02 | Phase 13 | Not started |
+| SHELL-01 | Phase 10 | Not started |
+| SHELL-02 | Phase 10 | Not started |
+| SHELL-03 | Phase 10 | Not started |
+| SHELL-04 | Phase 12 | Not started |
+| ARC-01 | Phase 12 | Not started |
+| ARC-02 | Phase 12 | Not started |
+| ARC-03 | Phase 12 | Not started |
 
 **Coverage:**
-- v2.1 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21
+- v2.1 requirements: 22 total
+- Mapped to phases: 22
+- Unmapped: 0
+- Phase 10: 8 requirements (DEPTH-01/02/03/04, SHELL-01/02/03, ASSET-01)
+- Phase 11: 6 requirements (CINE-01/02/03/04, PORT-02, PORT-04)
+- Phase 12: 6 requirements (SHELL-04, PORT-01/03, ARC-01/02/03)
+- Phase 13: 2 requirements (PORT-05, ASSET-02)
 
 ## Previous Milestones
 

@@ -5,6 +5,7 @@
 - ✅ **v1.0 Constellation** - Phases 1-2 (shipped 2026-02-28, Phases 3-6 deferred to future)
 - ✅ **v2.0 Living World** - Phases 3-7 (shipped 2026-03-21)
 - ✅ **v2.0.1 Polish & Connect** - Phases 8-9 (shipped 2026-03-22)
+- 🚧 **v2.1 Memory Capsules** - Phases 10-13 (in progress)
 
 ## Phases
 
@@ -153,6 +154,57 @@ Plans:
 
 </details>
 
+### v2.1 Memory Capsules (In Progress)
+
+**Milestone Goal:** Turn a single still photo into an immersive 3D memory you can step into -- one unforgettable capsule with cinematic camera drift, atmosphere, narrative, and soundtrack. Not a tech demo -- a playable memory poem.
+
+**Guardrail:** If tradeoffs appear, protect the flagship capsule experience (SHELL-04, ARC-*) before protecting editor/tooling depth.
+
+**Structure:** 3 required phases (10-12) + 1 optional/stretch phase (13). The milestone is complete when Phase 12 ships successfully.
+
+### Phase 10: Foundation + Asset Pipeline
+**Goal**: A depth-displaced 3D mesh renders from a single photo without visual artifacts, with WebGL context lifecycle managed, GPU tiers detected, and a validated asset pipeline producing compressed capsule assets
+**Depends on**: Phase 9 (clean v2.0.1 baseline)
+**Requirements**: DEPTH-01, DEPTH-02, DEPTH-03, DEPTH-04, SHELL-01, SHELL-02, SHELL-03, ASSET-01
+**Success Criteria** (what must be TRUE):
+  1. Navigating to `/memory/:sceneId` renders a depth-displaced 3D mesh from a photo+depth pair -- the image visibly has 3D parallax when the camera subtly moves, not a flat plane
+  2. Foreground/background edges show clean separation (fragment discard on depth discontinuities) -- no rubber-sheet stretching artifacts where foreground meets background
+  3. Navigating from home (globe) to `/memory/:sceneId` and back does not crash or lose the globe -- WebGL contexts are explicitly disposed on route exit and recreated on return
+  4. On a low-end mobile device, the scene gracefully degrades to a parallax + Ken Burns 2D experience instead of attempting the full displaced mesh
+  5. Each capsule's total asset payload (photo + depth map + preview) is under 500KB, validated by the compression pipeline
+
+### Phase 11: Cinematic Polish
+**Goal**: The displaced mesh transforms from a tech demo into an experience -- constrained camera choreography, atmospheric particles, depth-of-field, color grading, and soundtrack make the visitor forget they are looking at a displaced photo
+**Depends on**: Phase 10 (working displaced mesh renderer with artifact mitigation)
+**Requirements**: CINE-01, CINE-02, CINE-03, CINE-04, PORT-02, PORT-04
+**Success Criteria** (what must be TRUE):
+  1. The camera moves on a scripted cinematic path (drift, dolly, parallax) -- there are no OrbitControls, no free-roam; the visitor is guided through the memory
+  2. Camera movement follows multi-beat GSAP keyframes (push in, pause, slow drift) with different easing periods -- it does NOT look like a screensaver or a linear loop
+  3. Atmospheric dust motes, bokeh specks, and light drift particles float through the scene; depth-of-field shifts focus between foreground and background; vignette and film grain add cinematic texture
+  4. The scene has a warm/cool/golden color mood applied via fragment uniform or postprocessing -- visibly different from a raw photo
+  5. A per-scene soundtrack plays via Howler.js with fade-in after user intent; GlobalPlayer music ducks (volume reduces) on capsule entry and restores on exit
+
+### Phase 12: Flagship Scene + Portal
+**Goal**: One real Jared memory is proven end-to-end as an unforgettable capsule -- with SAM layer separation, emotional narrative, portal transitions, and the full experience arc from still image awakening to gentle recession
+**Depends on**: Phase 11 (cinematic polish must be in place before validating the experience)
+**Requirements**: SHELL-04, PORT-01, PORT-03, ARC-01, ARC-02, ARC-03
+**Success Criteria** (what must be TRUE):
+  1. The flagship capsule uses a real Jared memory photo with genuine emotional charge -- not a stock image or test photo -- and the narrative text reads as "remembered thoughts, not captions"
+  2. The scene begins as a flat still image; depth slowly wakes up; the camera drifts with "impossible gentleness" -- a visitor watching it unfold says "whoa" within the first 5 seconds
+  3. Foreground objects (people, structures) move at a visibly different emotional rhythm than the background (sky, landscape) via SAM-generated layer masks -- the parallax feels like looking through a window, not at a flat surface
+  4. At the end of the experience, the memory visually recedes -- fading, pulling back, or dissolving rather than cutting to black or navigating away
+  5. Entry to the capsule uses full PortalVFX phases (existing portal transition system) -- the visitor enters through a portal, not a route change
+
+### Phase 13: Integration + Expansion *(OPTIONAL / STRETCH)*
+**Goal**: Memory capsules are woven into the constellation and site navigation -- constellation memory-type nodes link directly to capsules, and the system is ready for additional scenes
+**Depends on**: Phase 12 (flagship must be proven before expanding)
+**Condition**: Only pursue if Phase 12 proves the experience. The milestone is complete after Phase 12 ships successfully. This phase adds ecosystem integration, not core value.
+**Requirements**: PORT-05, ASSET-02
+**Success Criteria** (what must be TRUE):
+  1. Memory-type constellation nodes have a "Step Inside" affordance that navigates to the corresponding capsule scene -- the link is discoverable without documentation
+  2. The CapsuleEditor (lil-gui) provides live tuning for depth parameters, camera keyframes, atmosphere settings, and color grading -- an author can tune a new scene without touching code
+  3. Adding a second capsule scene requires only adding assets to `public/memory/{scene-id}/` and a registry entry -- no code changes to the renderer or shell
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -166,7 +218,11 @@ Plans:
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
 | 8. Regression Fixes | v2.0.1 | 1/1 | Complete | 2026-03-22 |
 | 9. Visual Cohesion | v2.0.1 | 2/2 | Complete | 2026-03-22 |
+| 10. Foundation + Asset Pipeline | v2.1 | 0/0 | Not started | - |
+| 11. Cinematic Polish | v2.1 | 0/0 | Not started | - |
+| 12. Flagship Scene + Portal | v2.1 | 0/0 | Not started | - |
+| 13. Integration + Expansion | v2.1 | 0/0 | Optional/Stretch | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-22 (v2.0.1 shipped)*
+*Updated: 2026-03-23 (v2.1 Memory Capsules roadmap -- 4 phases, 22 requirements)*
