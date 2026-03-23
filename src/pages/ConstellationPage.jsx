@@ -238,15 +238,13 @@ export default function ConstellationPage() {
     }
   }, [urlNodeId, dataLoaded, canvasReady]);
 
-  // Delay Canvas mount to:
-  // 1. Survive React StrictMode's mount-unmount-remount cycle
-  // 2. Allow old WebGL contexts (globe, Prism3D) from Home page to be
-  //    fully released by the browser — prevents context limit crashes
-  //    when navigating from Home → Constellation
+  // Delay Canvas mount by one frame to survive React StrictMode's
+  // mount-unmount-remount cycle. Without this, StrictMode creates and
+  // destroys a WebGL context before the real mount.
   useEffect(() => {
-    const id = setTimeout(() => setCanvasReady(true), 500);
+    const id = requestAnimationFrame(() => setCanvasReady(true));
     return () => {
-      clearTimeout(id);
+      cancelAnimationFrame(id);
       setCanvasReady(false);
     };
   }, []);

@@ -114,7 +114,10 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const materialRef = useRef();
   const count = nodes.length;
 
-  // Shader patch: inject per-instance color into emissive channel
+  // Shader patch: inject per-instance color into emissive channel.
+  // The material uses vertexColors to ensure vColor varying is always declared
+  // in the shader, even before instanceColor is set up by the useEffect below.
+  // Without this, vColor is undeclared on first compile → shader error → crash.
   const handleShaderCompile = useCallback((shader) => {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <emissivemap_fragment>',
@@ -281,6 +284,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
         roughness={0.6}
         metalness={0.1}
         toneMapped={false}
+        vertexColors
         onBeforeCompile={handleShaderCompile}
       />
     </instancedMesh>
