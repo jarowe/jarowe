@@ -155,6 +155,106 @@ const scenes = [
     ],
     portalEntry: true,  // supports full portal entry → awakening → recession → portal exit
   },
+  {
+    id: 'syros-cave',
+    title: 'The Cave at the Edge',
+    location: 'Syros, Greece — May 2024',
+    coordinates: { lat: 37.444, lng: 24.942 },
+    renderMode: 'displaced-mesh',
+    // Displaced mesh fields
+    photoUrl: 'memory/syros-cave/photo.webp',
+    depthMapUrl: 'memory/syros-cave/depth.png',
+    depthConfig: {
+      depthScale: 2.2,
+      depthBias: 0.0,
+      depthContrast: 1.2,
+      discardThreshold: 0.12,
+    },
+    // Splat fields (null for displaced-mesh scenes)
+    splatUrl: null,
+    splatIsRemote: false,
+    // Shared fields
+    previewImage: 'memory/syros-cave/preview.jpg',
+    soundtrack: null, // TODO: add soundtrack when available
+    narrative: [
+      {
+        // Card 1: Place — the cave itself
+        text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
+        delay: 2000,
+      },
+      {
+        // Card 2: Feeling — what it was like to stand there
+        text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
+        delay: 6000,
+      },
+      {
+        // Card 3: Meaning — why this place matters
+        text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
+        delay: 11000,
+      },
+      {
+        // Card 4: Gratitude — the final thought
+        text: 'I found joy here.',
+        delay: 16000,
+      },
+    ],
+    cameraPosition: { x: 0, y: 0.2, z: 3 },
+    cameraTarget: { x: 0, y: 0.1, z: 0 },
+    mood: 'warm',
+    // SAM layer separation — cave frame vs sea/sky
+    samMaskUrl: null, // TODO: generate SAM mask (cave rock = foreground, sea/sky = background)
+    layerSeparation: {
+      foregroundDepthScale: 1.3,   // cave rock frame displaced more
+      backgroundDepthScale: 0.7,   // sea/sky displaced less — "looking through a window"
+      foregroundDriftSpeed: 0.8,
+      backgroundDriftSpeed: 0.5,
+    },
+    // Experience arc
+    arc: {
+      awakeningDuration: 3.5,
+      awakeningEase: 'power2.out',
+      awakeningDelay: 0.5,
+      recessionDuration: 3.0,
+      recessionEase: 'power2.in',
+      recessionDelay: 22,           // slightly longer — let the cave breathe
+      recessionFadeColor: [1.0, 0.98, 0.95],
+    },
+    cameraKeyframes: [
+      {
+        // Beat 1: Awakening hold — still while the cave depth emerges
+        position: { x: 0, y: 0.2, z: 3 },
+        target: { x: 0, y: 0.1, z: 0 },
+        duration: 2,
+        ease: 'power1.out',
+        hold: 0,
+      },
+      {
+        // Beat 2: Slow drift toward the bell — card 1 appears
+        position: { x: -0.2, y: 0.15, z: 2.5 },
+        target: { x: -0.05, y: 0.05, z: 0 },
+        duration: 4,
+        ease: 'power2.inOut',
+        hold: 0,
+      },
+      {
+        // Beat 3: Gentle rise to see more of the sea through the opening — card 2
+        position: { x: 0.15, y: 0.35, z: 2.6 },
+        target: { x: 0.05, y: 0.1, z: 0 },
+        duration: 5,
+        ease: 'sine.inOut',
+        hold: 2,
+      },
+      {
+        // Beat 4: Settle back center — card 3 at 11s, card 4 at 16s, then recession
+        position: { x: 0, y: 0.2, z: 2.8 },
+        target: { x: 0, y: 0.1, z: 0 },
+        duration: 4,
+        ease: 'power1.inOut',
+        hold: 3,
+      },
+    ],
+    portalEntry: true,
+  },
 ];
 
 export function getSceneById(id) {

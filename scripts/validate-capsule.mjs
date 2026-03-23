@@ -60,7 +60,9 @@ if (!existsSync(baseDir)) {
 }
 
 // 2. Check required files exist and have size > 0
-const requiredFiles = ['photo.png', 'depth.png', 'preview.jpg'];
+// Accept either photo.png or photo.webp (context D-14: WebP for photo, PNG for depth)
+const photoFile = existsSync(join(baseDir, 'photo.webp')) ? 'photo.webp' : 'photo.png';
+const requiredFiles = [photoFile, 'depth.png', 'preview.jpg'];
 const fileSizes = {};
 
 for (const filename of requiredFiles) {

@@ -6983,7 +6983,7 @@ export default function Home() {
             {scenes.length > 0 && !tourCinematic && (
               <button
                 className="memory-portal-cta"
-                onClick={(e) => { e.stopPropagation(); navigateWithTransition(navigate, `/memory/${scenes[0].id}`); }}
+                onClick={(e) => { e.stopPropagation(); handleMemoryPointClick({ sceneId: 'syros-cave' }); }}
                 aria-label="Enter Memory Portal"
               >
                 <span className="portal-glow" />
@@ -7332,11 +7332,11 @@ export default function Home() {
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
 
-        {/* Phase 12 test: Portal entry to test-capsule — remove after flagship wiring */}
+        {/* Dev-only portal test button */}
         {import.meta.env.DEV && (
           <button
             className="memory-portal-test-btn"
-            onClick={() => handleMemoryPointClick({ sceneId: 'test-capsule' })}
+            onClick={() => handleMemoryPointClick({ sceneId: 'syros-cave' })}
             style={{
               position: 'fixed',
               bottom: 16,
