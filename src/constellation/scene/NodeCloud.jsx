@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useCallback } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
@@ -114,11 +114,6 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const materialRef = useRef();
   const count = nodes.length;
 
-  // NOTE: Removed onBeforeCompile shader hack that injected vColor.rgb into
-  // emissive channel — it caused vColor undeclared shader errors because
-  // instanceColor isn't set up before first render (React timing).
-  // Per-instance colors still work via diffuse channel (instanceColor).
-
   const focusNode = useConstellationStore((s) => s.focusNode);
   const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
@@ -132,20 +127,19 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     [nodes]
   );
 
-  // Set up instance transforms + colors SYNCHRONOUSLY via ref callback.
-  // This ensures instanceColor exists BEFORE the first render/shader compile.
-  // Without this, onBeforeCompile's vColor.rgb injection fails because
-  // USE_INSTANCING_COLOR isn't defined yet → shader error → Canvas crash.
-  const handleMeshRef = useCallback((mesh) => {
-    meshRef.current = mesh;
+  // Set initial instance transforms and per-instance colors
+  useEffect(() => {
+    const mesh = meshRef.current;
     if (!mesh) return;
 
     nodes.forEach((node, i) => {
+      // Position + scale
       dummy.position.set(node.x, node.y, node.z);
       dummy.scale.setScalar(node.size * getCfg('nodeBaseScale'));
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
+      // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
       const brightness = getCfg('nodeBrightnessBase') + sig * getCfg('nodeBrightnessRange');
       tempColor.set(getNodeColor(node)).multiplyScalar(brightness);
@@ -261,7 +255,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
   return (
     <instancedMesh
-      ref={handleMeshRef}
+      ref={meshRef}
       args={[null, null, count]}
       onClick={handleClick}
       onPointerOver={handlePointerOver}
@@ -273,7 +267,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
       <meshStandardMaterial
         ref={materialRef}
         color="#ffffff"
-        emissive="#ffffff"
+        emissive="#444466"
         emissiveIntensity={getCfg('nodeEmissiveIntensity')}
         roughness={0.6}
         metalness={0.1}
