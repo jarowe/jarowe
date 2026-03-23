@@ -65,7 +65,7 @@ const scenes = [
     splatIsRemote: false,
     // Shared fields
     previewImage: 'memory/test-capsule/preview.jpg',
-    soundtrack: null,
+    soundtrack: 'memory/test-capsule/soundtrack.mp3',
     narrative: [
       { text: 'Some places hold more than what you see.', delay: 2000 },
       {
