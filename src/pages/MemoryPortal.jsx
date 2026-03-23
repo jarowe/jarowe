@@ -29,8 +29,20 @@ export default function MemoryPortal() {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
 
+  // Force-release any stale WebGL contexts from previous pages (globe)
+  // Browsers limit concurrent contexts (~8-16); the globe's renderer
+  // doesn't dispose on unmount, so we explicitly kill orphaned contexts.
   useEffect(() => {
-    setCapable(canRenderSplat());
+    document.querySelectorAll('canvas').forEach((canvas) => {
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (gl) {
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) ext.loseContext();
+      }
+    });
+    // Small delay to let GPU recover before capability check
+    const t = setTimeout(() => setCapable(canRenderSplat()), 100);
+    return () => clearTimeout(t);
   }, []);
 
   // --- Splat viewer lifecycle with retry ---
