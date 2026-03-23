@@ -8,16 +8,16 @@ A living personal world for Jared Rowe (jarowe.com) that serves as "life in webf
 
 jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
 
-## Current State: v2.0.1 Polish & Connect — SHIPPED 2026-03-22
+## Current State: v2.1 Memory Capsules — Phase 10 Complete (2026-03-23)
 
-jarowe.com is a living, daily-pulse world with polished visual cohesion:
+jarowe.com is a living, daily-pulse world with polished visual cohesion, now with memory capsule foundation:
 - **Today Layer** — time-of-day atmosphere, moon phase effects, weather-driven CSS, daily-rotating content
 - **TodayRail → Constellation** — holiday Explore card deep-links T3+ holidays to constellation nodes
 - **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette; journal entries capped at 2 sentences
 - **Starseed Hub** — warm gold brand identity with per-card gradient backgrounds, Workshop-style depth layering, contact section, Labs creation tools
 - **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
 - **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
-- **Immersive Portal** — gaussian splat memory viewer with narrative overlay, soundtrack, mobile fallback
+- **Memory Capsules (Phase 10)** — CapsuleShell with depth-displaced 3D mesh renderer, 3-tier GPU detection, gradient-based edge discard, multi-layer parallax fallback with Ken Burns, asset validation pipeline
 - **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
 ## Current Milestone: v2.1 Memory Capsules
