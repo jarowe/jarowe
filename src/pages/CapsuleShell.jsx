@@ -10,6 +10,7 @@ import { BlendFunction, KernelSize } from 'postprocessing';
 import gsap from 'gsap';
 import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
+import { useAudio } from '../context/AudioContext';
 import './MemoryPortal.css';
 
 const BASE = import.meta.env.BASE_URL;
@@ -718,13 +719,26 @@ export default function CapsuleShell() {
   const [muted, setMuted] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
   const soundRef = useRef(null);
+  const audio = useAudio();
 
   // GPU capability check
   useEffect(() => {
     setTier(getGpuTier());
   }, []);
 
-  // Soundtrack
+  // Duck GlobalPlayer on capsule entry, restore on exit
+  useEffect(() => {
+    if (audio) {
+      audio.duckForCapsule();
+    }
+    return () => {
+      if (audio) {
+        audio.restoreFromCapsule();
+      }
+    };
+  }, [audio]);
+
+  // Per-scene soundtrack — muted by default, user intent to unmute
   useEffect(() => {
     if (!scene.soundtrack) return;
     const soundPath = resolveAsset(scene.soundtrack, false);
@@ -735,13 +749,28 @@ export default function CapsuleShell() {
       volume: 0,
       loop: true,
       onload: () => setSoundReady(true),
-      onloaderror: () => {},
+      onloaderror: () => {
+        console.warn('[CapsuleShell] Soundtrack failed to load:', soundPath);
+      },
     });
     soundRef.current = sound;
-    sound.play();
+    sound.play(); // Plays silently — browser autoplay policy respected since volume is 0
 
     return () => {
-      sound.unload();
+      // Cross-fade out over 1.5s before unloading
+      if (soundRef.current) {
+        const s = soundRef.current;
+        const currentVol = s.volume();
+        if (currentVol > 0) {
+          s.fade(currentVol, 0, 1500);
+          // Delay unload until fade completes
+          setTimeout(() => {
+            s.unload();
+          }, 1600);
+        } else {
+          s.unload();
+        }
+      }
       soundRef.current = null;
       setSoundReady(false);
       setMuted(true);
@@ -766,8 +795,9 @@ export default function CapsuleShell() {
       soundRef.current.fade(0, 0.6, 2000);
       setMuted(false);
     } else {
+      // Fade out over 500ms on mute — delay state until fade completes
       soundRef.current.fade(soundRef.current.volume(), 0, 500);
-      setMuted(true);
+      setTimeout(() => setMuted(true), 500);
     }
   }, [muted]);
 
