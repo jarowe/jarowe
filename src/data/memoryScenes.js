@@ -165,10 +165,10 @@ const scenes = [
     photoUrl: 'memory/syros-cave/photo.webp',
     depthMapUrl: 'memory/syros-cave/depth.png',
     depthConfig: {
-      depthScale: 2.2,
-      depthBias: 0.0,
-      depthContrast: 1.2,
-      discardThreshold: 0.12,
+      depthScale: 0.32,
+      depthBias: -0.04,
+      depthContrast: 0.76,
+      discardThreshold: 0.07,
     },
     // Splat fields (null for displaced-mesh scenes)
     splatUrl: null,
@@ -198,14 +198,14 @@ const scenes = [
         delay: 16000,
       },
     ],
-    cameraPosition: { x: 0, y: 0.2, z: 3 },
-    cameraTarget: { x: 0, y: 0.1, z: 0 },
+    cameraPosition: { x: 0, y: 0.18, z: 3.4 },
+    cameraTarget: { x: 0, y: 0.08, z: 0 },
     mood: 'warm',
     // SAM layer separation — cave frame vs sea/sky
-    samMaskUrl: null, // TODO: generate SAM mask (cave rock = foreground, sea/sky = background)
+    samMaskUrl: 'memory/syros-cave/mask.png',
     layerSeparation: {
-      foregroundDepthScale: 1.3,   // cave rock frame displaced more
-      backgroundDepthScale: 0.7,   // sea/sky displaced less — "looking through a window"
+      foregroundDepthScale: 0.6,   // near structure breathes, not lunges
+      backgroundDepthScale: 0.2,   // background stays anchored and calm
       foregroundDriftSpeed: 0.8,
       backgroundDriftSpeed: 0.5,
     },
@@ -222,32 +222,32 @@ const scenes = [
     cameraKeyframes: [
       {
         // Beat 1: Awakening hold — still while the cave depth emerges
-        position: { x: 0, y: 0.2, z: 3 },
-        target: { x: 0, y: 0.1, z: 0 },
+        position: { x: 0, y: 0.18, z: 3.4 },
+        target: { x: 0, y: 0.08, z: 0 },
         duration: 2,
         ease: 'power1.out',
         hold: 0,
       },
       {
         // Beat 2: Slow drift toward the bell — card 1 appears
-        position: { x: -0.2, y: 0.15, z: 2.5 },
-        target: { x: -0.05, y: 0.05, z: 0 },
+        position: { x: -0.12, y: 0.14, z: 3.0 },
+        target: { x: -0.03, y: 0.04, z: 0 },
         duration: 4,
         ease: 'power2.inOut',
         hold: 0,
       },
       {
         // Beat 3: Gentle rise to see more of the sea through the opening — card 2
-        position: { x: 0.15, y: 0.35, z: 2.6 },
-        target: { x: 0.05, y: 0.1, z: 0 },
+        position: { x: 0.1, y: 0.28, z: 3.05 },
+        target: { x: 0.03, y: 0.08, z: 0 },
         duration: 5,
         ease: 'sine.inOut',
         hold: 2,
       },
       {
         // Beat 4: Settle back center — card 3 at 11s, card 4 at 16s, then recession
-        position: { x: 0, y: 0.2, z: 2.8 },
-        target: { x: 0, y: 0.1, z: 0 },
+        position: { x: 0, y: 0.2, z: 3.2 },
+        target: { x: 0, y: 0.08, z: 0 },
         duration: 4,
         ease: 'power1.inOut',
         hold: 3,
