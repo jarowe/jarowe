@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
-status: Ready to execute
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-23T08:59:56.510Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-23T09:06:04.391Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -70,6 +70,7 @@ Plan: 3 of 3
 | Phase 10 P03 | 4min | 3 tasks | 2 files |
 | Phase 11 P01 | 4min | 2 tasks | 2 files |
 | Phase 11 P02 | 6min | 4 tasks | 2 files |
+| Phase 11 P03 | 4min | 3 tasks | 3 files |
 
 ## v2.0.1 Summary
 
@@ -113,6 +114,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 10]: ParallaxFallback uses two layers from same image with differential parallax speeds for depth illusion without WebGL — Avoids need for pre-separated depth layers while providing compelling depth effect on low-end devices
 - [Phase 11]: CinematicCamera uses GSAP timeline with repeat:-1 for infinite loop; camera beat timing coarsely aligned to narrative card delays — Proven pattern for cinematic camera in memory capsules without OrbitControls
 - [Phase 11]: COLOR_GRADING at module level, color grading in mesh fragment shader (not postprocessing pass), tier-gated postprocessing with CSS vignette fallback — Per-scene grading is tighter to photo in mesh shader; shared presets avoid duplication; CSS fallback gives simplified tier equivalent vignette
+- [Phase 11]: Capsule-level ducking (duckForCapsule/restoreFromCapsule) separate from node-level ducking, targets 0.15 volume; uses Howler.volume() getter to avoid stale closures; cross-fade cleanup with delayed unload — Different lifecycle (route-level vs panel-level) and different volume targets (ambient duck vs silence) require separate mechanism
 
 ### v2.1 Research Flags
 
@@ -132,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T08:59:56.507Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-23T09:05:44.933Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None
