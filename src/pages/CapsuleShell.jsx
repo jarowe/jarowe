@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Howl } from 'howler';
 import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
@@ -11,6 +11,7 @@ import gsap from 'gsap';
 import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
 import { useAudio } from '../context/AudioContext';
+import PortalVFX from '../components/PortalVFX';
 import './MemoryPortal.css';
 
 const BASE = import.meta.env.BASE_URL;
@@ -827,9 +828,40 @@ export default function CapsuleShell() {
   const [soundReady, setSoundReady] = useState(false);
   const [recessionDone, setRecessionDone] = useState(false);
   const [awakeningComplete, setAwakeningComplete] = useState(false);
+  const [exitPortalPhase, setExitPortalPhase] = useState(null);
+  const navigate = useNavigate();
+  const exitTimersRef = useRef([]);
   const soundRef = useRef(null);
   const audio = useAudio();
   const handleRecessionComplete = useCallback(() => setRecessionDone(true), []);
+
+  // PORT-03: Two-stage exit — recession fades content, then reverse portal closes
+  useEffect(() => {
+    if (!recessionDone) return;
+
+    // Stage 2: Reverse portal sequence (content already faded by recession)
+    const eT = (fn, ms) => {
+      const id = setTimeout(fn, ms);
+      exitTimersRef.current.push(id);
+      return id;
+    };
+
+    // Brief pause after recession completes, then portal starts closing
+    eT(() => setExitPortalPhase('residual'), 500);
+    eT(() => setExitPortalPhase('emerging'), 1500);
+    eT(() => setExitPortalPhase('rupture'), 2500);
+    eT(() => {
+      setExitPortalPhase('gathering');
+      // Navigate home during the closing rupture
+      navigate('/');
+    }, 3200);
+    eT(() => setExitPortalPhase(null), 4000);
+
+    return () => {
+      exitTimersRef.current.forEach(clearTimeout);
+      exitTimersRef.current = [];
+    };
+  }, [recessionDone, navigate]);
 
   // GPU capability check
   useEffect(() => {
@@ -977,10 +1009,23 @@ export default function CapsuleShell() {
 
       {/* === Chrome (always visible) === */}
       <div className="memory-back">
-        <Link to="/" className="back-link">
-          <ArrowLeft size={16} />
-          <span>Back</span>
-        </Link>
+        {scene.arc ? (
+          <button
+            className="back-link"
+            onClick={() => {
+              // Trigger early recession — portal exit follows via recessionDone effect
+              setRecessionDone(true);
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        ) : (
+          <Link to="/" className="back-link">
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </Link>
+        )}
       </div>
 
       <motion.div
@@ -1020,6 +1065,13 @@ export default function CapsuleShell() {
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
       )}
+
+      {/* Portal exit VFX — reverse phases after recession */}
+      <PortalVFX
+        phase={exitPortalPhase}
+        originX="50%"
+        originY="50%"
+      />
     </div>
   );
 }
