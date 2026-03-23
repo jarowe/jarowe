@@ -33,7 +33,7 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 ### Asset Pipeline & Tooling
 
-- [ ] **ASSET-01**: Manual workflow: upload photo, generate depth offline (Depth Pro or Depth Anything V2), compress to <500KB per capsule
+- [x] **ASSET-01**: Manual workflow: upload photo, generate depth offline (Depth Pro or Depth Anything V2), compress to <500KB per capsule
 - [ ] **ASSET-02**: CapsuleEditor (lil-gui) provides live tuning for depth, camera keyframes, atmosphere, and color grading
 
 ### Integration & Shell

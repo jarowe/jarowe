@@ -218,7 +218,7 @@ Plans:
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
 | 8. Regression Fixes | v2.0.1 | 1/1 | Complete | 2026-03-22 |
 | 9. Visual Cohesion | v2.0.1 | 2/2 | Complete | 2026-03-22 |
-| 10. Foundation + Asset Pipeline | v2.1 | 1/3 | In Progress|  |
+| 10. Foundation + Asset Pipeline | v2.1 | 2/3 | In Progress|  |
 | 11. Cinematic Polish | v2.1 | 0/0 | Not started | - |
 | 12. Flagship Scene + Portal | v2.1 | 0/0 | Not started | - |
 | 13. Integration + Expansion | v2.1 | 0/0 | Optional/Stretch | - |

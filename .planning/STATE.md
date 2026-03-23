@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
 status: Ready to execute
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-23T08:07:26.200Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-23T08:14:10.235Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 ## Current Position
 
 Phase: 10 (Foundation + Asset Pipeline) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## v2.1 Roadmap Summary
 
@@ -66,6 +66,7 @@ Plan: 2 of 3
 
 *Updated after each plan completion*
 | Phase 10 P01 | 5min | 4 tasks | 4 files |
+| Phase 10 P02 | 3min | 2 tasks | 6 files |
 
 ## v2.0.1 Summary
 
@@ -104,6 +105,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 09]: Per-card CSS custom property (--card-gradient) driven by inline style from project data for unique gradient identity
 - [Phase 09]: Holiday-constellation linking via nodeId field on T3+ calendar entries with conditional deep-link in TodayRail
 - [Phase 10]: CapsuleShell replaces MemoryPortal with renderer-agnostic routing (scene.renderMode x GPU tier) — Self-contained capsule module with SplatRenderer, DisplacedMeshRenderer stub, and ParallaxFallback as internal components
+- [Phase 10]: PNG format for both photo and depth (not WebP) -- uniform header parsing for validation — Simpler validation, consistent dimension checks
 
 ### v2.1 Research Flags
 
@@ -123,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T08:07:26.197Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-23T08:13:42.402Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
