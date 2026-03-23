@@ -136,19 +136,20 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     [nodes]
   );
 
-  // Set initial instance transforms and per-instance colors
-  useEffect(() => {
-    const mesh = meshRef.current;
+  // Set up instance transforms + colors SYNCHRONOUSLY via ref callback.
+  // This ensures instanceColor exists BEFORE the first render/shader compile.
+  // Without this, onBeforeCompile's vColor.rgb injection fails because
+  // USE_INSTANCING_COLOR isn't defined yet → shader error → Canvas crash.
+  const handleMeshRef = useCallback((mesh) => {
+    meshRef.current = mesh;
     if (!mesh) return;
 
     nodes.forEach((node, i) => {
-      // Position + scale
       dummy.position.set(node.x, node.y, node.z);
       dummy.scale.setScalar(node.size * getCfg('nodeBaseScale'));
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
 
-      // Per-instance color scaled by significance-based brightness
       const sig = node.significance ?? 0.5;
       const brightness = getCfg('nodeBrightnessBase') + sig * getCfg('nodeBrightnessRange');
       tempColor.set(getNodeColor(node)).multiplyScalar(brightness);
@@ -264,7 +265,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
   return (
     <instancedMesh
-      ref={meshRef}
+      ref={handleMeshRef}
       args={[null, null, count]}
       onClick={handleClick}
       onPointerOver={handlePointerOver}

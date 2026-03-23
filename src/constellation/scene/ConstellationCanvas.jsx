@@ -290,15 +290,7 @@ export default function ConstellationCanvas() {
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
-      onPointerMissed={(e) => {
-        console.warn('[constellation] onPointerMissed fired!', {
-          type: e.type,
-          button: e.button,
-          isTrusted: e.isTrusted,
-        });
-        // Only clear on genuine trusted user clicks
-        if (e.isTrusted) clearFocus();
-      }}
+      onPointerMissed={() => clearFocus()}
       onCreated={({ gl, scene }) => {
         rendererRef.current = gl;
         // Set scene background to match page — prevents black flash during
