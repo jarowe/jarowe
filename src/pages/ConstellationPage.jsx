@@ -14,6 +14,46 @@ import './ConstellationPage.css';
 
 const ConstellationEditor = lazy(() => import('../constellation/ConstellationEditor'));
 
+/** Type colors for DOM hover label */
+const HOVER_TYPE_COLORS = {
+  milestone: '#FFD700', person: '#4FC3F7', moment: '#AB47BC',
+  idea: '#66BB6A', project: '#FF7043', place: '#26C6DA', track: '#34d399',
+};
+
+/** DOM-based hover tooltip — replaces 3D HoverLabel to avoid WebGL crashes */
+function DomHoverLabel() {
+  const hoveredNodeIdx = useConstellationStore((s) => s.hoveredNodeIdx);
+  const hoveredScreenPos = useConstellationStore((s) => s.hoveredScreenPos);
+  const nodes = useConstellationStore((s) => s.nodes);
+
+  if (hoveredNodeIdx === null || !nodes || hoveredNodeIdx >= nodes.length || !hoveredScreenPos) {
+    return null;
+  }
+
+  const node = nodes[hoveredNodeIdx];
+  const typeColor = HOVER_TYPE_COLORS[node.type] || '#aaa';
+
+  return (
+    <div
+      className="constellation-hover-label"
+      style={{
+        left: hoveredScreenPos.x,
+        top: hoveredScreenPos.y - 12,
+      }}
+    >
+      <div className="constellation-hover-label__title">{node.title}</div>
+      <div className="constellation-hover-label__meta">
+        <span style={{ color: typeColor }}>{node.type}</span>
+        {node.date && (
+          <span className="constellation-hover-label__date">
+            {new Date(node.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Error boundary to catch R3F Canvas crashes gracefully */
 class CanvasErrorBoundary extends Component {
   state = { hasError: false };
@@ -308,18 +348,11 @@ export default function ConstellationPage() {
   }, [focusedNodeId]);
 
   useEffect(() => {
-    // Catch full page reloads
-    window.addEventListener('beforeunload', () => {
-      console.error('⚠️ PAGE UNLOADING (full reload!)');
-    });
-
     const handlePopState = (e) => {
-      console.error('🟡 POPSTATE fired!', { historyState: e.state, currentURL: location.href });
       const state = useConstellationStore.getState();
 
       // Layer 1: If lightbox open -> close lightbox
       if (state.lightboxMedia !== null) {
-        console.error('🟡 POPSTATE → closing lightbox');
         state.closeLightbox();
         window.history.pushState({ constellation: true }, '');
         return;
@@ -327,7 +360,6 @@ export default function ConstellationPage() {
 
       // Layer 2: If panel open -> clear focus
       if (state.focusedNodeId !== null) {
-        console.error('🟡 POPSTATE → clearing focus (back button)');
         state.clearFocus();
         hasConstellationState.current = false;
         return;
@@ -383,6 +415,7 @@ export default function ConstellationPage() {
           <Toolbar />
           <TimelineScrubber />
           <ThemeLegend />
+          <DomHoverLabel />
           <StoryPanel />
           <MediaLightbox />
           <AutoDetectPrompt />

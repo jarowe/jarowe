@@ -67,15 +67,10 @@ const useConstellationStore = create((set, get) => ({
   hoveredNodeIdx: null,
   filterEntity: null,
 
-  focusNode: (id) => {
-    console.error('🟢 FOCUS NODE:', id);
-    set({ focusedNodeId: id });
-  },
-  clearFocus: () => {
-    console.error('🔴 CLEAR FOCUS', new Error().stack);
-    set({ focusedNodeId: null, filterEntity: null });
-  },
-  setHoveredNode: (idx) => set({ hoveredNodeIdx: idx }),
+  focusNode: (id) => set({ focusedNodeId: id }),
+  clearFocus: () => set({ focusedNodeId: null, filterEntity: null }),
+  hoveredScreenPos: null,
+  setHoveredNode: (idx, screenPos) => set({ hoveredNodeIdx: idx, hoveredScreenPos: screenPos || null }),
   setFilterEntity: (entity) => set({ filterEntity: entity }),
   clearFilter: () => set({ filterEntity: null }),
 
