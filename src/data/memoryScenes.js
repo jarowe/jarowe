@@ -15,6 +15,7 @@
  * samMaskUrl: string | null — SAM-generated binary mask PNG (white=foreground, black=background)
  * layerSeparation: { foregroundDepthScale, backgroundDepthScale, foregroundDriftSpeed, backgroundDriftSpeed } | null
  * arc: { awakeningDuration, awakeningEase, awakeningDelay, recessionDuration, recessionEase, recessionDelay, recessionFadeColor } | null
+ * portalEntry: boolean — whether the scene supports portal entry/exit transitions
  */
 
 const scenes = [
@@ -52,6 +53,7 @@ const scenes = [
     layerSeparation: null,
     // Experience arc (not used for splat scenes)
     arc: null,
+    portalEntry: false, // splat scene — direct entry only
   },
   {
     id: 'test-capsule',
@@ -151,6 +153,7 @@ const scenes = [
         hold: 3,
       },
     ],
+    portalEntry: true,  // supports full portal entry → awakening → recession → portal exit
   },
 ];
 

@@ -598,13 +598,17 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
 // ---------------------------------------------------------------------------
 // ArcController — GSAP-driven awakening (ARC-01) and recession (ARC-03)
 // ---------------------------------------------------------------------------
-function ArcController({ planeRef, arc, onRecessionComplete, onAwakeningComplete }) {
+function ArcController({ planeRef, arc, onRecessionComplete, onAwakeningComplete, directAccess }) {
   const awakeningDone = useRef(false);
 
   useEffect(() => {
     if (!planeRef.current || !arc) return;
     const u = planeRef.current.uniforms;
     if (!u) return;
+
+    // Direct URL access shortens awakening (no portal entry preceded this)
+    const awakeningDelay = directAccess ? 0 : (arc.awakeningDelay || 0.5);
+    const awakeningDur = directAccess ? 1.5 : (arc.awakeningDuration || 3.5);
 
     // ARC-01: Awakening — depthScale animates from 0 to its configured value
     const targetDepth = u.uDepthScale.value; // save the configured target
@@ -613,9 +617,9 @@ function ArcController({ planeRef, arc, onRecessionComplete, onAwakeningComplete
     const awakeningTl = gsap.timeline();
     awakeningTl.to(u.uDepthScale, {
       value: targetDepth,
-      duration: arc.awakeningDuration || 3.5,
+      duration: awakeningDur,
       ease: arc.awakeningEase || 'power2.out',
-      delay: arc.awakeningDelay || 0.5,
+      delay: awakeningDelay,
       onComplete: () => {
         awakeningDone.current = true;
         if (onAwakeningComplete) onAwakeningComplete();
@@ -653,7 +657,7 @@ function ArcController({ planeRef, arc, onRecessionComplete, onAwakeningComplete
 // ---------------------------------------------------------------------------
 // DisplacedMeshRenderer — depth-displaced 3D mesh from photo+depth pair
 // ---------------------------------------------------------------------------
-function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete }) {
+function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
   const subdivisions = tier === 'full' ? 256 : 128;
   const dpr = tier === 'full' ? [1, 2] : [1, 1];
   const planeRef = useRef(null);
@@ -697,6 +701,7 @@ function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningCo
           arc={scene.arc}
           onRecessionComplete={onRecessionComplete}
           onAwakeningComplete={onAwakeningComplete}
+          directAccess={directAccess}
         />
       </Canvas>
       {/* Simplified tier: CSS vignette overlay (full tier uses postprocessing Vignette) */}
@@ -829,6 +834,11 @@ export default function CapsuleShell() {
   const [recessionDone, setRecessionDone] = useState(false);
   const [awakeningComplete, setAwakeningComplete] = useState(false);
   const [exitPortalPhase, setExitPortalPhase] = useState(null);
+  const [directAccess] = useState(() => {
+    const portalEntry = sessionStorage.getItem('jarowe_portal_entry');
+    sessionStorage.removeItem('jarowe_portal_entry');
+    return !portalEntry;
+  });
   const navigate = useNavigate();
   const exitTimersRef = useRef([]);
   const soundRef = useRef(null);
@@ -987,6 +997,7 @@ export default function CapsuleShell() {
           tier={tier}
           onRecessionComplete={handleRecessionComplete}
           onAwakeningComplete={() => setAwakeningComplete(true)}
+          directAccess={directAccess}
         />
       )}
 
