@@ -20,7 +20,21 @@ jarowe.com is a living, daily-pulse world with polished visual cohesion:
 - **Immersive Portal** — gaussian splat memory viewer with narrative overlay, soundtrack, mobile fallback
 - **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
-## Current Milestone: None — planning next
+## Current Milestone: v2.1 Memory Capsules
+
+**Goal:** Turn any single still photo into an immersive 3D memory you can step into — one unforgettable capsule with cinematic camera drift, atmosphere, narrative, and soundtrack.
+
+**Target features:**
+- Single-photo depth estimation → displaced mesh 3D scene
+- Cinematic constrained camera (drift, dolly, parallax — not free-roam)
+- Atmospheric particles, glow, bokeh, light specks
+- Narrative text overlay system (timed cards)
+- Per-scene soundtrack integration (Howler.js)
+- Renderer-agnostic portal shell (displaced mesh now, gaussian splats later)
+- Manual asset workflow: upload photo + depth map + configure scene
+- 1 flagship scene proven end-to-end
+
+**Stretch:** Multiple capsules in scrollable "memory plasma" — only if it doesn't dilute the flagship
 
 ## Requirements
 
@@ -177,4 +191,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after v2.0.1 Polish & Connect milestone*
+*Last updated: 2026-03-23 after v2.1 Memory Capsules milestone started*

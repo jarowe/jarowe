@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0.1
-milestone_name: Polish & Connect
-status: unknown
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-22T03:58:30.693Z"
+milestone: v2.1
+milestone_name: Memory Capsules
+status: planning
+stopped_at: Defining requirements
+last_updated: "2026-03-23T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-21)
+See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 09 — visual-cohesion
+**Current focus:** Defining requirements for v2.1 Memory Capsules
 
 ## Current Position
 
-Phase: 09
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-23 — Milestone v2.1 started
 
 ## Performance Metrics
 
