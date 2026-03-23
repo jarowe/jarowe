@@ -193,8 +193,8 @@ export default function TodayRail() {
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 800, damping: 30 } }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          onMouseEnter={() => setGlintHovered(true)}
-          onMouseLeave={() => setGlintHovered(false)}
+          onMouseEnter={() => { setGlintHovered(true); document.documentElement.classList.add('glint-journal-hovered'); }}
+          onMouseLeave={() => { setGlintHovered(false); document.documentElement.classList.remove('glint-journal-hovered'); }}
         >
           <div className="today-card__glint-marker">
             <Sparkles size={14} />
