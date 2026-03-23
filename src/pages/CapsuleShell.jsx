@@ -5,6 +5,8 @@ import { Howl } from 'howler';
 import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { EffectComposer, DepthOfField, Vignette, Noise } from '@react-three/postprocessing';
+import { BlendFunction, KernelSize } from 'postprocessing';
 import gsap from 'gsap';
 import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
@@ -417,6 +419,42 @@ function AtmosphericParticles({ tier }) {
       <points geometry={bokehGeo} material={bokehMat} />
       <points geometry={streakGeo} material={streakMat} />
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Color Grading Presets
+// ---------------------------------------------------------------------------
+const COLOR_GRADING = {
+  warm: { warmth: 0.12, saturation: 1.1, tintR: 1.05, tintG: 0.98, tintB: 0.92 },
+  cool: { warmth: -0.08, saturation: 0.95, tintR: 0.92, tintG: 0.97, tintB: 1.08 },
+  golden: { warmth: 0.18, saturation: 1.15, tintR: 1.1, tintG: 1.0, tintB: 0.85 },
+};
+
+// ---------------------------------------------------------------------------
+// CapsulePostProcessing — DOF + Vignette + Grain + Color Grading (full tier only)
+// ---------------------------------------------------------------------------
+function CapsulePostProcessing({ mood }) {
+  const grading = COLOR_GRADING[mood] || COLOR_GRADING.warm;
+
+  return (
+    <EffectComposer disableNormalPass>
+      <DepthOfField
+        focusDistance={0.02}
+        focalLength={0.06}
+        bokehScale={3}
+        kernelSize={KernelSize.MEDIUM}
+      />
+      <Vignette
+        eskil={false}
+        offset={0.3}
+        darkness={0.7}
+      />
+      <Noise
+        blendFunction={BlendFunction.OVERLAY}
+        opacity={0.08}
+      />
+    </EffectComposer>
   );
 }
 
