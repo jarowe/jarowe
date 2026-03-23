@@ -270,6 +270,157 @@ function CinematicCamera({ keyframes, fallbackTarget }) {
 }
 
 // ---------------------------------------------------------------------------
+// Atmospheric Particle Shaders
+// ---------------------------------------------------------------------------
+const PARTICLE_VERT = /* glsl */ `
+uniform float uTime;
+uniform float uDriftSpeed;
+uniform float uSize;
+attribute float aRandom;
+
+varying float vAlpha;
+
+void main() {
+  vec3 pos = position;
+
+  // Gentle drift: each particle has unique phase from aRandom
+  pos.x += sin(uTime * uDriftSpeed + aRandom * 6.28) * 0.15;
+  pos.y += cos(uTime * uDriftSpeed * 0.7 + aRandom * 3.14) * 0.1;
+  pos.z += sin(uTime * uDriftSpeed * 0.5 + aRandom * 1.57) * 0.05;
+
+  vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+
+  // Size attenuation
+  gl_PointSize = uSize * (300.0 / -mvPos.z);
+
+  // Depth-based alpha: farther particles are dimmer
+  float dist = length(mvPos.xyz);
+  vAlpha = smoothstep(8.0, 1.0, dist) * (0.3 + aRandom * 0.4);
+
+  gl_Position = projectionMatrix * mvPos;
+}
+`;
+
+const PARTICLE_FRAG = /* glsl */ `
+uniform vec3 uColor;
+varying float vAlpha;
+
+void main() {
+  // Soft circle falloff
+  float d = length(gl_PointCoord - 0.5) * 2.0;
+  float circle = 1.0 - smoothstep(0.4, 1.0, d);
+  if (circle < 0.01) discard;
+
+  gl_FragColor = vec4(uColor, circle * vAlpha);
+}
+`;
+
+// ---------------------------------------------------------------------------
+// AtmosphericParticles — dust motes, bokeh specks, light streaks
+// ---------------------------------------------------------------------------
+function AtmosphericParticles({ tier }) {
+  // Particle counts adapt to tier
+  const counts = tier === 'full'
+    ? { dust: 120, bokeh: 40, streaks: 15 }
+    : { dust: 60, bokeh: 20, streaks: 8 }; // simplified
+
+  const dustData = useMemo(() => {
+    const positions = new Float32Array(counts.dust * 3);
+    const randoms = new Float32Array(counts.dust);
+    for (let i = 0; i < counts.dust; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 6;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 4;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 3 + 1;
+      randoms[i] = Math.random();
+    }
+    return { positions, randoms };
+  }, [counts.dust]);
+
+  const bokehData = useMemo(() => {
+    const positions = new Float32Array(counts.bokeh * 3);
+    const randoms = new Float32Array(counts.bokeh);
+    for (let i = 0; i < counts.bokeh; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 5;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 3;
+      positions[i * 3 + 2] = Math.random() * 2 + 0.5;
+      randoms[i] = Math.random();
+    }
+    return { positions, randoms };
+  }, [counts.bokeh]);
+
+  const streakData = useMemo(() => {
+    const positions = new Float32Array(counts.streaks * 3);
+    const randoms = new Float32Array(counts.streaks);
+    for (let i = 0; i < counts.streaks; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 4;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 3 + 1;
+      positions[i * 3 + 2] = Math.random() * 1.5 + 1.5;
+      randoms[i] = Math.random();
+    }
+    return { positions, randoms };
+  }, [counts.streaks]);
+
+  const dustUniforms = useRef({
+    uTime: { value: 0 },
+    uDriftSpeed: { value: 0.15 },
+    uSize: { value: 3.0 },
+    uColor: { value: new THREE.Color(1.0, 0.97, 0.9) },
+  });
+  const bokehUniforms = useRef({
+    uTime: { value: 0 },
+    uDriftSpeed: { value: 0.08 },
+    uSize: { value: 8.0 },
+    uColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
+  });
+  const streakUniforms = useRef({
+    uTime: { value: 0 },
+    uDriftSpeed: { value: 0.25 },
+    uSize: { value: 2.0 },
+    uColor: { value: new THREE.Color(1.0, 1.0, 0.95) },
+  });
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    dustUniforms.current.uTime.value = t;
+    bokehUniforms.current.uTime.value = t;
+    streakUniforms.current.uTime.value = t;
+  });
+
+  const makeGeometry = (data) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
+    geo.setAttribute('aRandom', new THREE.BufferAttribute(data.randoms, 1));
+    return geo;
+  };
+
+  const makeMaterial = (uniforms) =>
+    new THREE.ShaderMaterial({
+      uniforms: uniforms.current,
+      vertexShader: PARTICLE_VERT,
+      fragmentShader: PARTICLE_FRAG,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+  const dustGeo = useMemo(() => makeGeometry(dustData), [dustData]);
+  const bokehGeo = useMemo(() => makeGeometry(bokehData), [bokehData]);
+  const streakGeo = useMemo(() => makeGeometry(streakData), [streakData]);
+
+  const dustMat = useMemo(() => makeMaterial(dustUniforms), []);
+  const bokehMat = useMemo(() => makeMaterial(bokehUniforms), []);
+  const streakMat = useMemo(() => makeMaterial(streakUniforms), []);
+
+  return (
+    <>
+      <points geometry={dustGeo} material={dustMat} />
+      <points geometry={bokehGeo} material={bokehMat} />
+      <points geometry={streakGeo} material={streakMat} />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DisplacedPlane — subdivided plane with depth displacement shader
 // ---------------------------------------------------------------------------
 function DisplacedPlane({ scene, subdivisions }) {
