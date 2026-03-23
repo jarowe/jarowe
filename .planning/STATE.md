@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Memory Capsules
-status: v2.1 milestone complete
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-03-23T15:30:57.469Z"
+milestone: v2.2
+milestone_name: Particle Memory Flight
+status: planning
+stopped_at: Defining requirements
+last_updated: "2026-03-23T00:00:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,7 +19,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 12 — Flagship Scene + Portal
+**Current focus:** v2.2 Particle Memory Flight -- defining requirements
 
 ## Current Position
 

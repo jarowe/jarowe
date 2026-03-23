@@ -8,33 +8,29 @@ A living personal world for Jared Rowe (jarowe.com) that serves as "life in webf
 
 jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
 
-## Current State: v2.1 Memory Capsules — Phase 10 Complete (2026-03-23)
+## Current State: v2.1 Memory Capsules — SHIPPED 2026-03-23
 
-jarowe.com is a living, daily-pulse world with polished visual cohesion, now with memory capsule foundation:
+jarowe.com is a living, daily-pulse world with polished visual cohesion and memory capsule infrastructure:
 - **Today Layer** — time-of-day atmosphere, moon phase effects, weather-driven CSS, daily-rotating content
 - **TodayRail → Constellation** — holiday Explore card deep-links T3+ holidays to constellation nodes
 - **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette; journal entries capped at 2 sentences
 - **Starseed Hub** — warm gold brand identity with per-card gradient backgrounds, Workshop-style depth layering, contact section, Labs creation tools
 - **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
 - **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
-- **Memory Capsules (Phases 10-12)** — CapsuleShell with depth-displaced mesh, 3-tier GPU detection, parallax fallback; cinematic camera, atmospheric particles, DOF/vignette/grain, color grading, soundtrack ducking; experience arc (awakening/SAM layers/recession), narrative glass cards, PortalVFX entry/exit transitions
+- **Memory Capsules (v2.1)** — CapsuleShell with displaced mesh renderer (being replaced), 3-tier GPU detection, parallax fallback, cinematic camera, atmospheric particles, DOF/vignette/grain, color grading, soundtrack ducking, experience arc, narrative glass cards, PortalVFX transitions. Flagship: syros-cave.
 - **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
-## Current Milestone: v2.1 Memory Capsules
+## Current Milestone: v2.2 Particle Memory Flight
 
-**Goal:** Turn any single still photo into an immersive 3D memory you can step into — one unforgettable capsule with cinematic camera drift, atmosphere, narrative, and soundtrack.
+**Goal:** Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience — photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio.
 
 **Target features:**
-- Single-photo depth estimation → displaced mesh 3D scene
-- Cinematic constrained camera (drift, dolly, parallax — not free-roam)
-- Atmospheric particles, glow, bokeh, light specks
-- Narrative text overlay system (timed cards)
-- Per-scene soundtrack integration (Howler.js)
-- Renderer-agnostic portal shell (displaced mesh now, gaussian splats later)
-- Manual asset workflow: upload photo + depth map + configure scene
-- 1 flagship scene proven end-to-end
-
-**Stretch:** Multiple capsules in scrollable "memory plasma" — only if it doesn't dilute the flagship
+- ParticleMemoryRenderer: photo + depth → 80K-150K luminous particles with selective wire connections and glow
+- MemoryFlightController: scroll/trackpad/touch drives camera through particle field on rails
+- DreamPortalTransition: reality dissolves into particles → tunnel/fall-through → particles reform into memory
+- MemorySoundscape: layered ambient audio that evolves with scroll progress
+- 1 flagship scene (syros-cave), desktop hero path only
+- Parallax fallback preserved for low-end devices
 
 ## Requirements
 
