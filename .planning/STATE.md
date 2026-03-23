@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
 status: planning
-stopped_at: Roadmap created, ready for Phase 14 planning
-last_updated: "2026-03-23T00:00:00.000Z"
+stopped_at: Phase 14 context gathered
+last_updated: "2026-03-23T23:19:42.926Z"
 progress:
   total_phases: 4
   completed_phases: 0
@@ -145,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23
-Stopped at: Roadmap created for v2.2. Ready for Phase 14 planning.
-Resume file: None
+Last session: 2026-03-23T23:19:42.923Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-particle-field-core/14-CONTEXT.md
