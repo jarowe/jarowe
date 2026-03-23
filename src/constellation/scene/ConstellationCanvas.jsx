@@ -290,7 +290,11 @@ export default function ConstellationCanvas() {
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
-      onPointerMissed={() => clearFocus()}
+      onPointerMissed={(e) => {
+        // Only clear focus on genuine user clicks — not synthetic events
+        // from material recompilation or raycaster recalculation
+        if (e.type === 'click') clearFocus();
+      }}
       onCreated={({ gl, scene }) => {
         rendererRef.current = gl;
         // Set scene background to match page — prevents black flash during

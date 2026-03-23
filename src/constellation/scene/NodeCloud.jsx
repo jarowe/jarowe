@@ -162,6 +162,13 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
+
+    // Force material recompile now that instanceColor exists — the
+    // onBeforeCompile shader patch uses vColor.rgb guarded by
+    // USE_INSTANCING_COLOR, which only activates after this attribute is set
+    if (materialRef.current) {
+      materialRef.current.needsUpdate = true;
+    }
   }, [nodes]);
 
   // Focus dimming and entity filter dimming
