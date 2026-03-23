@@ -5,6 +5,7 @@ import { Howl } from 'howler';
 import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
 import './MemoryPortal.css';
@@ -163,17 +164,108 @@ void main() {
 `;
 
 // ---------------------------------------------------------------------------
-// SlowDrift — gentle camera animation for visual validation of 3D parallax
+// CinematicCamera — GSAP-driven multi-beat keyframe choreography
+// No OrbitControls. Visitor is guided through the memory.
 // ---------------------------------------------------------------------------
-function SlowDrift({ target }) {
+function CinematicCamera({ keyframes, fallbackTarget }) {
   const { camera } = useThree();
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    // Gentle sinusoidal drift — validates 3D parallax is visible
-    camera.position.x += Math.sin(t * 0.1) * 0.0005;
-    camera.position.y += Math.cos(t * 0.15) * 0.0003;
-    camera.lookAt(target[0], target[1], target[2]);
+  const tlRef = useRef(null);
+  const mouseOffset = useRef({ x: 0, y: 0 });
+  const basePos = useRef({ x: 0, y: 0, z: 0 });
+  const baseTarget = useRef({ x: 0, y: 0, z: 0 });
+
+  // Mouse/gyro parallax response (subtle)
+  useEffect(() => {
+    const PARALLAX_STRENGTH = 0.05;
+    const handleMouse = (e) => {
+      mouseOffset.current.x = (e.clientX / window.innerWidth - 0.5) * PARALLAX_STRENGTH;
+      mouseOffset.current.y = (e.clientY / window.innerHeight - 0.5) * PARALLAX_STRENGTH;
+    };
+    const handleGyro = (e) => {
+      if (e.gamma != null && e.beta != null) {
+        mouseOffset.current.x = (e.gamma / 90) * PARALLAX_STRENGTH;
+        mouseOffset.current.y = ((e.beta - 45) / 90) * PARALLAX_STRENGTH;
+      }
+    };
+    window.addEventListener('mousemove', handleMouse);
+    window.addEventListener('deviceorientation', handleGyro);
+    return () => {
+      window.removeEventListener('mousemove', handleMouse);
+      window.removeEventListener('deviceorientation', handleGyro);
+    };
+  }, []);
+
+  // Build GSAP timeline from keyframes
+  useEffect(() => {
+    if (!keyframes || keyframes.length === 0) return;
+
+    // Initialize from first keyframe
+    const first = keyframes[0];
+    basePos.current = { ...first.position };
+    baseTarget.current = { ...first.target };
+    camera.position.set(first.position.x, first.position.y, first.position.z);
+    camera.lookAt(first.target.x, first.target.y, first.target.z);
+
+    const tl = gsap.timeline({ repeat: -1 });
+    tlRef.current = tl;
+
+    for (let i = 0; i < keyframes.length; i++) {
+      const kf = keyframes[i];
+      const nextIdx = (i + 1) % keyframes.length;
+      const next = keyframes[nextIdx];
+
+      // Hold at current beat
+      if (kf.hold > 0) {
+        tl.to({}, { duration: kf.hold });
+      }
+
+      // Transition to next beat
+      const posProxy = { x: kf.position.x, y: kf.position.y, z: kf.position.z };
+      const targetProxy = { x: kf.target.x, y: kf.target.y, z: kf.target.z };
+
+      tl.to(posProxy, {
+        x: next.position.x,
+        y: next.position.y,
+        z: next.position.z,
+        duration: next.duration,
+        ease: next.ease,
+        onUpdate: () => {
+          basePos.current = { ...posProxy };
+        },
+      }, '>');
+
+      tl.to(targetProxy, {
+        x: next.target.x,
+        y: next.target.y,
+        z: next.target.z,
+        duration: next.duration,
+        ease: next.ease,
+        onUpdate: () => {
+          baseTarget.current = { ...targetProxy };
+        },
+      }, '<'); // sync with position
+    }
+
+    return () => {
+      tl.kill();
+      tlRef.current = null;
+    };
+  }, [keyframes, camera]);
+
+  // Apply base + mouse offset every frame
+  useFrame(() => {
+    const bx = basePos.current.x + mouseOffset.current.x;
+    const by = basePos.current.y - mouseOffset.current.y;
+    const bz = basePos.current.z;
+    camera.position.set(bx, by, bz);
+
+    camera.lookAt(
+      baseTarget.current.x + mouseOffset.current.x * 0.3,
+      baseTarget.current.y - mouseOffset.current.y * 0.3,
+      baseTarget.current.z,
+    );
   });
+
   return null;
 }
 
@@ -277,8 +369,9 @@ function DisplacedMeshRenderer({ scene, tier }) {
         }}
       >
         <DisplacedPlane scene={scene} subdivisions={subdivisions} />
-        <SlowDrift
-          target={[
+        <CinematicCamera
+          keyframes={scene.cameraKeyframes}
+          fallbackTarget={[
             scene.cameraTarget.x,
             scene.cameraTarget.y,
             scene.cameraTarget.z,
