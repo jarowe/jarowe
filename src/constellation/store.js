@@ -67,8 +67,13 @@ const useConstellationStore = create((set, get) => ({
   hoveredNodeIdx: null,
   filterEntity: null,
 
+  highlightedEdgeNodeId: null,
+  highlightedEdgeColor: null,
+  setHighlightedEdgeNodeId: (id, color) => set({ highlightedEdgeNodeId: id, highlightedEdgeColor: color || null }),
+  clearHighlightedEdgeNodeId: () => set({ highlightedEdgeNodeId: null, highlightedEdgeColor: null }),
+
   focusNode: (id) => set({ focusedNodeId: id }),
-  clearFocus: () => set({ focusedNodeId: null, filterEntity: null }),
+  clearFocus: () => set({ focusedNodeId: null, filterEntity: null, highlightedEdgeNodeId: null }),
   hoveredScreenPos: null,
   hoveredNodeId: null,
   setHoveredNode: (idx, screenPos, nodeId) => set({

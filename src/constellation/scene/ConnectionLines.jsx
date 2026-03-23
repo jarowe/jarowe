@@ -135,6 +135,7 @@ function StructuralLine({ points, lineKey, onRef }) {
  */
 export default function ConnectionLines({ positions }) {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
+  const highlightedEdgeNodeId = useConstellationStore((s) => s.highlightedEdgeNodeId);
   const filterEntity = useConstellationStore((s) => s.filterEntity);
   const storeEdges = useConstellationStore((s) => s.edges);
   const storeNodes = useConstellationStore((s) => s.nodes);
@@ -146,6 +147,13 @@ export default function ConnectionLines({ positions }) {
   // the current value without being re-created on every change.
   const focusedNodeIdRef = useRef(focusedNodeId);
   focusedNodeIdRef.current = focusedNodeId;
+
+  const highlightedEdgeNodeIdRef = useRef(highlightedEdgeNodeId);
+  highlightedEdgeNodeIdRef.current = highlightedEdgeNodeId;
+
+  const highlightedEdgeColor = useConstellationStore((s) => s.highlightedEdgeColor);
+  const highlightedEdgeColorRef = useRef(highlightedEdgeColor);
+  highlightedEdgeColorRef.current = highlightedEdgeColor;
 
   const filterEntityRef = useRef(filterEntity);
   filterEntityRef.current = filterEntity;
@@ -276,6 +284,7 @@ export default function ConnectionLines({ positions }) {
 
     const currentLines = linesRef.current;
     const currentFocused = focusedNodeIdRef.current;
+    const currentHighlighted = highlightedEdgeNodeIdRef.current;
     const currentFiltered = filteredNodeIdsRef.current;
 
     // Read config values once per frame (not per line)
@@ -304,16 +313,34 @@ export default function ConnectionLines({ positions }) {
       const w = line.weight;
       let opacity, lineWidth;
       let isHighlighted = false;
+      let overrideColor = null;
 
       if (currentFocused) {
         // Focus mode: brighten connected, dim non-connected
         const isConnected =
           line.sourceId === currentFocused || line.targetId === currentFocused;
         if (isConnected) {
-          // Same brightness for all connected edges — helix or particle
-          opacity = lerp(opFocusedMin, opFocusedMax, w);
-          lineWidth = lerp(wdFocusedMin, wdFocusedMax, w);
-          isHighlighted = true;
+          if (currentHighlighted) {
+            // Hovering a connection chip — isolate that single edge
+            const isTargetEdge =
+              (line.sourceId === currentFocused && line.targetId === currentHighlighted) ||
+              (line.targetId === currentFocused && line.sourceId === currentHighlighted);
+            if (isTargetEdge) {
+              opacity = lerp(opFocusedMin, opFocusedMax, w) * 1.5;
+              lineWidth = lerp(wdFocusedMin, wdFocusedMax, w) * 1.5;
+              isHighlighted = true;
+              // Use the connection type color from the panel
+              const hlHex = highlightedEdgeColorRef.current;
+              if (hlHex) overrideColor = hexToRgb(hlHex);
+            } else {
+              opacity = lerp(opFocusedMin, opFocusedMax, w) * 0.3;
+              lineWidth = lerp(wdFocusedMin, wdFocusedMax, w) * 0.5;
+            }
+          } else {
+            opacity = lerp(opFocusedMin, opFocusedMax, w);
+            lineWidth = lerp(wdFocusedMin, wdFocusedMax, w);
+            isHighlighted = true;
+          }
         } else {
           opacity = opDim;
           lineWidth = wdDim;
@@ -359,9 +386,13 @@ export default function ConnectionLines({ positions }) {
       const speed = isHighlighted ? flowSpeedHL : flowSpeed;
       mat.dashOffset -= speed * delta;
 
-      // Apply evidence-based color tinting
-      const rgb = computeEdgeColor(line.evidenceType, isHighlighted);
-      mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+      // Apply color: override with type color when hovering, else evidence-based tint
+      if (overrideColor) {
+        mat.color.setRGB(overrideColor[0] * 2.5, overrideColor[1] * 2.5, overrideColor[2] * 2.5);
+      } else {
+        const rgb = computeEdgeColor(line.evidenceType, isHighlighted);
+        mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+      }
     }
   });
 

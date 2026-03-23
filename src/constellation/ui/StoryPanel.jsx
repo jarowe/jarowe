@@ -217,8 +217,10 @@ function EvidenceItem({ ev }) {
 /* ─── Because section ──────────────────────────────────────────── */
 
 function BecauseSection({ connectionGroups, focusNode }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const setHighlightedEdgeNodeId = useConstellationStore((s) => s.setHighlightedEdgeNodeId);
+  const clearHighlightedEdgeNodeId = useConstellationStore((s) => s.clearHighlightedEdgeNodeId);
 
   const visible = showAll
     ? connectionGroups
@@ -278,6 +280,8 @@ function BecauseSection({ connectionGroups, focusNode }) {
                     '--conn-color': connStyle.text,
                     '--conn-glow': glowOpacity,
                   }}
+                  onMouseEnter={() => setHighlightedEdgeNodeId(group.nodeId, connStyle.text)}
+                  onMouseLeave={() => clearHighlightedEdgeNodeId()}
                 >
                   {/* Strength bar — thicker = stronger connection */}
                   <div
@@ -332,12 +336,73 @@ function BecauseSection({ connectionGroups, focusNode }) {
   );
 }
 
+/* ─── Typewriter description ───────────────────────────────────── */
+
+function TypewriterDescription({ text, nodeId, centered }) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const shouldAnimate = text && text.length > 200;
+
+  useEffect(() => {
+    if (!shouldAnimate) {
+      setDisplayedText(text || '');
+      setIsTyping(false);
+      setIsExpanded(false);
+      return;
+    }
+
+    setDisplayedText('');
+    setIsExpanded(false);
+    setIsTyping(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedText(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 30);
+    return () => clearInterval(interval);
+  }, [nodeId, text, shouldAnimate]);
+
+  if (!text) return null;
+
+  if (!shouldAnimate) {
+    return (
+      <p className={`story-panel__description${centered ? ' story-panel__description--centered' : ''}`}>
+        {text}
+      </p>
+    );
+  }
+
+  return (
+    <div className="story-panel__typewriter">
+      <div className={`story-panel__typewriter-box${isExpanded ? ' story-panel__typewriter-box--expanded' : ''}`}>
+        <p className={`story-panel__description${centered ? ' story-panel__description--centered' : ''}`}>
+          {displayedText}
+          {isTyping && <span className="story-panel__typewriter-cursor">|</span>}
+        </p>
+      </div>
+      {!isExpanded && <div className="story-panel__typewriter-fade" />}
+      {!isExpanded && (
+        <button className="story-panel__typewriter-expand" onClick={() => setIsExpanded(true)}>
+          Read full story
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main StoryPanel ──────────────────────────────────────────── */
 
 export default function StoryPanel() {
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const focusNode = useConstellationStore((s) => s.focusNode);
   const openLightbox = useConstellationStore((s) => s.openLightbox);
+  const setHighlightedEdgeNodeId = useConstellationStore((s) => s.setHighlightedEdgeNodeId);
+  const clearHighlightedEdgeNodeId = useConstellationStore((s) => s.clearHighlightedEdgeNodeId);
 
   const { node, connectionGroups, entities } = useNodeConnections();
   const scrollRef = useRef(null);
@@ -499,8 +564,78 @@ export default function StoryPanel() {
     }
   }, [nodeAudioMuted, duckForNodeAudio, restoreFromDuck]);
 
+  // ─── Audio prompt (two-tier: hero for first encounter, subtle after) ──
+  const hasVideoMedia = node?.media?.some((item) => getMediaType(item) === 'video') || false;
+  const hasAudioContent = !!audioSrc || hasVideoMedia;
+  const audioPromptLabel = audioLabel || (hasVideoMedia ? 'This moment has audio' : null);
+  const audioPromptCta = audioSrc ? 'Turn on the soundtrack' : 'Unmute this video';
+
+  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
+  const [hasHeardAudio, setHasHeardAudio] = useState(
+    () => sessionStorage.getItem('jarowe_audio_ever_heard') === '1'
+  );
+
+  // Mark as "heard" whenever the user unmutes (by any means)
+  useEffect(() => {
+    if (!nodeAudioMuted && hasAudioContent) {
+      sessionStorage.setItem('jarowe_audio_ever_heard', '1');
+      setHasHeardAudio(true);
+    }
+  }, [nodeAudioMuted, hasAudioContent]);
+
+  useEffect(() => {
+    if (hasAudioContent && nodeAudioMuted) {
+      setShowAudioPrompt(true);
+      const timeout = hasHeardAudio ? 5000 : 8000;
+      const timer = setTimeout(() => setShowAudioPrompt(false), timeout);
+      return () => clearTimeout(timer);
+    }
+    setShowAudioPrompt(false);
+  }, [hasAudioContent, nodeAudioMuted, hasHeardAudio]);
+
+  const handleAudioPromptClick = useCallback(() => {
+    if (audioSrc) {
+      toggleNodeAudio();
+    } else if (videoRef.current) {
+      videoRef.current.muted = false;
+      duckForNodeAudio();
+      setNodeAudioMuted(false);
+      sessionStorage.setItem('jarowe_video_unmuted', '1');
+    }
+    setShowAudioPrompt(false);
+  }, [audioSrc, toggleNodeAudio, duckForNodeAudio]);
+
   // Detect mobile for animation direction
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  // ─── Resizable panel width (desktop only) ─────────────────
+  const [panelWidth, setPanelWidth] = useState(() => {
+    if (typeof window === 'undefined' || window.innerWidth <= 768) return null;
+    const saved = localStorage.getItem('jarowe_story_panel_width');
+    return saved ? Number(saved) : null;
+  });
+  const isResizing = useRef(false);
+
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const onMouseMove = (ev) => {
+      if (!isResizing.current) return;
+      const w = Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth * 0.7);
+      setPanelWidth(w);
+    };
+    const onMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      setPanelWidth((w) => {
+        if (w) localStorage.setItem('jarowe_story_panel_width', String(w));
+        return w;
+      });
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   const profile = node ? getProfile(node) : null;
   const media = node?.media || [];
@@ -527,7 +662,15 @@ export default function StoryPanel() {
                   }
                 : undefined
             }
+            style={!isMobile && panelWidth ? { width: panelWidth } : undefined}
           >
+            {/* Resize handle (desktop) */}
+            {!isMobile && (
+              <div className="story-panel__resize-handle" onMouseDown={handleResizeStart}>
+                <div className="story-panel__resize-indicator" />
+              </div>
+            )}
+
             {/* Mobile drag handle */}
             <div className="story-panel__drag-handle" />
 
@@ -644,6 +787,45 @@ export default function StoryPanel() {
                     </button>
                   )}
 
+                  <AnimatePresence>
+                    {showAudioPrompt && !hasHeardAudio && (
+                      <motion.button
+                        key="hero-prompt"
+                        className="story-panel__audio-prompt--hero"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <div className="story-panel__audio-eq">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                        <span className="story-panel__audio-prompt-song">
+                          {audioPromptLabel}
+                        </span>
+                        <span className="story-panel__audio-prompt-cta">
+                          <Volume2 size={14} />
+                          {audioPromptCta}
+                        </span>
+                      </motion.button>
+                    )}
+                    {showAudioPrompt && hasHeardAudio && (
+                      <motion.button
+                        key="subtle-prompt"
+                        className="story-panel__audio-prompt"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <Volume2 size={14} />
+                        {audioSrc ? 'This moment has a soundtrack — tap to listen' : 'This video has audio — tap to unmute'}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
                   <div className="story-panel__body">
                     {node.epoch && (
                       <span className="story-panel__epoch">{node.epoch}</span>
@@ -689,12 +871,18 @@ export default function StoryPanel() {
                         <div className="story-panel__chips-label">Connected</div>
                         <div className="story-panel__chips">
                           {entities.map((entity, i) => (
-                            <EntityChip
+                            <div
                               key={`${entity.type}-${entity.label}-${i}`}
-                              type={entity.type}
-                              label={entity.label}
-                              count={entity.count}
-                            />
+                              onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
+                              onMouseLeave={() => clearHighlightedEdgeNodeId()}
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <EntityChip
+                                type={entity.type}
+                                label={entity.label}
+                                count={entity.count}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -788,6 +976,45 @@ export default function StoryPanel() {
                     </button>
                   )}
 
+                  <AnimatePresence>
+                    {showAudioPrompt && !hasHeardAudio && (
+                      <motion.button
+                        key="hero-prompt"
+                        className="story-panel__audio-prompt--hero"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <div className="story-panel__audio-eq">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                        <span className="story-panel__audio-prompt-song">
+                          {audioPromptLabel}
+                        </span>
+                        <span className="story-panel__audio-prompt-cta">
+                          <Volume2 size={14} />
+                          {audioPromptCta}
+                        </span>
+                      </motion.button>
+                    )}
+                    {showAudioPrompt && hasHeardAudio && (
+                      <motion.button
+                        key="subtle-prompt"
+                        className="story-panel__audio-prompt"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <Volume2 size={14} />
+                        {audioSrc ? 'This moment has a soundtrack — tap to listen' : 'This video has audio — tap to unmute'}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
                   <div className="story-panel__body">
                     <motion.div
                       initial={{ opacity: 0, y: 12 }}
@@ -816,9 +1043,10 @@ export default function StoryPanel() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, duration: 0.3 }}
                     >
-                      <p className="story-panel__description">
-                        {node.description}
-                      </p>
+                      <TypewriterDescription
+                        text={node.description}
+                        nodeId={node.id}
+                      />
                     </motion.div>
 
                     {/* Gallery grid */}
@@ -865,12 +1093,18 @@ export default function StoryPanel() {
                         <div className="story-panel__chips-label">Connected</div>
                         <div className="story-panel__chips">
                           {entities.map((entity, i) => (
-                            <EntityChip
+                            <div
                               key={`${entity.type}-${entity.label}-${i}`}
-                              type={entity.type}
-                              label={entity.label}
-                              count={entity.count}
-                            />
+                              onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
+                              onMouseLeave={() => clearHighlightedEdgeNodeId()}
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <EntityChip
+                                type={entity.type}
+                                label={entity.label}
+                                count={entity.count}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -926,9 +1160,11 @@ export default function StoryPanel() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, duration: 0.3 }}
                     >
-                      <p className="story-panel__description story-panel__description--centered">
-                        {node.description}
-                      </p>
+                      <TypewriterDescription
+                        text={node.description}
+                        nodeId={node.id}
+                        centered
+                      />
                     </motion.div>
                   )}
 

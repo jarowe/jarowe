@@ -117,6 +117,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const focusNode = useConstellationStore((s) => s.focusNode);
   const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
+  const highlightedEdgeNodeId = useConstellationStore((s) => s.highlightedEdgeNodeId);
   const filterEntity = useConstellationStore((s) => s.filterEntity);
   const storeEdges = useConstellationStore((s) => s.edges);
   const storeNodes = useConstellationStore((s) => s.nodes);
@@ -173,6 +174,9 @@ export default function NodeCloud({ nodes, gpuConfig }) {
           dimFactor = getCfg('nodeFocusDim');
         } else if (nodeId === focusedNodeId) {
           dimFactor = getCfg('nodeFocusBright');
+        } else if (highlightedEdgeNodeId) {
+          // When hovering a connection chip, only focused + highlighted get full brightness
+          dimFactor = nodeId === highlightedEdgeNodeId ? getCfg('nodeFocusBright') : 0.4;
         }
       }
 
@@ -184,7 +188,7 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     }
 
     mesh.instanceColor.needsUpdate = true;
-  }, [focusedNodeId, filterEntity, nodes, count, storeEdges, storeNodes]);
+  }, [focusedNodeId, filterEntity, highlightedEdgeNodeId, nodes, count, storeEdges, storeNodes]);
 
   // Breathing pulse animation + emissive pulsing for focused node
   useFrame(({ clock }) => {
