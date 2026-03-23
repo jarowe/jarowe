@@ -242,14 +242,15 @@ export default function NodeCloud({ nodes, gpuConfig }) {
 
   const handlePointerOver = (e) => {
     e.stopPropagation();
-    if (e.instanceId !== undefined) {
-      setHoveredNode(e.instanceId, { x: e.clientX, y: e.clientY });
+    if (e.instanceId !== undefined && e.instanceId < nodes.length) {
+      const node = nodes[e.instanceId];
+      setHoveredNode(e.instanceId, { x: e.clientX, y: e.clientY }, node.id);
       document.body.style.cursor = 'pointer';
     }
   };
 
   const handlePointerOut = () => {
-    setHoveredNode(null, null);
+    setHoveredNode(null, null, null);
     document.body.style.cursor = 'default';
   };
 

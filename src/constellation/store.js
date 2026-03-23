@@ -70,7 +70,12 @@ const useConstellationStore = create((set, get) => ({
   focusNode: (id) => set({ focusedNodeId: id }),
   clearFocus: () => set({ focusedNodeId: null, filterEntity: null }),
   hoveredScreenPos: null,
-  setHoveredNode: (idx, screenPos) => set({ hoveredNodeIdx: idx, hoveredScreenPos: screenPos || null }),
+  hoveredNodeId: null,
+  setHoveredNode: (idx, screenPos, nodeId) => set({
+    hoveredNodeIdx: idx,
+    hoveredScreenPos: screenPos || null,
+    hoveredNodeId: nodeId || null,
+  }),
   setFilterEntity: (entity) => set({ filterEntity: entity }),
   clearFilter: () => set({ filterEntity: null }),
 

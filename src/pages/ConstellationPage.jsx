@@ -27,15 +27,16 @@ const HOVER_TYPE_COLORS = {
  * so this acts as a seamless fallback.
  */
 function DomHoverLabel() {
-  const hoveredNodeIdx = useConstellationStore((s) => s.hoveredNodeIdx);
+  const hoveredNodeId = useConstellationStore((s) => s.hoveredNodeId);
   const hoveredScreenPos = useConstellationStore((s) => s.hoveredScreenPos);
   const nodes = useConstellationStore((s) => s.nodes);
 
-  if (hoveredNodeIdx === null || !nodes || hoveredNodeIdx >= nodes.length || !hoveredScreenPos) {
+  if (!hoveredNodeId || !nodes || !hoveredScreenPos) {
     return null;
   }
 
-  const node = nodes[hoveredNodeIdx];
+  const node = nodes.find((n) => n.id === hoveredNodeId);
+  if (!node) return null;
   const typeColor = HOVER_TYPE_COLORS[node.type] || '#aaa';
 
   return (
