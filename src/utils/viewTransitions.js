@@ -74,6 +74,10 @@ export function setupGlobalViewTransitions(navigateFn) {
     // Skip if data-no-view-transition is present (opt-out escape hatch)
     if (anchor.hasAttribute('data-no-view-transition')) return;
 
+    // Skip constellation routes — WebGL/Three.js contexts conflict with
+    // view transition snapshots, causing Context Lost on first-visit hover
+    if (href.startsWith('/constellation')) return;
+
     // This is an internal React Router link -- intercept it
     e.preventDefault();
 

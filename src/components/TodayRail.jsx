@@ -8,7 +8,6 @@ import { getMoonPhase, getTimeOfDayPhase } from '../utils/astro';
 import { DAILY_PROMPTS } from '../data/dailyPrompts';
 import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
 import { FEATURED_MOMENTS, CATEGORY_THEMES } from '../data/featuredMoments';
-import { navigateWithTransition } from '../utils/viewTransitions';
 import './TodayRail.css';
 
 const MODE_ICONS = {
@@ -126,7 +125,9 @@ export default function TodayRail() {
 
   const handleExplore = () => {
     if (todayData.featured) {
-      navigateWithTransition(navigate, `/constellation/${todayData.featured.id}`);
+      // Use plain navigate — view transitions conflict with constellation's
+      // WebGL context, causing Context Lost on first-visit node hover
+      navigate(`/constellation/${todayData.featured.id}`);
     }
   };
 
