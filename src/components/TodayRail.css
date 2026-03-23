@@ -1,3 +1,10 @@
+/* Animatable custom property for prism border sweep */
+@property --prism-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
 .today-rail {
   grid-column: 1 / -1;
   padding: 0;
@@ -43,6 +50,20 @@
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(15, 15, 18, 0.65);
   box-shadow: 0 0 20px rgba(124, 58, 237, var(--tod-accent-glow-opacity, 0.15));
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.5s ease,
+              border-color 0.5s ease,
+              background 0.5s ease;
+}
+
+/* DAY card hover — matches the holiday banner colors */
+.today-card--state:hover {
+  border-color: var(--day-accent, #a78bfa) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--day-accent, #a78bfa),
+    0 0 30px var(--day-glow, rgba(124, 58, 237, 0.15)),
+    inset 0 1px 30px var(--day-glow, rgba(124, 58, 237, 0.06)) !important;
 }
 
 .today-card__date {
@@ -207,6 +228,42 @@
 .today-card--glint {
   background: rgba(124, 58, 237, 0.04);
   border-color: rgba(124, 58, 237, 0.08);
+  position: relative;
+}
+
+/* Prism border sweep — rotating conic gradient masked to border shape */
+.today-card--glint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--prism-angle),
+    #ff6b6b, #ffa94d, #ffd43b, #69db7c, #4ecdc4, #74c0fc, #b197fc, #f783ac, #ff6b6b
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.today-card--glint-hovered::before {
+  opacity: 0.8;
+  animation: prism-sweep 2.5s linear infinite;
+}
+
+.today-card--glint-hovered {
+  border-color: transparent !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(167, 139, 250, 0.12) !important;
+}
+
+@keyframes prism-sweep {
+  to { --prism-angle: 360deg; }
 }
 
 .today-card__glint-marker {
@@ -220,33 +277,80 @@
   font-weight: 600;
 }
 
+/* Journal scroll container — fixed height, clips like movie credits */
+.today-card__glint-journal-scroll {
+  height: calc(0.9rem * 1.5 * 3);
+  overflow: hidden;
+  position: relative;
+}
+
 .today-card__glint-line {
   font-size: 0.9rem;
   color: #ccc;
   line-height: 1.5;
+  margin: 0;
+}
+
+/* Static mode: line clamp for non-hovered state */
+.today-card__glint-line:not(.typing) {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.today-card__glint-expand {
-  font-size: 0.72rem;
-  color: #888;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: var(--font-body);
-  transition: color 0.2s ease;
+/* Typing mode: free-flowing text, scrolls within container */
+.today-card__glint-line.typing {
+  display: block;
 }
 
-.today-card__glint-expand:hover {
+/* Blinking cursor */
+.today-card__glint-cursor {
   color: #a78bfa;
+  font-weight: 300;
+  animation: cursor-blink 0.7s step-end infinite;
+  margin-left: 1px;
 }
 
-.today-card__glint-line.expanded {
-  -webkit-line-clamp: unset;
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Diamond CTA element */
+.today-card__diamond {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed, #c084fc);
+  transform: rotate(45deg);
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: transform 0.4s ease, box-shadow 0.4s ease, filter 0.4s ease;
+}
+
+.today-card--glint-hovered .today-card__diamond {
+  animation: diamond-sparkle 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.7));
+}
+
+@keyframes diamond-sparkle {
+  0%, 100% {
+    transform: rotate(45deg) scale(1);
+    background: linear-gradient(135deg, #a78bfa, #7c3aed, #c084fc);
+  }
+  25% {
+    transform: rotate(45deg) scale(1.3);
+    background: linear-gradient(135deg, #ff6b6b, #ffa94d, #ffd43b);
+  }
+  50% {
+    transform: rotate(45deg) scale(1.1);
+    background: linear-gradient(135deg, #4ecdc4, #45b7d1, #74c0fc);
+  }
+  75% {
+    transform: rotate(45deg) scale(1.3);
+    background: linear-gradient(135deg, #b197fc, #f783ac, #ff6b6b);
+  }
 }
 
 /* Card 3: Creative Prompt */

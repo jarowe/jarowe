@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight, PenTool, Palette, Wrench, Cloud, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -54,14 +54,10 @@ const CREATIVE_ARTWORKS = [
 export default function TodayRail() {
   const { holiday } = useHoliday();
   const navigate = useNavigate();
-  const [journalExpanded, setJournalExpanded] = useState(false);
   const [artworkUrl, setArtworkUrl] = useState(CREATIVE_ARTWORKS[0]);
-
-  // Randomize artwork on each hover
-  const handlePromptHover = useCallback(() => {
-    const idx = Math.floor(Math.random() * CREATIVE_ARTWORKS.length);
-    setArtworkUrl(CREATIVE_ARTWORKS[idx]);
-  }, []);
+  const [glintHovered, setGlintHovered] = useState(false);
+  const [typedCount, setTypedCount] = useState(0);
+  const journalScrollRef = useRef(null);
 
   // Journal entry: start with deterministic fallback, upgrade to AI if available
   const [journalEntry, setJournalEntry] = useState(() => {
@@ -80,6 +76,41 @@ export default function TodayRail() {
       .catch(() => { /* keep fallback */ });
     return () => { cancelled = true; };
   }, []);
+
+  // Randomize artwork on each hover
+  const handlePromptHover = useCallback(() => {
+    const idx = Math.floor(Math.random() * CREATIVE_ARTWORKS.length);
+    setArtworkUrl(CREATIVE_ARTWORKS[idx]);
+  }, []);
+
+  // Typewriter effect — starts on hover with slight delay
+  useEffect(() => {
+    if (!glintHovered) {
+      setTypedCount(0);
+      if (journalScrollRef.current) journalScrollRef.current.scrollTop = 0;
+      return;
+    }
+    let count = 0;
+    let interval;
+    const delay = setTimeout(() => {
+      interval = setInterval(() => {
+        count++;
+        setTypedCount(count);
+        if (count >= journalEntry.length) clearInterval(interval);
+      }, 50);
+    }, 400);
+    return () => {
+      clearTimeout(delay);
+      clearInterval(interval);
+    };
+  }, [glintHovered, journalEntry.length]);
+
+  // Auto-scroll to keep typing position visible (movie credits effect)
+  useEffect(() => {
+    if (glintHovered && journalScrollRef.current) {
+      journalScrollRef.current.scrollTop = journalScrollRef.current.scrollHeight;
+    }
+  }, [typedCount, glintHovered]);
 
   const todayData = useMemo(() => {
     const now = new Date();
@@ -110,6 +141,11 @@ export default function TodayRail() {
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 800, damping: 30 } }}
           transition={{ duration: 0.5, delay: 0.1 }}
+          style={{
+            '--day-accent': holiday?.accentPrimary || '#a78bfa',
+            '--day-glow': holiday?.accentGlow || 'rgba(124, 58, 237, 0.15)',
+            '--day-secondary': holiday?.accentSecondary || '#06b6d4',
+          }}
         >
           <div className="today-card__date">
             <Calendar size={14} className="today-card__date-icon" />
@@ -150,29 +186,34 @@ export default function TodayRail() {
 
         {/* Card 2: Glint's Thought of the Day */}
         <motion.div
-          className="today-card today-card--glint"
+          className={`today-card today-card--glint${glintHovered ? ' today-card--glint-hovered' : ''}`}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           whileHover={{ y: -5, scale: 1.01, transition: { type: 'spring', stiffness: 800, damping: 30 } }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          onMouseEnter={() => setGlintHovered(true)}
+          onMouseLeave={() => setGlintHovered(false)}
         >
           <div className="today-card__glint-marker">
             <Sparkles size={14} />
             <span>Glint's Journal</span>
           </div>
-          <p className={`today-card__glint-line${journalExpanded ? ' expanded' : ''}`}>{journalEntry}</p>
-          {!journalExpanded && journalEntry.length > 120 && (
-            <button className="today-card__glint-expand" onClick={() => setJournalExpanded(true)}>
-              ...read more
-            </button>
-          )}
+          <div className="today-card__glint-journal-scroll" ref={journalScrollRef}>
+            <p className={`today-card__glint-line${glintHovered ? ' typing' : ''}`}>
+              {glintHovered ? journalEntry.slice(0, typedCount) : journalEntry}
+              {glintHovered && typedCount < journalEntry.length && (
+                <span className="today-card__glint-cursor" aria-hidden="true">|</span>
+              )}
+            </p>
+          </div>
           <button
             className="today-card__cta today-card__cta--secondary"
             onClick={() => {
               window.dispatchEvent(new CustomEvent('glint-open'));
             }}
           >
-            Ask Glint <ArrowRight size={14} />
+            <span className="today-card__diamond" aria-hidden="true" />
+            Open Glint Chat
           </button>
         </motion.div>
 
