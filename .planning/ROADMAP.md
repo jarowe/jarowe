@@ -5,7 +5,8 @@
 - ✅ **v1.0 Constellation** - Phases 1-2 (shipped 2026-02-28, Phases 3-6 deferred to future)
 - ✅ **v2.0 Living World** - Phases 3-7 (shipped 2026-03-21)
 - ✅ **v2.0.1 Polish & Connect** - Phases 8-9 (shipped 2026-03-22)
-- 🚧 **v2.1 Memory Capsules** - Phases 10-13 (in progress)
+- ✅ **v2.1 Memory Capsules** - Phases 10-12 (shipped 2026-03-23)
+- 🚧 **v2.2 Particle Memory Flight** - Phases 14-17 (in progress)
 
 ## Phases
 
@@ -154,13 +155,8 @@ Plans:
 
 </details>
 
-### v2.1 Memory Capsules (In Progress)
-
-**Milestone Goal:** Turn a single still photo into an immersive 3D memory you can step into -- one unforgettable capsule with cinematic camera drift, atmosphere, narrative, and soundtrack. Not a tech demo -- a playable memory poem.
-
-**Guardrail:** If tradeoffs appear, protect the flagship capsule experience (SHELL-04, ARC-*) before protecting editor/tooling depth.
-
-**Structure:** 3 required phases (10-12) + 1 optional/stretch phase (13). The milestone is complete when Phase 12 ships successfully.
+<details>
+<summary>v2.1 Memory Capsules (Phases 10-12) - SHIPPED 2026-03-23</summary>
 
 ### Phase 10: Foundation + Asset Pipeline
 **Goal**: A depth-displaced 3D mesh renders from a single photo without visual artifacts, with WebGL context lifecycle managed, GPU tiers detected, and a validated asset pipeline producing compressed capsule assets
@@ -205,6 +201,58 @@ Plans:
   2. The CapsuleEditor (lil-gui) provides live tuning for depth parameters, camera keyframes, atmosphere settings, and color grading -- an author can tune a new scene without touching code
   3. Adding a second capsule scene requires only adding assets to `public/memory/{scene-id}/` and a registry entry -- no code changes to the renderer or shell
 
+</details>
+
+### v2.2 Particle Memory Flight (In Progress)
+
+**Milestone Goal:** Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience -- photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio.
+
+**Guardrail:** If tradeoffs appear, protect the particle flight experience (PART-01, FLIGHT-01, DREAM-01/03) before protecting audio polish or wire connection density.
+
+**Scope:** 1 flagship scene (syros-cave), desktop hero path only. Parallax fallback preserved for low-end devices.
+
+**Structure:** 4 phases (14-17). No optional/stretch phases. The milestone is complete when all four phases ship.
+
+### Phase 14: Particle Field Core
+**Goal**: A photo + depth map produces a luminous 3D particle field of 80K-150K points with selective wire connections, breathing animation, and tier-adaptive rendering -- integrated into the existing CapsuleShell dispatch with dual position buffers pre-allocated for future dream portal transitions
+**Depends on**: Phase 12 (shipped CapsuleShell + scene registry + GPU tier system)
+**Requirements**: PART-01, PART-02, PART-03, PART-04, INTEG-01, INTEG-02
+**Success Criteria** (what must be TRUE):
+  1. Navigating to `/memory/syros-cave` on desktop renders the photo as a recognizable 3D particle field (not a flat texture or isolated dots) -- the syros cave is identifiable from any viewing angle on the rail
+  2. Visible wire connections link nearby particles along depth edges and contours -- the field has structure, not just scattered points (a "holographic memory" quality)
+  3. Particles visibly breathe (size + brightness oscillation) and have bloom glow -- the field feels alive when the camera is stationary, not a static screenshot
+  4. On a mid-range GPU (simplified tier), the scene renders at 50-80K particles without wire connections or bloom, still at 60fps -- and on low-end devices, the existing CSS parallax fallback renders instead
+  5. Both `scatteredPositions` and `photoPositions` buffers exist in the geometry at init time -- verified by inspecting the BufferGeometry attributes (two position-like attributes present)
+
+### Phase 15: Memory Flight Controller
+**Goal**: Scroll/trackpad/touch input drives the camera along a 3D spline through the particle field with momentum, inertial drift, and progress-normalized narrative card triggers -- the visitor flies through the memory at their own pace
+**Depends on**: Phase 14 (particle field must render before camera can fly through it)
+**Requirements**: FLIGHT-01, FLIGHT-02, FLIGHT-03, FLIGHT-04
+**Success Criteria** (what must be TRUE):
+  1. Scrolling the mouse wheel or trackpad moves the camera forward along a CatmullRom spline path through the particle field -- wheel forward = deeper into the memory, wheel backward = retreat
+  2. Releasing the scroll input does not instantly stop the camera -- momentum carries it forward with visible exponential decay, creating a physical "gliding" sensation
+  3. Narrative glass cards appear at specific progress thresholds (e.g., 0.25, 0.5, 0.75) rather than at fixed time delays -- a visitor who scrolls slowly sees cards later in clock time than one who scrolls fast
+  4. When the visitor stops scrolling for several seconds, an imperceptible micro-drift keeps the camera alive -- the scene never feels frozen, but the next scroll input immediately overrides the drift
+
+### Phase 16: Dream Portal Transition
+**Goal**: Entry to the capsule dissolves reality into scattered particles, streams through a luminous void, and reforms particles into the memory photo formation -- exit reverses the grammar -- replacing the existing PortalVFX with dream-logic transitions
+**Depends on**: Phase 14 (dual position buffers), Phase 15 (progress system for activation gating)
+**Requirements**: DREAM-01, DREAM-02, DREAM-03, DREAM-04
+**Success Criteria** (what must be TRUE):
+  1. Entering the capsule from the home page visibly scatters the current view into particles before the route change -- the visitor sees reality break apart, not a UI fade or instant teleport
+  2. During the tunnel/void phase, particles stream past the camera in a directional flow -- the visitor feels like they are falling through luminous space between worlds
+  3. On arrival, particles visibly assemble from scattered chaos into the photo formation over 1-3 seconds -- the memory crystallizes, and the moment of recognition ("oh, it's a photo!") is the emotional peak
+  4. Exiting the capsule reverses the dream grammar -- photo dissolves back into particles, same void/tunnel, particles reform into the origin page -- it is NOT a different transition or a hard navigate
+
+### Phase 17: Memory Soundscape
+**Goal**: Layered ambient audio (drone, texture, detail) evolves with scroll progress through per-layer volume envelopes, with smooth GlobalPlayer ducking on capsule entry/exit -- the flight has an emotional sound journey, not silence
+**Depends on**: Phase 15 (progress float drives soundscape envelopes)
+**Requirements**: SOUND-01, SOUND-02
+**Success Criteria** (what must be TRUE):
+  1. At least two distinct audio layers are audible during the flight, and their relative volumes visibly change as the visitor scrolls deeper -- the sound at progress 0.0 is noticeably different from the sound at progress 0.8
+  2. The soundscape fades in smoothly on capsule entry (no pop or abrupt start) and fades out on exit -- there is never a moment of jarring silence or audio collision
+  3. If GlobalPlayer music is playing when the capsule opens, its volume ducks smoothly to a low level (not muted) and restores smoothly on exit -- both audio sources coexist without fighting
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -218,11 +266,15 @@ Plans:
 | 7. Immersive Portal | v2.0 | 2/2 | Complete | 2026-03-21 |
 | 8. Regression Fixes | v2.0.1 | 1/1 | Complete | 2026-03-22 |
 | 9. Visual Cohesion | v2.0.1 | 2/2 | Complete | 2026-03-22 |
-| 10. Foundation + Asset Pipeline | v2.1 | 2/3 | Complete    | 2026-03-23 |
+| 10. Foundation + Asset Pipeline | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 11. Cinematic Polish | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
-| 13. Integration + Expansion | v2.1 | 0/0 | Optional/Stretch | - |
+| 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
+| 14. Particle Field Core | v2.2 | 0/0 | Not started | - |
+| 15. Memory Flight Controller | v2.2 | 0/0 | Not started | - |
+| 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
+| 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
-*Updated: 2026-03-23 (v2.1 Memory Capsules roadmap -- 4 phases, 22 requirements)*
+*Updated: 2026-03-23 (v2.2 Particle Memory Flight roadmap -- 4 phases, 16 requirements)*

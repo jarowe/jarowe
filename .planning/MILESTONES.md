@@ -1,5 +1,23 @@
 # Milestones
 
+## v2.2 Particle Memory Flight (In Progress)
+
+**Phases:** 14-17 (4 phases)
+**Requirements:** 16 (PART-01/02/03/04, FLIGHT-01/02/03/04, DREAM-01/02/03/04, SOUND-01/02, INTEG-01/02)
+
+**Goal:** Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience -- photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio. 1 flagship scene (syros-cave), desktop hero path.
+
+**Phases:**
+
+| Phase | Name | Requirements | Status |
+|-------|------|-------------|--------|
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
+| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
+| 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
+| 17 | Memory Soundscape | SOUND-01/02 | Not started |
+
+---
+
 ## v2.1 Memory Capsules (Shipped: 2026-03-23)
 
 **Phases completed:** 3 phases, 9 plans, 26 tasks

@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
 status: planning
-stopped_at: Defining requirements
+stopped_at: Roadmap created, ready for Phase 14 planning
 last_updated: "2026-03-23T00:00:00.000Z"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,34 +19,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** v2.2 Particle Memory Flight -- defining requirements
+**Current focus:** v2.2 Particle Memory Flight -- roadmap created, ready for Phase 14 planning
 
 ## Current Position
 
-Phase: 13
+Phase: 14
 Plan: Not started
 
-## v2.1 Roadmap Summary
+## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
-| 10 | Foundation + Asset Pipeline | DEPTH-01/02/03/04, SHELL-01/02/03, ASSET-01 | Not started |
-| 11 | Cinematic Polish | CINE-01/02/03/04, PORT-02, PORT-04 | Not started |
-| 12 | Flagship Scene + Portal | SHELL-04, PORT-01/03, ARC-01/02/03 | Not started |
-| 13 | Integration + Expansion | PORT-05, ASSET-02 | Not started |
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
+| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
+| 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
+| 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
 **Phase ordering rationale:**
 
-- Phase 10 first: WebGL context lifecycle and depth artifact mitigation cannot be retrofitted
-- Phase 11 second: Camera choreography + atmosphere must exist before flagship evaluation (screensaver gives false negative)
-- Phase 12 third: Flagship capsule is the milestone anchor -- validates the concept with real emotional content
-- Phase 13 last: Constellation integration + editor tooling only matter if flagship proves the experience
+- Phase 14 first: ParticleField core must exist before anything can fly through it or dissolve into it. Dual position buffers allocated here prevent destructive rewrite in Phase 16. INTEG-01/02 are foundation -- CapsuleShell dispatch and buffer architecture must be correct from the start.
+- Phase 15 second: Scroll-driven camera and the progress float (0-1) become the central data bus. All downstream systems (narrative cards, soundscape envelopes, portal gating) are consumers of this progress value.
+- Phase 16 third: Dream portal dissolve/reform requires Phase 14 dual buffers + Phase 15 progress gating. The morphProgress uniform interpolates between scattered and photo-formed positions in the shared BufferGeometry.
+- Phase 17 last: Audio polish with no downstream dependents. Receives progress from Phase 15. Can be validated only after the flight experience exists.
+
+**Guardrail:** Protect PART-01, FLIGHT-01, DREAM-01/03 before audio polish or wire density.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.1)
+- Total plans completed: 0 (v2.2)
 - Average duration: --
 - Total execution time: --
 
@@ -56,15 +58,10 @@ Plan: Not started
 |-------|-------|-------|----------|
 | - | - | - | - |
 
-**Recent Trend (from v2.0.1):**
+**Recent Trend (from v2.1):**
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
-| Phase 08 P01 | 2min | 2 tasks | 3 files |
-| Phase 09 P02 | 3min | 2 tasks | 3 files |
-| Phase 09 P01 | 4min | 2 tasks | 2 files |
-
-*Updated after each plan completion*
 | Phase 10 P01 | 5min | 4 tasks | 4 files |
 | Phase 10 P02 | 3min | 2 tasks | 6 files |
 | Phase 10 P03 | 4min | 3 tasks | 2 files |
@@ -74,6 +71,16 @@ Plan: Not started
 | Phase 12 P01 | 8min | 3 tasks | 2 files |
 | Phase 12 P02 | 8min | 2 tasks | 3 files |
 | Phase 12 P03 | 7min | 3 tasks | 3 files |
+
+*Updated after each plan completion*
+
+## v2.1 Summary
+
+Phases 10-12 complete (9 plans, 26 tasks):
+
+- Phase 10: CapsuleShell dispatch, GPU tier detection, displaced mesh renderer, asset pipeline validation
+- Phase 11: CinematicCamera, atmospheric particles, DOF/vignette/grain, color grading, soundtrack ducking
+- Phase 12: SAM mask layer separation, experience arc, narrative cards, PortalVFX integration
 
 ## v2.0.1 Summary
 
@@ -108,25 +115,23 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - Starseed Hub uses campaign-shell pattern (proven from music takeover)
 - Daily engine before spectacle (retention before acquisition)
 - Glint bounded tool use, not generic chatbot
-- [Phase 08]: Used onBeforeCompile with vColor.rgb multiplication to preserve MeshStandardMaterial PBR lighting for per-instance emissive colors
-- [Phase 09]: Per-card CSS custom property (--card-gradient) driven by inline style from project data for unique gradient identity
-- [Phase 09]: Holiday-constellation linking via nodeId field on T3+ calendar entries with conditional deep-link in TodayRail
-- [Phase 10]: CapsuleShell replaces MemoryPortal with renderer-agnostic routing (scene.renderMode x GPU tier) — Self-contained capsule module with SplatRenderer, DisplacedMeshRenderer stub, and ParallaxFallback as internal components
-- [Phase 10]: PNG format for both photo and depth (not WebP) -- uniform header parsing for validation — Simpler validation, consistent dimension checks
-- [Phase 10]: Fragment discard uses dFdx/dFdy screen-space derivatives with smoothstep alpha fade band for anti-aliased depth edges — Screen-space derivatives detect depth discontinuities precisely; smoothstep prevents hard cutoff artifacts
-- [Phase 10]: ParallaxFallback uses two layers from same image with differential parallax speeds for depth illusion without WebGL — Avoids need for pre-separated depth layers while providing compelling depth effect on low-end devices
-- [Phase 11]: CinematicCamera uses GSAP timeline with repeat:-1 for infinite loop; camera beat timing coarsely aligned to narrative card delays — Proven pattern for cinematic camera in memory capsules without OrbitControls
-- [Phase 11]: COLOR_GRADING at module level, color grading in mesh fragment shader (not postprocessing pass), tier-gated postprocessing with CSS vignette fallback — Per-scene grading is tighter to photo in mesh shader; shared presets avoid duplication; CSS fallback gives simplified tier equivalent vignette
-- [Phase 11]: Capsule-level ducking (duckForCapsule/restoreFromCapsule) separate from node-level ducking, targets 0.15 volume; uses Howler.volume() getter to avoid stale closures; cross-fade cleanup with delayed unload — Different lifecycle (route-level vs panel-level) and different volume targets (ambient duck vs silence) require separate mechanism
-- [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation; recession fade in fragment shader; two separate GSAP timelines for independent lifecycle — Soft edge blending and per-scene color control; independent cleanup
-- [Phase 12]: Narrative cards gated behind awakeningComplete state; 4-card emotional arc (place/feeling/meaning/gratitude) at 2s/6s/11s/16s — D-03 no text during depth reveal; 4-beat camera with final settling hold:3
-- [Phase 12]: Portal entry navigates at rupture phase; exit portal uses center origin; direct URL access shortens awakening to 1.5s — Matches existing Glint portal pattern; no click point for exit; graceful UX for bookmarked URLs
+- [Phase 10]: CapsuleShell replaces MemoryPortal with renderer-agnostic routing (scene.renderMode x GPU tier)
+- [Phase 10]: Fragment discard uses dFdx/dFdy screen-space derivatives with smoothstep alpha fade band
+- [Phase 11]: CinematicCamera uses GSAP timeline with repeat:-1 for infinite loop
+- [Phase 11]: Capsule-level ducking (duckForCapsule/restoreFromCapsule) separate from node-level ducking
+- [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation
+- [Phase 12]: Narrative cards gated behind awakeningComplete; 4-card emotional arc at timed delays
+- [Phase 12]: Portal entry navigates at rupture phase; direct URL access shortens awakening
 
-### v2.1 Research Flags
+### v2.2 Research Flags
 
-- **Phase 10 (WebGL context disposal):** react-globe.gl does not expose clean disposal API -- may need ref to globe instance + `globe.renderer().dispose()`. Validate against current Home.jsx globe code.
-- **Phase 11 (iOS audio):** Interaction between `Howler.ctx.resume()` and existing `AudioContext.jsx` needs mapping before building capsule soundtrack.
-- **Phase 12 (flagship photo selection):** "Capsule-worthy" checklist defined in research -- which specific Jared photo is the flagship candidate needs visual assessment (Syros sunset is strong candidate).
+- **Phase 14 (WebGL context):** Site already runs 3 WebGL contexts (globe, Prism3D, constellation). Fourth risks context exhaustion on mobile. Must confirm previous contexts are released before mounting particle Canvas. Never render globe + particle scene simultaneously.
+- **Phase 14 (depth/photo UV):** Depth map must exactly match photo dimensions. Validate by overlaying at 50% opacity -- edges must align exactly.
+- **Phase 14 (wire connections):** Naive K-nearest-neighbor over 150K particles is O(n^2). Use spatial hash grid. Pre-compute once at load, not per-frame. Target ~10K connections as pre-built LineSegments index buffer.
+- **Phase 14 (asset weight):** Photo WebP q80 max 2048px, depth 8-bit single-channel max 1024px. Target <500KB total per capsule.
+- **Phase 15 (camera feel):** Spring-smooth progress before it drives the spline. Never let camera fully stop. Layer: spline progress (scroll), mouse parallax (15-30ms), breathing micro-drift (8-20s sine). Test at 2x speed.
+- **Phase 16 (portal disorientation):** Store departure globe camera state in sessionStorage on entry; restore on return. Pre-load memory scene photo during portal animation.
+- **Phase 17 (audio assets):** Each scene needs 2-4 ambient layers (drone, wind, texture, climax). Source during Phase 15/16 so Phase 17 has real content.
 
 ### Pending Todos (carried from v1.0/v2.0)
 
@@ -140,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:54:54.733Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-03-23
+Stopped at: Roadmap created for v2.2. Ready for Phase 14 planning.
 Resume file: None

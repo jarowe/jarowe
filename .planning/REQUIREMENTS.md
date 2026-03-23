@@ -74,30 +74,32 @@ Deferred to future milestones. Not in current roadmap.
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PART-01 | TBD | Not started |
-| PART-02 | TBD | Not started |
-| PART-03 | TBD | Not started |
-| PART-04 | TBD | Not started |
-| FLIGHT-01 | TBD | Not started |
-| FLIGHT-02 | TBD | Not started |
-| FLIGHT-03 | TBD | Not started |
-| FLIGHT-04 | TBD | Not started |
-| DREAM-01 | TBD | Not started |
-| DREAM-02 | TBD | Not started |
-| DREAM-03 | TBD | Not started |
-| DREAM-04 | TBD | Not started |
-| SOUND-01 | TBD | Not started |
-| SOUND-02 | TBD | Not started |
-| INTEG-01 | TBD | Not started |
-| INTEG-02 | TBD | Not started |
+| PART-01 | 14 — Particle Field Core | Not started |
+| PART-02 | 14 — Particle Field Core | Not started |
+| PART-03 | 14 — Particle Field Core | Not started |
+| PART-04 | 14 — Particle Field Core | Not started |
+| INTEG-01 | 14 — Particle Field Core | Not started |
+| INTEG-02 | 14 — Particle Field Core | Not started |
+| FLIGHT-01 | 15 — Memory Flight Controller | Not started |
+| FLIGHT-02 | 15 — Memory Flight Controller | Not started |
+| FLIGHT-03 | 15 — Memory Flight Controller | Not started |
+| FLIGHT-04 | 15 — Memory Flight Controller | Not started |
+| DREAM-01 | 16 — Dream Portal Transition | Not started |
+| DREAM-02 | 16 — Dream Portal Transition | Not started |
+| DREAM-03 | 16 — Dream Portal Transition | Not started |
+| DREAM-04 | 16 — Dream Portal Transition | Not started |
+| SOUND-01 | 17 — Memory Soundscape | Not started |
+| SOUND-02 | 17 — Memory Soundscape | Not started |
 
 **Coverage:**
 - v2.2 requirements: 16 total
-- Mapped to phases: 0 (awaiting roadmap)
+- Mapped to phases: 16/16 (100%)
+- Phase 14: 6 requirements (PART-01/02/03/04, INTEG-01/02)
+- Phase 15: 4 requirements (FLIGHT-01/02/03/04)
+- Phase 16: 4 requirements (DREAM-01/02/03/04)
+- Phase 17: 2 requirements (SOUND-01/02)
 
 ## Previous Milestones
 
