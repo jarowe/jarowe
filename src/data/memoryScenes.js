@@ -75,12 +75,26 @@ const scenes = [
     previewImage: 'memory/test-capsule/preview.jpg',
     soundtrack: 'memory/test-capsule/soundtrack.mp3',
     narrative: [
-      { text: 'Some places hold more than what you see.', delay: 2000 },
       {
-        text: 'They hold the feeling of being exactly where you belong.',
+        // Card 1: Place — where are we? (appears after awakening, synced to camera beat 2)
+        text: 'The light here is different. It moves like it remembers something too.',
+        delay: 2000,
+      },
+      {
+        // Card 2: Feeling — what does it feel like? (synced to camera beat 3)
+        text: 'Everything slowed down. The boys running ahead, Maria beside me. We were exactly where we were supposed to be.',
         delay: 6000,
       },
-      { text: 'This is one of those places.', delay: 11000 },
+      {
+        // Card 3: Meaning — why does it matter? (synced to camera pull-back)
+        text: 'You spend your whole life building toward something. And then one afternoon, you realize you already have it.',
+        delay: 11000,
+      },
+      {
+        // Card 4: Gratitude — the final thought before recession
+        text: 'This is what I want to remember.',
+        delay: 16000,
+      },
     ],
     cameraPosition: { x: 0, y: 0, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
@@ -105,8 +119,7 @@ const scenes = [
     },
     cameraKeyframes: [
       {
-        // Beat 1: Push in — viewer is drawn into the memory
-        // Starts immediately. Holds until ~2s when first narrative card appears.
+        // Beat 1: Awakening hold — camera still while depth wakes up
         position: { x: 0, y: 0, z: 3 },
         target: { x: 0, y: 0, z: 0 },
         duration: 2,
@@ -114,8 +127,7 @@ const scenes = [
         hold: 0,
       },
       {
-        // Beat 2: Slow drift right — card 1 visible at 2s, drift begins
-        // 4s transition lands at ~6s when card 2 appears
+        // Beat 2: Slow drift right — card 1 visible at 2s
         position: { x: 0.4, y: 0.1, z: 2.6 },
         target: { x: 0.1, y: 0, z: 0 },
         duration: 4,
@@ -123,13 +135,20 @@ const scenes = [
         hold: 0,
       },
       {
-        // Beat 3: Gentle pull back — card 2 visible at 6s, pull-back begins
-        // 5s transition lands at ~11s when card 3 appears
-        position: { x: -0.2, y: 0.15, z: 2.8 },
+        // Beat 3: Gentle pull back + slight rise — card 2 visible at 6s
+        position: { x: -0.2, y: 0.2, z: 2.8 },
         target: { x: -0.05, y: 0.05, z: 0 },
         duration: 5,
         ease: 'sine.inOut',
         hold: 2,
+      },
+      {
+        // Beat 4: Final settling — card 3 at 11s, card 4 at 16s, then recession
+        position: { x: 0.1, y: 0.05, z: 2.9 },
+        target: { x: 0, y: 0, z: 0 },
+        duration: 4,
+        ease: 'power1.inOut',
+        hold: 3,
       },
     ],
   },
