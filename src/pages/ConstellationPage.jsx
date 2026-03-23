@@ -238,14 +238,24 @@ export default function ConstellationPage() {
     }
   }, [urlNodeId, dataLoaded, canvasReady]);
 
-  // Delay Canvas mount by one frame to survive React StrictMode's
-  // mount-unmount-remount cycle. Without this, StrictMode creates and
-  // destroys a WebGL context before the real mount.
+  // Delay Canvas mount to survive React StrictMode's mount-unmount-remount.
+  // Uses setTimeout (not rAF) so the cleanup's clearTimeout actually cancels
+  // the first mount's timer before StrictMode's remount schedules a new one.
+  // 50ms is enough for StrictMode's unmount to fire and cancel the first timer.
+  const canvasMountedRef = useRef(false);
   useEffect(() => {
-    const id = requestAnimationFrame(() => setCanvasReady(true));
+    const id = setTimeout(() => {
+      canvasMountedRef.current = true;
+      setCanvasReady(true);
+    }, 50);
     return () => {
-      cancelAnimationFrame(id);
-      setCanvasReady(false);
+      clearTimeout(id);
+      // Only reset canvasReady if this is a real unmount, not StrictMode's
+      // intermediate unmount — check if the timer was the one that set it
+      if (canvasMountedRef.current) {
+        setCanvasReady(false);
+        canvasMountedRef.current = false;
+      }
     };
   }, []);
 

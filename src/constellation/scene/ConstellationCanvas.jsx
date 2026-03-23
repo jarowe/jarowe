@@ -291,9 +291,13 @@ export default function ConstellationCanvas() {
       }}
       dpr={gpuConfig.dpr}
       onPointerMissed={(e) => {
-        // Only clear focus on genuine user clicks — not synthetic events
-        // from material recompilation or raycaster recalculation
-        if (e.type === 'click') clearFocus();
+        console.warn('[constellation] onPointerMissed fired!', {
+          type: e.type,
+          button: e.button,
+          isTrusted: e.isTrusted,
+        });
+        // Only clear on genuine trusted user clicks
+        if (e.isTrusted) clearFocus();
       }}
       onCreated={({ gl, scene }) => {
         rendererRef.current = gl;

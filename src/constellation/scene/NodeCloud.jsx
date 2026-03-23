@@ -114,16 +114,12 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const materialRef = useRef();
   const count = nodes.length;
 
-  // Shader patch: inject per-instance color into emissive channel.
-  // Guarded by USE_INSTANCING_COLOR so it compiles cleanly even before
-  // the useEffect below sets up instanceColor (first frame race).
+  // Shader patch: inject per-instance color into emissive channel
   const handleShaderCompile = useCallback((shader) => {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
-       #ifdef USE_INSTANCING_COLOR
-         totalEmissiveRadiance *= vColor.rgb;
-       #endif`
+       totalEmissiveRadiance *= vColor.rgb;`
     );
   }, []);
 
@@ -162,13 +158,6 @@ export default function NodeCloud({ nodes, gpuConfig }) {
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-
-    // Force material recompile now that instanceColor exists — the
-    // onBeforeCompile shader patch uses vColor.rgb guarded by
-    // USE_INSTANCING_COLOR, which only activates after this attribute is set
-    if (materialRef.current) {
-      materialRef.current.needsUpdate = true;
-    }
   }, [nodes]);
 
   // Focus dimming and entity filter dimming
