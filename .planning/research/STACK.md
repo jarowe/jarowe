@@ -1,292 +1,394 @@
 # Stack Research
 
-**Domain:** Data-driven interactive personal website with 3D constellation visualization
-**Researched:** 2026-02-27
+**Domain:** Single-photo 3D memory capsules with depth estimation, displaced mesh rendering, cinematic camera, and atmospheric portal UX
+**Researched:** 2026-03-23
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This stack analysis focuses on **adding** data pipeline, admin dashboard, scheduled ingestion, and performant 3D constellation capabilities to an existing Vite 7 + React 19 + R3F + drei + GSAP + Howler.js site. Research prioritizes Vercel-native solutions to minimize infrastructure complexity, type-safe data transformation with runtime validation, and proven 3D performance patterns for instanced rendering at 60fps with 150+ nodes.
+This stack analysis focuses on **adding** single-photo depth estimation, displaced mesh 3D scenes, cinematic camera choreography, and atmospheric particle/effects capabilities to the existing Vite 7 + React 19 + R3F + drei + postprocessing + GSAP + Howler.js site. The existing Memory Portal (`/memory/:sceneId`) already has a gaussian splat viewer, narrative card overlay system, soundtrack integration, and cinematic CSS fallback -- this milestone replaces the splat renderer with a depth-displaced mesh approach that works from any single photo.
 
-**Key Finding:** Vercel's serverless ecosystem (Functions, Blob, Cron) combined with Auth.js v5, Zod validation, and troika-three-text for performant 3D labels provides a cohesive, zero-infrastructure stack that extends the existing React 19 + R3F foundation without framework migration.
+**Key Finding:** No new runtime dependencies are required for the core displaced mesh renderer. Three.js's built-in `displacementMap` on `MeshStandardMaterial` (or a custom `ShaderMaterial`) with a high-segment `PlaneGeometry` handles displaced mesh rendering natively. Depth maps are generated offline (manual asset workflow) using Depth Anything V2 via Hugging Face Spaces or Replicate API. The existing `@react-three/postprocessing` (DepthOfField, Vignette already proven in ConstellationCanvas) and `maath` (easing/damping already installed) cover cinematic camera and atmospheric effects. GSAP handles camera choreography keyframes (already used for constellation fly-to animations). The only recommended addition is `three-custom-shader-material` for extending `MeshStandardMaterial` with custom vertex displacement and edge-fade GLSL without writing a full `ShaderMaterial` from scratch.
+
+## What Already Exists (DO NOT ADD)
+
+These are already installed and proven in the codebase. Listed here to prevent duplicate recommendations:
+
+| Package | Version | Where Used | Capsule Role |
+|---------|---------|------------|--------------|
+| `three` | ^0.183.1 | Globe shader, Prism3D, Constellation | PlaneGeometry, ShaderMaterial, textures, displacement |
+| `@react-three/fiber` | ^9.5.0 | Prism3D, Constellation, Universe | Canvas, useFrame, useThree for capsule scene |
+| `@react-three/drei` | ^10.7.7 | Constellation (OrbitControls, Text, Billboard), Prism3D (Float, Sparkles), Universe (Stars, Points) | useTexture for loading photo+depth, Sparkles for particles, Float for subtle motion |
+| `@react-three/postprocessing` | ^3.0.4 | ConstellationCanvas (EffectComposer, DepthOfField, Vignette) | Bokeh DOF, vignette, bloom for capsule atmosphere |
+| `gsap` | ^3.14.2 | CameraController fly-to, Home.jsx animations | Camera dolly/drift keyframe timeline |
+| `@gsap/react` | ^2.1.2 | Home.jsx useGSAP | React lifecycle integration for camera timeline |
+| `maath` | ^0.10.8 | Existing easing/math utilities | easing.damp3 for smooth camera position interpolation |
+| `framer-motion` | ^12.34.3 | MemoryPortal narrative cards, PortalVFX | Narrative card entrance/exit, portal transition |
+| `howler` | ^2.2.4 | MemoryPortal soundtrack, GlobalPlayer | Per-scene soundtrack (already wired) |
+| `zustand` | ^5.0.11 | Constellation store | Capsule scene state (optional, could use React state) |
+| `postprocessing` | (peer dep) | Via @react-three/postprocessing | Underlying effect library |
 
 ## Recommended Stack
 
-### Backend & Infrastructure
+### Core Technologies (NEW additions)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| **Vercel Functions** | Platform native | Serverless API endpoints for data ingestion, admin operations | Zero configuration on Vercel. Auto-scales. 10-second execution limit on Hobby (sufficient for API calls), 60s on Pro. Serverless-first architecture matches current deployment. |
-| **Vercel Cron Jobs** | Platform native | Nightly scheduled data ingestion | Native cron support via `vercel.json`. Hobby plan: 2 jobs, 1/day. Pro: unlimited, custom schedules. Uses `CRON_SECRET` auth pattern for security. |
-| **Vercel Blob** | `@vercel/blob@2.3.0` | File storage for media assets, parsed data outputs | 5TB file support, multi-part uploads, client-direct uploads (bypasses 4.5MB serverless limit). Replaces need for S3. Auto-scales, CDN-backed. |
-| **Vercel Edge Config** | Platform native | Feature flags, admin allowlists, privacy tier configs | 5MB global key-value store. <5ms read latency (99% <15ms). Update from dashboard without redeployment. Perfect for allowlists, highlights, tour anchor configs. |
+| **three-custom-shader-material** | `6.4.0` | Extend MeshStandardMaterial with custom vertex displacement + edge-fade fragment shader | Lets you inject GLSL vertex/fragment code into Three.js's existing PBR materials while keeping lighting, fog, and shadow support. Avoids writing a full ShaderMaterial from scratch (which loses PBR lighting). Peer deps: `three >=0.159`, `react >=18`, `@react-three/fiber >=8` -- all satisfied by existing stack. Used for: (1) vertex shader that reads depth texture and displaces Z, (2) fragment shader that fades edges to transparent for seamless blending into dark background. |
 
-**Why NOT Vercel KV/Postgres:**
-- Vercel KV is **sunset** as of 2026. Marketplace alternatives (Upstash Redis) exist but add complexity.
-- Vercel Postgres has severe **cold start** issues (100-200ms) and connection limits in serverless context.
-- **Alternative:** Store constellation JSON in Blob, use Edge Config for lightweight flags/lists. No database needed for build-time-generated static data.
+### Depth Estimation (OFFLINE tooling, not runtime dependencies)
 
-### Authentication & Security
+| Tool | Purpose | Why Recommended |
+|------|---------|-----------------|
+| **Depth Anything V2 (Small)** via Hugging Face Spaces | Generate depth maps from single photos offline | State-of-the-art monocular depth estimation (NeurIPS 2024). Free to use via Hugging Face Space. Upload photo, download grayscale depth PNG. 24.8M param "small" model produces excellent results for this use case. Manual workflow matches PROJECT.md requirement ("upload photo + depth map + configure scene"). |
+| **Replicate API** (depth-anything-v2) | Batch depth map generation via API | $0.0023/run. Useful if automating multiple capsule creation later. Has REST API for scripting. Not needed for v2.1 (manual workflow), but good upgrade path. |
+| **Stability AI API** (depth endpoint) | Alternative cloud depth estimation | Credit-based pricing ($10/1000 credits). Higher cost but potentially better quality for some images. Keep as fallback option. |
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **Auth.js (NextAuth v5)** | `next-auth@5.x` | Owner-only admin authentication | Serverless-first architecture. Auto-infers `AUTH_*` env vars on Vercel. Supports JWT sessions (stateless, no DB). Preview deployment support via `redirectProxyUrl`. Industry standard for Next.js/Vercel auth. |
-| **CRON_SECRET pattern** | Built-in | Authenticate cron job requests | Vercel's official pattern: `Authorization: Bearer ${process.env.CRON_SECRET}` header on scheduled functions. Prevents external triggering. |
+**Why NOT browser-side depth estimation:**
+- `@huggingface/transformers` (v3.8.1) can run `depth-anything-v2-small` ONNX model in-browser, but the model is ~99MB download, inference takes 2-5 seconds on good hardware, and adds significant bundle complexity.
+- For v2.1 (manual asset workflow, 1 flagship scene), offline generation is simpler, faster, and produces identical results.
+- Browser-side estimation is a valid **future** upgrade if the feature grows to user-uploaded photos.
 
-**Why NOT OAuth social login for visitors:**
-- Site is public. Only owner needs auth for admin dashboard.
-- Auth.js supports GitHub/Google OAuth providers for owner login.
+### Supporting Libraries (already installed, guidance on capsule-specific usage)
 
-### Data Pipeline & Validation
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **Zod** | `zod@3.24.x` | Schema validation for parsed social media data | 40M+ weekly downloads (Feb 2026). TypeScript-first with automatic type inference (`z.infer<>`). Runtime validation prevents malformed data from breaking builds. Use `.parse()` for fail-fast, `.safeParse()` for graceful errors. |
-| **Node.js native JSON** | Built-in | Parse Instagram/Carbonmade exports | Instagram exports are JSON. No external library needed. Use `JSON.parse()` with try/catch, validate with Zod schemas. |
-| **date-fns** | `date-fns@4.x` | Timestamp normalization and epoch clustering | Lightweight (tree-shakeable). Handles ISO 8601 parsing, timezone-aware comparisons for epoch grouping. Better than Moment.js (deprecated). |
-
-**Data Pipeline Pattern:**
-```typescript
-// Build-time script (Node.js)
-1. Parse exports → JSON.parse()
-2. Validate → zod schemas (fail build on invalid data)
-3. Normalize → canonical node/edge schema
-4. Enrich → add metadata, privacy tiers
-5. Connect → evidence-based edge generation
-6. Layout → 3D coordinates (custom double-helix algorithm)
-7. Emit → constellation.json to Blob or /public
-```
-
-**Why NOT external parsers (Apify, ScrapingBee):**
-- User already has Instagram **export** (276 files). No scraping needed.
-- Carbonmade archive is structured JSON.
-- Build-time parsing is deterministic and free.
-
-### 3D Constellation Rendering
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **React Three Fiber** | `@react-three/fiber@9.5.0` | 3D scene orchestration (already installed) | Already in use. R3F reconciler enables React patterns for Three.js. Instanced rendering via `<instancedMesh>` reduces draw calls by 90%+. 150 nodes = single draw call. |
-| **drei** | `@react-three/drei@10.7.7` | R3F helper components (already installed) | Already in use. Provides `<Instances>`, `<OrbitControls>`, `<Html>` for detail panels, `<Detailed>` for LOD (30-40% perf gain in large scenes). |
-| **troika-three-text** | `troika-three-text@0.53.x` | Performant 3D text labels for nodes | SDF-based rendering. Web worker for font parsing/glyph layout (prevents main thread jank). Supports Three.js materials (lighting, fog). Drei's `<Text>` uses troika under the hood but adds React overhead. Use troika directly for instanced labels. |
-| **three-spritetext** | `three-spritetext@1.9.x` | Fallback for simpler text labels | Canvas2D-based sprites. Simpler than troika but less flexible. Use for non-instanced labels (detail panel, UI overlays). |
-| **maath** | `maath@0.10.8` | Math utilities for R3F (already installed) | Already in use. Provides easing, interpolation, noise for camera animations and particle effects. |
-
-**3D Performance Strategy:**
-- **Instanced rendering:** Single `<instancedMesh>` for all 150+ nodes. Each node type (project, post, place, etc.) = 1 geometry, 1 material, 1 draw call.
-- **LOD (Level of Detail):** Use drei's `<Detailed>` to show simplified geometry when zoomed out, full detail when close.
-- **Text labels:** Show labels only for hovered/selected nodes or nearby nodes (distance culling). Use troika-three-text for SDF rendering.
-- **Connection lines:** Use `THREE.Line` with instanced positions. Prune low-weight edges (only show meaningful connections).
-- **Frame budget:** Target <100 draw calls for 60fps. R3F Perf tool (`r3f-perf@7.x`) for monitoring.
-
-**Why NOT react-force-graph or d3-force-3d:**
-- `react-force-graph` uses physics-based layout. User wants **deterministic** double-helix layout (stable on rebuild).
-- `d3-force-3d` is for force-directed graphs. User's layout is **custom** (epoch clustering along helix).
-- User has full control with R3F + custom layout algorithm.
-
-### Supporting Libraries
-
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| **@vercel/blob** | `2.3.0` | Blob storage SDK | Upload parsed constellation JSON, media assets. Use `put()` for serverless functions, client upload tokens for large files (>4.5MB). |
-| **@edge-config/client** | Latest | Read Edge Config in serverless functions | Access allowlists, feature flags, tour anchor configs from serverless functions. <5ms reads. |
-| **date-fns** | `4.x` | Date utilities | Parse ISO 8601 timestamps, cluster nodes by epoch (year/month), calculate time deltas for edge weights. |
-| **clsx** | `2.1.1` (already installed) | Conditional CSS classes | Already installed. Use for admin dashboard UI, detail panel styling. |
-| **r3f-perf** | `7.x` | R3F performance monitoring (dev only) | Dev tool to monitor draw calls, frame rate, memory. Remove from production builds. |
+| Library | Capsule Usage | Integration Notes |
+|---------|---------------|-------------------|
+| `@react-three/postprocessing` DepthOfField | Cinematic bokeh focus on foreground subject | Already proven in ConstellationCanvas. Use `focusDistance`, `focalLength`, `bokehScale` uniforms. Animate focus distance with GSAP for rack-focus effect. |
+| `@react-three/postprocessing` Vignette | Dark edge framing for cinematic mood | Already in ConstellationCanvas. Tunable `offset` and `darkness`. |
+| `@react-three/postprocessing` Bloom | Atmospheric glow on light-colored regions | Selective bloom (luminanceThreshold=1 default). Lift emissive on particles/light specks to trigger bloom. Not yet used in Memory Portal but proven pattern. |
+| `@react-three/postprocessing` Noise | Film grain overlay for cinematic feel | Lightweight. Currently done via CSS in MemoryPortal (`.memory-portal__grain`); moving to postprocessing Noise gives GPU-native grain synced with DOF. |
+| `drei` Sparkles | Atmospheric dust/light mote particles | Already imported in Prism3D. Configurable count, size, speed, opacity, color. Zero-effort atmospheric particles. |
+| `drei` Float | Subtle mesh breathing/bobbing | Already in Prism3D. Wrap displaced mesh for gentle drift motion. |
+| `drei` useTexture | Load photo texture + depth map texture | Drei's texture loader with suspend support. Load both textures in parallel. |
+| `maath` easing.damp3 | Frame-rate-independent camera position smoothing | Already installed. Use in useFrame for smooth camera position/target interpolation during drift and dolly. |
+| `gsap` timeline | Camera choreography keyframes (dolly in, drift, parallax shift) | Already used in CameraController.jsx for constellation fly-to. Create a gsap.timeline() with position/lookAt keyframes, elapsed time drives camera proxy, useFrame lerps camera to proxy. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| **TypeScript** | Type safety for data pipeline and constellation schema | Add `typescript@5.x` and `@types/node@22.x`. Define canonical `Node` and `Edge` types. Zod schemas provide runtime validation. |
-| **Vercel CLI** | Local development with serverless functions | `vercel dev` runs Functions, Cron, Blob locally. Test admin dashboard auth before deployment. |
-| **ESLint + Prettier** | Code quality | ESLint already configured. Add Prettier for consistent formatting. |
+| **Depth map validator script** | Verify depth map dimensions match photo dimensions | Simple Node.js script using `sharp` (already in devDependencies). Prevents mismatched texture sizes that cause UV mapping errors. |
+| **Scene config editor** | Tune displacement scale, camera path, timing in real-time | Follow existing pattern: `lil-gui` (already installed ^0.21.0) with live parameter editing, like GlobeEditor and ConstellationEditor. |
 
 ## Installation
 
 ```bash
-# Backend & Infrastructure (Vercel platform features require no install)
+# Only ONE new runtime dependency needed:
+npm install three-custom-shader-material@^6.4
 
-# Authentication
-npm install next-auth@beta  # Auth.js v5 (still in beta as "next-auth@beta")
+# Everything else is already installed.
+# No new dev dependencies needed (sharp, lil-gui already present).
+```
 
-# Data Pipeline & Validation
-npm install zod@^3.24 date-fns@^4
+## Architecture: Displaced Mesh Renderer
 
-# 3D Constellation Rendering
-npm install troika-three-text@^0.53 three-spritetext@^1.9
+### Core Pattern
 
-# Vercel SDKs
-npm install @vercel/blob@^2.3 @edge-config/client@latest
+```
+[Photo.jpg] + [DepthMap.png] (pre-generated offline)
+  |
+  v
+[PlaneGeometry(aspect, 1, 256, 256)]  ← high segment count for smooth displacement
+  |
+  v
+[CustomShaderMaterial extending MeshStandardMaterial]
+  ├── vertex: sample depth texture → displace vertex Z position
+  ├── fragment: edge-fade alpha (smooth falloff at mesh borders)
+  └── uniforms: displacementScale, edgeFadeWidth, time (for subtle animation)
+  |
+  v
+[Constrained camera] (no OrbitControls — scripted path only)
+  ├── GSAP timeline: dolly forward, drift left/right, subtle parallax
+  ├── useFrame: lerp camera.position → timeline proxy via maath.easing.damp3
+  └── Mouse parallax: ±5% offset from mouse position (existing pattern in MemoryPortal)
+  |
+  v
+[EffectComposer]
+  ├── DepthOfField (animated focus distance for rack-focus)
+  ├── Vignette (dark cinematic edges)
+  ├── Bloom (selective, for light specks / atmospheric glow)
+  └── Noise (film grain)
+  |
+  v
+[Overlay: narrative cards + soundtrack + chrome]
+  └── Existing MemoryPortal JSX (narrative timing, Howler, back link)
+```
 
-# TypeScript (for build scripts)
-npm install -D typescript@^5 @types/node@^22
+### PlaneGeometry Segments
 
-# Performance monitoring (dev only)
-npm install -D r3f-perf@^7
+The depth displacement effect quality depends directly on vertex count. Key guidance:
+
+- **256x256 segments** = 65,536 vertices. Smooth displacement, ~1MB geometry. Good default.
+- **128x128 segments** = 16,384 vertices. Acceptable for mobile. Visible faceting at close zoom.
+- **512x512 segments** = 262,144 vertices. Diminishing returns. Only if camera gets very close.
+- Match plane aspect ratio to photo aspect ratio (e.g., 16:9 photo = `PlaneGeometry(1.78, 1, 256, 144)`).
+
+### Vertex Displacement GLSL
+
+```glsl
+// In CustomShaderMaterial vertex shader:
+uniform sampler2D uDepthMap;
+uniform float uDisplacementScale;
+uniform float uDisplacementBias;
+
+void main() {
+  // Sample depth map (grayscale: white=close, black=far)
+  float depth = texture2D(uDepthMap, uv).r;
+
+  // Displace along normal (Z for front-facing plane)
+  csm_Position += normal * (depth * uDisplacementScale + uDisplacementBias);
+}
+```
+
+### Edge Fade GLSL
+
+```glsl
+// In CustomShaderMaterial fragment shader:
+uniform float uEdgeFade;
+
+void main() {
+  // Fade alpha near UV edges for seamless blending into dark background
+  float fadeX = smoothstep(0.0, uEdgeFade, uv.x) * smoothstep(0.0, uEdgeFade, 1.0 - uv.x);
+  float fadeY = smoothstep(0.0, uEdgeFade, uv.y) * smoothstep(0.0, uEdgeFade, 1.0 - uv.y);
+  csm_DiffuseColor.a *= fadeX * fadeY;
+}
+```
+
+### Camera Choreography Pattern
+
+```javascript
+// GSAP timeline drives a proxy object, useFrame lerps camera to it
+const cameraProxy = useRef({ x: 0, y: 0, z: 5, tx: 0, ty: 0, tz: 0 });
+
+useEffect(() => {
+  const tl = gsap.timeline({ repeat: -1, yoyo: true });
+  tl.to(cameraProxy.current, { z: 3.5, duration: 8, ease: 'power1.inOut' })  // dolly in
+    .to(cameraProxy.current, { x: 0.3, duration: 6, ease: 'sine.inOut' }, '<') // drift right
+    .to(cameraProxy.current, { x: -0.2, duration: 10, ease: 'sine.inOut' })    // drift left
+    .to(cameraProxy.current, { z: 4.5, duration: 8, ease: 'power1.inOut' });   // dolly out
+  return () => tl.kill();
+}, []);
+
+useFrame((state, delta) => {
+  const mouse = state.pointer; // ±1 range
+  const target = {
+    x: cameraProxy.current.x + mouse.x * 0.15,  // parallax offset
+    y: cameraProxy.current.y + mouse.y * 0.08,
+    z: cameraProxy.current.z,
+  };
+  easing.damp3(state.camera.position, [target.x, target.y, target.z], 0.25, delta);
+  state.camera.lookAt(cameraProxy.current.tx, cameraProxy.current.ty, cameraProxy.current.tz);
+});
+```
+
+### Renderer-Agnostic Portal Shell
+
+The existing `MemoryPortal.jsx` already has the right architecture for renderer-agnostic design:
+
+```
+MemoryPortal (shell)
+  ├── Renderer slot (currently: gaussian splat viewer OR parallax fallback)
+  │   └── NEW: R3F Canvas with DisplacedMeshScene component
+  ├── Narrative overlay (unchanged)
+  ├── Soundtrack (unchanged)
+  └── Chrome: back link, mute button, title (unchanged)
+```
+
+**Key integration point:** Replace the `containerRef` splat viewer div and the CSS parallax fallback with a single R3F `<Canvas>` containing the displaced mesh scene. The `capable` GPU check stays but now gates R3F (lighter requirement than splat rendering). The narrative card system, soundtrack, and chrome are unchanged.
+
+**Future splat upgrade path:** The portal shell treats the 3D renderer as a swappable slot. When gaussian splat quality/tooling improves, the `<DisplacedMeshScene>` component can be replaced with a `<SplatScene>` component using the same capsule config data structure.
+
+## Scene Configuration Schema
+
+```javascript
+// memoryScenes.js — enhanced for displaced mesh
+{
+  id: 'syros-sunset',
+  title: 'Golden Hour in Syros',
+  location: 'Syros, Greece',
+  date: '2024-07-15',
+
+  // Assets (pre-generated, committed to repo or Vercel Blob)
+  photo: 'images/capsules/syros-sunset.jpg',
+  depthMap: 'images/capsules/syros-sunset-depth.png',
+  // Future: splatUrl for gaussian splat upgrade
+
+  // Displacement
+  displacementScale: 0.8,    // how far vertices push out
+  displacementBias: -0.2,    // shift displacement center
+  segments: 256,             // mesh resolution
+  edgeFade: 0.08,            // UV-based edge fade width
+
+  // Camera choreography
+  camera: {
+    initial: { x: 0, y: 0, z: 5 },
+    keyframes: [
+      { x: 0, y: 0.1, z: 3.5, duration: 8, ease: 'power1.inOut' },
+      { x: 0.3, y: 0, z: 3.5, duration: 6, ease: 'sine.inOut' },
+      { x: -0.2, y: -0.05, z: 4.0, duration: 10, ease: 'sine.inOut' },
+    ],
+    parallaxStrength: { x: 0.15, y: 0.08 },
+    fov: 50,
+  },
+
+  // Atmosphere
+  atmosphere: {
+    particles: { count: 200, size: 0.02, speed: 0.3, color: '#ffe4b5' },
+    bloom: { intensity: 0.5, luminanceThreshold: 0.9 },
+    dof: { focusDistance: 0.5, focalLength: 0.05, bokehScale: 3 },
+    vignette: { offset: 0.3, darkness: 0.6 },
+    ambientLight: 0.4,
+    directionalLight: { intensity: 0.8, position: [2, 3, 4] },
+  },
+
+  // Narrative (existing format, unchanged)
+  narrative: [
+    { text: 'The Aegean holds its breath at golden hour.', delay: 2000 },
+    { text: 'Three months here changed everything.', delay: 6000 },
+  ],
+
+  // Soundtrack (existing format, unchanged)
+  soundtrack: 'audio/syros-ambient.mp3',
+}
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| **Vercel Functions** | AWS Lambda + API Gateway | If already using AWS infrastructure or need >60s execution time (Pro limit). Adds complexity. |
-| **Vercel Blob** | AWS S3 + CloudFront | If need >5TB files or existing S3 workflows. Requires separate credentials, CORS config. |
-| **Auth.js v5** | Clerk, Auth0, Supabase Auth | If need multi-user roles, team management, or user directory. Overkill for single-owner admin. |
-| **Zod** | Yup, Joi, io-ts | Yup is React-focused (form validation). Joi is older. io-ts has steeper learning curve. Zod has best TypeScript DX in 2026. |
-| **troika-three-text** | drei `<Text>`, `three-bmfont-text` | Drei `<Text>` uses troika but adds React overhead (not ideal for instanced labels). `three-bmfont-text` requires pre-generated bitmap fonts (inflexible). |
-| **Custom layout algorithm** | react-force-graph, d3-force-3d | If want physics-based force-directed layout instead of deterministic double-helix. User wants **stable, reproducible** layout. |
+| **three-custom-shader-material** (extend MeshStandardMaterial) | Raw `THREE.ShaderMaterial` | If you need absolute control over every rendering pass and don't need PBR lighting. CSM is better because it preserves Three.js lighting, fog, shadows, and tone mapping while injecting custom vertex/fragment code. |
+| **three-custom-shader-material** | `MeshStandardMaterial.displacementMap` (built-in) | Built-in `displacementMap` works but lacks edge-fade fragment shader, custom animation uniforms, and fine control over displacement sampling. CSM adds these while keeping the MeshStandard base. If the edge-fade is not needed, built-in displacement is zero-dependency. |
+| **Offline depth estimation** (Hugging Face Spaces) | `@huggingface/transformers` in-browser | If user wants real-time "upload any photo" UX. Browser model is ~99MB, 2-5s inference. Adds complexity. For v2.1 manual workflow, offline is correct. |
+| **Depth Anything V2** | **MiDaS v3.1** | MiDaS is older but well-established. Depth Anything V2 produces finer details (trained on synthetic + 62M real images). MiDaS if you need TensorFlow.js browser inference (mature TFJS port exists). |
+| **Depth Anything V2** | **Depth Pro** (Apple) | Depth Pro produces metric depth (absolute distances). Useful if you need real-world scale. For artistic displacement, relative depth (Depth Anything V2) is sufficient and more accessible. |
+| **GSAP timeline for camera** | `@react-three/drei` CameraControls | CameraControls is for interactive user-driven camera. Memory capsules need **scripted** camera paths with no user control (constrained cinematic). GSAP timeline is the right tool for authored keyframes. |
+| **GSAP timeline for camera** | Theatre.js | Theatre.js provides a visual timeline editor for camera animation. More powerful but heavyweight (adds ~200KB). Overkill for simple dolly/drift. Consider if camera choreography becomes complex (many capsules with unique paths). |
+| **drei Sparkles** for particles | Custom instanced particle system | Custom particles give full control (gravity, wind, turbulence). drei Sparkles covers 90% of atmospheric dust/mote needs with zero code. Build custom only if specific physics needed. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| **Vercel KV** | Sunset in 2026. Marketplace alternatives exist (Upstash Redis) but add complexity. | Vercel Blob for data, Edge Config for flags/lists |
-| **Vercel Postgres** | Cold start issues (100-200ms), connection limits in serverless. | Blob storage for static constellation JSON. No DB needed for build-time-generated data. |
-| **Moment.js** | Deprecated. Large bundle size (67KB). | `date-fns` (tree-shakeable, actively maintained) |
-| **react-force-graph** | Physics-based layout (non-deterministic). User wants stable double-helix. | Custom layout algorithm + R3F instanced rendering |
-| **NextAuth v4** | Deprecated. v5 (Auth.js) is current. | Auth.js v5 (`next-auth@beta` on npm) |
-| **Separate backend (Express, Fastify)** | Adds infrastructure complexity. Vercel Functions provide API endpoints. | Vercel Functions (serverless, auto-scaling) |
-| **CMS (Contentful, Sanity)** | Overkill for single-owner curation. User wants custom admin dashboard. | Custom admin UI + Vercel Blob for storage |
+| **OrbitControls in capsule scene** | User should NOT freely orbit the displaced mesh. It's a flat plane -- side views reveal the illusion. Camera must be constrained to frontal arc. | Scripted GSAP timeline + mouse parallax offset (constrained to ~15% range) |
+| **`@huggingface/transformers` at runtime** (for v2.1) | 99MB model download, 2-5s inference, complex web worker setup. Over-engineered for manual workflow with 1 flagship scene. | Offline depth estimation via Hugging Face Spaces (free, instant) |
+| **`@mkkellogg/gaussian-splats-3d`** (for capsules) | Current Memory Portal uses this but it requires captured .splat files (not available for arbitrary photos). Splat rendering also has SharedArrayBuffer/COOP header issues. | Displaced mesh from photo + depth map. Keep splat library for future true-3D captured scenes. |
+| **Separate WebGL context** for capsule | Memory Portal currently creates a standalone WebGL context (gaussian splat viewer). Adding another WebGL context alongside R3F's Canvas causes context-limit crashes. | Use a single R3F `<Canvas>` for the capsule scene. Lazy-load it (existing pattern). |
+| **CSS parallax as primary renderer** | Current fallback uses CSS transforms for parallax (`transform: translate(${px}px, ${py}px)`). Looks flat compared to displaced mesh. | R3F displaced mesh is the primary renderer. CSS parallax remains as a degraded fallback for very low-end devices. |
+| **Theatre.js** | Visual timeline editor adds ~200KB bundle. Dramatic overkill for simple dolly+drift camera paths definable in config objects. | GSAP timeline (already installed, 25KB, proven in codebase) |
+| **react-spring for camera** | Competing animation library. Project already uses GSAP and Framer Motion. Adding a third animation system creates inconsistency and bundle bloat. | GSAP for 3D camera/timeline, Framer Motion for React UI transitions (existing pattern) |
 
 ## Stack Patterns by Variant
 
-**If deploying to GitHub Pages (secondary, static fallback):**
-- Admin dashboard and API features unavailable (no serverless functions).
-- Pre-build constellation JSON and commit to repo.
-- Edge Config, Cron, Auth.js do not work on static hosting.
-- Use Vercel deployment as primary for full feature set.
+**If photo has strong foreground/background separation (portrait, landscape with subject):**
+- Higher `displacementScale` (0.8-1.2) for dramatic depth
+- Tighter DOF (`focalLength: 0.05, bokehScale: 4`) to blur background
+- Camera dolly in toward subject face/center
 
-**If data ingestion fails (API rate limits, auth issues):**
-- Graceful degradation: show last successful build's constellation.
-- Store fallback `constellation-snapshot.json` in repo.
-- Admin dashboard shows "Last updated: X days ago" warning.
+**If photo is a wide scene (panorama, cityscape, nature):**
+- Lower `displacementScale` (0.3-0.5) for subtle parallax
+- Wide DOF or no DOF (everything in focus)
+- Camera drift side-to-side (emphasize width)
+- Higher segment count (256+) for fine terrain detail
 
-**If constellation has <50 nodes (early stage):**
-- Skip instanced rendering. Use individual `<mesh>` components.
-- Instancing overhead not worth it for small node counts.
-- Switch to `<instancedMesh>` when approaching 100+ nodes.
+**If mobile / low-end GPU:**
+- Reduce segments to 128x128
+- Disable Bloom and DOF postprocessing
+- Reduce particle count to 50
+- Simpler camera path (less keyframes)
+- Detection: existing `canRenderSplat()` in `gpuCapability.js` can be adapted (check WebGL2 + texture size)
 
-**If mobile performance issues:**
-- Disable postprocessing effects (ChromaticAberration, Bloom).
-- Reduce particle count (stars/dust).
-- Use `<Detailed>` LOD with simpler geometry for distant nodes.
-- Hide connection lines on mobile (draw call reduction).
+**If upgrading to gaussian splat later:**
+- Scene config gains `splatUrl` field
+- Renderer component swaps from `<DisplacedMeshScene>` to `<SplatScene>`
+- Camera, narrative, soundtrack, atmosphere config remain identical
+- Portal shell is unchanged
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| **React 19.2.0** | R3F 9.5.0, drei 10.7.7 | R3F 9.x fully supports React 19. No issues. |
-| **Three.js 0.183.1** | R3F 9.5.0, drei 10.7.7, troika-three-text 0.53.x | drei is tested against latest Three.js. troika uses Three.js materials (compatible). |
-| **Auth.js v5** | Next.js 14+ or standalone React | Works with Vite + React Router. Use manual setup (not Next.js adapter). Requires custom `/api/auth/*` routes in Vercel Functions. |
-| **Zod 3.24.x** | TypeScript 5.x | Requires TS 5.0+ for best type inference. Works with Node.js 18+. |
-| **Vercel Functions** | Node.js 20.x | User's repo uses Node 20 (`.github/workflows/deploy.yml`). Compatible. |
-| **troika-three-text 0.53.x** | Three.js 0.150+ | Compatible with Three.js 0.183.1. Uses web workers (requires CORS-safe bundler config). |
+| **three-custom-shader-material@6.4.0** | three >=0.159 (have 0.183.1), @react-three/fiber >=8 (have 9.5.0), react >=18 (have 19.2.0) | All peer deps satisfied. Tested and compatible. Bump mapping removed in 6.4.0 (not needed here). |
+| **@react-three/postprocessing@3.0.4** | three 0.183.1, @react-three/fiber 9.5.0 | Already installed and proven in ConstellationCanvas. DepthOfField + Vignette + Bloom all work. |
+| **gsap@3.14.2** | Any (no peer deps) | Already installed. Timeline API stable. Works inside R3F useEffect for camera choreography. |
+| **maath@0.10.8** | @react-three/fiber 9.x | Already installed. easing.damp3 for camera smoothing in useFrame. |
+| **drei@10.7.7** | three 0.183.1, @react-three/fiber 9.5.0 | Already installed. Sparkles, Float, useTexture all available. |
 
-## Architecture Notes
+## Depth Map Asset Workflow
 
-### Data Pipeline Flow
 ```
-[Instagram Export] + [Carbonmade JSON] + [Suno API]
-  ↓ (Vercel Cron nightly or on-demand button)
-[Serverless Function: /api/ingest]
-  ↓ (Parse, validate with Zod)
-[Normalize to canonical schema]
-  ↓ (Privacy filter, allowlist check)
-[Connect nodes (evidence-based edges)]
-  ↓ (Double-helix layout algorithm)
-[constellation.json] → Vercel Blob
-  ↓ (Edge Config: updated_at timestamp)
-[Constellation page fetches JSON, renders R3F scene]
+1. Select photo for capsule
+   └── High-res preferred (2048px+), good foreground/background separation
+
+2. Generate depth map
+   ├── Option A: Hugging Face Space (https://huggingface.co/spaces/depth-anything/Depth-Anything-V2)
+   │   └── Upload photo → download depth PNG (free, instant)
+   ├── Option B: Replicate API (https://replicate.com) — depth-anything-v2
+   │   └── API call → download depth PNG ($0.0023/run)
+   └── Option C: Local Python script
+       └── pip install transformers torch → run inference → save PNG
+
+3. Validate + prepare
+   ├── Ensure depth map matches photo dimensions exactly
+   ├── Depth map format: grayscale PNG (white=close, black=far)
+   ├── Optional: adjust contrast/levels in image editor for artistic control
+   └── Run: node scripts/validate-capsule-assets.js syros-sunset
+
+4. Configure scene
+   └── Add entry to memoryScenes.js with displacement, camera, atmosphere settings
+
+5. Place assets
+   ├── public/images/capsules/{id}.jpg (photo)
+   ├── public/images/capsules/{id}-depth.png (depth map)
+   └── public/audio/{id}.mp3 (soundtrack, optional)
+
+6. Test + tune
+   └── Use lil-gui editor (like GlobeEditor) to adjust displacement, camera, effects in real-time
 ```
-
-### Admin Dashboard Flow
-```
-[Owner visits /admin]
-  ↓ (Auth.js v5 OAuth login)
-[Admin UI: Draft inbox, curation tools]
-  ↓ (Hide/highlight nodes, edit narration)
-[Serverless Function: /api/admin/publish]
-  ↓ (Update constellation.json in Blob)
-[Edge Config: allowlists, tour anchors, feature flags]
-```
-
-### 3D Rendering Strategy
-```
-[Constellation JSON from Blob]
-  ↓ (Parse nodes/edges)
-[Group by node type (11 types)]
-  ↓ (Create instancedMesh per type)
-[Position instances via layout coords]
-  ↓ (Single draw call per node type)
-[Connection lines via THREE.Line]
-  ↓ (Instanced positions, pruned low-weight edges)
-[troika-three-text labels]
-  ↓ (Show on hover/selection, distance culling)
-[60fps @ 150+ nodes]
-```
-
-## Privacy & Security Architecture
-
-**Build-time validation:**
-- Zod schema enforces `visibility: "public" | "private" | "redacted" | "friends"` on all nodes.
-- Build script fails if `visibility: "private"` nodes appear in public constellation JSON.
-- Minors policy: `isMinor: boolean` flag. If true, enforce name redaction, GPS city-level only.
-
-**Edge Config allowlists:**
-- `public_people`: Array of legal names allowed in public nodes.
-- `tour_anchors`: Node IDs for guided tour beats.
-- `highlights`: Node IDs to feature in Bento Hub.
-
-**CRON_SECRET authentication:**
-- Nightly cron jobs use `Authorization: Bearer ${CRON_SECRET}` header.
-- Prevent external triggering of data ingestion endpoints.
-
-**Auth.js JWT sessions:**
-- Stateless sessions (no DB). Owner login via GitHub OAuth.
-- Admin routes protected: `if (!session) return 401`.
 
 ## Performance Targets
 
 | Metric | Target | Strategy |
 |--------|--------|----------|
-| **FPS (desktop)** | 60fps stable | Instanced rendering, <100 draw calls, LOD for distant nodes |
-| **FPS (mobile)** | 30fps acceptable | Disable postprocessing, reduce particles, hide connection lines |
-| **Time to Interactive (TTI)** | <3s on fast 3G | Lazy load constellation scene, preload JSON, code-split admin dashboard |
-| **Constellation load time** | <500ms | constellation.json from Blob (CDN-backed), gzip compression |
-| **Admin dashboard auth** | <1s OAuth flow | JWT sessions (stateless), Edge Config for allowlists (<5ms reads) |
-| **Cron job execution** | <10s (Hobby), <60s (Pro) | Batch API calls, parallel parsing, fail gracefully on timeout |
+| **FPS (desktop)** | 60fps stable | Single displaced mesh (1 draw call) + particles (<5 draw calls) + postprocessing. Well under budget. |
+| **FPS (mobile)** | 30fps acceptable | Reduce segments to 128, disable DOF+Bloom, fewer particles. |
+| **Time to render** | <2s after Canvas mount | useTexture preloads photo+depth in parallel. Geometry creation is instant. |
+| **Asset size per capsule** | <3MB total | Photo JPEG ~1-2MB, depth PNG ~200-500KB, soundtrack MP3 ~1MB. |
+| **Bundle size increase** | ~15KB gzipped | three-custom-shader-material is the only new dependency. Lightweight wrapper. |
 
 ## Sources
 
-### Vercel Platform
-- [Vercel Functions](https://vercel.com/docs/functions) — Serverless function documentation (HIGH confidence)
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs/manage-cron-jobs) — Scheduled jobs setup guide (HIGH confidence)
-- [Vercel Blob](https://vercel.com/docs/vercel-blob) — Blob storage API reference (HIGH confidence)
-- [Vercel Edge Config](https://vercel.com/docs/edge-config) — Edge Config feature flags (HIGH confidence)
-- [Vercel KV Sunset](https://vercel.com/docs/storage) — KV product deprecation notice (HIGH confidence)
-- [Vercel Postgres Challenges](https://kuberns.com/blogs/post/vercel-app-guide/) — Serverless database limitations (MEDIUM confidence)
+### Depth Estimation
+- [Depth Anything V2 (GitHub)](https://github.com/DepthAnything/Depth-Anything-V2) -- NeurIPS 2024, state-of-the-art monocular depth (HIGH confidence)
+- [Depth Anything V2 Hugging Face Space](https://huggingface.co/spaces/depth-anything/Depth-Anything-V2) -- free online depth estimation (HIGH confidence)
+- [onnx-community/depth-anything-v2-small](https://huggingface.co/onnx-community/depth-anything-v2-small) -- 99MB ONNX model for browser inference (MEDIUM confidence, not recommended for v2.1)
+- [Depth Anything V3 (ByteDance)](https://github.com/ByteDance-Seed/Depth-Anything-3) -- next-gen model, ICLR 2026 (MEDIUM confidence, emerging)
+- [MiDaS (GitHub)](https://github.com/isl-org/MiDaS) -- established monocular depth, TensorFlow.js browser port available (HIGH confidence)
+- [Replicate depth-pro](https://replicate.com/ibrahimpenekli/depth-pro) -- Apple Depth Pro on Replicate API (MEDIUM confidence)
 
-### Authentication
-- [Auth.js Deployment](https://authjs.dev/getting-started/deployment) — Official v5 deployment guide (HIGH confidence)
-- [NextAuth.js Serverless](https://strapi.io/blog/nextauth-js-secure-authentication-next-js-guide) — 2025 guide (MEDIUM confidence)
+### Displaced Mesh Rendering
+- [Three.js MeshStandardMaterial.displacementMap](https://threejs.org/docs/#api/en/materials/MeshStandardMaterial.displacementMap) -- official Three.js docs (HIGH confidence)
+- [Three.js Displacement Map Tutorial](https://redstapler.co/three-js-displacement-map-from-single-image-tutorial/) -- practical implementation guide (HIGH confidence)
+- [Displacement Map Segments Tutorial](https://sbcode.net/threejs/displacmentmap/) -- segment count guidance (HIGH confidence)
+- [three-custom-shader-material (GitHub)](https://github.com/FarazzShaikh/THREE-CustomShaderMaterial) -- CSM v6.4.0, extends standard materials with GLSL (HIGH confidence)
+- [three-custom-shader-material (npm)](https://www.npmjs.com/package/three-custom-shader-material) -- peer deps: three >=0.159, react >=18, r3f >=8 (HIGH confidence)
+- [Three.js Forum: 3D from image parallax](https://discourse.threejs.org/t/3d-from-image-parallax-website/83291) -- community examples (MEDIUM confidence)
 
-### Data Pipeline
-- [Zod Documentation](https://zod.dev/) — Official schema validation docs (HIGH confidence)
-- [Data Normalization TypeScript](https://oneuptime.com/blog/post/2026-01-30-data-pipeline-normalization/view) — 2026 guide (MEDIUM confidence)
-- [Instagram Export Parsing](https://github.com/michabirklbauer/instagram_json_viewer) — JSON parser example (MEDIUM confidence)
+### Camera & Animation
+- [R3F Basic Animations](https://docs.pmnd.rs/react-three-fiber/tutorials/basic-animations) -- useFrame patterns (HIGH confidence)
+- [Camera Animation in R3F (Medium)](https://medium.com/@zmommaerts/animate-a-camera-in-react-three-fiber-7398326dad5d) -- GSAP + useFrame pattern (MEDIUM confidence)
+- [maath (GitHub)](https://github.com/pmndrs/maath) -- easing.damp3 for frame-rate-independent smoothing (HIGH confidence)
+- [Theatre.js + R3F (Codrops)](https://tympanus.net/codrops/2023/02/14/animate-a-camera-fly-through-on-scroll-using-theatre-js-and-react-three-fiber/) -- alternative camera animation approach (MEDIUM confidence)
 
-### 3D Rendering
-- [React Three Fiber Performance](https://r3f.docs.pmnd.rs/advanced/scaling-performance) — Official performance guide (HIGH confidence)
-- [troika-three-text](https://protectwise.github.io/troika/troika-three-text/) — Official documentation (HIGH confidence)
-- [drei Text Component](https://github.com/pmndrs/drei) — drei component library (HIGH confidence)
-- [Instanced Rendering Three.js](https://tympanus.net/codrops/2025/02/11/building-efficient-three-js-scenes-optimize-performance-while-maintaining-quality/) — 2025 performance guide (MEDIUM confidence)
+### Postprocessing & Atmosphere
+- [react-postprocessing DepthOfField](https://react-postprocessing.docs.pmnd.rs/effects/depth-of-field) -- bokeh DOF documentation (HIGH confidence)
+- [react-postprocessing Bloom](https://react-postprocessing.docs.pmnd.rs/effects/bloom) -- selective bloom documentation (HIGH confidence)
+- [react-postprocessing (GitHub)](https://github.com/pmndrs/react-postprocessing) -- v3.0.4 (HIGH confidence)
 
-### Graph Layout
-- [Force-Directed 3D Algorithms](https://github.com/vasturiano/d3-force-3d) — d3-force-3d library (HIGH confidence)
-- [React Force Graph](https://github.com/vasturiano/react-force-graph) — React graph visualization (MEDIUM confidence)
+### Transformers.js (future reference)
+- [@huggingface/transformers (npm)](https://www.npmjs.com/package/@huggingface/transformers) -- v3.8.1 stable, v4 preview (HIGH confidence)
+- [Transformers.js v4 Preview](https://huggingface.co/blog/transformersjs-v4) -- WebGPU runtime, March 2025 (MEDIUM confidence)
+- [Transformers.js depth estimation issue #857](https://github.com/huggingface/transformers.js/issues/857) -- depth-anything-v2 browser support status (MEDIUM confidence)
 
 ---
-*Stack research for: JAROWE Constellation — Data pipeline, admin dashboard, scheduled ingestion, and performant 3D constellation*
-*Researched: 2026-02-27*
+*Stack research for: JAROWE Memory Capsules -- single-photo depth estimation, displaced mesh 3D scenes, cinematic camera, atmospheric portal UX*
+*Researched: 2026-03-23*

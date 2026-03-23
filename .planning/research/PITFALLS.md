@@ -1,285 +1,328 @@
 # Pitfalls Research
 
-**Domain:** Data-driven 3D personal websites with social media pipelines and privacy requirements
-**Researched:** 2026-02-27
+**Domain:** Single-photo 3D memory experiences (displaced mesh rendering) added to an existing GPU-heavy site
+**Researched:** 2026-03-23
 **Confidence:** HIGH
 
 ## Critical Pitfalls
 
-### Pitfall 1: GPU Memory Leaks from Improper Three.js Disposal
+### Pitfall 1: WebGL Context Exhaustion from Competing Renderers
 
 **What goes wrong:**
-WebGL resources (geometries, materials, textures) accumulate in GPU memory until the browser crashes or performance degrades to single-digit FPS. Scene.clear() removes objects from the scene graph but doesn't free GPU memory. With 150+ constellation nodes that load/unload dynamically, memory grows unbounded.
+Browsers enforce a hard limit on simultaneous WebGL contexts (typically 8-16 per page, varies by browser/OS). The jarowe.com site already uses three WebGL-producing systems: react-globe.gl on the home page (creates its own THREE.WebGLRenderer internally via ThreeGlobeGen), Prism3D's R3F `<Canvas>` (always-mounted on home page), and ConstellationCanvas's R3F `<Canvas>` (on /constellation). Adding a Memory Capsule renderer creates a fourth context. When the limit is exceeded, the oldest context is silently lost — the globe goes black, Glint disappears, or the memory scene fails to initialize with no error thrown.
 
 **Why it happens:**
-Three.js doesn't garbage collect GPU resources automatically—developers assume removing objects from the scene is sufficient. React's component lifecycle makes this worse: when components unmount, developers forget to dispose Three.js resources. For GLTF textures loaded as ImageBitmap, even calling texture.dispose() isn't enough.
+react-globe.gl creates and owns its own WebGLRenderer internally — there is no option to share a renderer or pass one in. The Prism3D Canvas is intentionally always-mounted (never unmounts on peek show/hide) to avoid initialization lag. The existing MemoryPortal.jsx already works around this with a 600ms setTimeout before initializing the GaussianSplats3D viewer, hoping the globe's renderer releases on route navigation. But this is a race condition, not a solution. The globe's renderer does NOT call `dispose()` or `forceContextLoss()` on unmount — it just orphans the context and lets the browser eventually reclaim it.
 
 **How to avoid:**
-- Call dispose() on geometry, material, and ALL textures before removing objects from scene
-- For GLTF ImageBitmap textures, also call `texture.source.data.close?.()`
-- Monitor `renderer.info.memory` in development: if geometries/textures count keeps growing, you have a leak
-- Create a cleanup utility that recursively disposes all resources in a scene subtree
-- Use React useEffect cleanup functions to dispose Three.js resources on unmount
+- Implement explicit renderer disposal on route exit: when navigating away from home page, call `globe.renderer().dispose()` and `globe.renderer().forceContextLoss()` in the cleanup function
+- Memory Capsule route should wait for confirmation that previous contexts are released, not just a fixed timeout
+- Use `navigator.gpu` or probe for available contexts before initializing (create a throwaway context, check for errors, release it)
+- Consider sharing a single R3F `<Canvas>` between Prism3D and the Memory Capsule scene via portal or scene-swap pattern
+- Cap the DPR on the memory scene renderer (`dpr={[1, 1.5]}`) to reduce GPU memory pressure from the framebuffer
 
 **Warning signs:**
-- FPS degrading over time during navigation
-- renderer.info.memory.geometries or .textures growing without plateau
-- Browser DevTools showing WebGL context warnings
-- Mobile devices crashing after 30-60 seconds of interaction
+- `webglcontextlost` events firing on existing canvases when memory scene loads
+- Globe goes black after returning from a memory capsule and refreshing doesn't immediately fix it
+- Console warning: "Too many active WebGL contexts. Oldest context will be lost"
+- Memory scene loads on desktop but fails silently on mobile (fewer allowed contexts)
 
 **Phase to address:**
-Phase 1 (Constellation MVP) — implement disposal utilities BEFORE building dynamic node loading, or refactoring becomes massive
+Phase 1 (Foundation) — renderer lifecycle management must be designed before building the displaced mesh scene, since it determines whether the scene uses its own Canvas, shares one, or uses an entirely separate rendering approach
 
 ---
 
-### Pitfall 2: React State Mutations in useFrame Destroying Performance
+### Pitfall 2: Depth Discontinuity Artifacts at Object Edges (The "Rubber Sheet" Problem)
 
 **What goes wrong:**
-Mutating React state inside useFrame (60fps animation loop) triggers 60 re-renders per second, causing React reconciliation overhead to consume 80%+ of frame budget. Constellation camera movement, node animations, and shader uniforms become choppy at 15-20 FPS despite simple scenes.
+When a single depth map is used to displace a plane mesh, edges where foreground objects meet background show extreme stretching. A person standing in front of a mountain produces a smooth depth gradient at the silhouette, but the displaced mesh creates a "rubber sheet" connecting the person's edge to the far background — visible as grotesque stretched triangles when the camera moves even slightly. This is the single most common visual artifact in displaced mesh rendering and is immediately obvious to viewers.
 
 **Why it happens:**
-Developers coming from traditional React patterns try to use setState for everything. The critical rule: Three.js mutations should happen in useFrame via direct object mutation, NOT React state. Anything changing at 60fps—camera position, animation progress, shader uniforms—cannot live in React state.
+A single photo has exactly one viewpoint. Depth estimation produces a continuous depth field, but at occlusion boundaries the true geometry has a discontinuity — the edge of a foreground object and the background behind it are at vastly different depths with nothing in between. The mesh tries to smoothly interpolate across this gap, creating stretched triangles. Monocular depth estimation models (MiDaS, ZoeDepth, Depth Anything) produce relative depth, not metric depth, making the discontinuities even harder to handle because the absolute scale is unknown.
 
 **How to avoid:**
-- Use useRef for any value that changes every frame (camera position, animation time, particle velocities)
-- Mutate refs directly in useFrame: `cameraRef.current.position.x += delta`
-- Only trigger React re-renders on discrete user actions (click node, change filter mode)
-- Use delta time (`(state, delta) => ...`) for frame-rate independent animations
-- Never create new objects inside useFrame (new Vector3, new Color)—reuse with useMemo
+- Detect depth discontinuities in the depth map (Sobel/Canny edge detection on the depth channel) and either: (a) set those faces to transparent, (b) degenerate those triangles to zero area, or (c) insert a gap/seam
+- Use a fragment shader that discards pixels where the depth gradient exceeds a threshold: `if (abs(dFdx(depth)) + abs(dFdy(depth)) > threshold) discard;`
+- Increase mesh subdivision density (256x256 or higher) so stretched triangles are smaller and less visible
+- Constrain camera movement to a narrow cone (15-20 degrees from center) so edge artifacts stay outside the visible frustum
+- Apply depth-aware blur to the edges in a post-processing pass (bilateral filter preserving edges in the color but smoothing depth)
+- Test with photos that have strong foreground/background separation — these are the worst case
 
 **Warning signs:**
-- FPS drops to 20-30 despite simple geometry
-- React DevTools Profiler showing constant re-renders during idle
-- useFrame callback taking >8ms in Chrome Performance tab
-- Janky camera movement despite smooth user input
+- Visible "fins" or "spikes" at the edges of people, objects, or architectural elements when camera moves
+- Stretchy rubber-band triangles connecting foreground to background
+- The scene looks fine from center but falls apart at any off-center camera angle
+- Photos with isolated subjects on busy backgrounds look dramatically worse than landscape photos
 
 **Phase to address:**
-Phase 1 (Constellation MVP) — architecture decision before implementing camera controls and node animations
+Phase 1 (Displaced Mesh Renderer) — the edge handling strategy must be implemented in the initial shader, not retrofitted. This is the #1 visual quality issue.
 
 ---
 
-### Pitfall 3: Privacy Leaks from Unredacted EXIF/GPS Data
+### Pitfall 3: Depth Map Quality Variance Across Photo Types
 
 **What goes wrong:**
-Instagram export photos contain exact GPS coordinates (latitude/longitude to 6+ decimal places), revealing home addresses, schools attended by minors, and daily routines. A celebrity influencer's vacation photos led stalkers directly to their rental property within hours. Insurance burglary reports show 78% of burglars now use social media reconnaissance.
+Monocular depth estimation works dramatically differently across photo categories. Landscape photos with clear foreground/midground/background layers produce excellent depth. But family group photos at arm's length, indoor scenes with flat walls, or photos with reflective surfaces (water, glass, cars) produce noisy, inconsistent depth maps that make the 3D effect look broken or uncanny. The developer builds and tests with their best-case photo, then every other photo looks terrible.
 
 **Why it happens:**
-Social media platforms strip EXIF on upload, but export data contains ORIGINAL files with full metadata. Developers assume "if Instagram showed it, it's safe to re-publish." GPS precision is deceptive: 6 decimal places = exact building corner. Minors' location data is especially sensitive—school locations, home addresses, after-school activity venues.
+Depth estimation models are trained predominantly on outdoor scenes with clear depth cues (convergence, scale, atmospheric perspective). They struggle with: flat surfaces at similar depths (indoor walls), reflective/transparent surfaces (model can't distinguish reflected depth from physical depth), small depth range scenes (group selfie where everyone is 1-2m away), and textureless regions (sky, blank walls) where the model hallucinates depth. Additionally, MiDaS/ZoeDepth output relative depth (ordinal), not metric — so the scale of displacement must be manually tuned per photo.
 
 **How to avoid:**
-- Build-time validation script that FAILS the build if GPS data exceeds city-level precision (2 decimal places max)
-- Strip ALL EXIF data from images during pipeline processing
-- For minors: reject ANY content with GPS data, require manual curation allowlist
-- Implement visibility tiers: public (city-level only), friends (neighborhood), private (exact)
-- Use automated tools like ExifTool in CI/CD to scan for metadata before deployment
-- Document GPS redaction policy explicitly: "Public: city-level max, Exact coords: friends-only override required"
+- Establish a "capsule-worthy" photo checklist before accepting photos into the pipeline: (1) clear depth layering, (2) no large reflective surfaces, (3) sufficient texture for depth estimation, (4) subject not too close to camera
+- Provide per-scene depth intensity/scale controls in the scene configuration: `depthScale`, `depthBias`, `depthContrast`
+- Apply histogram equalization or contrast stretching to the depth map before use — many models produce depth values clustered in a narrow range
+- Test with at least 5 different photo types during development: landscape, portrait-with-background, group, indoor, low-light
+- Consider multiple depth estimation models and allow per-scene model selection (Depth Anything v2 handles indoor scenes better than MiDaS v3.1)
+- Keep the displacement subtle by default — a slight parallax is more forgiving than extreme 3D extrusion
 
 **Warning signs:**
-- Build outputs contain image files with EXIF data intact
-- GPS coordinates in constellation nodes show >2 decimal places
-- No validation errors when test content includes school location data
-- Allowlist system missing for people/places that appear in photos
+- Depth map has large flat regions with no variation (will look like a flat cutout)
+- Depth map shows noise/checkerboard patterns in reflective areas
+- The 3D effect only looks good on the one photo used during development
+- Per-scene tuning requires more than 2-3 parameter adjustments to look acceptable
 
 **Phase to address:**
-Phase 2 (Data Pipeline) — privacy enforcement MUST be built into pipeline before ingesting real Instagram data, or data leak is guaranteed
+Phase 1 (Asset Pipeline) — photo selection criteria and depth map quality assessment should be established before building the renderer, not after. The manual workflow should include a depth map preview/validation step.
 
 ---
 
-### Pitfall 4: Instagram API Shift Breaking Personal Account Parsers
+### Pitfall 4: Camera Choreography That Looks Cheap vs. Cinematic
 
 **What goes wrong:**
-Instagram fully ended the Basic Display API in December 2024. In 2026, all integrations must use Instagram Graph and Messaging APIs, which ONLY support business and creator accounts. Personal account data is no longer accessible via public APIs. Export-based parsers become the only option, but export formats change without notice.
+Linear camera movements (constant speed, linear interpolation between points) feel mechanical and lifeless. Looping animations that reverse direction create an obvious "pendulum" feel. Sudden starts/stops are jarring. The memory scene transitions from immersive to screensaver in one bad easing curve. The developer adds more movement to compensate, making it worse.
 
 **Why it happens:**
-Platform deprecations are announced but poorly documented. Developers build against old API assuming it's stable. Export formats are not versioned or documented—Instagram's data export structure is reverse-engineered from current exports, but fields can change, disappear, or relocate between JSON files without warning.
+Cinematic camera work uses ease-in/ease-out, breathing rhythm, and motivated movement — the camera moves because something draws attention, not because a timer fired. Developers default to `THREE.Clock` linear interpolation or simple sine waves. The constrained camera cone (necessary to hide edge artifacts) makes the limited range of motion feel even more repetitive if the choreography is simple.
 
 **How to avoid:**
-- Build parser with defensive error handling: missing fields don't crash, they log warnings
-- Schema validation layer that reports unknown fields (signals format change)
-- Version detection: parse export metadata to identify format version if available
-- Maintain fallback parsers for old export formats (6-12 month retention window)
-- Export format changes MUST NOT crash pipeline—degrade gracefully, flag for review
-- Build admin dashboard "data quality" view showing missing/malformed fields per source
+- Use cubic bezier or spring-based easing for ALL camera transitions — never linear interpolation
+- Layer multiple slow movements: (1) gentle drift on X/Y within the safe cone, (2) very slow dolly in/out (Z), (3) subtle focal length breathing. These should have different periods (e.g., drift 8s, dolly 12s, focal 20s) so the combined motion never repeats
+- Apply Perlin noise to camera position at very low amplitude (0.01-0.03 units) for organic handheld feel
+- "Ken Burns" is the baseline, not the ceiling — combine pan, zoom, and slight rotation simultaneously
+- Sync camera beats to narrative cards: camera pushes in slightly when text appears, settles back when text fades
+- Test at 2x speed — if it looks natural at 2x, the base speed is right. If it looks robotic at 2x, the easing is wrong
+- Never let the camera fully stop — even "static" moments should have imperceptible micro-drift
 
 **Warning signs:**
-- Parser crashes on new Instagram export when format changes
-- Silent data loss (fields ignored without warning)
-- No monitoring for export format version changes
-- Hardcoded field paths without null-safe traversal
+- Camera movement feels like a screensaver or a rotating product display
+- You can predict exactly where the camera will be in 5 seconds
+- The scene feels the same with eyes closed (no visual surprise from movement)
+- Camera reverses direction visibly (pendulum/ping-pong)
 
 **Phase to address:**
-Phase 2 (Data Pipeline) — resilient parsing architecture before handling real exports, or every Instagram update breaks the site
+Phase 2 (Cinematic Polish) — basic camera drift can be linear in Phase 1 prototype, but cinematic choreography must be implemented before showing to anyone. This is the difference between "tech demo" and "experience."
 
 ---
 
-### Pitfall 5: Vercel Serverless Cold Starts Killing Admin UX
+### Pitfall 5: Performance Collapse on Mobile from Cumulative GPU Load
 
 **What goes wrong:**
-Admin dashboard serverless functions connecting to databases experience 800ms-2.5 second cold starts. Every page load after inactivity requires re-authentication, re-establishing DB connections, re-initializing parsers. Admin workflow becomes: click button → wait 2 seconds → timeout → retry. Curation becomes frustrating.
+The existing site already pushes mobile GPUs: the globe shader (custom ShaderMaterial with day/night/clouds/atmosphere), constellation (instanced nodes + DOF + vignette postprocessing), and Prism3D (dual-layer glass shader with chromatic aberration). Adding a displaced mesh scene with its own shader, potentially plus atmospheric particles, bokeh, and light effects, pushes total GPU memory and shader complexity past mobile limits. The scene either: (a) drops to <15 FPS making it unusable, (b) triggers thermal throttling after 10 seconds, or (c) causes a WebGL context lost with no recovery.
 
 **Why it happens:**
-Serverless functions can't share database connections between invocations during cold boots. Each cold start requires new DB connection handshake. Admin dashboards are used intermittently (not constant traffic), so almost every request is cold. Traditional auth patterns (session lookups) add extra database round-trips.
+Each WebGL context allocates its own framebuffer (width * height * DPR^2 * bytes-per-pixel * 2 for double buffering). On a 1080p mobile screen at DPR 3, that's ~24MB per context just for the framebuffer. The displaced mesh texture (photo + depth map) adds another 4-16MB. Postprocessing effects double the framebuffer allocation. Mobile GPUs also have much lower fill rate — a full-screen displaced mesh with a complex fragment shader can exhaust the fragment pipeline budget in a single pass.
 
 **How to avoid:**
-- Use Vercel Edge Functions for auth/routing (microsecond cold starts vs. serverless 800ms+)
-- JWT-based stateless sessions (no DB lookup per request)
-- Database connection pooling with PgBouncer or serverless-friendly DB (Vercel Postgres, Neon)
-- Cache expensive operations in Vercel KV (Redis): parsed export schemas, node counts, last sync times
-- Implement optimistic UI updates: button → immediate feedback → background serverless call
-- For admin-only features, consider Edge Functions + Vercel KV instead of serverless + traditional DB
+- Memory Capsule page must run on a separate route (/memory/:id) that fully unmounts the home page — never render globe + capsule simultaneously
+- Implement GPU tier detection (reuse/extend existing `canRenderSplat()` in `gpuCapability.js`) with three tiers for memory scenes: (1) full displaced mesh + particles + bokeh, (2) displaced mesh with simplified shader + no postprocessing, (3) parallax fallback (existing CSS-based approach in MemoryPortal.jsx)
+- Cap DPR to 1.5 on the memory scene Canvas (the site already does this for Prism3D)
+- Measure actual frame time budget: displaced mesh fragment shader must complete in <8ms on target mobile GPU
+- Consider `requestIdleCallback` or `setTimeout` for non-critical particle spawning
+- Profile on a real mid-range Android phone (not just iPhone) — the existing `canRenderSplat()` already detects Adreno 3/4 and Mali-T6 as low-end
 
 **Warning signs:**
-- Admin dashboard feels sluggish on first click after inactivity
-- Vercel logs show "cold start" frequently for admin routes
-- Database connection pool exhaustion errors
-- Auth middleware taking >500ms per request
+- FPS drops below 30 on any device within the first 5 seconds
+- Device gets noticeably warm during the memory scene
+- `webglcontextlost` fires within 30 seconds on mobile
+- Battery drain visible in a 2-minute session
+- The existing parallax fallback (MemoryPortal.jsx) triggers on devices that should be capable
 
 **Phase to address:**
-Phase 3 (Admin Dashboard) — architecture decision before building curation UI, or UX becomes unusable
+Phase 1 (Foundation) — GPU budget must be established before building the shader. Set a frame-time budget and performance gate that blocks Phase 2 polish features from being added to mobile tier.
 
 ---
 
-### Pitfall 6: Narrator Repetition Causing User Fatigue
+### Pitfall 6: Portal Transition Disorientation (Jarring Entry/Exit)
 
 **What goes wrong:**
-Scripted narrator reuses the same phrases ("fascinating connection", "notice how") within 90-second tour. Users report "robotic" feeling. With 15 scenes and 10-minute scroll, visitors abandon halfway. The narrator becomes background noise instead of engagement driver.
+The user clicks a memory marker on the globe, the screen flashes, and suddenly they're in an entirely different visual context with no spatial continuity. The existing PortalVFX provides a beautiful ring-and-vortex effect, but it covers the transition — it doesn't create continuity between the source (globe marker) and destination (3D memory). On exit, pressing "Back" snaps to the home page with the globe in a random orientation. The user feels teleported, not transported.
 
 **Why it happens:**
-Developers write a few narration templates, then reuse them across all scenarios. Lack of variation testing—narrator sounds fine for 30 seconds in development, but repetition emerges over 2+ minutes. Event-driven narration (epoch, node, connection, discovery, idle) triggers the same tier repeatedly if not carefully managed.
+Route-based navigation (`navigate('/memory/sceneId')`) is a hard cut — the old page unmounts, the new page mounts. The PortalVFX canvas overlay bridges the visual gap but doesn't connect the two experiences semantically. The globe doesn't remember where the user clicked, and the memory scene doesn't know where it was entered from. View Transitions API could help but requires careful choreography between the outgoing and incoming pages.
 
 **How to avoid:**
-- Generate pseudo-random combinations of sentences with the same meaning using simple templating
-- Vary phrasing and tone per context: epoch transition vs. node hover vs. connection reveal
-- Maximum 5 narration beats for guided tour (better to leave wanting more than lose to fatigue)
-- Silence is golden: narrator should pause between beats, not constantly talk
-- Test full tour 3-5 times in a row to catch repetition patterns
-- Track which narration variants played recently, avoid re-using within 60 second window
-- Skip button prominently displayed—if users click skip, track which beats drove them away
+- On entry: animate the globe marker → full-screen zoom (pinch toward the GPS coordinates on the globe) while PortalVFX builds the ring at that exact screen position, THEN crossfade into the memory scene already loaded behind the portal
+- On exit: reverse — memory scene fades while portal ring contracts, globe re-enters with camera aimed at the same coordinates the user left from
+- Store the departure globe camera state (position, target, zoom) in sessionStorage so the return navigation restores it exactly
+- Pre-load the memory scene's photo texture while the portal animation plays (the portal animation takes 1-2 seconds — enough to fetch a compressed photo)
+- If using View Transitions API: the shared element is the globe marker → memory scene thumbnail → memory scene
 
 **Warning signs:**
-- Same phrases appear within 30 seconds of each other
-- Tour completion rate <40% (abandonment before end)
-- User feedback mentions "repetitive" or "robotic"
-- No variation tracking—each event type has single narration string
+- User feels "lost" after entering a memory (doesn't know how they got here or how to get back)
+- Pressing Back produces a flash or blank screen before the globe re-renders
+- The portal animation plays to completion but the memory scene isn't loaded yet (loading screen after immersive animation = mood killer)
+- Globe restarts at default camera position instead of where the user was exploring
 
 **Phase to address:**
-Phase 4 (Narrator Engine) — variation system built from start, or rewriting all narration text later becomes massive effort
+Phase 2 (Portal Integration) — basic navigation works in Phase 1, but the entry/exit choreography is a Phase 2 concern that requires the renderer and globe both working first.
 
 ---
 
-### Pitfall 7: Scope Creep Preventing Launch
+### Pitfall 7: Depth Map as Displacement Map Without UV/Geometry Alignment
 
 **What goes wrong:**
-Personal portfolio starts with "constellation + Instagram + Carbonmade" but expands to "add Facebook, add X, add LinkedIn, add Google Photos, add live LLM narrator, add multiplayer, add mobile app" before shipping Phase 1. Project becomes 18-month effort instead of 3-month MVP. Nothing ships. Excitement fades. Project stalls at 80% done forever.
+The photo and its depth map must be pixel-aligned, but common mistakes create misalignment: (1) the depth estimation model outputs a different resolution than the source photo, (2) the depth map is generated from a cropped/resized version, (3) UV mapping on the displacement plane doesn't match the texture coordinates, (4) the depth map uses a different aspect ratio. The result is the displacement pushing vertices in wrong directions — a face floats above the body, buildings lean sideways, the ground curves up at edges.
 
 **Why it happens:**
-Personal projects have no external deadline, no stakeholders, no budget pressure. Every cool idea gets added to scope. "Just one more feature" syndrome. Perfectionism: "can't launch until X is perfect." Ambitious scope feels validating ("this will be amazing!") but execution discipline is harder.
+Depth estimation models typically resize images to their native resolution (e.g., 384x384, 512x512, 518x518) and output depth at that resolution. If the developer loads the original 4000x3000 photo as the color texture but uses the 512x512 depth map for displacement, the aspect ratios don't match and the displacement is spatially incorrect. Bilinear upsampling of the depth map to match the photo resolution introduces smoothing that hides the depth map's original resolution, creating a false sense of precision.
 
 **How to avoid:**
-- Document exclusions explicitly with reasoning: "Facebook parser deferred until Phase 1 proves pipeline"
-- Name MVP deliverables specifically: "150 nodes from Instagram + Carbonmade only"
-- Time-box each phase: 3 weeks max, or break it down further
-- Ship-first mentality: "What's the minimum that demonstrates the constellation value?"
-- Track scope additions: every new idea goes to "Future Milestones" backlog, NOT current phase
-- Define success as "shipped and learning" not "perfect and still building"
-- Use phased rollout: launch with limited data, add sources incrementally
+- Always resize the depth map to EXACTLY match the photo texture dimensions before use (or vice versa)
+- Use the same UV coordinates for both the color texture and displacement map sampling in the vertex shader
+- Verify alignment visually: overlay the depth map at 50% opacity on the photo — edges should match exactly
+- If the depth model outputs at fixed resolution (e.g., 518x518), resize the photo to match for displacement, then use the original resolution photo for the color texture with matching UVs
+- Store photo dimensions and depth map dimensions in the scene config, validate they match at load time
 
 **Warning signs:**
-- Roadmap keeps expanding, phases keep growing
-- "Almost done" for 3+ weeks
-- New ideas added to current phase instead of future phases
-- No shipped demos/previews after 4+ weeks of work
-- Talking about features instead of building features
+- Displacement appears shifted — high points don't correspond to foreground objects
+- Vertical or horizontal offset between color and depth (photo subject displaced left/right/up/down)
+- Correct displacement in center of frame but increasingly wrong toward edges
+- Aspect ratio stretch visible in the 3D scene (circles become ovals)
 
 **Phase to address:**
-Phase 0 (Roadmap Planning) — strict phase boundaries and exclusions list BEFORE starting development
+Phase 1 (Asset Pipeline) — the photo-to-depth-map alignment must be validated in the manual asset workflow before the renderer can be tested with real content.
 
 ---
 
-### Pitfall 8: Instanced Mesh Count Limits Not Tested Until Production
+### Pitfall 8: Holes and Z-Fighting from Mesh Self-Occlusion
 
 **What goes wrong:**
-Constellation renders beautifully with 50 test nodes, ships to production with 150 real nodes, and FPS drops to 12 on mid-range laptops. InstancedMesh needs predefined maximum count—changing it later requires full rewrite. Effects stack (bloom, chromatic aberration, depth of field) work great with 50 nodes but crush performance with 150+.
+When a displaced mesh is viewed from an angle, foreground-displaced vertices can occlude background-displaced vertices from the same mesh. Unlike real 3D geometry, the displaced mesh is a single surface — there is no "back" to foreground objects. This creates: (1) visible holes where the mesh can't cover the gap between foreground and background, (2) z-fighting where near and far parts of the same mesh compete for the same screen pixels, (3) back-faces of the displaced mesh becoming visible at steep viewing angles.
 
 **Why it happens:**
-Developers test with small datasets (faster iteration). Performance seems fine, so they assume it scales. InstancedMesh initialization with wrong count (too low = can't show all nodes, too high = wasted GPU memory). Postprocessing effects are measured individually, not combined under full load.
+A single displaced plane is fundamentally a 2.5D representation, not true 3D. It encodes depth from one viewpoint only. Any camera movement reveals that foreground objects are just bumps on a sheet, not solid geometry. At steep angles, the mesh folds over itself, creating self-intersection. The depth buffer treats the whole mesh as one surface, so z-fighting occurs where the mesh self-overlaps.
 
 **How to avoid:**
-- Test with FULL expected dataset size from day 1: 150+ nodes minimum
-- InstancedMesh count = 200 (buffer for growth), not exact current count
-- Performance budget: 60 FPS desktop, 30 FPS mobile at full node count
-- Measure combined effects: globe + constellation + postprocessing + audio visualizer together
-- Device testing matrix: high-end desktop, mid-range laptop, modern mobile, older mobile
-- Implement LOD (Level of Detail): fewer particles/effects on mobile
-- Feature flags for effects: ChromaticAberration off by default on mobile
+- Constrain the camera to a narrow viewing cone (max 15-20 degrees from the original photo's viewpoint) — this is the single most effective mitigation
+- Set `material.side = THREE.FrontSide` (never DoubleSide) to avoid rendering back-faces of displaced regions
+- Use a polygon offset (`material.polygonOffset = true; material.polygonOffsetFactor = 1`) to reduce z-fighting
+- For extreme foreground elements, consider layered planes: separate the foreground subject into its own displaced plane at a smaller depth, sitting in front of the background plane
+- Apply a soft fade/blur at the edges of the safe viewing cone so the user never sees the artifacts — if the camera approaches the constraint boundary, blur increases and parallax reduces
+- The existing MemoryPortal.jsx uses `useBuiltInControls: true` for the splat viewer — the displaced mesh version should NOT use OrbitControls, use a constrained drift controller instead
 
 **Warning signs:**
-- Only testing with <50 nodes during development
-- No performance metrics tracked per commit
-- Effects tested individually, never together
-- InstancedMesh count hardcoded to current data size
-- No mobile testing until "later"
+- Visible "paper cutout" appearance when camera moves more than ~10 degrees
+- Flickering pixels at depth transitions (z-fighting)
+- Back of the mesh visible as dark/inverted triangles at edges
+- The scene only looks correct from exactly the center viewpoint
 
 **Phase to address:**
-Phase 1 (Constellation MVP) — full-scale performance testing BEFORE adding effects, or optimization becomes archaeology
+Phase 1 (Displaced Mesh Renderer) — camera constraints and front-face-only rendering must be in the initial implementation. If the developer first builds with free orbit controls "for testing," they'll spend days debugging artifacts that are inherent to the representation.
 
 ---
 
-### Pitfall 9: COPPA Violations from Minors Data
+### Pitfall 9: Asset Size Bloat from Uncompressed Photos and Depth Maps
 
 **What goes wrong:**
-Instagram export contains posts with minors (family, friends' kids, school events). Constellation publishes full names, faces, exact locations, ages, and school identifiers without parental consent. FTC revised COPPA in 2025 (compliance deadline April 22, 2026) expands "personal information" to include biometric identifiers (facial data, voice data). Sites violating COPPA face $51,744 per violation.
+A single high-resolution photo (4000x3000 JPEG at quality 90) is 3-5MB. Its depth map at the same resolution as a 16-bit PNG is 20-30MB. Multiply by the number of memory capsules. The site's initial bundle is already significant (globe textures: earth-blue-marble.jpg + earth_lights_2048.png + cloud texture). Adding even 3-4 memory scenes can double the total asset weight. On mobile networks, the memory scene takes 10+ seconds to load, and the loading screen after the beautiful portal animation destroys the mood.
 
 **Why it happens:**
-Developer assumes "Instagram showed it, so it's public." Minors data requires explicit parental consent for collection, use, and display. Social media platforms comply via their own Terms of Service; personal sites re-publishing that data do NOT inherit that compliance. Facial recognition in photos counts as biometric data under 2026 COPPA rules.
+Developers use the highest quality assets during development and forget to optimize for production. Depth maps are often saved as 16-bit PNGs for precision, but 8-bit is sufficient for displacement (256 depth levels is more than enough for the parallax effect). Photos are kept at original resolution even though the WebGL texture will be downsampled to the GPU's max texture size anyway.
 
 **How to avoid:**
-- Hard policy: NO legal names for minors, NO home/school identifiers, NO exact GPS/EXIF, NO faces without manual review
-- Allowlist-only system: minors MUST be on explicit allowlist before appearing publicly
-- Build-time validation fails if minor detected without allowlist entry
-- Redaction UI: blur faces, replace names with "Friend" / "Family", remove location metadata
-- Age verification for people in constellation: if age unknown or under 18, assume minor
-- Annual policy review: COPPA rules evolve, site must adapt
-- Visibility tiers: minors' content defaults to "private" unless manually published
+- Compress photos to WebP at quality 80, max 2048px on the longest side (the texture will be GPU-uploaded at this resolution regardless)
+- Depth maps: 8-bit single-channel PNG or WebP, 1024px max (the displacement precision doesn't benefit from higher resolution, and vertex shader samples are interpolated anyway)
+- Lazy-load memory scene assets: start loading photo + depth map when the portal animation begins (1-2s head start), show a minimal loading state only if assets aren't ready when animation completes
+- Consider progressive loading: show the photo as a flat 2D image first (fast), then apply displacement once the depth map loads (feels like "the scene comes alive")
+- Use `<link rel="preload">` for the photo of memory scenes that are visible as globe markers (predict user intent)
+- Target: each memory capsule should be under 500KB total (photo + depth map + scene config)
 
 **Warning signs:**
-- No age field in person schema
-- No allowlist enforcement for minors
-- Automated publishing without manual review for people
-- Face detection/tagging without consent workflow
-- GPS data not stripped from photos with minors
+- Memory scene takes >3 seconds to become interactive on a fast connection
+- The `/memory/:id` route has a visible loading spinner after the portal animation
+- Total site asset size grows by >2MB per capsule added
+- Lighthouse performance score drops when memory capsules are added
 
 **Phase to address:**
-Phase 2 (Data Pipeline) — minors protection MUST be built into schema and validation, or site violates COPPA day 1
+Phase 1 (Asset Pipeline) — asset size targets and compression pipeline must be established as part of the manual workflow. "Optimize later" means "ship bloated."
 
 ---
 
-### Pitfall 10: Build-Time Validation That Doesn't Actually Fail Builds
+### Pitfall 10: Audio Desynchronization with Visual Transitions
 
 **What goes wrong:**
-Privacy validation script logs warnings about GPS leaks, minor names, and private data in public output, but build continues and deploys successfully. Developers ignore warnings. Production site leaks private data. Post-hoc cleanup is embarrassing and legally risky.
+The memory scene's soundtrack starts too early (during loading), too late (after the visual is already established), or at the wrong volume (full blast instead of fade-in). The existing GlobalPlayer (Howler.js) may be playing site music when the user enters a memory — two audio sources compete. On iOS Safari, audio requires a user gesture to play, but the portal click may not qualify as a "recent enough" gesture by the time the audio attempts to play after async loading.
 
 **Why it happens:**
-Validation scripts implemented as "nice to have" logging, not strict gatekeeping. CI/CD doesn't enforce exit codes. Developers become blind to warnings ("that's always there"). No cultural norm of "warnings = blockers for privacy."
+The existing MemoryPortal.jsx creates a new `Howl` instance for the scene soundtrack and calls `.play()` immediately, relying on `volume: 0` and a fade-in. But Howler.js on iOS requires the play to happen within the call stack of a user gesture — if `play()` is called after an `await` (loading the scene), iOS blocks it silently. The GlobalPlayer uses a separate Howler instance, and there's no coordination between the two. The AudioContext (from `AudioContext.jsx`) manages the global music state, but the MemoryPortal doesn't participate in that system.
 
 **How to avoid:**
-- Privacy validation MUST fail build with exit code 1 on ANY violation
-- CI/CD configured to block deployment on validation failure
-- Make validation failures loud: GitHub Actions annotations, Slack alerts, email to owner
-- Categories: ERRORS (block build), WARNINGS (manual review required), INFO (logged only)
-- Privacy violations = ERROR tier, never WARNINGS
-- Test the validator: intentionally add violation to test data, verify build fails
-- Document validation rules in .planning/PRIVACY_POLICY.md
+- Integrate memory scene audio through the existing AudioContext/GlobalPlayer system rather than creating independent Howl instances
+- On entry: fade out GlobalPlayer music via AudioContext (already has volume control), then fade in scene soundtrack using the same Howler mastering chain
+- On exit: reverse — fade out scene music, restore GlobalPlayer state
+- For iOS: trigger `Howler.ctx.resume()` synchronously in the portal click handler (before async loading), then set up the scene audio to play once loaded
+- Use the existing `soundRef` pattern but coordinate with `useAudio()` context hook
+- Scene audio should start with the first narrative card, not with the scene load — this gives a natural beat and avoids the "audio starting during loading screen" problem
 
 **Warning signs:**
-- Validation script logs issues but build succeeds
-- No CI/CD integration for validation
-- Developers can deploy despite validation failures
-- No test suite for validation rules themselves
-- Privacy policy documented separately from enforcement code
+- Audio plays during the loading spinner (before the scene is visible)
+- Two audio tracks overlap briefly during transition
+- No audio on iOS Safari (silent fail — no error thrown)
+- Audio continues playing after navigating back to the home page
+- Volume jump when entering or leaving the memory scene
 
 **Phase to address:**
-Phase 2 (Data Pipeline) — strict validation as CI/CD gate BEFORE ingesting real data
+Phase 2 (Audio Integration) — basic silent memory scenes work in Phase 1, audio choreography is Phase 2. But the AudioContext integration design should be planned in Phase 1 to avoid rewriting the audio approach.
+
+---
+
+### Pitfall 11: Premature Renderer Abstraction (Displaced Mesh vs. Gaussian Splat)
+
+**What goes wrong:**
+The project spec mentions a "renderer-agnostic portal shell (displaced mesh now, gaussian splats later)." Developers interpret this as building an abstract rendering interface that can swap between displaced mesh and gaussian splat implementations. This abstraction is premature — the two rendering approaches have fundamentally different APIs, camera models, asset formats, and interaction patterns. The abstraction either becomes a lowest-common-denominator that limits both, or becomes so leaky that it's just two separate implementations with a shared interface that helps nobody.
+
+**Why it happens:**
+"Renderer-agnostic" sounds like good architecture — SOLID principles, dependency inversion, future-proofing. But displaced mesh rendering (vertex shader displacement on a subdivided plane) and gaussian splatting (point-based rendering with learned opacity) share almost nothing. A displaced mesh uses standard WebGL geometry with a PlaneGeometry + vertex shader. Gaussian splats use custom sort-and-render pipelines. Camera controls, loading, disposal, and quality characteristics are all different. The only shared concept is "a scene you can look at."
+
+**How to avoid:**
+- Build the displaced mesh renderer as a concrete, self-contained component — no interfaces, no adapters, no strategy pattern
+- The "portal shell" abstraction should be at the UX level only: consistent entry/exit animation, consistent narrative card system, consistent audio integration. The renderer inside the shell is a concrete implementation.
+- When gaussian splats are added later, create a second concrete component and let the scene config's `renderMode` field select which component to render (simple if/else, not a plugin system)
+- The existing code already shows this pattern: `MemoryPortal.jsx` has `showSplat` and `showFallback` as concrete branches, not an abstract renderer interface
+
+**Warning signs:**
+- Creating interfaces/types before having two concrete implementations to compare
+- The abstraction has methods like `setDepthMap()` that only apply to one renderer
+- Time spent on the abstraction layer exceeds time spent on the actual renderer
+- The displaced mesh renderer can't use Three.js idioms naturally because the abstraction forces an unnatural API
+
+**Phase to address:**
+Phase 1 (Architecture Decision) — decide NOT to abstract at Phase 1. Revisit when gaussian splats are actually being added (likely Phase 4+). The decision to keep things concrete is itself an architectural decision worth documenting.
+
+---
+
+### Pitfall 12: Narrative Text Overlay Readability Against Dynamic 3D Background
+
+**What goes wrong:**
+White text on a moving 3D scene with varying brightness becomes unreadable when the camera drifts over a bright region of the photo. The existing MemoryPortal.jsx uses `memory-narrative-card` with Framer Motion, but the cards are styled for a static/slow-moving background. With displaced mesh parallax, bright spots move under the text unpredictably.
+
+**Why it happens:**
+Static text overlays work when the background is consistent. A displaced mesh scene with camera drift means the background brightness under any text region changes frame-to-frame. Designers test with one dark photo and declare it readable. The next photo has a bright sky that passes directly under the narrative text during camera drift.
+
+**How to avoid:**
+- Always render narrative cards on a semi-opaque glass panel (not directly on the 3D scene) — the existing site uses this pattern extensively for bento cells
+- Add a localized vignette/darkening behind each text card that moves with it
+- Position narrative cards in screen-space corners/edges that are naturally darker (bottom-left, bottom-center) rather than center-screen
+- Consider a persistent bottom strip with frosted glass that narrative cards slide into — similar to subtitle tracks in cinema
+- Test readability with at least 3 photos: dark scene, bright scene, high-contrast scene
+
+**Warning signs:**
+- Text is readable on the development test photo but unreadable on the second photo tested
+- Narrative cards use `text-shadow` as the only readability measure (insufficient for bright backgrounds)
+- Cards look readable in a static screenshot but become unreadable when the camera moves and brightness shifts under them
+
+**Phase to address:**
+Phase 2 (Narrative System) — Phase 1 can use simple positioned text, but the readability solution must be implemented before adding multiple scenes with varying brightness.
 
 ---
 
@@ -289,84 +332,75 @@ Shortcuts that seem reasonable but create long-term problems.
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Skipping disposal utilities for R3F components | Faster development, fewer files | Guaranteed GPU memory leaks, expensive refactoring across all 3D components | Never—disposal utilities are 1 hour upfront, 20+ hours to retrofit later |
-| Using React state in useFrame for animations | Feels like normal React patterns | 60 re-renders/sec, 15 FPS performance, full architecture rewrite needed | Never—useRef is just as easy, teaches correct R3F mental model |
-| Hardcoded Instagram export field paths | Faster parsing, simple code | Breaks silently when Instagram changes export format, no error reporting | Only if defensive null-safe traversal + logging is included |
-| JWT auth without database session tracking | No DB round-trips, faster cold starts | Can't revoke admin tokens, compromised tokens valid until expiry | Acceptable for single-owner admin dashboard (low risk, high performance gain) |
-| Same narration text for all event types | Faster content creation, ships sooner | Repetitive UX, low tour completion rate, expensive to rewrite later | MVP only—plan variation system for Phase 2, defer complex templating |
-| Manual privacy review without automated validation | More control, no tooling overhead | Human error guaranteed, scales poorly, no deployment safety net | Never—automated validation is required baseline, manual review is additional layer |
-| Generic "Node" type instead of 11 distinct node types | Simpler schema, less code | Loses semantic meaning, harder to build filters/modes, migration later is massive | Never—typed schema is foundation for constellation, shortcuts here cascade everywhere |
+| Fixed 600ms setTimeout before initializing new WebGL context (existing pattern in MemoryPortal.jsx) | Quick fix for context conflicts | Race condition — works on fast machines, fails on slow ones. No guarantee the old context is actually released. | Never — replace with event-driven context lifecycle |
+| Hardcoded depth scale per scene | Fast per-scene tuning | Every new scene requires manual shader constant tuning. No consistent visual language across capsules. | Phase 1 only — establish auto-normalization by Phase 2 |
+| Creating new Howl instances per memory scene | Simple audio per scene | Disconnected from GlobalPlayer, no volume coordination, iOS gesture issues, memory leaks if not unloaded | Phase 1 prototype only — must integrate with AudioContext by Phase 2 |
+| Using OrbitControls for displaced mesh camera | Fast to implement, familiar | Reveals all the 2.5D artifacts (holes, rubber sheet, z-fighting). Users drag to angles that break the illusion. | Never for production — use constrained drift controller from day one |
+| Storing depth maps as full-resolution 16-bit PNGs | Maximum precision | 20-30MB per scene, no perceptual benefit over 8-bit at 1024px. Kills mobile load times. | Never — 8-bit single-channel at 1024px is the production format |
+| Skipping mobile GPU tier detection for memory scenes | Faster to ship | The existing `canRenderSplat()` only detects splat capability, not displaced mesh capability. Mobile devices that can render splats may still choke on displaced mesh + postprocessing. | Never — extend GPU detection to cover displaced mesh budget |
 
 ## Integration Gotchas
 
-Common mistakes when connecting to external services.
+Common mistakes when integrating with existing jarowe.com systems.
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Instagram Data Export | Assuming export format is stable and versioned | Defensive parsing with null-safe traversal, schema validation logging unknown fields, maintain 6-month fallback parsers |
-| Vercel Serverless + Database | Opening new DB connection per invocation | Use connection pooling (PgBouncer) OR serverless-friendly DB (Vercel Postgres, Neon) OR Edge Functions + KV for admin routes |
-| Three.js GLTF Loader | Calling texture.dispose() only | ALSO call texture.source.data.close?.() for ImageBitmap textures from GLTF |
-| Social Media API Rate Limits | Hitting rate limit = crash pipeline | Exponential backoff retry, queue system for batch requests, respect rate limit headers proactively |
-| EXIF/GPS Data | Trusting platform redaction (Instagram strips EXIF on upload) | Platform export data contains ORIGINAL files with full metadata—must strip EXIF yourself in pipeline |
-| Vercel KV (Redis) | Using as primary database for structured data | KV is cache layer—use for sessions, parsed schemas, counters—NOT source of truth for constellation nodes |
-| Build-Time Validation | Logging warnings to console | Fail build with exit code 1, block CI/CD deployment, make violations impossible to ignore |
+| Globe renderer lifecycle | Assuming the globe's WebGLRenderer is released when the Home component unmounts — it is NOT disposed, just orphaned | Add explicit `globe.renderer().dispose()` + `forceContextLoss()` in Home.jsx cleanup. Store disposal confirmation in a shared ref or custom event. |
+| AudioContext / GlobalPlayer | Creating a standalone Howl instance for scene audio, ignoring the existing AudioProvider | Use `useAudio()` hook to fade out global music, then create scene audio within the same Howler mastering context. Restore on exit. |
+| XP / Gamification | Not awarding XP for memory capsule interactions (visiting a scene, watching to completion) | Dispatch `add-xp` CustomEvent from the memory scene (existing pattern used by GameLauncher). Fire on "scene loaded" and "all narrative cards viewed." |
+| Glint Autonomy | Glint autonomy system dispatching peeks while user is in an immersive memory scene | Call `getGlintAutonomy()?.pause()` on memory scene mount, `resume()` on unmount (same pattern used during game modals) |
+| View Transitions API | Using `document.startViewTransition()` without checking support — crashes in Firefox/Safari | The existing `navigateWithTransition` utility in Home.jsx already handles this with feature detection. Use it for memory portal navigation. |
+| PortalVFX | Running PortalVFX (2D canvas overlay) simultaneously with the memory scene's WebGL canvas — two overlapping full-screen canvases | Time the PortalVFX to fade out (`phase='residual'` then `null`) BEFORE the memory scene canvas starts rendering. Sequence, don't overlap. |
 
 ## Performance Traps
 
-Patterns that work at small scale but fail as usage grows.
+Patterns that work on development machines but fail on target devices.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Creating objects in useFrame (new Vector3, new Color) | FPS degrades over time, GC pauses | Reuse objects with useMemo outside useFrame | Breaks at 30+ FPS drops after 60 seconds |
-| No InstancedMesh for repeated geometry (150 node spheres) | 150 draw calls, 20-30 FPS despite simple geometry | InstancedMesh for all repeated geometries, 1 draw call for 150 nodes | Breaks at 100+ nodes |
-| Postprocessing effects without mobile detection | Desktop 60 FPS, mobile 8 FPS and crashes | Feature flags: disable ChromaticAberration, reduce bloom passes on mobile | Breaks on any mobile device |
-| Loading all constellation nodes at once | Initial load takes 3-5 seconds, janky scroll | Lazy load nodes as they enter viewport, unload distant nodes | Breaks at 150+ nodes with textures |
-| Force-directed layout running every frame | 100% CPU, battery drain, hot devices | Run layout simulation to convergence at build time, save positions to JSON | Breaks at 50+ nodes if live simulation |
-| Serverless function fetching full dataset on every request | 2+ second response times, high costs | Cache parsed data in Vercel KV, invalidate on rebuild | Breaks at 500+ nodes |
-| No renderer.info.memory monitoring | Silent memory leaks until crash | Log memory stats every 5 seconds in dev, alert if growth >20% in 60 seconds | Leaks until browser crash (5-15 minutes) |
+| Full-resolution photo as WebGL texture | Scene loads and renders, just slowly | Resize to max 2048px, compress to WebP quality 80 | Mobile devices with <4GB RAM, any device on slow network |
+| Postprocessing on displaced mesh (bloom, DOF, chromatic aberration) | Looks cinematic on desktop, freezes mobile | GPU tier gate: postprocessing only on tier 2+, max 1 effect on tier 1, none on tier 0 | Mobile GPUs below Adreno 6xx / Mali-G7x / Apple A13 |
+| High subdivision displaced mesh (512x512 = 262K vertices) | Smooth displacement, accurate depth | Cap at 256x256 (65K vertices) for tier 1, 128x128 for mobile. Vertex count is the #1 mobile perf killer for displaced mesh. | Any mobile device, older integrated GPUs on laptops |
+| Atmospheric particles (dust, light specks, bokeh) as individual meshes | Beautiful atmosphere, each particle is a plane with texture | Use InstancedMesh or Points for particles. 200 individual meshes = 200 draw calls. 200 instances = 1 draw call. | >50 particles as individual meshes on any GPU |
+| Depth map sampled in vertex shader at high frequency | Smooth displacement with per-vertex depth lookup | Vertex texture fetch (VTF) is slow on mobile — many mobile GPUs don't support it at all or do it at 1/4 speed. Pre-compute displaced positions on CPU if VTF isn't supported. | Mobile GPUs without VTF support, older iOS devices |
+| Multiple render targets for postprocessing | Each effect adds a framebuffer allocation | The site already uses EffectComposer in constellation — memory scene should NOT add another EffectComposer. If sharing isn't possible, skip postprocessing on the memory scene. | When total framebuffer allocations exceed GPU memory |
 
 ## Security Mistakes
 
-Domain-specific security issues beyond general web security.
+Domain-specific security issues for memory capsules.
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| GPS coordinates at full precision (6+ decimal places) | Exact home/school addresses exposed, stalking risk, minors endangered | Build-time validation: public content limited to city-level (2 decimals), friends-only override for exact coords |
-| Minors' faces in photos without parental consent | COPPA violation ($51,744 per violation), biometric data privacy breach | Allowlist system for minors, manual review required, face blurring option, default to private visibility |
-| Private DMs or close friends lists in export data | Exposing private relationships, personal conversations, contact graphs | Schema validation: reject DM content, social graph parsing only for public interactions |
-| Hardcoded API keys in serverless functions | Keys leak via source control or deployment logs | Environment variables only, Vercel Secret management, never commit keys |
-| Admin dashboard without authentication | Anyone can curate/delete/publish content | Edge Functions with JWT auth, owner-only access verified per request |
-| Allowing user-generated content without sanitization | XSS attacks if constellation nodes contain <script> tags | Sanitize all text fields from social media exports before storing in JSON |
-| Leaking original filenames from personal photos | Filenames reveal device names, dates, context | Hash-based filenames in public output, store originals in private storage only |
+| Serving high-resolution original photos with EXIF data intact | GPS coordinates in EXIF reveal exact locations of family memories — schools, home address, vacation rentals | Strip ALL EXIF before upload. The existing privacy policy applies to memory capsules too. Use build-time EXIF scanner. |
+| Depth maps that encode precise room dimensions | Depth maps from indoor scenes can be reverse-engineered to extract room layouts and dimensions | Only serve relative (normalized 0-1) depth maps, never metric depth. This is the default for most models but verify. |
+| User-uploaded photos in future iterations stored without validation | Malicious files disguised as images (polyglot files, oversized images for DoS) | Validate file type, dimensions, and size server-side. For now this is manual workflow only, but the validation should exist when automation comes. |
 
 ## UX Pitfalls
 
-Common user experience mistakes in this domain.
+Common user experience mistakes in single-photo 3D memory experiences.
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Guided tour that can't be skipped | Users feel trapped, abandon site if not interested in narration | Skip button prominently displayed, tour progress indicator, "press ESC to skip" |
-| No loading state during constellation initial render | Black screen for 2-3 seconds, users think site is broken | Loading animation, progressive reveal (render starfield first, then nodes), percentage indicator |
-| Camera controls not explained | Users don't know they can rotate/zoom, miss interactive features | Brief tutorial overlay on first visit: "Drag to rotate, scroll to zoom, click nodes to explore" |
-| Narrator speaking over user interactions | Users click node, narrator interrupts with epoch narration, jarring | Pause narrator on user interaction, resume after 3 seconds of idle |
-| No 2D library fallback for accessibility | Users on slow devices or screen readers can't access content | 2D searchable node index, keyboard navigation, semantic HTML |
-| Discovery XP without visible progress | Users gain XP but don't see what unlocked or why | Toast notification: "+50 XP: Discovered hidden connection", progress bar for next level |
-| Timeline scrubber without epoch labels | Users don't know what year/era they're viewing | Epoch labels on timeline, year range indicator, "Jump to 2020" shortcuts |
+| Giving users free camera control (orbit, zoom, pan) | Users immediately rotate to an angle that breaks the illusion, then judge the entire feature as "broken" | Constrained camera: gentle drift within safe cone, no user camera control. The experience is curated, not interactive. |
+| No exit affordance visible during immersive scene | User feels trapped, especially on mobile where there's no browser back button visible | Always-visible minimal back button (existing `back-link` pill pattern) + swipe-down gesture on mobile to exit |
+| Loading screen after portal animation | The portal builds anticipation, then a spinner deflates it. Emotional momentum is destroyed. | Pre-load scene assets during portal animation. Show the scene frozen (no camera movement) while final assets load — a still photo is better than a spinner. |
+| Auto-playing audio without user action | Unexpected sound in a public setting embarrasses the user, who reflexively closes the tab | Default to muted. Show a tasteful "unmute for full experience" prompt. Respect the existing mute state from GlobalPlayer. |
+| Narrative text appearing too fast | User is still absorbing the 3D environment and misses the text. Text and visual compete for attention. | First narrative card at 3-4 seconds (let the scene establish itself). Subsequent cards at 5-6 second intervals minimum. |
+| Showing all memory capsules at once in a gallery | Dilutes the impact of each memory — becomes a photo viewer, not an experience | One flagship capsule first. Prove the experience is worth the load time. Add more only when the single capsule has proven its impact. |
 
 ## "Looks Done But Isn't" Checklist
 
 Things that appear complete but are missing critical pieces.
 
-- [ ] **R3F 3D Scene:** Often missing disposal utilities—verify useEffect cleanup calls dispose() on geometries, materials, textures, and texture.source.data.close?.() for GLTF ImageBitmaps
-- [ ] **Animation System:** Often missing delta time usage—verify all animations use delta parameter, not hardcoded increments (breaks on slow devices)
-- [ ] **Data Pipeline:** Often missing schema validation—verify unknown fields are logged, missing required fields fail build, not silent ignoring
-- [ ] **Privacy Enforcement:** Often missing build failure on violations—verify validation script exits with code 1, CI/CD blocks deployment, not just warnings
-- [ ] **Instagram Parser:** Often missing null-safe traversal—verify every field access uses optional chaining (?.), handles missing data gracefully
-- [ ] **Admin Dashboard:** Often missing cold start optimization—verify JWT auth (not session DB lookups), KV caching for expensive operations, Edge Functions for fast routes
-- [ ] **Narrator Engine:** Often missing variation system—verify narration templates have 3+ variants per event type, variation tracking prevents repetition
-- [ ] **Minors Protection:** Often missing allowlist enforcement—verify build fails if minor detected without allowlist entry, face detection requires consent
-- [ ] **Mobile Performance:** Often missing feature flags—verify ChromaticAberration, complex bloom, and heavy effects are disabled on mobile devices
-- [ ] **Constellation Nodes:** Often missing InstancedMesh—verify repeated geometries use InstancedMesh (1 draw call) not individual meshes (150 draw calls)
+- [ ] **Displaced mesh renderer:** Often missing edge artifact handling (Pitfall 2) — verify depth discontinuity discard/fade is implemented and tested with high-contrast photos
+- [ ] **Camera controller:** Often missing constraint limits — verify max angle from center is <20 degrees AND verify there are no code paths that bypass the constraint (e.g., debug controls left enabled)
+- [ ] **Scene loading:** Often missing preload coordination with portal animation — verify scene assets start loading on portal click, not on route mount
+- [ ] **Audio integration:** Often missing iOS Safari testing — verify audio plays on iPhone after portal click (the most common silent failure)
+- [ ] **Mobile fallback:** Often missing graceful degradation — verify the parallax fallback (existing in MemoryPortal.jsx) activates cleanly when GPU tier is too low for displaced mesh
+- [ ] **WebGL cleanup:** Often missing renderer disposal — verify `renderer.info.memory.textures` returns to pre-scene levels after navigating away from the memory scene
+- [ ] **Back navigation:** Often missing globe camera restoration — verify the globe returns to the same position/zoom after exiting a memory scene, not the default view
+- [ ] **Narrative timing:** Often missing synchronization with camera — verify text cards appear at moments that complement camera movement, not at fixed timeouts independent of visual state
+- [ ] **Depth map alignment:** Often missing aspect ratio validation — verify depth map and photo have identical aspect ratios before applying displacement
 
 ## Recovery Strategies
 
@@ -374,16 +408,14 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| GPU memory leak discovered in production | MEDIUM | 1. Add renderer.info.memory monitoring to detect leak source 2. Implement disposal utility for leaked component 3. Audit all R3F components for similar pattern 4. Deploy fix + monitor memory over 24 hours |
-| React state in useFrame killing performance | HIGH | 1. Identify all useState calls in 3D components 2. Convert to useRef for values changing per-frame 3. Refactor useFrame to mutate refs directly 4. Test full app for state-dependent features that broke |
-| Privacy leak (GPS/minors data published) | CRITICAL | 1. Immediate: take site offline or redact leaked content 2. Notify affected individuals if identifiable 3. Implement automated validation that blocks builds 4. Audit all published content manually 5. Document incident + prevention in .planning/POSTMORTEM.md |
-| Instagram export format change breaks parser | LOW | 1. Parser logs unknown fields (not crash) 2. Investigate new export format structure 3. Update parser with new field paths 4. Test with both old and new export formats 5. Deploy updated parser |
-| Vercel serverless cold starts >2 seconds | MEDIUM | 1. Migrate auth to Edge Functions (JWT-based) 2. Add Vercel KV caching for parsed data 3. Use serverless-friendly database (Neon/Vercel Postgres) 4. Measure cold start improvement, target <500ms |
-| Narrator repetition causing tour abandonment | MEDIUM | 1. Add variation tracking (last N narrations played) 2. Write 2 additional variants for each event type 3. Implement pseudo-random selection avoiding recent variants 4. A/B test tour completion rate |
-| Scope creep delaying launch by 3+ months | HIGH | 1. Audit current roadmap against original MVP scope 2. Move all non-essential features to "Future Milestones" 3. Define new MVP: what's shippable in 2 weeks? 4. Time-box remaining work, cut anything beyond 2 weeks 5. Ship MVP, gather feedback before continuing |
-| InstancedMesh count too low for new nodes | LOW | 1. Update InstancedMesh count to 200 (buffer for growth) 2. Re-initialize instanced geometries with new count 3. Test full dataset renders correctly 4. Document max count in code comments |
-| COPPA violation from minors data | CRITICAL | 1. Immediate: remove all minors content from public site 2. Implement allowlist system with manual review 3. Add age field to person schema 4. Build-time validation for minors without allowlist 5. Legal review of privacy policy + COPPA compliance |
-| Build validation not failing on privacy violations | MEDIUM | 1. Update validation script to exit with code 1 on errors 2. Configure CI/CD to block deployment on non-zero exit code 3. Test: add intentional violation, verify build fails 4. Document validation rules in .planning/PRIVACY_POLICY.md |
+| WebGL context exhaustion | LOW | Add `webglcontextlost` event listener → auto-fallback to CSS parallax mode. Log the event for diagnostics. User sees degraded but functional experience. |
+| Rubber sheet edge artifacts | MEDIUM | Add fragment shader `discard` for high depth gradients. Tighten camera constraints. May require re-tuning depth scale per scene. |
+| Depth map quality issues on specific photos | LOW | Replace the depth map with one from a different model (Depth Anything v2 instead of MiDaS). Or manually paint/edit depth map in Photoshop. Per-scene fix, not systemic. |
+| Cheap-looking camera movement | LOW | Replace linear interpolation with spring-based easing. Add Perlin noise micro-drift. Can be hot-fixed without changing any other code. |
+| Mobile performance collapse | MEDIUM | Lower mesh subdivision, reduce DPR, disable particles and postprocessing for mobile tier. May require re-testing all scenes. |
+| Portal disorientation | MEDIUM | Store globe camera state in sessionStorage before navigation. Restore on return. Add crossfade timing between portal animation and scene. Requires coordinating two pages. |
+| Audio desync | LOW | Integrate with AudioContext system. Add fade-out/fade-in coordination. iOS fix requires moving Howler.ctx.resume() to click handler. |
+| Asset size bloat | LOW | Run compression pipeline on all assets. WebP conversion, depth map downsample to 1024px 8-bit. One-time batch operation. |
 
 ## Pitfall-to-Phase Mapping
 
@@ -391,72 +423,29 @@ How roadmap phases should address these pitfalls.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| GPU memory leaks | Phase 1: Constellation MVP | renderer.info.memory stays flat over 5 minutes of interaction, dispose utilities in useEffect cleanup |
-| React state in useFrame | Phase 1: Constellation MVP | FPS stays 60+ with 150 nodes, no useState in components with useFrame |
-| Privacy leaks (GPS/EXIF) | Phase 2: Data Pipeline | Build-time validation passes, no GPS coordinates >2 decimals in public output |
-| Instagram API/export changes | Phase 2: Data Pipeline | Parser handles test exports with missing fields, logs unknowns, doesn't crash |
-| Vercel cold starts | Phase 3: Admin Dashboard | Admin routes respond <500ms on cold start, JWT auth + KV caching implemented |
-| Narrator repetition | Phase 4: Narrator Engine | Same phrase doesn't repeat within 60 seconds, 3+ variants per event type |
-| Scope creep | Phase 0: Roadmap Planning | Explicit exclusions list, MVP defined with 2-week time-box |
-| InstancedMesh limits | Phase 1: Constellation MVP | Testing with 200-node dataset, InstancedMesh count = 200 (buffered) |
-| COPPA violations | Phase 2: Data Pipeline | Allowlist enforcement, build fails if minor without allowlist entry |
-| Build validation weakness | Phase 2: Data Pipeline | CI/CD blocks deployment on validation error, tested with intentional violations |
+| WebGL context exhaustion | Phase 1: Foundation | `renderer.info.memory` shows 0 textures/geometries after leaving memory scene. No `webglcontextlost` events during normal navigation. |
+| Rubber sheet edge artifacts | Phase 1: Displaced Mesh Renderer | Test with 5 different photo types — no visible stretched triangles within the camera's safe viewing cone. |
+| Depth map quality variance | Phase 1: Asset Pipeline | Photo selection checklist exists. Per-scene `depthScale`/`depthContrast` config fields exist and are documented. |
+| Cheap camera choreography | Phase 2: Cinematic Polish | Camera movement uses non-linear easing. Multiple layered motion periods. Perlin noise micro-drift. Sync with narrative beats. |
+| Mobile performance collapse | Phase 1: Foundation | GPU tier detection extends to displaced mesh. Three fallback tiers tested on real devices. Frame time budget <16ms verified on mid-range Android. |
+| Portal disorientation | Phase 2: Portal Integration | Globe camera state persists through round-trip navigation. Portal animation bridges entry/exit without loading screen. |
+| Depth/UV misalignment | Phase 1: Asset Pipeline | Automated validation that depth map and photo dimensions match. Visual overlay check in the asset preparation workflow. |
+| Holes and z-fighting | Phase 1: Displaced Mesh Renderer | Material uses FrontSide only, polygonOffset enabled, camera constraints enforced with no bypass. |
+| Asset size bloat | Phase 1: Asset Pipeline | Per-capsule budget: <500KB total. Build-time warning if any capsule exceeds budget. |
+| Audio desync | Phase 2: Audio Integration | AudioContext integration designed in Phase 1, implemented in Phase 2. iOS Safari tested on real device. |
+| Premature abstraction | Phase 1: Architecture Decision | No renderer abstraction interfaces exist. Displaced mesh is a concrete component. Decision documented. |
+| Text readability | Phase 2: Narrative System | Narrative cards have frosted glass backing. Tested against bright, dark, and high-contrast scenes. |
 
 ## Sources
 
-### R3F Performance and Memory Management
-- [Scaling performance - React Three Fiber](https://r3f.docs.pmnd.rs/advanced/scaling-performance)
-- [100 Three.js Tips That Actually Improve Performance (2026)](https://www.utsubo.com/blog/threejs-best-practices-100-tips)
-- [The reason for the very low performance of R3F with instances - GitHub Issue #3306](https://github.com/pmndrs/react-three-fiber/issues/3306)
-- [Roger Chi | Tips on preventing memory leak in Three.js scene](https://roger-chi.vercel.app/blog/tips-on-preventing-memory-leak-in-threejs-scene)
-- [Performance pitfalls - React Three Fiber](https://r3f.docs.pmnd.rs/advanced/pitfalls)
-- [About the memory leak when dispose the texture - three.js forum](https://discourse.threejs.org/t/about-the-memory-leak-when-dispose-the-texture/2543)
-
-### Instagram API and Data Export
-- [Instagram Graph API: Complete Developer Guide for 2026](https://elfsight.com/blog/instagram-graph-api-complete-developer-guide-for-2026/)
-- [Instagram API Deprecated? Here's What to Do in 2026](https://sociavault.com/blog/instagram-api-deprecated-alternative-2026)
-- [After Basic Display EOL: How Instagram's 2026 API Rules Reshape Scheduling](https://storrito.com/resources/Instagram-API-2026/)
-
-### Privacy and EXIF/GPS Data
-- [EXIF data in shared photos may compromise your privacy | Proton](https://proton.me/blog/exif-data)
-- [How a Photo's Hidden 'Exif' Data Exposes Your Personal Information | Consumer Reports](https://www.consumerreports.org/electronics-computers/privacy/what-can-you-tell-from-photo-exif-data-a2386546443/)
-- [Do Social Media Platforms Strip EXIF Metadata? (2026) - PrivacyStrip Blog](https://privacystrip.com/blog/social-media-metadata-policies/)
-- [Social Media & EXIF Data: Protect Your Photo Privacy - EXIFData.org](https://exifdata.org/blog/social-media-exif-data-protect-your-photo-privacy)
-
-### Vercel Serverless Cold Starts
-- [How can I improve function cold start performance on Vercel?](https://vercel.com/kb/guide/how-can-i-improve-serverless-function-lambda-cold-start-performance-on-vercel)
-- [Experiencing long lambda cold start delays of 2 - 3 seconds on Vercel - Discussion #7961](https://github.com/vercel/vercel/discussions/7961)
-- [Application Authentication on Vercel](https://vercel.com/kb/guide/application-authentication-on-vercel)
-
-### WebGL Memory and Performance
-- [Comparing Canvas vs. WebGL for JavaScript Chart Performance](https://digitaladblog.com/2025/05/21/comparing-canvas-vs-webgl-for-javascript-chart-performance/)
-- [WebGL Memory Leak - Khronos Forums](https://community.khronos.org/t/webgl-memory-leak/3124)
-- [WebGL memory management puzzlers - three.js forum](https://discourse.threejs.org/t/webgl-memory-management-puzzlers/24583)
-
-### Scope Creep and Portfolio Mistakes
-- [What Is Scope Creep? Meaning, Real Examples & How Agencies Avoid It](https://www.teamcamp.app/blogs/scope-creep-meaning-examples-how-agencies-avoid-it)
-- [How to Prevent Scope Expansion as a Freelancer (2026)](https://www.plutio.com/freelancer-magazine/scope-creep)
-- [5 Mistakes Developers Make in Their Portfolio Websites](https://www.devportfoliotemplates.com/blog/5-mistakes-developers-make-in-their-portfolio-websites)
-
-### Interactive Storytelling and Narrator Engines
-- [Dynamic emphatical narration for reduced authorial burden](https://www.tandfonline.com/doi/full/10.1080/09540091.2018.1454891)
-- [Immersive Storytelling Websites: The 2026 Guide](https://www.utsubo.com/blog/immersive-storytelling-websites-guide)
-- [Storycaster: An AI System for Immersive Room-Based Storytelling](https://arxiv.org/html/2510.22857)
-
-### Minors Privacy and COPPA
-- [Children's Privacy in 2026: From Australia's Under-16 Social Media Ban](https://datamatters.sidley.com/2026/02/13/childrens-privacy-in-2026-from-australias-under-16-social-media-ban-to-a-shift-beyond-notice-and-consent-in-the-united-states/)
-- [Children's Online Privacy: Recent Actions by the States and the FTC](https://www.mayerbrown.com/en/insights/publications/2025/02/protecting-the-next-generation-how-states-and-the-ftc-are-holding-businesses-accountable-for-childrens-online-privacy)
-- [2026 Year in Preview: Global Minors' Privacy and Online Safety Predictions](https://www.wsgr.com/en/insights/2026-year-in-preview-global-minors-privacy-and-online-safety-predictions.html)
-
-### CI/CD Security and Build Validation
-- [CI/CD Pipeline Security Best Practices | Wiz](https://www.wiz.io/academy/application-security/ci-cd-security-best-practices)
-- [How Secrets Leak in CI/CD Pipelines - Truffle Security](https://trufflesecurity.com/blog/secrets-leak-in-ci-cd)
-- [CI CD Security - OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/CI_CD_Security_Cheat_Sheet.html)
-
-### 3D Force-Directed Graph Performance
-- [Force Directed 3D Graph Visualization Algorithm - Preprints.org](https://www.preprints.org/manuscript/202404.1504)
-- [The Best Libraries and Methods to Render Large Force-Directed Graphs on the Web](https://weber-stephen.medium.com/the-best-libraries-and-methods-to-render-large-network-graphs-on-the-web-d122ece2f4dc)
+- Three.js documentation: WebGLRenderer disposal, texture lifecycle, context loss handling
+- react-globe.gl source: ThreeGlobeGen creates internal WebGLRenderer, not configurable
+- Existing codebase analysis: `src/pages/Home.jsx` (7788 lines, globe renderer), `src/pages/MemoryPortal.jsx` (existing splat viewer with 600ms timeout hack), `src/components/PortalVFX.jsx` (2D canvas portal effect), `src/utils/gpuCapability.js` (GPU detection), `src/components/Prism3D.jsx` (always-mounted R3F Canvas), `src/constellation/scene/ConstellationCanvas.jsx` (R3F Canvas with postprocessing)
+- Known codebase issues: globe renderer never calls dispose() on unmount, `sharedMemoryForWorkers: false` workaround for COOP/COEP headers, Prism3D always-mounted to avoid lag
+- Depth estimation model documentation: MiDaS v3.1 (relative depth, fixed input resolution), ZoeDepth (metric depth), Depth Anything v2 (relative/metric, multiple resolutions)
+- WebGL context limits: browser-specific, typically 8-16 per origin (Chrome 16, Firefox 16, Safari 8, mobile Safari 4-8)
+- iOS Safari audio autoplay policy: requires user gesture in the same call stack, `await` breaks the gesture chain
 
 ---
-*Pitfalls research for: Data-driven 3D personal websites with social media pipelines*
-*Researched: 2026-02-27*
+*Pitfalls research for: Single-photo 3D memory experiences (displaced mesh) on GPU-heavy existing site*
+*Researched: 2026-03-23*
