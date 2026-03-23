@@ -142,6 +142,9 @@ const DISPLACED_FRAG = /* glsl */ `
 uniform sampler2D uPhoto;
 uniform sampler2D uDepth;
 uniform float uDiscardThreshold;
+uniform float uWarmth;
+uniform float uSaturation;
+uniform vec3 uTint;
 
 varying vec2 vUv;
 varying float vDepth;
@@ -161,7 +164,20 @@ void main() {
   float edgeAlpha = 1.0 - smoothstep(uDiscardThreshold * 0.5, uDiscardThreshold, depthEdge);
 
   vec4 color = texture2D(uPhoto, vUv);
-  gl_FragColor = vec4(color.rgb, color.a * edgeAlpha);
+  vec3 c = color.rgb;
+
+  // Color grading: warmth shift
+  c.r += uWarmth;
+  c.b -= uWarmth;
+
+  // Color grading: saturation adjustment
+  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c = mix(vec3(lum), c, uSaturation);
+
+  // Color grading: tint multiply
+  c *= uTint;
+
+  gl_FragColor = vec4(c, color.a * edgeAlpha);
 }
 `;
 
@@ -461,7 +477,7 @@ function CapsulePostProcessing({ mood }) {
 // ---------------------------------------------------------------------------
 // DisplacedPlane — subdivided plane with depth displacement shader
 // ---------------------------------------------------------------------------
-function DisplacedPlane({ scene, subdivisions }) {
+function DisplacedPlane({ scene, subdivisions, mood }) {
   const meshRef = useRef();
   const photoUrl = resolveAsset(scene.photoUrl);
   const depthUrl = resolveAsset(scene.depthMapUrl);
@@ -472,6 +488,8 @@ function DisplacedPlane({ scene, subdivisions }) {
     depthContrast = 1.0,
     discardThreshold = 0.15,
   } = scene.depthConfig || {};
+
+  const grading = COLOR_GRADING[mood] || COLOR_GRADING.warm;
 
   const [photoTex, depthTex] = useMemo(() => {
     const loader = new THREE.TextureLoader();
@@ -492,6 +510,9 @@ function DisplacedPlane({ scene, subdivisions }) {
     uDepthBias: { value: depthBias },
     uDepthContrast: { value: depthContrast },
     uDiscardThreshold: { value: discardThreshold },
+    uWarmth: { value: grading.warmth },
+    uSaturation: { value: grading.saturation },
+    uTint: { value: new THREE.Vector3(grading.tintR, grading.tintG, grading.tintB) },
   });
 
   useEffect(() => {
@@ -557,7 +578,7 @@ function DisplacedMeshRenderer({ scene, tier }) {
           gl.setClearColor('#000000');
         }}
       >
-        <DisplacedPlane scene={scene} subdivisions={subdivisions} />
+        <DisplacedPlane scene={scene} subdivisions={subdivisions} mood={scene.mood} />
         <CinematicCamera
           keyframes={scene.cameraKeyframes}
           fallbackTarget={[
