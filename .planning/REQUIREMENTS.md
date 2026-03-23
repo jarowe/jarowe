@@ -1,63 +1,66 @@
 # Requirements: jarowe.com
 
-**Defined:** 2026-03-20 (v2.0), updated 2026-03-21 (v2.0.1)
+**Defined:** 2026-03-20 (v2.0), updated 2026-03-23 (v2.1)
 **Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
 
-## v2.0.1 Requirements
+## v2.1 Requirements — Memory Capsules
 
-Requirements for patch release. Fixes regressions, tightens content, and improves visual cohesion from v2.0.
+Turn a single still photo into an immersive 3D memory you can step into. Not a tech demo — a playable memory poem. 1 flagship capsule is the milestone anchor.
 
-### Rendering
+**Guardrail:** If tradeoffs appear, protect the flagship capsule experience (SHELL-04, ARC-*) before protecting editor/tooling depth.
 
-- [x] **RENDER-01**: Constellation helix nodes display correct emissive/instance colors from theme data (fix InstancedMesh color regression)
+### Depth Renderer
 
-### Content
+- [ ] **DEPTH-01**: Visitor sees a single photo rendered as a depth-displaced 3D mesh with foreground/background layer separation via SAM masks
+- [ ] **DEPTH-02**: Depth discontinuity edges are handled via fragment shader discard — no rubber-sheet stretching artifacts
+- [ ] **DEPTH-03**: Each scene has per-scene tuning knobs (depthScale, depthBias, depthContrast) for manual depth map refinement
+- [ ] **DEPTH-04**: GPU capability is detected at 3 tiers (full displaced mesh / simplified / parallax-only fallback) based on device capability
 
-- [x] **CONTENT-01**: Glint journal entries are capped at 2 sentences max (both API prompt and fallback pool)
+### Camera & Atmosphere
 
-### Visual Cohesion
+- [ ] **CINE-01**: Camera follows a constrained cinematic path (drift, dolly, parallax) — no free-roam OrbitControls
+- [ ] **CINE-02**: Camera uses multi-beat GSAP keyframe choreography (push, pause, drift) synced to narrative card timing
+- [ ] **CINE-03**: Scene includes atmospheric particles (dust motes, bokeh specks, light drift) and depth-of-field postprocessing with vignette and film grain
+- [ ] **CINE-04**: Each scene supports per-scene color grading (warm/cool/golden mood) via fragment uniform or postprocessing
 
-- [x] **VISUAL-01**: TodayRail "Explore" card links the current holiday to its constellation node (degrades gracefully when no mapped node exists)
-- [x] **VISUAL-02**: Starseed color palette restored to gold warmth
-- [x] **VISUAL-03**: Starseed project cards use Workshop-style gradient background aesthetic
+### Portal & Narrative
 
-## v2.0 Requirements (Shipped)
+- [ ] **PORT-01**: Narrative text appears as timed glass cards — "remembered thoughts, not captions" — synced to camera beats
+- [ ] **PORT-02**: Per-scene soundtrack plays via Howler.js with fade-in; music blooms after user intent (respects autoplay policy)
+- [ ] **PORT-03**: Capsule has full portal entry/exit transitions (reuse PortalVFX phases) — "enter through a portal, not a route"
+- [ ] **PORT-04**: GlobalPlayer music ducks on capsule entry and restores on exit
+- [ ] **PORT-05**: Memory-type constellation nodes link directly to capsule scenes
 
-37 requirements across 6 categories. All shipped in v2.0 (Phases 3-7).
+### Asset Pipeline & Tooling
 
-### Today Layer
-- [x] **TODAY-01**: Visitor sees date-specific content within 5 seconds of homepage load
-- [x] **TODAY-02**: Homepage color temperature shifts based on time of day via CSS custom properties
-- [x] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
-- [x] **TODAY-04**: Real weather data drives atmospheric visuals
-- [x] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day"
-- [x] **TODAY-06**: Daily progress signal card
-- [x] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA
+- [ ] **ASSET-01**: Manual workflow: upload photo, generate depth offline (Depth Pro or Depth Anything V2), compress to <500KB per capsule
+- [ ] **ASSET-02**: CapsuleEditor (lil-gui) provides live tuning for depth, camera keyframes, atmosphere, and color grading
 
-### Glint Operator
-- [x] **GLINT-01** through **GLINT-07**: Full tool-use system (navigate, launch games, control music, show daily, save ideas, command palette)
+### Integration & Shell
 
-### Starseed Hub
-- [x] **STAR-01** through **STAR-06**: Campaign-shell branded hub, project cards, contact section
-- [ ] **STAR-07**: starseed.llc DNS redirect (deferred -- DNS config)
+- [ ] **SHELL-01**: Renderer-agnostic CapsuleShell replaces MemoryPortal — displaced mesh now, splat swap later via renderMode per scene
+- [ ] **SHELL-02**: WebGL context lifecycle managed — globe renderer disposed on route exit, capsule Canvas isolated
+- [ ] **SHELL-03**: Mobile fallback provides parallax + Ken Burns experience for non-capable devices
+- [ ] **SHELL-04**: 1 flagship capsule proven end-to-end — a real Jared memory with depth planes, emotional charge, narrative, soundtrack
 
-### Starseed Labs
-- [x] **LABS-01** through **LABS-06**: Scratchpad, canvas, Glint handoff, brainstorm mode, hub page
+### Experience Arc (Creative Direction)
 
-### Daily Engine
-- [x] **DAILY-01** through **DAILY-06**: Daily seed, view transitions, OG images, streaks, easter eggs, weather
-
-### Immersive Portal
-- [x] **PORTAL-01**, **PORTAL-03**: Splat scene with soundtrack + narrative overlay
-- [ ] **PORTAL-02**: 3D flythrough portal transition (partial -- CSS cross-fade shipped)
-- [ ] **PORTAL-04**: Scene-specific OG preview (partial -- generic OG shipped)
+- [ ] **ARC-01**: Scene begins as a still image, depth slowly wakes up, camera drifts with "impossible gentleness"
+- [ ] **ARC-02**: Foreground objects move at a different emotional rhythm than the background (layer separation via SAM)
+- [ ] **ARC-03**: At the end, the memory recedes — returning to your mind, not closing a page
 
 ## Future Requirements
 
 Deferred to future milestones. Not in current roadmap.
 
-### Constellation Editor
-- **EDITOR-01**: Enhanced effect controls and visual refinement tools in Constellation Editor page
+### Memory Capsules v2.2+
+- **CAPSULE-01**: Memory plasma — multi-scene sequencing with flowing transitions between capsules
+- **CAPSULE-02**: Gaussian splat renderer swap (SHARP/CompleteSplat when models mature)
+- **CAPSULE-03**: Client-side depth estimation (WebGPU + Depth Anything V2 ONNX)
+- **CAPSULE-04**: Depth map validator script for pipeline quality assurance
+- **CAPSULE-05**: Audio-reactive displacement (Web Audio analyser → shader uniforms)
+- **CAPSULE-06**: Auto-ingest from phone capture (Scaniverse/Polycam)
+- **CAPSULE-07**: Scene-specific OG preview images
 
 ### Constellation Core (from v1.0)
 - **CONST-01**: Scripted narrator engine with 5-tier event-driven narration
@@ -71,32 +74,42 @@ Deferred to future milestones. Not in current roadmap.
 ### Experience Expansion
 - **EXP-01** through **EXP-08**: Voice Glint, multiplayer, StarOS, more portals, hand tracking, WebGPU, VR, conversation memory
 
-## Out of Scope
+## Out of Scope (v2.1)
 
 | Feature | Reason |
 |---------|--------|
-| Constellation Editor overhaul | Not a defect -- save for dedicated milestone |
+| Memory plasma (multi-scene) | Prove 1 flagship first; don't dilute |
+| Gaussian splat renderer | v2.2 — SHARP/CompleteSplat when models mature |
+| Client-side depth estimation | 99MB model, needs WebGPU maturity |
+| Depth map validator script | Optimize for art direction, not pipeline tooling |
+| Audio-reactive displacement | Enhancement after core experience proves |
+| Auto-ingest from phone | Manual workflow first |
+| Constellation Editor overhaul | Not a defect — save for dedicated milestone |
 | New data pipeline parsers | Prove pipeline with existing sources first |
-| Bloom re-enable | Separate concern, not part of this patch |
-| Full editorial news operation | Progress lens is curated cards, not a feed |
 | Generic autonomous internet agent | Glint is bounded to this world |
 | Mobile native app | Web-first, responsive design covers mobile |
 
 ## Traceability
 
+Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RENDER-01 | Phase 8 | Complete |
-| CONTENT-01 | Phase 8 | Complete |
-| VISUAL-01 | Phase 9 | Complete |
-| VISUAL-02 | Phase 9 | Complete |
-| VISUAL-03 | Phase 9 | Complete |
+| (populated by roadmapper) | | |
 
 **Coverage:**
-- v2.0.1 requirements: 5 total
-- Mapped to phases: 5
-- Unmapped: 0
+- v2.1 requirements: 21 total
+- Mapped to phases: 0
+- Unmapped: 21
+
+## Previous Milestones
+
+### v2.0.1 (Shipped 2026-03-22)
+5 requirements, all complete (RENDER-01, CONTENT-01, VISUAL-01/02/03)
+
+### v2.0 (Shipped 2026-03-21)
+37 requirements across 6 categories, all complete except STAR-07 (DNS), PORTAL-02 (partial), PORTAL-04 (partial)
 
 ---
 *Requirements defined: 2026-03-20 (v2.0)*
-*Last updated: 2026-03-21 after v2.0.1 roadmap creation*
+*Last updated: 2026-03-23 after v2.1 Memory Capsules requirements definition*
