@@ -2,15 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
-status: completed
-stopped_at: Phase 10 context gathered
-last_updated: "2026-03-23T07:11:39.527Z"
-last_activity: 2026-03-23 -- Roadmap created for v2.1 (4 phases, 21 requirements)
+status: Ready to execute
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-23T08:07:26.200Z"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
 ---
 
 # Project State
@@ -20,14 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** v2.1 Memory Capsules -- roadmap complete, ready for Phase 10 planning
+**Current focus:** Phase 10 — Foundation + Asset Pipeline
 
 ## Current Position
 
-Phase: 10 (Foundation + Asset Pipeline) -- not started
-Plan: --
-Status: Roadmap complete, awaiting first plan
-Last activity: 2026-03-23 -- Roadmap created for v2.1 (4 phases, 21 requirements)
+Phase: 10 (Foundation + Asset Pipeline) — EXECUTING
+Plan: 2 of 3
 
 ## v2.1 Roadmap Summary
 
@@ -68,6 +65,7 @@ Last activity: 2026-03-23 -- Roadmap created for v2.1 (4 phases, 21 requirements
 | Phase 09 P01 | 4min | 2 tasks | 2 files |
 
 *Updated after each plan completion*
+| Phase 10 P01 | 5min | 4 tasks | 4 files |
 
 ## v2.0.1 Summary
 
@@ -105,6 +103,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 08]: Used onBeforeCompile with vColor.rgb multiplication to preserve MeshStandardMaterial PBR lighting for per-instance emissive colors
 - [Phase 09]: Per-card CSS custom property (--card-gradient) driven by inline style from project data for unique gradient identity
 - [Phase 09]: Holiday-constellation linking via nodeId field on T3+ calendar entries with conditional deep-link in TodayRail
+- [Phase 10]: CapsuleShell replaces MemoryPortal with renderer-agnostic routing (scene.renderMode x GPU tier) — Self-contained capsule module with SplatRenderer, DisplacedMeshRenderer stub, and ParallaxFallback as internal components
 
 ### v2.1 Research Flags
 
@@ -124,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T07:11:39.524Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-foundation-asset-pipeline/10-CONTEXT.md
+Last session: 2026-03-23T08:07:26.197Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None

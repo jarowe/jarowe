@@ -14,7 +14,7 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 - [ ] **DEPTH-01**: Visitor sees a single photo rendered as a depth-displaced 3D mesh with foreground/background layer separation via SAM masks
 - [ ] **DEPTH-02**: Depth discontinuity edges are handled via fragment shader discard — no rubber-sheet stretching artifacts
 - [ ] **DEPTH-03**: Each scene has per-scene tuning knobs (depthScale, depthBias, depthContrast) for manual depth map refinement
-- [ ] **DEPTH-04**: GPU capability is detected at 3 tiers (full displaced mesh / simplified / parallax-only fallback) based on device capability
+- [x] **DEPTH-04**: GPU capability is detected at 3 tiers (full displaced mesh / simplified / parallax-only fallback) based on device capability
 
 ### Camera & Atmosphere
 
@@ -38,8 +38,8 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 ### Integration & Shell
 
-- [ ] **SHELL-01**: Renderer-agnostic CapsuleShell replaces MemoryPortal — displaced mesh now, splat swap later via renderMode per scene
-- [ ] **SHELL-02**: WebGL context lifecycle managed — globe renderer disposed on route exit, capsule Canvas isolated
+- [x] **SHELL-01**: Renderer-agnostic CapsuleShell replaces MemoryPortal — displaced mesh now, splat swap later via renderMode per scene
+- [x] **SHELL-02**: WebGL context lifecycle managed — globe renderer disposed on route exit, capsule Canvas isolated
 - [ ] **SHELL-03**: Mobile fallback provides parallax + Ken Burns experience for non-capable devices
 - [ ] **SHELL-04**: 1 flagship capsule proven end-to-end — a real Jared memory with depth planes, emotional charge, narrative, soundtrack
 
