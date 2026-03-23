@@ -17,7 +17,7 @@ jarowe.com is a living, daily-pulse world with polished visual cohesion, now wit
 - **Starseed Hub** — warm gold brand identity with per-card gradient backgrounds, Workshop-style depth layering, contact section, Labs creation tools
 - **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
 - **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
-- **Memory Capsules (Phase 10)** — CapsuleShell with depth-displaced 3D mesh renderer, 3-tier GPU detection, gradient-based edge discard, multi-layer parallax fallback with Ken Burns, asset validation pipeline
+- **Memory Capsules (Phases 10-11)** — CapsuleShell with depth-displaced mesh, 3-tier GPU detection, parallax fallback; cinematic camera (GSAP keyframes), atmospheric particles (dust/bokeh/streaks), DOF/vignette/grain postprocessing, per-scene color grading, soundtrack with GlobalPlayer ducking
 - **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
 ## Current Milestone: v2.1 Memory Capsules
