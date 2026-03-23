@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5179';
+const BASE = 'http://localhost:5173';
 const SCENE_ID = 'placeholder-scene';
 
 test.describe('Memory Portal', () => {

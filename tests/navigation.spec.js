@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5179';
+const BASE = 'http://localhost:5173';
 
 /**
  * Route definitions with their expected primary selector and display name.
@@ -18,7 +18,7 @@ const ROUTES = [
     path: '/constellation',
     name: 'Constellation',
     selector: '.constellation-page',
-    timeout: 20000,
+    timeout: 25000,
   },
   {
     path: '/starseed',

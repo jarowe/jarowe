@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5179';
+const BASE = 'http://localhost:5173';
 
 test.describe('Starseed page', () => {
   test.beforeEach(async ({ page }) => {
