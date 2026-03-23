@@ -79,6 +79,20 @@
   pointer-events: none;
 }
 
+/* Vignette overlay for simplified-tier displaced mesh (matches postprocessing vignette) */
+.capsule-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* Film grain texture — subtle animated noise */
 .memory-portal__grain {
   position: absolute;

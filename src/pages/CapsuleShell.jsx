@@ -579,6 +579,7 @@ function DisplacedMeshRenderer({ scene, tier }) {
         }}
       >
         <DisplacedPlane scene={scene} subdivisions={subdivisions} mood={scene.mood} />
+        <AtmosphericParticles tier={tier} />
         <CinematicCamera
           keyframes={scene.cameraKeyframes}
           fallbackTarget={[
@@ -587,7 +588,10 @@ function DisplacedMeshRenderer({ scene, tier }) {
             scene.cameraTarget.z,
           ]}
         />
+        {tier === 'full' && <CapsulePostProcessing mood={scene.mood} />}
       </Canvas>
+      {/* Simplified tier: CSS vignette overlay (full tier uses postprocessing Vignette) */}
+      {tier !== 'full' && <div className="capsule-vignette" />}
     </div>
   );
 }
