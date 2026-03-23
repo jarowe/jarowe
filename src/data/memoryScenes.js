@@ -11,11 +11,11 @@ const scenes = [
     title: 'A Place That Matters',
     location: 'Memory Lane',
     coordinates: { lat: 0, lng: 0 },
-    // Remote splat with Access-Control-Allow-Origin: * (CORS safe)
-    // antimatter15's train scene — outdoor environment, ~32MB
-    // Note: Git LFS files don't deploy on Vercel, so remote URL is required
-    splatUrl: 'https://antimatter15.com/splat-data/train.splat',
-    splatIsRemote: true,
+    // Local procedural splat — 5000 particles in a sphere, 160KB
+    // Committed directly to git (no LFS), deploys reliably on Vercel
+    // Replace with real captured memory .splat files later
+    splatUrl: 'data/memory-scene.splat',
+    splatIsRemote: false,
     previewImage: '/images/memory/placeholder-preview.jpg',
     soundtrack: null,
     narrative: [
