@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
-status: Ready to execute
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-23T14:43:55.380Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-23T14:55:17.680Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -73,6 +73,7 @@ Plan: 3 of 3
 | Phase 11 P03 | 4min | 3 tasks | 3 files |
 | Phase 12 P01 | 8min | 3 tasks | 2 files |
 | Phase 12 P02 | 8min | 2 tasks | 3 files |
+| Phase 12 P03 | 7min | 3 tasks | 3 files |
 
 ## v2.0.1 Summary
 
@@ -119,6 +120,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 11]: Capsule-level ducking (duckForCapsule/restoreFromCapsule) separate from node-level ducking, targets 0.15 volume; uses Howler.volume() getter to avoid stale closures; cross-fade cleanup with delayed unload — Different lifecycle (route-level vs panel-level) and different volume targets (ambient duck vs silence) require separate mechanism
 - [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation; recession fade in fragment shader; two separate GSAP timelines for independent lifecycle — Soft edge blending and per-scene color control; independent cleanup
 - [Phase 12]: Narrative cards gated behind awakeningComplete state; 4-card emotional arc (place/feeling/meaning/gratitude) at 2s/6s/11s/16s — D-03 no text during depth reveal; 4-beat camera with final settling hold:3
+- [Phase 12]: Portal entry navigates at rupture phase; exit portal uses center origin; direct URL access shortens awakening to 1.5s — Matches existing Glint portal pattern; no click point for exit; graceful UX for bookmarked URLs
 
 ### v2.1 Research Flags
 
@@ -138,6 +140,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:43:29.440Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-23T14:54:54.733Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None

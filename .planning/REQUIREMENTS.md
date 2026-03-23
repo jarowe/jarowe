@@ -27,7 +27,7 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 - [x] **PORT-01**: Narrative text appears as timed glass cards — "remembered thoughts, not captions" — synced to camera beats
 - [x] **PORT-02**: Per-scene soundtrack plays via Howler.js with fade-in; music blooms after user intent (respects autoplay policy)
-- [ ] **PORT-03**: Capsule has full portal entry/exit transitions (reuse PortalVFX phases) — "enter through a portal, not a route"
+- [x] **PORT-03**: Capsule has full portal entry/exit transitions (reuse PortalVFX phases) — "enter through a portal, not a route"
 - [x] **PORT-04**: GlobalPlayer music ducks on capsule entry and restores on exit
 - [ ] **PORT-05**: Memory-type constellation nodes link directly to capsule scenes
 
