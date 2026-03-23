@@ -3939,13 +3939,12 @@ export default function Home() {
       if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
       if (globeRef.current?._particleMouseCleanup) globeRef.current._particleMouseCleanup();
       if (isTourActive()) endTour();
-      // Release the globe's WebGL context so it doesn't conflict with
-      // other Three.js scenes (constellation) after navigation
+      // Release the globe's WebGL resources (but NOT forceContextLoss —
+      // that races with constellation's context creation and causes crashes)
       if (globeRef.current) {
         try {
           const renderer = globeRef.current.renderer();
           renderer.dispose();
-          renderer.forceContextLoss();
         } catch (_) {}
       }
     };
