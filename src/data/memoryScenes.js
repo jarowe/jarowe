@@ -8,6 +8,10 @@
  *   'displaced-mesh' → DisplacedMeshRenderer (photo + depth map → 3D mesh)
  *   'splat'          → SplatRenderer (gaussian splats)
  *   'parallax'       → ParallaxFallback (CSS parallax + Ken Burns)
+ *
+ * cameraKeyframes: Array<{ position: {x,y,z}, target: {x,y,z}, duration: number (sec),
+ *   ease: string (GSAP ease), hold: number (sec pause at this beat) }> | null
+ * mood: 'warm' | 'cool' | 'golden' | null — color grading preset (Phase 11 CINE-04)
  */
 
 const scenes = [
@@ -38,6 +42,8 @@ const scenes = [
     // Camera for train scene — slightly elevated, looking along tracks
     cameraPosition: { x: -3.5, y: 0.5, z: 1.5 },
     cameraTarget: { x: 0, y: 0.2, z: -2 },
+    mood: 'cool',
+    cameraKeyframes: null, // splat scenes use their own camera controls
   },
   {
     id: 'test-capsule',
@@ -70,6 +76,36 @@ const scenes = [
     ],
     cameraPosition: { x: 0, y: 0, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
+    mood: 'warm',
+    cameraKeyframes: [
+      {
+        // Beat 1: Push in — viewer is drawn into the memory
+        // Starts immediately. Holds until ~2s when first narrative card appears.
+        position: { x: 0, y: 0, z: 3 },
+        target: { x: 0, y: 0, z: 0 },
+        duration: 2,
+        ease: 'power1.out',
+        hold: 0,
+      },
+      {
+        // Beat 2: Slow drift right — card 1 visible at 2s, drift begins
+        // 4s transition lands at ~6s when card 2 appears
+        position: { x: 0.4, y: 0.1, z: 2.6 },
+        target: { x: 0.1, y: 0, z: 0 },
+        duration: 4,
+        ease: 'power2.inOut',
+        hold: 0,
+      },
+      {
+        // Beat 3: Gentle pull back — card 2 visible at 6s, pull-back begins
+        // 5s transition lands at ~11s when card 3 appears
+        position: { x: -0.2, y: 0.15, z: 2.8 },
+        target: { x: -0.05, y: 0.05, z: 0 },
+        duration: 5,
+        ease: 'sine.inOut',
+        hold: 2,
+      },
+    ],
   },
 ];
 
