@@ -597,7 +597,7 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
 // ---------------------------------------------------------------------------
 // ArcController — GSAP-driven awakening (ARC-01) and recession (ARC-03)
 // ---------------------------------------------------------------------------
-function ArcController({ planeRef, arc, onRecessionComplete }) {
+function ArcController({ planeRef, arc, onRecessionComplete, onAwakeningComplete }) {
   const awakeningDone = useRef(false);
 
   useEffect(() => {
@@ -615,7 +615,10 @@ function ArcController({ planeRef, arc, onRecessionComplete }) {
       duration: arc.awakeningDuration || 3.5,
       ease: arc.awakeningEase || 'power2.out',
       delay: arc.awakeningDelay || 0.5,
-      onComplete: () => { awakeningDone.current = true; },
+      onComplete: () => {
+        awakeningDone.current = true;
+        if (onAwakeningComplete) onAwakeningComplete();
+      },
     });
 
     // ARC-03: Recession — depthScale back to 0 + fade to warm white
@@ -641,7 +644,7 @@ function ArcController({ planeRef, arc, onRecessionComplete }) {
       awakeningTl.kill();
       recessionTl.kill();
     };
-  }, [planeRef, arc, onRecessionComplete]);
+  }, [planeRef, arc, onRecessionComplete, onAwakeningComplete]);
 
   return null;
 }
@@ -649,7 +652,7 @@ function ArcController({ planeRef, arc, onRecessionComplete }) {
 // ---------------------------------------------------------------------------
 // DisplacedMeshRenderer — depth-displaced 3D mesh from photo+depth pair
 // ---------------------------------------------------------------------------
-function DisplacedMeshRenderer({ scene, tier, onRecessionComplete }) {
+function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete }) {
   const subdivisions = tier === 'full' ? 256 : 128;
   const dpr = tier === 'full' ? [1, 2] : [1, 1];
   const planeRef = useRef(null);
@@ -692,6 +695,7 @@ function DisplacedMeshRenderer({ scene, tier, onRecessionComplete }) {
           planeRef={planeRef}
           arc={scene.arc}
           onRecessionComplete={onRecessionComplete}
+          onAwakeningComplete={onAwakeningComplete}
         />
       </Canvas>
       {/* Simplified tier: CSS vignette overlay (full tier uses postprocessing Vignette) */}
@@ -822,6 +826,7 @@ export default function CapsuleShell() {
   const [muted, setMuted] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
   const [recessionDone, setRecessionDone] = useState(false);
+  const [awakeningComplete, setAwakeningComplete] = useState(false);
   const soundRef = useRef(null);
   const audio = useAudio();
   const handleRecessionComplete = useCallback(() => setRecessionDone(true), []);
@@ -882,9 +887,11 @@ export default function CapsuleShell() {
     };
   }, [scene.soundtrack]);
 
-  // Narrative cards
+  // Narrative cards — gated behind awakening completion (D-03: no text during depth reveal)
   useEffect(() => {
     if (!scene.narrative?.length) return;
+    if (!awakeningComplete && scene.arc) return; // Wait for awakening if arc is configured
+
     const timers = scene.narrative.map((card, i) =>
       setTimeout(() => setVisibleCards((prev) => [...prev, i]), card.delay)
     );
@@ -892,7 +899,7 @@ export default function CapsuleShell() {
       timers.forEach(clearTimeout);
       setVisibleCards([]);
     };
-  }, [scene.narrative]);
+  }, [scene.narrative, awakeningComplete, scene.arc]);
 
   const handleUnmute = useCallback(() => {
     if (!soundRef.current) return;
@@ -942,7 +949,14 @@ export default function CapsuleShell() {
         />
       )}
 
-      {showDisplaced && <DisplacedMeshRenderer scene={scene} tier={tier} onRecessionComplete={handleRecessionComplete} />}
+      {showDisplaced && (
+        <DisplacedMeshRenderer
+          scene={scene}
+          tier={tier}
+          onRecessionComplete={handleRecessionComplete}
+          onAwakeningComplete={() => setAwakeningComplete(true)}
+        />
+      )}
 
       {showFallback && (
         <ParallaxFallback scene={scene} loadError={loadError} />
@@ -979,7 +993,7 @@ export default function CapsuleShell() {
       </motion.div>
 
       {/* Narrative */}
-      <div className="memory-narrative">
+      <div className={`memory-narrative ${recessionDone ? 'memory-narrative--faded' : ''}`}>
         <AnimatePresence>
           {scene.narrative
             .filter((_, i) => visibleCards.includes(i))

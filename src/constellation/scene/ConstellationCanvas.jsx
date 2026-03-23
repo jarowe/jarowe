@@ -290,7 +290,8 @@ export default function ConstellationCanvas() {
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
-      onPointerMissed={() => clearFocus()}
+      // onPointerMissed removed — testing if accidental clicks cause panel close
+      // onPointerMissed={() => clearFocus()}
       onCreated={({ gl, scene }) => {
         rendererRef.current = gl;
         // Set scene background to match page — prevents black flash during
