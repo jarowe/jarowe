@@ -2945,10 +2945,12 @@
   to { opacity: 1; }
 }
 
-/* Persistent elements get view-transition-name for morphing */
-.starseed-nav-link,
+/* Persistent elements get view-transition-name for morphing — must be unique per element */
 .nav-brand {
   view-transition-name: nav-brand;
+}
+.starseed-nav-link {
+  view-transition-name: nav-starseed;
 }
 
 /* ── Easter Egg CSS Classes (additive on top of --tod-*) ── */

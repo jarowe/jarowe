@@ -225,17 +225,18 @@ export default function ConstellationPage() {
     loadData();
   }, [loadData]);
 
-  // Deep-link: auto-focus node from URL param once data is loaded.
-  // Fires quickly so the camera fly-to animation plays as the scene
-  // appears — user sees the cinematic swoop into the node.
+  // Deep-link: auto-focus node from URL param once data AND canvas are ready.
+  // Must wait for canvasReady to avoid firing GSAP camera animation before
+  // the WebGL context is fully initialized (causes Context Lost on first visit
+  // via view transitions).
   const deepLinked = useRef(false);
   useEffect(() => {
-    if (urlNodeId && dataLoaded && !deepLinked.current) {
+    if (urlNodeId && dataLoaded && canvasReady && !deepLinked.current) {
       deepLinked.current = true;
       const focusNode = useConstellationStore.getState().focusNode;
       requestAnimationFrame(() => focusNode(urlNodeId));
     }
-  }, [urlNodeId, dataLoaded]);
+  }, [urlNodeId, dataLoaded, canvasReady]);
 
   // Delay Canvas mount by one frame to survive React StrictMode's
   // mount-unmount-remount cycle. Without this, StrictMode creates and
