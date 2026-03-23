@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Howl } from 'howler';
 import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
 import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
 import './MemoryPortal.css';
@@ -105,22 +107,184 @@ function SplatRenderer({ scene, onLoaded, onError }) {
 }
 
 // ---------------------------------------------------------------------------
-// DisplacedMeshRenderer — stub (real implementation in Plan 10-03)
+// Displaced Mesh Shaders
+// ---------------------------------------------------------------------------
+const DISPLACED_VERT = /* glsl */ `
+uniform sampler2D uDepth;
+uniform float uDepthScale;
+uniform float uDepthBias;
+uniform float uDepthContrast;
+
+varying vec2 vUv;
+varying float vDepth;
+
+void main() {
+  vUv = uv;
+
+  // Sample depth and apply contrast + bias
+  float d = texture2D(uDepth, uv).r;
+  d = pow(d, uDepthContrast); // contrast adjustment
+  d = d + uDepthBias;          // bias shift
+  vDepth = d;
+
+  // Displace along Z
+  vec3 displaced = position;
+  displaced.z += d * uDepthScale;
+
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+}
+`;
+
+const DISPLACED_FRAG = /* glsl */ `
+uniform sampler2D uPhoto;
+uniform sampler2D uDepth;
+uniform float uDiscardThreshold;
+
+varying vec2 vUv;
+varying float vDepth;
+
+void main() {
+  // Depth discontinuity detection via screen-space derivatives
+  float ddx = abs(dFdx(vDepth));
+  float ddy = abs(dFdy(vDepth));
+  float depthEdge = max(ddx, ddy);
+
+  // Discard fragments at depth discontinuities (rubber-sheet edges)
+  if (depthEdge > uDiscardThreshold) {
+    discard;
+  }
+
+  // Soft alpha fade near threshold for anti-aliasing
+  float edgeAlpha = 1.0 - smoothstep(uDiscardThreshold * 0.5, uDiscardThreshold, depthEdge);
+
+  vec4 color = texture2D(uPhoto, vUv);
+  gl_FragColor = vec4(color.rgb, color.a * edgeAlpha);
+}
+`;
+
+// ---------------------------------------------------------------------------
+// SlowDrift — gentle camera animation for visual validation of 3D parallax
+// ---------------------------------------------------------------------------
+function SlowDrift({ target }) {
+  const { camera } = useThree();
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    // Gentle sinusoidal drift — validates 3D parallax is visible
+    camera.position.x += Math.sin(t * 0.1) * 0.0005;
+    camera.position.y += Math.cos(t * 0.15) * 0.0003;
+    camera.lookAt(target[0], target[1], target[2]);
+  });
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// DisplacedPlane — subdivided plane with depth displacement shader
+// ---------------------------------------------------------------------------
+function DisplacedPlane({ scene, subdivisions }) {
+  const meshRef = useRef();
+  const photoUrl = resolveAsset(scene.photoUrl);
+  const depthUrl = resolveAsset(scene.depthMapUrl);
+
+  const {
+    depthScale = 2.0,
+    depthBias = 0.0,
+    depthContrast = 1.0,
+    discardThreshold = 0.15,
+  } = scene.depthConfig || {};
+
+  const [photoTex, depthTex] = useMemo(() => {
+    const loader = new THREE.TextureLoader();
+    const photo = loader.load(photoUrl);
+    const depth = loader.load(depthUrl);
+    photo.colorSpace = THREE.SRGBColorSpace;
+    depth.colorSpace = THREE.LinearSRGBColorSpace;
+    // Depth needs linear filtering to avoid interpolation artifacts at edges
+    depth.minFilter = THREE.LinearFilter;
+    depth.magFilter = THREE.LinearFilter;
+    return [photo, depth];
+  }, [photoUrl, depthUrl]);
+
+  const uniforms = useRef({
+    uPhoto: { value: null },
+    uDepth: { value: null },
+    uDepthScale: { value: depthScale },
+    uDepthBias: { value: depthBias },
+    uDepthContrast: { value: depthContrast },
+    uDiscardThreshold: { value: discardThreshold },
+  });
+
+  useEffect(() => {
+    uniforms.current.uPhoto.value = photoTex;
+    uniforms.current.uDepth.value = depthTex;
+  }, [photoTex, depthTex]);
+
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        uniforms: uniforms.current,
+        vertexShader: DISPLACED_VERT,
+        fragmentShader: DISPLACED_FRAG,
+        side: THREE.DoubleSide,
+        transparent: true,
+      }),
+    [],
+  );
+
+  // Geometry: PlaneGeometry with subdivisions, aspect ratio from photo
+  const geometry = useMemo(() => {
+    const aspect = 16 / 9;
+    const height = 2.0;
+    const width = height * aspect;
+    return new THREE.PlaneGeometry(
+      width,
+      height,
+      subdivisions,
+      Math.floor(subdivisions / aspect),
+    );
+  }, [subdivisions]);
+
+  return <mesh ref={meshRef} geometry={geometry} material={material} />;
+}
+
+// ---------------------------------------------------------------------------
+// DisplacedMeshRenderer — depth-displaced 3D mesh from photo+depth pair
 // ---------------------------------------------------------------------------
 function DisplacedMeshRenderer({ scene, tier }) {
+  const subdivisions = tier === 'full' ? 256 : 128;
+  const dpr = tier === 'full' ? [1, 2] : [1, 1];
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '1.2rem',
-      }}
-    >
-      DisplacedMeshRenderer — tier: {tier}
+    <div className="memory-splat-container">
+      <Canvas
+        dpr={dpr}
+        camera={{
+          position: [
+            scene.cameraPosition.x,
+            scene.cameraPosition.y,
+            scene.cameraPosition.z,
+          ],
+          fov: 50,
+          near: 0.1,
+          far: 100,
+        }}
+        gl={{
+          antialias: tier === 'full',
+          alpha: false,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          gl.setClearColor('#000000');
+        }}
+      >
+        <DisplacedPlane scene={scene} subdivisions={subdivisions} />
+        <SlowDrift
+          target={[
+            scene.cameraTarget.x,
+            scene.cameraTarget.y,
+            scene.cameraTarget.z,
+          ]}
+        />
+      </Canvas>
     </div>
   );
 }
