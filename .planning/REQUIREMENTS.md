@@ -25,7 +25,7 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 ### Portal & Narrative
 
-- [ ] **PORT-01**: Narrative text appears as timed glass cards — "remembered thoughts, not captions" — synced to camera beats
+- [x] **PORT-01**: Narrative text appears as timed glass cards — "remembered thoughts, not captions" — synced to camera beats
 - [x] **PORT-02**: Per-scene soundtrack plays via Howler.js with fade-in; music blooms after user intent (respects autoplay policy)
 - [ ] **PORT-03**: Capsule has full portal entry/exit transitions (reuse PortalVFX phases) — "enter through a portal, not a route"
 - [x] **PORT-04**: GlobalPlayer music ducks on capsule entry and restores on exit
@@ -41,7 +41,7 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 - [x] **SHELL-01**: Renderer-agnostic CapsuleShell replaces MemoryPortal — displaced mesh now, splat swap later via renderMode per scene
 - [x] **SHELL-02**: WebGL context lifecycle managed — globe renderer disposed on route exit, capsule Canvas isolated
 - [x] **SHELL-03**: Mobile fallback provides parallax + Ken Burns experience for non-capable devices
-- [ ] **SHELL-04**: 1 flagship capsule proven end-to-end — a real Jared memory with depth planes, emotional charge, narrative, soundtrack
+- [x] **SHELL-04**: 1 flagship capsule proven end-to-end — a real Jared memory with depth planes, emotional charge, narrative, soundtrack
 
 ### Experience Arc (Creative Direction)
 
