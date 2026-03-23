@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Howl } from 'howler';
@@ -115,9 +115,13 @@ function SplatRenderer({ scene, onLoaded, onError }) {
 // ---------------------------------------------------------------------------
 const DISPLACED_VERT = /* glsl */ `
 uniform sampler2D uDepth;
+uniform sampler2D uSamMask;
 uniform float uDepthScale;
 uniform float uDepthBias;
 uniform float uDepthContrast;
+uniform float uFgDepthScale;
+uniform float uBgDepthScale;
+uniform float uHasSamMask;
 
 varying vec2 vUv;
 varying float vDepth;
@@ -127,13 +131,22 @@ void main() {
 
   // Sample depth and apply contrast + bias
   float d = texture2D(uDepth, uv).r;
-  d = pow(d, uDepthContrast); // contrast adjustment
-  d = d + uDepthBias;          // bias shift
+  d = pow(d, uDepthContrast);
+  d = d + uDepthBias;
   vDepth = d;
+
+  // SAM mask layer separation: foreground and background get different depth multipliers
+  float layerScale = uDepthScale;
+  if (uHasSamMask > 0.5) {
+    float mask = texture2D(uSamMask, uv).r;
+    // mask > 0.5 = foreground (white), mask < 0.5 = background (black)
+    float fgWeight = smoothstep(0.4, 0.6, mask);
+    layerScale = uDepthScale * mix(uBgDepthScale, uFgDepthScale, fgWeight);
+  }
 
   // Displace along Z
   vec3 displaced = position;
-  displaced.z += d * uDepthScale;
+  displaced.z += d * layerScale;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
 }
@@ -146,6 +159,8 @@ uniform float uDiscardThreshold;
 uniform float uWarmth;
 uniform float uSaturation;
 uniform vec3 uTint;
+uniform float uRecessionFade;
+uniform vec3 uRecessionColor;
 
 varying vec2 vUv;
 varying float vDepth;
@@ -177,6 +192,9 @@ void main() {
 
   // Color grading: tint multiply
   c *= uTint;
+
+  // Recession fade: mix toward warm white as memory recedes (ARC-03)
+  c = mix(c, uRecessionColor, uRecessionFade);
 
   gl_FragColor = vec4(c, color.a * edgeAlpha);
 }
@@ -478,7 +496,7 @@ function CapsulePostProcessing({ mood }) {
 // ---------------------------------------------------------------------------
 // DisplacedPlane — subdivided plane with depth displacement shader
 // ---------------------------------------------------------------------------
-function DisplacedPlane({ scene, subdivisions, mood }) {
+const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions, mood }, ref) {
   const meshRef = useRef();
   const photoUrl = resolveAsset(scene.photoUrl);
   const depthUrl = resolveAsset(scene.depthMapUrl);
@@ -490,9 +508,14 @@ function DisplacedPlane({ scene, subdivisions, mood }) {
     discardThreshold = 0.15,
   } = scene.depthConfig || {};
 
+  const {
+    foregroundDepthScale = 1.0,
+    backgroundDepthScale = 1.0,
+  } = scene.layerSeparation || {};
+
   const grading = COLOR_GRADING[mood] || COLOR_GRADING.warm;
 
-  const [photoTex, depthTex] = useMemo(() => {
+  const [photoTex, depthTex, samMaskTex] = useMemo(() => {
     const loader = new THREE.TextureLoader();
     const photo = loader.load(photoUrl);
     const depth = loader.load(depthUrl);
@@ -501,8 +524,17 @@ function DisplacedPlane({ scene, subdivisions, mood }) {
     // Depth needs linear filtering to avoid interpolation artifacts at edges
     depth.minFilter = THREE.LinearFilter;
     depth.magFilter = THREE.LinearFilter;
-    return [photo, depth];
-  }, [photoUrl, depthUrl]);
+
+    let samMask = null;
+    if (scene.samMaskUrl) {
+      const samMaskUrl = resolveAsset(scene.samMaskUrl);
+      samMask = loader.load(samMaskUrl);
+      samMask.colorSpace = THREE.LinearSRGBColorSpace;
+      samMask.minFilter = THREE.LinearFilter;
+      samMask.magFilter = THREE.LinearFilter;
+    }
+    return [photo, depth, samMask];
+  }, [photoUrl, depthUrl, scene.samMaskUrl]);
 
   const uniforms = useRef({
     uPhoto: { value: null },
@@ -514,12 +546,25 @@ function DisplacedPlane({ scene, subdivisions, mood }) {
     uWarmth: { value: grading.warmth },
     uSaturation: { value: grading.saturation },
     uTint: { value: new THREE.Vector3(grading.tintR, grading.tintG, grading.tintB) },
+    uSamMask: { value: null },
+    uFgDepthScale: { value: foregroundDepthScale },
+    uBgDepthScale: { value: backgroundDepthScale },
+    uHasSamMask: { value: scene.samMaskUrl ? 1.0 : 0.0 },
+    uRecessionFade: { value: 0.0 },
+    uRecessionColor: { value: new THREE.Vector3(1.0, 0.98, 0.95) },
   });
+
+  useImperativeHandle(ref, () => ({
+    uniforms: uniforms.current,
+  }));
 
   useEffect(() => {
     uniforms.current.uPhoto.value = photoTex;
     uniforms.current.uDepth.value = depthTex;
-  }, [photoTex, depthTex]);
+    if (samMaskTex) {
+      uniforms.current.uSamMask.value = samMaskTex;
+    }
+  }, [photoTex, depthTex, samMaskTex]);
 
   const material = useMemo(
     () =>
@@ -547,7 +592,7 @@ function DisplacedPlane({ scene, subdivisions, mood }) {
   }, [subdivisions]);
 
   return <mesh ref={meshRef} geometry={geometry} material={material} />;
-}
+});
 
 // ---------------------------------------------------------------------------
 // DisplacedMeshRenderer — depth-displaced 3D mesh from photo+depth pair
