@@ -9,116 +9,108 @@ import './MemoryPortal.css';
 
 const BASE = import.meta.env.BASE_URL;
 
-/**
- * Resolve an asset path — remote URLs pass through, local paths get
- * the BASE_URL prefix for Vercel / GitHub Pages compatibility.
- */
 function resolveAsset(path, isRemote) {
   if (!path) return null;
   if (isRemote || path.startsWith('http')) return path;
   return `${BASE}${path.replace(/^\//, '')}`;
 }
 
-/**
- * MemoryPortal — Immersive gaussian splat memory capsule.
- *
- * Renders a volumetric 3D scene on capable devices with sequential
- * narrative text cards and ambient soundtrack. Falls back to a static
- * preview image with narrative on mobile / low-end devices.
- */
 export default function MemoryPortal() {
   const { sceneId } = useParams();
   const scene = getSceneById(sceneId);
 
-  // --- Capability & loading state ---
-  const [capable, setCapable] = useState(null); // null = checking
+  const [capable, setCapable] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
-
-  // --- Narrative ---
   const [visibleCards, setVisibleCards] = useState([]);
-
-  // --- Soundtrack ---
   const [muted, setMuted] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
   const soundRef = useRef(null);
-
-  // --- Splat viewer ---
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
 
-  // Capability check on mount
   useEffect(() => {
     setCapable(canRenderSplat());
   }, []);
 
-  // --- Splat viewer lifecycle ---
+  // --- Splat viewer lifecycle with retry ---
   useEffect(() => {
     if (capable !== true || !containerRef.current) return;
 
     let disposed = false;
+    let retryCount = 0;
+    const maxRetries = 2;
 
-    // Small delay to let previous page's WebGL context (globe) fully dispose
-    // before creating the splat viewer's context — prevents Context Lost
-    const initDelay = setTimeout(() => {
-    // Dynamic import to avoid bundling the heavy library for fallback users
-    import('@mkkellogg/gaussian-splats-3d').then((GaussianSplats3D) => {
-      if (disposed) return;
+    async function initSplatViewer() {
+      if (disposed || !containerRef.current) return;
 
-      const viewer = new GaussianSplats3D.Viewer({
-        cameraUp: [0, 1, 0],
-        initialCameraPosition: [
-          scene.cameraPosition.x,
-          scene.cameraPosition.y,
-          scene.cameraPosition.z,
-        ],
-        initialCameraLookAt: [
-          scene.cameraTarget.x,
-          scene.cameraTarget.y,
-          scene.cameraTarget.z,
-        ],
-        rootElement: containerRef.current,
-        selfDrivenMode: true,
-        useBuiltInControls: true,
-        dynamicScene: false,
-        // Disable SharedArrayBuffer — requires COOP/COEP headers that
-        // Vercel doesn't set. Falls back to ArrayBuffer postMessage.
-        sharedMemoryForWorkers: false,
-      });
-      viewerRef.current = viewer;
+      try {
+        const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
+        if (disposed) return;
 
-      const splatPath = resolveAsset(scene.splatUrl, scene.splatIsRemote);
-      viewer
-        .addSplatScene(splatPath, { splatAlphaRemovalThreshold: 5 })
-        .then(() => {
-          if (!disposed) setLoaded(true);
-        })
-        .catch((err) => {
-          console.error('[MemoryPortal] Splat load error:', err);
-          if (!disposed) {
-            setLoadError(err.message || 'Failed to load 3D scene');
-            setCapable(false);
-          }
+        // Dispose any previous viewer
+        if (viewerRef.current) {
+          try { viewerRef.current.dispose(); } catch {}
+          viewerRef.current = null;
+        }
+
+        const viewer = new GaussianSplats3D.Viewer({
+          cameraUp: [0, 1, 0],
+          initialCameraPosition: [
+            scene.cameraPosition.x,
+            scene.cameraPosition.y,
+            scene.cameraPosition.z,
+          ],
+          initialCameraLookAt: [
+            scene.cameraTarget.x,
+            scene.cameraTarget.y,
+            scene.cameraTarget.z,
+          ],
+          rootElement: containerRef.current,
+          selfDrivenMode: true,
+          useBuiltInControls: true,
+          dynamicScene: false,
+          sharedMemoryForWorkers: false,
+          progressiveLoad: true,
         });
-    }).catch((err) => {
-      console.error('[MemoryPortal] Library load error:', err);
-      if (!disposed) {
-        setLoadError(err.message || 'Failed to load viewer library');
-        setCapable(false);
-      }
-    });
+        viewerRef.current = viewer;
 
-    }, 200); // 200ms delay for WebGL context cleanup
+        const splatPath = resolveAsset(scene.splatUrl, scene.splatIsRemote);
+        await viewer.addSplatScene(splatPath, {
+          splatAlphaRemovalThreshold: 5,
+          showLoadingUI: true,
+        });
+
+        if (!disposed) setLoaded(true);
+      } catch (err) {
+        console.error(`[MemoryPortal] Attempt ${retryCount + 1} failed:`, err);
+
+        if (retryCount < maxRetries && !disposed) {
+          retryCount++;
+          if (viewerRef.current) {
+            try { viewerRef.current.dispose(); } catch {}
+            viewerRef.current = null;
+          }
+          if (containerRef.current) containerRef.current.innerHTML = '';
+          await new Promise(r => setTimeout(r, 1000));
+          return initSplatViewer();
+        }
+
+        if (!disposed) {
+          setLoadError(err.message || 'Failed to load 3D scene');
+          setCapable(false);
+        }
+      }
+    }
+
+    // 500ms delay to let previous WebGL context (globe) fully release
+    const initDelay = setTimeout(initSplatViewer, 500);
 
     return () => {
       disposed = true;
       clearTimeout(initDelay);
       if (viewerRef.current) {
-        try {
-          viewerRef.current.dispose();
-        } catch {
-          // viewer may already be cleaned up
-        }
+        try { viewerRef.current.dispose(); } catch {}
         viewerRef.current = null;
       }
     };
@@ -141,7 +133,7 @@ export default function MemoryPortal() {
       },
     });
     soundRef.current = sound;
-    sound.play(); // starts muted (volume 0)
+    sound.play();
 
     return () => {
       sound.unload();
@@ -164,11 +156,10 @@ export default function MemoryPortal() {
     };
   }, [scene.narrative]);
 
-  // --- Unmute handler ---
   const handleUnmute = useCallback(() => {
     if (!soundRef.current) return;
     if (muted) {
-      soundRef.current.fade(0, 0.6, 2000); // fade in over 2s
+      soundRef.current.fade(0, 0.6, 2000);
       setMuted(false);
     } else {
       soundRef.current.fade(soundRef.current.volume(), 0, 500);
@@ -176,7 +167,6 @@ export default function MemoryPortal() {
     }
   }, [muted]);
 
-  // --- Narrative cards overlay ---
   const narrativeOverlay = (
     <div className="memory-narrative">
       <AnimatePresence>
@@ -197,7 +187,6 @@ export default function MemoryPortal() {
     </div>
   );
 
-  // --- Loading indicator ---
   const loadingIndicator = capable && !loaded && !loadError && (
     <div className="memory-loading">
       <div className="memory-loading-spinner" />
@@ -205,7 +194,6 @@ export default function MemoryPortal() {
     </div>
   );
 
-  // --- Unmute button ---
   const unmuteButton = scene.soundtrack && soundReady && (
     <button
       className="memory-unmute"
@@ -219,7 +207,6 @@ export default function MemoryPortal() {
 
   return (
     <div className="memory-portal">
-      {/* Back button */}
       <div className="memory-back">
         <Link to="/" className="back-link">
           <ArrowLeft size={16} />
@@ -227,12 +214,10 @@ export default function MemoryPortal() {
         </Link>
       </div>
 
-      {/* Scene title */}
       <div className="memory-title">
         <span>{scene.location}</span>
       </div>
 
-      {/* Capable: 3D splat viewer */}
       {capable === true && (
         <div
           ref={containerRef}
@@ -240,7 +225,6 @@ export default function MemoryPortal() {
         />
       )}
 
-      {/* Not capable or errored: static fallback */}
       {capable === false && (
         <div
           className="memory-fallback"
@@ -263,7 +247,6 @@ export default function MemoryPortal() {
         </div>
       )}
 
-      {/* Checking state */}
       {capable === null && (
         <div className="memory-loading">
           <span>Checking device capabilities...</span>
