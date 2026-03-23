@@ -225,37 +225,27 @@ export default function ConstellationPage() {
     loadData();
   }, [loadData]);
 
-  // Deep-link: auto-focus node from URL param once data AND canvas are ready.
-  // Must wait for canvasReady to avoid firing GSAP camera animation before
-  // the WebGL context is fully initialized (causes Context Lost on first visit
-  // via view transitions).
+  // Deep-link: auto-focus node from URL param once data is loaded.
+  // Fires quickly so the camera fly-to animation plays as the scene
+  // appears — user sees the cinematic swoop into the node.
   const deepLinked = useRef(false);
   useEffect(() => {
-    if (urlNodeId && dataLoaded && canvasReady && !deepLinked.current) {
+    if (urlNodeId && dataLoaded && !deepLinked.current) {
       deepLinked.current = true;
       const focusNode = useConstellationStore.getState().focusNode;
       requestAnimationFrame(() => focusNode(urlNodeId));
     }
-  }, [urlNodeId, dataLoaded, canvasReady]);
+  }, [urlNodeId, dataLoaded]);
 
-  // Delay Canvas mount to survive React StrictMode's mount-unmount-remount.
-  // Uses setTimeout (not rAF) so the cleanup's clearTimeout actually cancels
-  // the first mount's timer before StrictMode's remount schedules a new one.
-  // 50ms is enough for StrictMode's unmount to fire and cancel the first timer.
-  const canvasMountedRef = useRef(false);
+  // Delay Canvas mount by one frame to survive React StrictMode's
+  // mount-unmount-remount cycle. Without this, StrictMode creates and
+  // destroys a WebGL context (with 18+ bloom textures) before the
+  // real mount, causing THREE.WebGLRenderer: Context Lost.
   useEffect(() => {
-    const id = setTimeout(() => {
-      canvasMountedRef.current = true;
-      setCanvasReady(true);
-    }, 50);
+    const id = requestAnimationFrame(() => setCanvasReady(true));
     return () => {
-      clearTimeout(id);
-      // Only reset canvasReady if this is a real unmount, not StrictMode's
-      // intermediate unmount — check if the timer was the one that set it
-      if (canvasMountedRef.current) {
-        setCanvasReady(false);
-        canvasMountedRef.current = false;
-      }
+      cancelAnimationFrame(id);
+      setCanvasReady(false);
     };
   }, []);
 

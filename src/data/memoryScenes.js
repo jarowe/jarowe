@@ -12,6 +12,9 @@
  * cameraKeyframes: Array<{ position: {x,y,z}, target: {x,y,z}, duration: number (sec),
  *   ease: string (GSAP ease), hold: number (sec pause at this beat) }> | null
  * mood: 'warm' | 'cool' | 'golden' | null — color grading preset (Phase 11 CINE-04)
+ * samMaskUrl: string | null — SAM-generated binary mask PNG (white=foreground, black=background)
+ * layerSeparation: { foregroundDepthScale, backgroundDepthScale, foregroundDriftSpeed, backgroundDriftSpeed } | null
+ * arc: { awakeningDuration, awakeningEase, awakeningDelay, recessionDuration, recessionEase, recessionDelay, recessionFadeColor } | null
  */
 
 const scenes = [
@@ -44,6 +47,11 @@ const scenes = [
     cameraTarget: { x: 0, y: 0.2, z: -2 },
     mood: 'cool',
     cameraKeyframes: null, // splat scenes use their own camera controls
+    // SAM layer separation (not used for splat scenes)
+    samMaskUrl: null,
+    layerSeparation: null,
+    // Experience arc (not used for splat scenes)
+    arc: null,
   },
   {
     id: 'test-capsule',
@@ -77,6 +85,24 @@ const scenes = [
     cameraPosition: { x: 0, y: 0, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
     mood: 'warm',
+    // SAM layer separation (ARC-02) — foreground at different depth rhythm than background
+    samMaskUrl: 'memory/test-capsule/mask.png',
+    layerSeparation: {
+      foregroundDepthScale: 1.2,   // foreground displaced at 1.2x depthScale
+      backgroundDepthScale: 0.8,   // background at 0.8x — "looking through a window"
+      foregroundDriftSpeed: 1.0,    // relative drift speed for foreground
+      backgroundDriftSpeed: 0.6,    // slower drift for background — different emotional rhythm
+    },
+    // Experience arc timing (ARC-01, ARC-03)
+    arc: {
+      awakeningDuration: 3.5,       // seconds for depthScale 0→1 (ARC-01)
+      awakeningEase: 'power2.out',  // soft organic ease — "something being remembered"
+      awakeningDelay: 0.5,          // brief pause before depth starts
+      recessionDuration: 3.0,       // seconds for depthScale 1→0 (ARC-03)
+      recessionEase: 'power2.in',   // gentle fade out
+      recessionDelay: 20,           // seconds after mount before recession begins
+      recessionFadeColor: [1.0, 0.98, 0.95], // warm white fade target
+    },
     cameraKeyframes: [
       {
         // Beat 1: Push in — viewer is drawn into the memory
