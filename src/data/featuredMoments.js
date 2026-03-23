@@ -33,7 +33,7 @@ export const FEATURED_MOMENTS = [
   { id: 'cm-p-008', title: 'Motion Capture - Golf Swing App', theme: 'career', epoch: 'Career Start', media: 'https://carbon-media.accelerator.net/0000000exsu/3G5n2Zz4Ywyf23v9LJSxi8;960x540.jpeg?auto=webp' },
 
   // Fatherhood
-  { id: 'ms-006', title: 'Jace born — first son, fatherhood begins', theme: 'fatherhood', epoch: 'College', media: null },
+  { id: 'ms-006', title: 'Jace born — first son, fatherhood begins', theme: 'fatherhood', epoch: 'College', media: 'images/jace-birth.jpg' },
   { id: 'ms-007', title: 'Gatlin born — second son joins the adventure', theme: 'fatherhood', epoch: 'Career Start', media: null },
   { id: 'ms-009', title: 'Jole born — three boys, the family is complete', theme: 'fatherhood', epoch: 'Career Start', media: null },
 

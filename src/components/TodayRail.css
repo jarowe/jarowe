@@ -522,7 +522,29 @@
   border-radius: 4px;
 }
 
-/* Glint peek character reacts when Journal card is hovered — "I'm here!" */
+/* GlintFab (bottom-right diamond) reacts when Journal card is hovered */
+html.glint-journal-hovered .glint-fab {
+  animation: fab-journal-react 1s ease-in-out infinite !important;
+  border-color: rgba(167, 139, 250, 0.6) !important;
+}
+
+html.glint-journal-hovered .glint-fab .glint-fab-prism {
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.6))
+         drop-shadow(0 0 16px rgba(56, 189, 248, 0.3)) !important;
+}
+
+@keyframes fab-journal-react {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(167, 139, 250, 0.15);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.5), 0 0 50px rgba(167, 139, 250, 0.25);
+  }
+}
+
+/* Peek character also reacts if visible */
 html.glint-journal-hovered .peek-character {
   animation: peek-journal-pulse 1.2s ease-in-out infinite !important;
 }
