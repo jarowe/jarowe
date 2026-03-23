@@ -1,133 +1,108 @@
 # Requirements: jarowe.com
 
-**Defined:** 2026-03-20 (v2.0), updated 2026-03-23 (v2.1)
+**Defined:** 2026-03-23 (v2.2)
 **Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
 
-## v2.1 Requirements — Memory Capsules
+## v2.2 Requirements — Particle Memory Flight
 
-Turn a single still photo into an immersive 3D memory you can step into. Not a tech demo — a playable memory poem. 1 flagship capsule is the milestone anchor.
+Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience. Photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio. Flagship scene: syros-cave only.
 
-**Guardrail:** If tradeoffs appear, protect the flagship capsule experience (SHELL-04, ARC-*) before protecting editor/tooling depth.
+**Guardrail:** If tradeoffs appear, protect the particle flight experience (PART-01, FLIGHT-01, DREAM-01/03) before protecting audio polish or wire connection density.
 
-### Depth Renderer
+### Particle Renderer
 
-- [x] **DEPTH-01**: Visitor sees a single photo rendered as a depth-displaced 3D mesh with foreground/background layer separation via SAM masks
-- [x] **DEPTH-02**: Depth discontinuity edges are handled via fragment shader discard — no rubber-sheet stretching artifacts
-- [x] **DEPTH-03**: Each scene has per-scene tuning knobs (depthScale, depthBias, depthContrast) for manual depth map refinement
-- [x] **DEPTH-04**: GPU capability is detected at 3 tiers (full displaced mesh / simplified / parallax-only fallback) based on device capability
+- [ ] **PART-01**: Photo + depth map sampled into 80K-150K luminous particles placed in 3D — the image is recognizable as a particle field, not a flat texture. Flagship desktop path: `syros-cave` only — one scene proves the renderer
+- [ ] **PART-02**: Selective wire connections link nearby particles with depth-aware density — visible structure between particles, not isolated dots
+- [ ] **PART-03**: Particles have bloom glow, breathing animation, and size variation — the field feels alive, not static
+- [ ] **PART-04**: Tier-adaptive particle count — full (150K), simplified (50K-80K), parallax fallback (CSS, no WebGL)
 
-### Camera & Atmosphere
+### Flight Controller
 
-- [x] **CINE-01**: Camera follows a constrained cinematic path (drift, dolly, parallax) — no free-roam OrbitControls
-- [x] **CINE-02**: Camera uses multi-beat GSAP keyframe choreography (push, pause, drift) synced to narrative card timing
-- [x] **CINE-03**: Scene includes atmospheric particles (dust motes, bokeh specks, light drift) and depth-of-field postprocessing with vignette and film grain
-- [x] **CINE-04**: Each scene supports per-scene color grading (warm/cool/golden mood) via fragment uniform or postprocessing
+- [ ] **FLIGHT-01**: Scroll/trackpad/touch input drives camera position along a 3D spline path — wheel forward = fly deeper into the memory
+- [ ] **FLIGHT-02**: Camera movement has momentum and exponential decay — smooth, not jerky or 1:1 locked to scroll delta
+- [ ] **FLIGHT-03**: Narrative cards and particle cohesion states are driven by normalized progress (0-1), not time — scroll controls the experience pace
+- [ ] **FLIGHT-04**: Progress supports both deliberate scroll-stepping and inertial autopilot drift when input stops — the scene never feels dead, but the user regains control on next scroll
 
-### Portal & Narrative
+### Dream Portal
 
-- [x] **PORT-01**: Narrative text appears as timed glass cards — "remembered thoughts, not captions" — synced to camera beats
-- [x] **PORT-02**: Per-scene soundtrack plays via Howler.js with fade-in; music blooms after user intent (respects autoplay policy)
-- [x] **PORT-03**: Capsule has full portal entry/exit transitions (reuse PortalVFX phases) — "enter through a portal, not a route"
-- [x] **PORT-04**: GlobalPlayer music ducks on capsule entry and restores on exit
-- [ ] **PORT-05**: Memory-type constellation nodes link directly to capsule scenes
+- [ ] **DREAM-01**: Entry transition dissolves the current page into scattered particles before route change — reality breaks apart, not a UI fade
+- [ ] **DREAM-02**: Tunnel/void phase streams particles past the camera in a directional flow — the visitor falls through a luminous space between worlds
+- [ ] **DREAM-03**: Memory reform phase assembles the particle field from scattered positions into the photo formation — the memory crystallizes from chaos
+- [ ] **DREAM-04**: Exit transition reverses the memory into particles and returns through the same dream grammar as entry — not a different or out-of-band effect
 
-### Asset Pipeline & Tooling
+### Soundscape
 
-- [x] **ASSET-01**: Manual workflow: upload photo, generate depth offline (Depth Pro or Depth Anything V2), compress to <500KB per capsule
-- [ ] **ASSET-02**: CapsuleEditor (lil-gui) provides live tuning for depth, camera keyframes, atmosphere, and color grading
+- [ ] **SOUND-01**: Layered ambient audio (drone, texture, detail) with per-layer volume envelopes driven by scroll progress — audio evolves as you fly deeper
+- [ ] **SOUND-02**: GlobalPlayer ducks on capsule entry, soundscape cross-fades smoothly — no audio gaps or conflicts
 
-### Integration & Shell
+### Integration
 
-- [x] **SHELL-01**: Renderer-agnostic CapsuleShell replaces MemoryPortal — displaced mesh now, splat swap later via renderMode per scene
-- [x] **SHELL-02**: WebGL context lifecycle managed — globe renderer disposed on route exit, capsule Canvas isolated
-- [x] **SHELL-03**: Mobile fallback provides parallax + Ken Burns experience for non-capable devices
-- [x] **SHELL-04**: 1 flagship capsule proven end-to-end — a real Jared memory with depth planes, emotional charge, narrative, soundtrack
-
-### Experience Arc (Creative Direction)
-
-- [x] **ARC-01**: Scene begins as a still image, depth slowly wakes up, camera drifts with "impossible gentleness"
-- [x] **ARC-02**: Foreground objects move at a different emotional rhythm than the background (layer separation via SAM)
-- [x] **ARC-03**: At the end, the memory recedes — returning to your mind, not closing a page
+- [ ] **INTEG-01**: New `renderMode: 'particle-memory'` slots into existing CapsuleShell dispatch — shell, route, narrative overlay, and fallback remain unchanged
+- [ ] **INTEG-02**: Dual position buffers (scattered + photo-sampled) pre-allocated at init — enables dissolve/reform without destructive buffer rewrites
 
 ## Future Requirements
 
 Deferred to future milestones. Not in current roadmap.
 
-### Memory Capsules v2.2+
+### Memory Capsules v2.3+
 - **CAPSULE-01**: Memory plasma — multi-scene sequencing with flowing transitions between capsules
 - **CAPSULE-02**: Gaussian splat renderer swap (SHARP/CompleteSplat when models mature)
 - **CAPSULE-03**: Client-side depth estimation (WebGPU + Depth Anything V2 ONNX)
-- **CAPSULE-04**: Depth map validator script for pipeline quality assurance
-- **CAPSULE-05**: Audio-reactive displacement (Web Audio analyser → shader uniforms)
-- **CAPSULE-06**: Auto-ingest from phone capture (Scaniverse/Polycam)
-- **CAPSULE-07**: Scene-specific OG preview images
+- **CAPSULE-04**: Audio-reactive particle displacement (Web Audio analyser → shader uniforms)
+- **CAPSULE-05**: Multiple flagship scenes (Jace on rocks, family golden hour, etc.)
+- **CAPSULE-06**: GPUComputationRenderer for per-particle physics simulation
+- **CAPSULE-07**: Scene-specific OG preview images with particle snapshot
 
-### Constellation Core (from v1.0)
+### Constellation Core
 - **CONST-01**: Scripted narrator engine with 5-tier event-driven narration
 - **CONST-02**: Guided tour (~90 seconds, cinematic, skippable)
-- **CONST-03**: Constellation modes: "Life" / "Work" / "Ideas"
-- **CONST-04**: Path memory: faint glowing trail of visitor's journey
 
 ### Ecosystem Expansion
-- **ECO-01** through **ECO-06**: Starseed Labs standalone, community, subscribers, content pipeline, video, independent site
+- **ECO-01** through **ECO-06**: Starseed Labs standalone, community, subscribers, content pipeline
 
-### Experience Expansion
-- **EXP-01** through **EXP-08**: Voice Glint, multiplayer, StarOS, more portals, hand tracking, WebGPU, VR, conversation memory
-
-## Out of Scope (v2.1)
+## Out of Scope (v2.2)
 
 | Feature | Reason |
 |---------|--------|
-| Memory plasma (multi-scene) | Prove 1 flagship first; don't dilute |
-| Gaussian splat renderer | v2.2 — SHARP/CompleteSplat when models mature |
-| Client-side depth estimation | 99MB model, needs WebGPU maturity |
-| Depth map validator script | Optimize for art direction, not pipeline tooling |
-| Audio-reactive displacement | Enhancement after core experience proves |
-| Auto-ingest from phone | Manual workflow first |
-| Constellation Editor overhaul | Not a defect — save for dedicated milestone |
-| New data pipeline parsers | Prove pipeline with existing sources first |
-| Generic autonomous internet agent | Glint is bounded to this world |
-| Mobile native app | Web-first, responsive design covers mobile |
+| Multiple memory scenes | Prove 1 flagship first; don't dilute |
+| GPU compute particles | Vertex shader handles dissolve/reform; defer GPUComputationRenderer |
+| Displaced-mesh renderer improvements | Wrong primitive — being replaced |
+| OrbitControls / free-roam camera | Experience is scroll-driven on rails |
+| Mobile particle renderer | Desktop hero first; mobile keeps parallax |
+| Soundtrack per scene | Soundscape is ambient layers, not curated tracks |
+| Constellation integration | Phase 13 (v2.1 stretch) — deferred |
 
 ## Traceability
 
-Updated during roadmap creation (2026-03-23).
+Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPTH-01 | Phase 10 | Not started |
-| DEPTH-02 | Phase 10 | Not started |
-| DEPTH-03 | Phase 10 | Not started |
-| DEPTH-04 | Phase 10 | Not started |
-| CINE-01 | Phase 11 | Not started |
-| CINE-02 | Phase 11 | Not started |
-| CINE-03 | Phase 11 | Not started |
-| CINE-04 | Phase 11 | Not started |
-| PORT-01 | Phase 12 | Not started |
-| PORT-02 | Phase 11 | Not started |
-| PORT-03 | Phase 12 | Not started |
-| PORT-04 | Phase 11 | Not started |
-| PORT-05 | Phase 13 | Not started |
-| ASSET-01 | Phase 10 | Not started |
-| ASSET-02 | Phase 13 | Not started |
-| SHELL-01 | Phase 10 | Not started |
-| SHELL-02 | Phase 10 | Not started |
-| SHELL-03 | Phase 10 | Not started |
-| SHELL-04 | Phase 12 | Not started |
-| ARC-01 | Phase 12 | Not started |
-| ARC-02 | Phase 12 | Not started |
-| ARC-03 | Phase 12 | Not started |
+| PART-01 | TBD | Not started |
+| PART-02 | TBD | Not started |
+| PART-03 | TBD | Not started |
+| PART-04 | TBD | Not started |
+| FLIGHT-01 | TBD | Not started |
+| FLIGHT-02 | TBD | Not started |
+| FLIGHT-03 | TBD | Not started |
+| FLIGHT-04 | TBD | Not started |
+| DREAM-01 | TBD | Not started |
+| DREAM-02 | TBD | Not started |
+| DREAM-03 | TBD | Not started |
+| DREAM-04 | TBD | Not started |
+| SOUND-01 | TBD | Not started |
+| SOUND-02 | TBD | Not started |
+| INTEG-01 | TBD | Not started |
+| INTEG-02 | TBD | Not started |
 
 **Coverage:**
-- v2.1 requirements: 22 total
-- Mapped to phases: 22
-- Unmapped: 0
-- Phase 10: 8 requirements (DEPTH-01/02/03/04, SHELL-01/02/03, ASSET-01)
-- Phase 11: 6 requirements (CINE-01/02/03/04, PORT-02, PORT-04)
-- Phase 12: 6 requirements (SHELL-04, PORT-01/03, ARC-01/02/03)
-- Phase 13: 2 requirements (PORT-05, ASSET-02)
+- v2.2 requirements: 16 total
+- Mapped to phases: 0 (awaiting roadmap)
 
 ## Previous Milestones
+
+### v2.1 (Shipped 2026-03-23)
+20 requirements, all complete (DEPTH-01/02/03/04, SHELL-01/02/03/04, ASSET-01, CINE-01/02/03/04, PORT-01/02/03/04, ARC-01/02/03)
 
 ### v2.0.1 (Shipped 2026-03-22)
 5 requirements, all complete (RENDER-01, CONTENT-01, VISUAL-01/02/03)
@@ -136,5 +111,5 @@ Updated during roadmap creation (2026-03-23).
 37 requirements across 6 categories, all complete except STAR-07 (DNS), PORTAL-02 (partial), PORTAL-04 (partial)
 
 ---
-*Requirements defined: 2026-03-20 (v2.0)*
-*Last updated: 2026-03-23 after v2.1 Memory Capsules requirements definition*
+*Requirements defined: 2026-03-23 (v2.2)*
+*Last updated: 2026-03-23*
