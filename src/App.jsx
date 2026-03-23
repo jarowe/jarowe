@@ -36,7 +36,7 @@ const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
 const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
 const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
-const MemoryPortal = lazyRetry(() => import('./pages/MemoryPortal'));
+const CapsuleShell = lazyRetry(() => import('./pages/CapsuleShell'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -375,7 +375,7 @@ function AppContent() {
           } />
           <Route path="/memory/:sceneId" element={
             <Suspense fallback={<LazyFallback label="Loading Memory..." />}>
-              <MemoryPortal />
+              <CapsuleShell />
             </Suspense>
           } />
           <Route path="/profile" element={
