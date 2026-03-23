@@ -470,13 +470,24 @@ export default function CapsuleShell() {
     setTier('parallax'); // Fall through to immersive fallback
   }, []);
 
-  // Determine which renderer to use
+  // Determine renderer based on scene.renderMode x GPU tier
   const renderMode = scene.renderMode || 'splat';
-  const showSplat = renderMode === 'splat' && tier && tier !== 'parallax';
-  const showDisplaced =
-    renderMode === 'displaced-mesh' && tier && tier !== 'parallax';
-  const showFallback = tier === 'parallax' || (!showSplat && !showDisplaced);
-  const showChecking = tier === null;
+  let showSplat = false;
+  let showDisplaced = false;
+  let showFallback = false;
+
+  if (tier === null) {
+    // Still checking capabilities — show loading state
+  } else if (tier === 'parallax') {
+    showFallback = true;
+  } else if (renderMode === 'displaced-mesh') {
+    showDisplaced = true;
+  } else if (renderMode === 'splat') {
+    showSplat = true;
+  } else {
+    // Unknown renderMode — graceful fallback
+    showFallback = true;
+  }
 
   return (
     <div className="memory-portal">
@@ -491,12 +502,12 @@ export default function CapsuleShell() {
 
       {showDisplaced && <DisplacedMeshRenderer scene={scene} tier={tier} />}
 
-      {showFallback && !showChecking && (
+      {showFallback && (
         <ParallaxFallback scene={scene} loadError={loadError} />
       )}
 
       {/* === Loading states === */}
-      {showChecking && (
+      {tier === null && (
         <div className="memory-loading">
           <span>Checking device capabilities...</span>
         </div>
