@@ -17,13 +17,11 @@ const scenes = [
     title: 'A Place That Matters',
     location: 'Memory Lane',
     coordinates: { lat: 0, lng: 0 },
-    // Remote demo asset — replaced with a real captured .spz file later
-    // Original HuggingFace URL returns 401 now; using publicly accessible alternative
-    splatUrl:
-      'https://huggingface.co/cakewalk/splat-data/resolve/main/nike.splat',
-    splatIsRemote: true,
+    // Local splat file — CORS-safe, no redirect issues
+    splatUrl: 'data/memory-scene.splat',
+    splatIsRemote: false,
     previewImage: '/images/memory/placeholder-preview.jpg',
-    soundtrack: null, // no placeholder audio — Howl creation is conditional
+    soundtrack: null,
     narrative: [
       { text: 'Some places hold more than what you see.', delay: 2000 },
       {
@@ -32,8 +30,9 @@ const scenes = [
       },
       { text: 'This is one of those places.', delay: 11000 },
     ],
-    cameraPosition: { x: 0, y: 1.5, z: 5 },
-    cameraTarget: { x: 0, y: 0.5, z: 0 },
+    // Camera positioned for the train scene — eye-level, looking along tracks
+    cameraPosition: { x: -3.5, y: 0.5, z: 1.5 },
+    cameraTarget: { x: 0, y: 0.2, z: -2 },
   },
 ];
 
