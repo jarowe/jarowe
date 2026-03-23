@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
-status: Ready to plan
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-03-23T08:25:46.799Z"
+status: Ready to execute
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-23T08:50:55.905Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 10 — Foundation + Asset Pipeline
+**Current focus:** Phase 11 — Cinematic Polish
 
 ## Current Position
 
-Phase: 11
-Plan: Not started
+Phase: 11 (Cinematic Polish) — EXECUTING
+Plan: 2 of 3
 
 ## v2.1 Roadmap Summary
 
@@ -68,6 +68,7 @@ Plan: Not started
 | Phase 10 P01 | 5min | 4 tasks | 4 files |
 | Phase 10 P02 | 3min | 2 tasks | 6 files |
 | Phase 10 P03 | 4min | 3 tasks | 2 files |
+| Phase 11 P01 | 4min | 2 tasks | 2 files |
 
 ## v2.0.1 Summary
 
@@ -109,6 +110,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 10]: PNG format for both photo and depth (not WebP) -- uniform header parsing for validation — Simpler validation, consistent dimension checks
 - [Phase 10]: Fragment discard uses dFdx/dFdy screen-space derivatives with smoothstep alpha fade band for anti-aliased depth edges — Screen-space derivatives detect depth discontinuities precisely; smoothstep prevents hard cutoff artifacts
 - [Phase 10]: ParallaxFallback uses two layers from same image with differential parallax speeds for depth illusion without WebGL — Avoids need for pre-separated depth layers while providing compelling depth effect on low-end devices
+- [Phase 11]: CinematicCamera uses GSAP timeline with repeat:-1 for infinite loop; camera beat timing coarsely aligned to narrative card delays — Proven pattern for cinematic camera in memory capsules without OrbitControls
 
 ### v2.1 Research Flags
 
@@ -128,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T08:20:47.524Z
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-03-23T08:50:34.730Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None

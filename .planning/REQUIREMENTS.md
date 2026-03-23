@@ -18,8 +18,8 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 ### Camera & Atmosphere
 
-- [ ] **CINE-01**: Camera follows a constrained cinematic path (drift, dolly, parallax) — no free-roam OrbitControls
-- [ ] **CINE-02**: Camera uses multi-beat GSAP keyframe choreography (push, pause, drift) synced to narrative card timing
+- [x] **CINE-01**: Camera follows a constrained cinematic path (drift, dolly, parallax) — no free-roam OrbitControls
+- [x] **CINE-02**: Camera uses multi-beat GSAP keyframe choreography (push, pause, drift) synced to narrative card timing
 - [ ] **CINE-03**: Scene includes atmospheric particles (dust motes, bokeh specks, light drift) and depth-of-field postprocessing with vignette and film grain
 - [ ] **CINE-04**: Each scene supports per-scene color grading (warm/cool/golden mood) via fragment uniform or postprocessing
 
