@@ -58,6 +58,9 @@ export default function MemoryPortal() {
 
     let disposed = false;
 
+    // Small delay to let previous page's WebGL context (globe) fully dispose
+    // before creating the splat viewer's context — prevents Context Lost
+    const initDelay = setTimeout(() => {
     // Dynamic import to avoid bundling the heavy library for fallback users
     import('@mkkellogg/gaussian-splats-3d').then((GaussianSplats3D) => {
       if (disposed) return;
@@ -78,6 +81,9 @@ export default function MemoryPortal() {
         selfDrivenMode: true,
         useBuiltInControls: true,
         dynamicScene: false,
+        // Disable SharedArrayBuffer — requires COOP/COEP headers that
+        // Vercel doesn't set. Falls back to ArrayBuffer postMessage.
+        sharedMemoryForWorkers: false,
       });
       viewerRef.current = viewer;
 
@@ -102,8 +108,11 @@ export default function MemoryPortal() {
       }
     });
 
+    }, 200); // 200ms delay for WebGL context cleanup
+
     return () => {
       disposed = true;
+      clearTimeout(initDelay);
       if (viewerRef.current) {
         try {
           viewerRef.current.dispose();

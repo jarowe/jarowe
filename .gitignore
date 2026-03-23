@@ -17,7 +17,6 @@ dist-ssr
 public/data/*
 !public/data/constellation.graph.json
 !public/data/constellation.layout.json
-!public/data/memory-scene.splat
 !public/data/pipeline-status.json
 data-private/
 
