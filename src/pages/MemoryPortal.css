@@ -1,6 +1,6 @@
-/* ── Memory Portal ─────────────────────────────────────────
- * Full-viewport immersive shell for gaussian splat scenes
- * with narrative overlay, soundtrack controls, and fallback. */
+/* ── Memory Portal — Immersive Full-Viewport Experience ──
+ * Parallax hero image, atmospheric overlays, narrative cards,
+ * soundtrack controls. No WebGL required. */
 
 .memory-portal {
   position: fixed;
@@ -10,47 +10,92 @@
   overflow: hidden;
 }
 
-/* ── Splat container ─────────────────────────────────────── */
-.memory-splat-container {
-  width: 100%;
-  height: 100%;
-}
-
-/* The splat library injects its own canvas — make sure it fills */
-.memory-splat-container canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ── Loading state ───────────────────────────────────────── */
-.memory-loading {
+/* ── Background layers ──────────────────────────────────── */
+.memory-portal__bg {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 1.1rem;
+  z-index: 0;
+}
+
+/* Hero image — slightly oversized for parallax room */
+.memory-portal__hero-image {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  will-change: transform;
+}
+
+/* Vignette overlay — dark edges for cinematic depth */
+.memory-portal__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Film grain texture — subtle animated noise */
+.memory-portal__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  mix-blend-mode: overlay;
+}
+
+/* Light leak — warm cinematic glow that follows mouse */
+.memory-portal__light-leak {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 180, 100, 0.08) 0%,
+    rgba(255, 140, 60, 0.04) 40%,
+    transparent 70%
+  );
+  z-index: 3;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ── Center content ─────────────────────────────────────── */
+.memory-portal__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
   z-index: 5;
   pointer-events: none;
 }
 
-.memory-loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  animation: memory-spin 0.8s linear infinite;
+.memory-portal__scene-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 0.5rem;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
 }
 
-@keyframes memory-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.memory-portal__scene-location {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
 }
 
 /* ── Narrative cards ─────────────────────────────────────── */
@@ -112,59 +157,17 @@
   z-index: 10;
 }
 
-/* ── Scene title ─────────────────────────────────────────── */
+/* ── Scene title (top right) ─────────────────────────────── */
 .memory-title {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
   z-index: 10;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-}
-
-/* ── Fallback (static image) ─────────────────────────────── */
-.memory-fallback {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.memory-fallback-prompt {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 400px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.memory-fallback-prompt h2 {
-  margin: 0 0 1rem;
-  font-size: 1.4rem;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 500;
-}
-
-.memory-fallback-prompt p {
-  margin: 0;
-  line-height: 1.6;
-  font-size: 0.95rem;
-}
-
-.memory-fallback-error {
-  margin-top: 1rem !important;
-  font-size: 0.8rem !important;
-  color: rgba(255, 120, 120, 0.7) !important;
+  font-weight: 600;
 }
 
 /* ── Mobile responsive ───────────────────────────────────── */
@@ -189,7 +192,6 @@
   .memory-title {
     top: 1rem;
     right: 1rem;
-    font-size: 0.75rem;
   }
 
   .memory-unmute {

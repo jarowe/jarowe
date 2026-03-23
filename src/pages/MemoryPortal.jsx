@@ -4,14 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Howl } from 'howler';
 import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { getSceneById } from '../data/memoryScenes';
-import { canRenderSplat } from '../utils/gpuCapability';
 import './MemoryPortal.css';
 
 const BASE = import.meta.env.BASE_URL;
 
-function resolveAsset(path, isRemote) {
+function resolveAsset(path) {
   if (!path) return null;
-  if (isRemote || path.startsWith('http')) return path;
+  if (path.startsWith('http')) return path;
   return `${BASE}${path.replace(/^\//, '')}`;
 }
 
@@ -19,120 +18,29 @@ export default function MemoryPortal() {
   const { sceneId } = useParams();
   const scene = getSceneById(sceneId);
 
-  const [capable, setCapable] = useState(null);
-  const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(null);
   const [visibleCards, setVisibleCards] = useState([]);
   const [muted, setMuted] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const soundRef = useRef(null);
-  const containerRef = useRef(null);
-  const viewerRef = useRef(null);
 
-  // Force-release any stale WebGL contexts from previous pages (globe)
-  // Browsers limit concurrent contexts (~8-16); the globe's renderer
-  // doesn't dispose on unmount, so we explicitly kill orphaned contexts.
-  useEffect(() => {
-    document.querySelectorAll('canvas').forEach((canvas) => {
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-      if (gl) {
-        const ext = gl.getExtension('WEBGL_lose_context');
-        if (ext) ext.loseContext();
-      }
+  // Parallax mouse tracking
+  const handleMouseMove = useCallback((e) => {
+    setMousePos({
+      x: e.clientX / window.innerWidth,
+      y: e.clientY / window.innerHeight,
     });
-    // Small delay to let GPU recover before capability check
-    const t = setTimeout(() => setCapable(canRenderSplat()), 100);
-    return () => clearTimeout(t);
   }, []);
 
-  // --- Splat viewer lifecycle with retry ---
   useEffect(() => {
-    if (capable !== true || !containerRef.current) return;
-
-    let disposed = false;
-    let retryCount = 0;
-    const maxRetries = 2;
-
-    async function initSplatViewer() {
-      if (disposed || !containerRef.current) return;
-
-      try {
-        const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
-        if (disposed) return;
-
-        // Dispose any previous viewer
-        if (viewerRef.current) {
-          try { viewerRef.current.dispose(); } catch {}
-          viewerRef.current = null;
-        }
-
-        const viewer = new GaussianSplats3D.Viewer({
-          cameraUp: [0, 1, 0],
-          initialCameraPosition: [
-            scene.cameraPosition.x,
-            scene.cameraPosition.y,
-            scene.cameraPosition.z,
-          ],
-          initialCameraLookAt: [
-            scene.cameraTarget.x,
-            scene.cameraTarget.y,
-            scene.cameraTarget.z,
-          ],
-          rootElement: containerRef.current,
-          selfDrivenMode: true,
-          useBuiltInControls: true,
-          dynamicScene: false,
-          sharedMemoryForWorkers: false,
-          progressiveLoad: true,
-        });
-        viewerRef.current = viewer;
-
-        const splatPath = resolveAsset(scene.splatUrl, scene.splatIsRemote);
-        await viewer.addSplatScene(splatPath, {
-          splatAlphaRemovalThreshold: 5,
-          showLoadingUI: true,
-        });
-
-        if (!disposed) setLoaded(true);
-      } catch (err) {
-        console.error(`[MemoryPortal] Attempt ${retryCount + 1} failed:`, err);
-
-        if (retryCount < maxRetries && !disposed) {
-          retryCount++;
-          if (viewerRef.current) {
-            try { viewerRef.current.dispose(); } catch {}
-            viewerRef.current = null;
-          }
-          if (containerRef.current) containerRef.current.innerHTML = '';
-          await new Promise(r => setTimeout(r, 1000));
-          return initSplatViewer();
-        }
-
-        if (!disposed) {
-          setLoadError(err.message || 'Failed to load 3D scene');
-          setCapable(false);
-        }
-      }
-    }
-
-    // 500ms delay to let previous WebGL context (globe) fully release
-    const initDelay = setTimeout(initSplatViewer, 500);
-
-    return () => {
-      disposed = true;
-      clearTimeout(initDelay);
-      if (viewerRef.current) {
-        try { viewerRef.current.dispose(); } catch {}
-        viewerRef.current = null;
-      }
-    };
-  }, [capable, scene]);
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
 
   // --- Soundtrack lifecycle ---
   useEffect(() => {
     if (!scene.soundtrack) return;
-
-    const soundPath = resolveAsset(scene.soundtrack, false);
+    const soundPath = resolveAsset(scene.soundtrack);
     if (!soundPath) return;
 
     const sound = new Howl({
@@ -140,9 +48,7 @@ export default function MemoryPortal() {
       volume: 0,
       loop: true,
       onload: () => setSoundReady(true),
-      onloaderror: (_, err) => {
-        console.warn('[MemoryPortal] Soundtrack load error:', err);
-      },
+      onloaderror: () => {},
     });
     soundRef.current = sound;
     sound.play();
@@ -158,7 +64,6 @@ export default function MemoryPortal() {
   // --- Narrative card sequencing ---
   useEffect(() => {
     if (!scene.narrative?.length) return;
-
     const timers = scene.narrative.map((card, i) =>
       setTimeout(() => setVisibleCards((prev) => [...prev, i]), card.delay)
     );
@@ -179,46 +84,43 @@ export default function MemoryPortal() {
     }
   }, [muted]);
 
-  const narrativeOverlay = (
-    <div className="memory-narrative">
-      <AnimatePresence>
-        {scene.narrative
-          .filter((_, i) => visibleCards.includes(i))
-          .map((card, idx) => (
-            <motion.div
-              key={idx}
-              className="memory-narrative-card"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-            >
-              {card.text}
-            </motion.div>
-          ))}
-      </AnimatePresence>
-    </div>
-  );
+  const previewUrl = resolveAsset(scene.previewImage);
 
-  const loadingIndicator = capable && !loaded && !loadError && (
-    <div className="memory-loading">
-      <div className="memory-loading-spinner" />
-      <span>Loading memory...</span>
-    </div>
-  );
-
-  const unmuteButton = scene.soundtrack && soundReady && (
-    <button
-      className="memory-unmute"
-      onClick={handleUnmute}
-      aria-label={muted ? 'Unmute soundtrack' : 'Mute soundtrack'}
-      title={muted ? 'Unmute soundtrack' : 'Mute soundtrack'}
-    >
-      {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-    </button>
-  );
+  // Parallax transform values
+  const px = (mousePos.x - 0.5) * 20;
+  const py = (mousePos.y - 0.5) * 12;
 
   return (
     <div className="memory-portal">
+      {/* Immersive background layers with parallax */}
+      <div className="memory-portal__bg">
+        {previewUrl && (
+          <motion.div
+            className="memory-portal__hero-image"
+            style={{
+              backgroundImage: `url(${previewUrl})`,
+              x: px,
+              y: py,
+            }}
+            initial={{ scale: 1.3, opacity: 0 }}
+            animate={{ scale: 1.1, opacity: 1 }}
+            transition={{ duration: 3, ease: 'easeOut' }}
+          />
+        )}
+        {/* Atmospheric overlays */}
+        <div className="memory-portal__vignette" />
+        <motion.div
+          className="memory-portal__grain"
+          animate={{ opacity: [0.03, 0.06, 0.03] }}
+          transition={{ duration: 4, repeat: Infinity }}
+        />
+        <motion.div
+          className="memory-portal__light-leak"
+          style={{ x: px * 2, y: py * 2 }}
+        />
+      </div>
+
+      {/* Back button */}
       <div className="memory-back">
         <Link to="/" className="back-link">
           <ArrowLeft size={16} />
@@ -226,48 +128,56 @@ export default function MemoryPortal() {
         </Link>
       </div>
 
-      <div className="memory-title">
-        <span>{scene.location}</span>
+      {/* Scene title */}
+      <motion.div
+        className="memory-title"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1 }}
+      >
+        <span>MEMORY LANE</span>
+      </motion.div>
+
+      {/* Center title card */}
+      <motion.div
+        className="memory-portal__center"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1, duration: 1.2, ease: 'easeOut' }}
+      >
+        <h1 className="memory-portal__scene-title">{scene.title}</h1>
+        <p className="memory-portal__scene-location">{scene.location}</p>
+      </motion.div>
+
+      {/* Narrative overlay */}
+      <div className="memory-narrative">
+        <AnimatePresence>
+          {scene.narrative
+            .filter((_, i) => visibleCards.includes(i))
+            .map((card, idx) => (
+              <motion.div
+                key={idx}
+                className="memory-narrative-card"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              >
+                {card.text}
+              </motion.div>
+            ))}
+        </AnimatePresence>
       </div>
 
-      {capable === true && (
-        <div
-          ref={containerRef}
-          className="memory-splat-container"
-        />
-      )}
-
-      {capable === false && (
-        <div
-          className="memory-fallback"
-          style={{
-            backgroundImage: `url(${resolveAsset(scene.previewImage, false)})`,
-          }}
+      {/* Unmute button */}
+      {scene.soundtrack && soundReady && (
+        <button
+          className="memory-unmute"
+          onClick={handleUnmute}
+          aria-label={muted ? 'Unmute soundtrack' : 'Mute soundtrack'}
         >
-          <div className="memory-fallback-prompt">
-            <h2>{scene.title}</h2>
-            <p>
-              This memory is best experienced in 3D. Visit on a desktop browser
-              with a dedicated GPU for the full volumetric experience.
-            </p>
-            {loadError && (
-              <p className="memory-fallback-error">
-                The 3D scene is temporarily unavailable. Check back soon.
-              </p>
-            )}
-          </div>
-        </div>
+          {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </button>
       )}
-
-      {capable === null && (
-        <div className="memory-loading">
-          <span>Checking device capabilities...</span>
-        </div>
-      )}
-
-      {loadingIndicator}
-      {narrativeOverlay}
-      {unmuteButton}
     </div>
   );
 }
