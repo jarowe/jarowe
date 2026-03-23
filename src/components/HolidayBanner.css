@@ -10,6 +10,17 @@
 .holiday-banner {
   position: relative;
   z-index: 25;
+  transition: filter 0.4s ease;
+}
+
+/* DAY card ↔ banner connection — gentle glow pulse when DAY card is hovered */
+.holiday-banner--day-hover {
+  animation: banner-connection 2s ease-in-out infinite;
+}
+
+@keyframes banner-connection {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2) drop-shadow(0 0 8px var(--hb-glow, rgba(124, 58, 237, 0.2))); }
 }
 
 /* ── T1: Smart Toast Strip ── */

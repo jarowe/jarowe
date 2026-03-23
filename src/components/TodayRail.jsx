@@ -146,6 +146,8 @@ export default function TodayRail() {
             '--day-glow': holiday?.accentGlow || 'rgba(124, 58, 237, 0.15)',
             '--day-secondary': holiday?.accentSecondary || '#06b6d4',
           }}
+          onMouseEnter={() => window.dispatchEvent(new CustomEvent('day-card-hover'))}
+          onMouseLeave={() => window.dispatchEvent(new CustomEvent('day-card-unhover'))}
         >
           <div className="today-card__date">
             <Calendar size={14} className="today-card__date-icon" />
@@ -213,7 +215,7 @@ export default function TodayRail() {
             }}
           >
             <span className="today-card__diamond" aria-hidden="true" />
-            Open Glint Chat
+            Ask Glint
           </button>
         </motion.div>
 
