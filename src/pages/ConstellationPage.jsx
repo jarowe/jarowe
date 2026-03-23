@@ -16,15 +16,23 @@ const ConstellationEditor = lazy(() => import('../constellation/ConstellationEdi
 
 /** Error boundary to catch R3F Canvas crashes gracefully */
 class CanvasErrorBoundary extends Component {
-  state = { hasError: false };
+  state = { hasError: false, errorCount: 0 };
   static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(err) { console.error('Constellation 3D error:', err); }
+  componentDidCatch(err) {
+    console.error('🔴 CanvasErrorBoundary caught:', err.message, err.stack);
+    this.setState(prev => ({ errorCount: prev.errorCount + 1 }));
+  }
   render() {
     if (this.state.hasError) {
+      // Auto-retry once (StrictMode recovery), show error on 2nd failure
+      if (this.state.errorCount <= 1) {
+        setTimeout(() => this.setState({ hasError: false }), 100);
+        return <div className="constellation-loading">Recovering...</div>;
+      }
       return (
         <div className="constellation-loading">
           <p>3D scene failed to load.</p>
-          <button onClick={() => this.setState({ hasError: false })} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+          <button onClick={() => this.setState({ hasError: false, errorCount: 0 })} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
             Retry
           </button>
         </div>
