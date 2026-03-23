@@ -226,6 +226,10 @@ export function AudioProvider({ children }) {
 
     // Duck / restore for node-level audio (constellation panel music or unmuted video)
     const duckedRef = useRef(false);
+
+    // Capsule-level ducking — GlobalPlayer fades to 0.15, not silence
+    const capsuleDuckedRef = useRef(false);
+    const preDuckVolumeRef = useRef(null);
     const duckForNodeAudio = () => {
         if (soundRef.current && isPlaying && !duckedRef.current) {
             duckedRef.current = true;
@@ -239,6 +243,26 @@ export function AudioProvider({ children }) {
                 soundRef.current.fade(soundRef.current.volume(), 1.0, 800);
             }
         }
+    };
+
+    // Duck GlobalPlayer for capsule soundtrack — fade to 0.15 over 1s
+    const duckForCapsule = () => {
+        if (capsuleDuckedRef.current) return;
+        capsuleDuckedRef.current = true;
+        // IMPORTANT: Use Howler.volume() getter, NOT the `volume` React state.
+        // `volume` is captured by closure and may be stale; Howler.volume()
+        // returns the actual current global volume at call time.
+        preDuckVolumeRef.current = Howler.volume();
+        Howler.volume(0.15);
+    };
+
+    // Restore GlobalPlayer from capsule duck — fade back over 1s
+    const restoreFromCapsule = () => {
+        if (!capsuleDuckedRef.current) return;
+        capsuleDuckedRef.current = false;
+        const restoreTo = preDuckVolumeRef.current != null ? preDuckVolumeRef.current : 0.7;
+        Howler.volume(restoreTo);
+        preDuckVolumeRef.current = null;
     };
 
     const value = {
@@ -257,6 +281,8 @@ export function AudioProvider({ children }) {
         pausePlayback,
         duckForNodeAudio,
         restoreFromDuck,
+        duckForCapsule,
+        restoreFromCapsule,
         musicCellVisible,
         setMusicCellVisible
     };
