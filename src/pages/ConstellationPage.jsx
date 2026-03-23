@@ -20,7 +20,12 @@ const HOVER_TYPE_COLORS = {
   idea: '#66BB6A', project: '#FF7043', place: '#26C6DA', track: '#34d399',
 };
 
-/** DOM-based hover tooltip — replaces 3D HoverLabel to avoid WebGL crashes */
+/**
+ * DOM-based hover tooltip — fallback when 3D HoverLabel can't render
+ * (WebGL context lost/degraded). Always renders in the DOM regardless of
+ * WebGL state. The 3D HoverLabel in the Canvas renders on top when healthy,
+ * so this acts as a seamless fallback.
+ */
 function DomHoverLabel() {
   const hoveredNodeIdx = useConstellationStore((s) => s.hoveredNodeIdx);
   const hoveredScreenPos = useConstellationStore((s) => s.hoveredScreenPos);
