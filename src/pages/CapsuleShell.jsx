@@ -314,6 +314,8 @@ const PARTICLE_VERT = /* glsl */ `
 uniform float uTime;
 uniform float uDriftSpeed;
 uniform float uSize;
+uniform float uMaxSize;
+uniform float uOpacity;
 attribute float aRandom;
 
 varying float vAlpha;
@@ -329,11 +331,11 @@ void main() {
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
 
   // Size attenuation
-  gl_PointSize = uSize * (300.0 / -mvPos.z);
+  gl_PointSize = min(uSize * (80.0 / max(-mvPos.z, 0.6)), uMaxSize);
 
   // Depth-based alpha: farther particles are dimmer
   float dist = length(mvPos.xyz);
-  vAlpha = smoothstep(8.0, 1.0, dist) * (0.3 + aRandom * 0.4);
+  vAlpha = smoothstep(8.0, 1.0, dist) * uOpacity * (0.45 + aRandom * 0.35);
 
   gl_Position = projectionMatrix * mvPos;
 }
@@ -401,19 +403,25 @@ function AtmosphericParticles({ tier }) {
   const dustUniforms = useRef({
     uTime: { value: 0 },
     uDriftSpeed: { value: 0.15 },
-    uSize: { value: 3.0 },
+    uSize: { value: 1.1 },
+    uMaxSize: { value: 6.0 },
+    uOpacity: { value: 0.18 },
     uColor: { value: new THREE.Color(1.0, 0.97, 0.9) },
   });
   const bokehUniforms = useRef({
     uTime: { value: 0 },
     uDriftSpeed: { value: 0.08 },
-    uSize: { value: 8.0 },
+    uSize: { value: 1.8 },
+    uMaxSize: { value: 14.0 },
+    uOpacity: { value: 0.08 },
     uColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
   });
   const streakUniforms = useRef({
     uTime: { value: 0 },
     uDriftSpeed: { value: 0.25 },
-    uSize: { value: 2.0 },
+    uSize: { value: 0.8 },
+    uMaxSize: { value: 4.0 },
+    uOpacity: { value: 0.12 },
     uColor: { value: new THREE.Color(1.0, 1.0, 0.95) },
   });
 
@@ -438,7 +446,7 @@ function AtmosphericParticles({ tier }) {
       fragmentShader: PARTICLE_FRAG,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     });
 
   const dustGeo = useMemo(() => makeGeometry(dustData), [dustData]);
@@ -462,7 +470,7 @@ function AtmosphericParticles({ tier }) {
 // Color Grading Presets
 // ---------------------------------------------------------------------------
 const COLOR_GRADING = {
-  warm: { warmth: 0.12, saturation: 1.1, tintR: 1.05, tintG: 0.98, tintB: 0.92 },
+  warm: { warmth: 0.04, saturation: 1.03, tintR: 1.02, tintG: 0.99, tintB: 0.97 },
   cool: { warmth: -0.08, saturation: 0.95, tintR: 0.92, tintG: 0.97, tintB: 1.08 },
   golden: { warmth: 0.18, saturation: 1.15, tintR: 1.1, tintG: 1.0, tintB: 0.85 },
 };
@@ -476,19 +484,19 @@ function CapsulePostProcessing({ mood }) {
   return (
     <EffectComposer disableNormalPass>
       <DepthOfField
-        focusDistance={0.02}
-        focalLength={0.06}
-        bokehScale={3}
-        kernelSize={KernelSize.MEDIUM}
+        focusDistance={0.014}
+        focalLength={0.025}
+        bokehScale={1.15}
+        kernelSize={KernelSize.SMALL}
       />
       <Vignette
         eskil={false}
-        offset={0.3}
-        darkness={0.7}
+        offset={0.24}
+        darkness={0.55}
       />
       <Noise
         blendFunction={BlendFunction.OVERLAY}
-        opacity={0.08}
+        opacity={0.04}
       />
     </EffectComposer>
   );
@@ -521,7 +529,7 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
     const photo = loader.load(photoUrl);
     const depth = loader.load(depthUrl);
     photo.colorSpace = THREE.SRGBColorSpace;
-    depth.colorSpace = THREE.LinearSRGBColorSpace;
+    depth.colorSpace = THREE.NoColorSpace;
     // Depth needs linear filtering to avoid interpolation artifacts at edges
     depth.minFilter = THREE.LinearFilter;
     depth.magFilter = THREE.LinearFilter;
@@ -530,7 +538,7 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
     if (scene.samMaskUrl) {
       const samMaskUrl = resolveAsset(scene.samMaskUrl);
       samMask = loader.load(samMaskUrl);
-      samMask.colorSpace = THREE.LinearSRGBColorSpace;
+      samMask.colorSpace = THREE.NoColorSpace;
       samMask.minFilter = THREE.LinearFilter;
       samMask.magFilter = THREE.LinearFilter;
     }
@@ -581,16 +589,20 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
 
   // Geometry: PlaneGeometry with subdivisions, aspect ratio from photo
   const geometry = useMemo(() => {
-    const aspect = 16 / 9;
+    const imageWidth = photoTex?.image?.width || 16;
+    const imageHeight = photoTex?.image?.height || 9;
+    const aspect = imageWidth / imageHeight;
     const height = 2.0;
     const width = height * aspect;
+    const xSegments = aspect >= 1 ? subdivisions : Math.max(1, Math.round(subdivisions * aspect));
+    const ySegments = aspect >= 1 ? Math.max(1, Math.round(subdivisions / aspect)) : subdivisions;
     return new THREE.PlaneGeometry(
       width,
       height,
-      subdivisions,
-      Math.floor(subdivisions / aspect),
+      xSegments,
+      ySegments,
     );
-  }, [subdivisions]);
+  }, [photoTex, subdivisions]);
 
   return <mesh ref={meshRef} geometry={geometry} material={material} />;
 });
