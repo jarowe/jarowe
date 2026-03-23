@@ -51,7 +51,9 @@ export default function HoverLabel({ nodes }) {
     return null;
   }
 
-  console.error('🔵 HoverLabel rendering for node:', hoveredNodeIdx, nodes[hoveredNodeIdx]?.title);
+  // TEMPORARY: skip 3D text rendering to test if it causes the hover crash
+  // on dead WebGL contexts (Context Lost at init)
+  return null;
   const node = nodes[hoveredNodeIdx];
   const yOffset = node.size + 1.5;
   const typeColor = TYPE_COLORS[node.type] || '#AAAAAA';
