@@ -595,11 +595,64 @@ const DisplacedPlane = forwardRef(function DisplacedPlane({ scene, subdivisions,
 });
 
 // ---------------------------------------------------------------------------
+// ArcController — GSAP-driven awakening (ARC-01) and recession (ARC-03)
+// ---------------------------------------------------------------------------
+function ArcController({ planeRef, arc, onRecessionComplete }) {
+  const awakeningDone = useRef(false);
+
+  useEffect(() => {
+    if (!planeRef.current || !arc) return;
+    const u = planeRef.current.uniforms;
+    if (!u) return;
+
+    // ARC-01: Awakening — depthScale animates from 0 to its configured value
+    const targetDepth = u.uDepthScale.value; // save the configured target
+    u.uDepthScale.value = 0; // start flat
+
+    const awakeningTl = gsap.timeline();
+    awakeningTl.to(u.uDepthScale, {
+      value: targetDepth,
+      duration: arc.awakeningDuration || 3.5,
+      ease: arc.awakeningEase || 'power2.out',
+      delay: arc.awakeningDelay || 0.5,
+      onComplete: () => { awakeningDone.current = true; },
+    });
+
+    // ARC-03: Recession — depthScale back to 0 + fade to warm white
+    const recessionTl = gsap.timeline({ delay: arc.recessionDelay || 20 });
+    recessionTl.to(u.uDepthScale, {
+      value: 0,
+      duration: arc.recessionDuration || 3.0,
+      ease: arc.recessionEase || 'power2.in',
+    });
+    // Fade to warm white simultaneously
+    const fadeColor = arc.recessionFadeColor || [1.0, 0.98, 0.95];
+    u.uRecessionColor.value.set(fadeColor[0], fadeColor[1], fadeColor[2]);
+    recessionTl.to(u.uRecessionFade, {
+      value: 1.0,
+      duration: arc.recessionDuration || 3.0,
+      ease: 'power1.in',
+      onComplete: () => {
+        if (onRecessionComplete) onRecessionComplete();
+      },
+    }, '<'); // sync with depthScale recession
+
+    return () => {
+      awakeningTl.kill();
+      recessionTl.kill();
+    };
+  }, [planeRef, arc, onRecessionComplete]);
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // DisplacedMeshRenderer — depth-displaced 3D mesh from photo+depth pair
 // ---------------------------------------------------------------------------
-function DisplacedMeshRenderer({ scene, tier }) {
+function DisplacedMeshRenderer({ scene, tier, onRecessionComplete }) {
   const subdivisions = tier === 'full' ? 256 : 128;
   const dpr = tier === 'full' ? [1, 2] : [1, 1];
+  const planeRef = useRef(null);
 
   return (
     <div className="memory-splat-container">
@@ -624,7 +677,7 @@ function DisplacedMeshRenderer({ scene, tier }) {
           gl.setClearColor('#000000');
         }}
       >
-        <DisplacedPlane scene={scene} subdivisions={subdivisions} mood={scene.mood} />
+        <DisplacedPlane ref={planeRef} scene={scene} subdivisions={subdivisions} mood={scene.mood} />
         <AtmosphericParticles tier={tier} />
         <CinematicCamera
           keyframes={scene.cameraKeyframes}
@@ -635,6 +688,11 @@ function DisplacedMeshRenderer({ scene, tier }) {
           ]}
         />
         {tier === 'full' && <CapsulePostProcessing mood={scene.mood} />}
+        <ArcController
+          planeRef={planeRef}
+          arc={scene.arc}
+          onRecessionComplete={onRecessionComplete}
+        />
       </Canvas>
       {/* Simplified tier: CSS vignette overlay (full tier uses postprocessing Vignette) */}
       {tier !== 'full' && <div className="capsule-vignette" />}
@@ -763,8 +821,10 @@ export default function CapsuleShell() {
   const [visibleCards, setVisibleCards] = useState([]);
   const [muted, setMuted] = useState(true);
   const [soundReady, setSoundReady] = useState(false);
+  const [recessionDone, setRecessionDone] = useState(false);
   const soundRef = useRef(null);
   const audio = useAudio();
+  const handleRecessionComplete = useCallback(() => setRecessionDone(true), []);
 
   // GPU capability check
   useEffect(() => {
@@ -882,7 +942,7 @@ export default function CapsuleShell() {
         />
       )}
 
-      {showDisplaced && <DisplacedMeshRenderer scene={scene} tier={tier} />}
+      {showDisplaced && <DisplacedMeshRenderer scene={scene} tier={tier} onRecessionComplete={handleRecessionComplete} />}
 
       {showFallback && (
         <ParallaxFallback scene={scene} loadError={loadError} />
