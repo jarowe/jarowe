@@ -1,5 +1,23 @@
 # Milestones
 
+## v2.1 Memory Capsules (Shipped: 2026-03-23)
+
+**Phases completed:** 3 phases, 9 plans, 26 tasks
+
+**Key accomplishments:**
+
+- 3-tier GPU detection (full/simplified/parallax), renderer-agnostic CapsuleShell replacing MemoryPortal, and extended scene registry with displaced-mesh support
+- Capsule asset validation script and test assets with per-scene folder structure validated under 500KB budget using zero-dependency PNG header parsing
+- Depth-displaced 3D mesh renderer with custom vertex/fragment shaders, multi-layer Ken Burns parallax fallback with gyroscope, and explicit tier-based renderer routing
+- GSAP-driven multi-beat CinematicCamera replaces SlowDrift with per-scene keyframe choreography, easing variety, infinite loop, and mouse/gyro parallax
+- 3-layer atmospheric particles, DOF/vignette/grain postprocessing, and per-scene warm/cool/golden color grading via GLSL fragment uniforms with tier-adaptive rendering
+- Per-scene Howler.js soundtrack with user-intent fade-in, GlobalPlayer capsule ducking to 0.15, and cross-fade cleanup preventing audio gaps on exit
+- SAM mask layer separation in vertex shader with GSAP-driven awakening (depth 0->target) and recession (depth->0 + warm white fade) experience arc
+- Glass narrative cards gated behind awakening with 4-card emotional arc (place/feeling/meaning/gratitude) and 4-beat camera choreography
+- Full PortalVFX entry/exit wired into capsule navigation with sessionStorage direct-access detection and dev test button
+
+---
+
 ## v2.0.1 Polish & Connect (Shipped: 2026-03-22)
 
 **Phases completed:** 2 phases, 3 plans, 6 tasks
