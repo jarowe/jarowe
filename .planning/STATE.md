@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Memory Capsules
-status: Ready to plan
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-23T09:10:05.967Z"
+status: Ready to execute
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-23T14:31:50.340Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 11 — Cinematic Polish
+**Current focus:** Phase 12 — Flagship Scene + Portal
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
+Phase: 12 (Flagship Scene + Portal) — EXECUTING
+Plan: 2 of 3
 
 ## v2.1 Roadmap Summary
 
@@ -71,6 +71,7 @@ Plan: Not started
 | Phase 11 P01 | 4min | 2 tasks | 2 files |
 | Phase 11 P02 | 6min | 4 tasks | 2 files |
 | Phase 11 P03 | 4min | 3 tasks | 3 files |
+| Phase 12 P01 | 8min | 3 tasks | 2 files |
 
 ## v2.0.1 Summary
 
@@ -115,6 +116,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 11]: CinematicCamera uses GSAP timeline with repeat:-1 for infinite loop; camera beat timing coarsely aligned to narrative card delays — Proven pattern for cinematic camera in memory capsules without OrbitControls
 - [Phase 11]: COLOR_GRADING at module level, color grading in mesh fragment shader (not postprocessing pass), tier-gated postprocessing with CSS vignette fallback — Per-scene grading is tighter to photo in mesh shader; shared presets avoid duplication; CSS fallback gives simplified tier equivalent vignette
 - [Phase 11]: Capsule-level ducking (duckForCapsule/restoreFromCapsule) separate from node-level ducking, targets 0.15 volume; uses Howler.volume() getter to avoid stale closures; cross-fade cleanup with delayed unload — Different lifecycle (route-level vs panel-level) and different volume targets (ambient duck vs silence) require separate mechanism
+- [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation; recession fade in fragment shader; two separate GSAP timelines for independent lifecycle — Soft edge blending and per-scene color control; independent cleanup
 
 ### v2.1 Research Flags
 
@@ -134,6 +136,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T09:05:44.933Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-03-23T14:31:32.118Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

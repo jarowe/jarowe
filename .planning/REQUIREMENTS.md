@@ -45,9 +45,9 @@ Turn a single still photo into an immersive 3D memory you can step into. Not a t
 
 ### Experience Arc (Creative Direction)
 
-- [ ] **ARC-01**: Scene begins as a still image, depth slowly wakes up, camera drifts with "impossible gentleness"
-- [ ] **ARC-02**: Foreground objects move at a different emotional rhythm than the background (layer separation via SAM)
-- [ ] **ARC-03**: At the end, the memory recedes — returning to your mind, not closing a page
+- [x] **ARC-01**: Scene begins as a still image, depth slowly wakes up, camera drifts with "impossible gentleness"
+- [x] **ARC-02**: Foreground objects move at a different emotional rhythm than the background (layer separation via SAM)
+- [x] **ARC-03**: At the end, the memory recedes — returning to your mind, not closing a page
 
 ## Future Requirements
 
