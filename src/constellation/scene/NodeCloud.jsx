@@ -114,14 +114,10 @@ export default function NodeCloud({ nodes, gpuConfig }) {
   const materialRef = useRef();
   const count = nodes.length;
 
-  // Shader patch: inject per-instance color into emissive channel
-  const handleShaderCompile = useCallback((shader) => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-       totalEmissiveRadiance *= vColor.rgb;`
-    );
-  }, []);
+  // NOTE: Removed onBeforeCompile shader hack that injected vColor.rgb into
+  // emissive channel — it caused vColor undeclared shader errors because
+  // instanceColor isn't set up before first render (React timing).
+  // Per-instance colors still work via diffuse channel (instanceColor).
 
   const focusNode = useConstellationStore((s) => s.focusNode);
   const setHoveredNode = useConstellationStore((s) => s.setHoveredNode);
@@ -282,7 +278,6 @@ export default function NodeCloud({ nodes, gpuConfig }) {
         roughness={0.6}
         metalness={0.1}
         toneMapped={false}
-        onBeforeCompile={handleShaderCompile}
       />
     </instancedMesh>
   );
