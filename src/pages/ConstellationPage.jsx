@@ -18,8 +18,9 @@ const ConstellationEditor = lazy(() => import('../constellation/ConstellationEdi
 class CanvasErrorBoundary extends Component {
   state = { hasError: false, errorCount: 0 };
   static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(err) {
-    console.error('🔴 CanvasErrorBoundary caught:', err.message, err.stack);
+  componentDidCatch(err, info) {
+    console.error('🔴 CanvasErrorBoundary caught:', err.message);
+    console.error('🔴 Component stack:', info.componentStack);
     this.setState(prev => ({ errorCount: prev.errorCount + 1 }));
   }
   render() {
@@ -314,26 +315,32 @@ export default function ConstellationPage() {
   }, [focusedNodeId]);
 
   useEffect(() => {
+    // Catch full page reloads
+    window.addEventListener('beforeunload', () => {
+      console.error('⚠️ PAGE UNLOADING (full reload!)');
+    });
+
     const handlePopState = (e) => {
+      console.error('🟡 POPSTATE fired!', { historyState: e.state, currentURL: location.href });
       const state = useConstellationStore.getState();
 
       // Layer 1: If lightbox open -> close lightbox
       if (state.lightboxMedia !== null) {
+        console.error('🟡 POPSTATE → closing lightbox');
         state.closeLightbox();
-        // Re-push state so back button still works for panel
         window.history.pushState({ constellation: true }, '');
         return;
       }
 
       // Layer 2: If panel open -> clear focus
       if (state.focusedNodeId !== null) {
+        console.error('🟡 POPSTATE → clearing focus (back button)');
         state.clearFocus();
         hasConstellationState.current = false;
         return;
       }
 
       // Layer 3: Navigate away (let browser handle default back)
-      // Don't prevent -- the default popstate already navigated
     };
 
     window.addEventListener('popstate', handlePopState);
