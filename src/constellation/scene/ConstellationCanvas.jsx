@@ -179,14 +179,14 @@ function detectGPUTier() {
  */
 export default function ConstellationCanvas({
   introEnabled = false,
+  introExpected = false,
   onIntroComplete = null,
   reducedMotion = false,
 }) {
   const rendererRef = useRef();
   const controlsRef = useRef();
-  // Start at 0 when intro will play (nodes invisible until tween starts).
-  // Start at 1 when intro is skipped (everything visible immediately).
-  const introRef = useRef({ active: false, progress: introEnabled ? 0 : 1 });
+  // Keep geometry hidden while we are still waiting for the intro to begin.
+  const introRef = useRef({ active: false, progress: introExpected ? 0 : 1 });
   const setGpuTier = useConstellationStore((s) => s.setGpuTier);
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const storeNodes = useConstellationStore((s) => s.nodes);
@@ -317,7 +317,7 @@ export default function ConstellationCanvas({
   useEffect(() => {
     if (!introEnabled) {
       introRef.current.active = false;
-      introRef.current.progress = 1;
+      introRef.current.progress = introExpected ? 0 : 1;
       return undefined;
     }
 
@@ -340,7 +340,7 @@ export default function ConstellationCanvas({
     });
 
     return () => tween.kill();
-  }, [introEnabled, onIntroComplete]);
+  }, [introEnabled, introExpected, onIntroComplete]);
 
   return (
     <Canvas

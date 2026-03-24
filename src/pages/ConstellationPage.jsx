@@ -551,12 +551,15 @@ export default function ConstellationPage() {
   // Intro fires when: 3D mode, data ready, canvas ready, not skipped, not yet complete.
   // The preload may cause dataLoaded to be true before canvasReady — that's fine,
   // the intro just waits for both conditions before starting.
-  const introActive = viewMode === '3d'
-    && dataLoaded
-    && canvasReady
+  const introExpected = viewMode === '3d'
     && !dataError
     && !skipIntro
     && !introComplete;
+
+  const introActive = introExpected
+    && dataLoaded
+    && canvasReady
+    && !dataError;
 
   const sceneUiVisible = viewMode === '3d' && dataLoaded && !dataError && !introActive;
   const show3DOverlay = viewMode === '3d' && (!canvasReady || !dataLoaded || introActive || Boolean(dataError));
@@ -603,6 +606,7 @@ export default function ConstellationPage() {
             <CanvasErrorBoundary>
               <ConstellationCanvas
                 introEnabled={introActive}
+                introExpected={introExpected}
                 onIntroComplete={handleIntroComplete}
                 reducedMotion={prefersReducedMotion}
               />
