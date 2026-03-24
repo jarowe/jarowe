@@ -581,15 +581,10 @@ export default function CameraController({
       const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
-      // In tunnel mode: re-enable controls temporarily for the fly animation
-      if (mode === 'tunnel') {
-        controls.enabled = true;
-      }
-
-      // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV
+      // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV.
+      // Do NOT enable OrbitControls — user must stay on the axis.
       if (mode === 'tunnel') {
         const tl = gsap.timeline({
-          onUpdate: () => controls.update(),
           onComplete: () => {
             isFlyingRef.current = false;
           },

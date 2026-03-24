@@ -147,8 +147,8 @@ function HeroParallaxImage({ src, alt, onClick }) {
     const container = containerRef.current;
     if (!container) return;
 
-    const PARALLAX = 8;
-    const IDLE_DELAY = 3000;
+    const PARALLAX = 18;
+    const IDLE_DELAY = 2500;
 
     const handleMove = (e) => {
       const rect = container.getBoundingClientRect();
@@ -157,7 +157,7 @@ function HeroParallaxImage({ src, alt, onClick }) {
 
       if (imgRef.current) {
         imgRef.current.style.transform =
-          `scale(1.08) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
+          `scale(1.14) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
         imgRef.current.classList.remove('story-panel__hero-media--idle');
       }
 
@@ -165,12 +165,12 @@ function HeroParallaxImage({ src, alt, onClick }) {
       idleTimer.current = setTimeout(() => {
         if (imgRef.current) {
           // Smoothly ease back to center before starting Ken Burns
-          imgRef.current.style.transform = 'scale(1.08) translate(0px, 0px)';
+          imgRef.current.style.transform = 'scale(1.14) translate(0px, 0px)';
           setTimeout(() => {
             if (imgRef.current) {
               imgRef.current.classList.add('story-panel__hero-media--idle');
             }
-          }, 600);
+          }, 800);
         }
       }, IDLE_DELAY);
     };
