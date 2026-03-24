@@ -141,54 +141,60 @@ function getProfile(node) {
 function HeroParallaxImage({ src, alt, onClick }) {
   const imgRef = useRef(null);
   const containerRef = useRef(null);
-  const mouseActive = useRef(false);
   const idleTimer = useRef(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const PARALLAX = 12;
-    const IDLE_DELAY = 2500;
+    const PARALLAX = 8;
+    const IDLE_DELAY = 3000;
 
     const handleMove = (e) => {
       const rect = container.getBoundingClientRect();
       const nx = (e.clientX - rect.left) / rect.width - 0.5;
       const ny = (e.clientY - rect.top) / rect.height - 0.5;
-      mouseActive.current = true;
 
       if (imgRef.current) {
         imgRef.current.style.transform =
-          `scale(1.06) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
+          `scale(1.08) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
         imgRef.current.classList.remove('story-panel__hero-media--idle');
       }
 
       clearTimeout(idleTimer.current);
       idleTimer.current = setTimeout(() => {
-        mouseActive.current = false;
         if (imgRef.current) {
-          imgRef.current.style.transform = '';
-          imgRef.current.classList.add('story-panel__hero-media--idle');
+          // Smoothly ease back to center before starting Ken Burns
+          imgRef.current.style.transform = 'scale(1.08) translate(0px, 0px)';
+          setTimeout(() => {
+            if (imgRef.current) {
+              imgRef.current.classList.add('story-panel__hero-media--idle');
+            }
+          }, 600);
         }
       }, IDLE_DELAY);
     };
 
     const handleLeave = () => {
-      mouseActive.current = false;
       if (imgRef.current) {
-        imgRef.current.style.transform = '';
-        imgRef.current.classList.add('story-panel__hero-media--idle');
+        imgRef.current.style.transform = 'scale(1.08) translate(0px, 0px)';
+        setTimeout(() => {
+          if (imgRef.current) {
+            imgRef.current.classList.add('story-panel__hero-media--idle');
+          }
+        }, 600);
       }
     };
 
     container.addEventListener('mousemove', handleMove);
     container.addEventListener('mouseleave', handleLeave);
 
+    // Start in idle Ken Burns after a brief delay
     idleTimer.current = setTimeout(() => {
       if (imgRef.current) {
         imgRef.current.classList.add('story-panel__hero-media--idle');
       }
-    }, 800);
+    }, 1200);
 
     return () => {
       container.removeEventListener('mousemove', handleMove);
@@ -203,14 +209,10 @@ function HeroParallaxImage({ src, alt, onClick }) {
         ref={imgRef}
         src={src}
         alt={alt}
-        className="story-panel__hero-media"
+        className="story-panel__hero-media story-panel__hero-media--parallax"
         loading="eager"
         onClick={onClick}
-        style={{
-          cursor: 'pointer',
-          willChange: 'transform',
-          transition: 'transform 0.6s ease-out',
-        }}
+        style={{ cursor: 'pointer' }}
       />
     </div>
   );

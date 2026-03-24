@@ -804,7 +804,8 @@ export default function CameraController({
       (helixBounds.minY - padding) + timelinePosition * (range + padding * 2);
 
     if (mode === 'tunnel') {
-      useConstellationStore.getState().setTunnelY(mappedY);
+      // Tunnel camera is driven by its own useFrame via tunnelVelocity.
+      // Don't interfere — the tunnel useFrame already syncs timelinePosition.
       return;
     }
 
