@@ -21,6 +21,7 @@ import { useSoundscape } from '../hooks/useSoundscape';
 import './MemoryPortal.css';
 
 const ParticleFieldRenderer = React.lazy(() => import('../components/ParticleFieldRenderer'));
+const MeshMemoryRenderer = React.lazy(() => import('../components/MeshMemoryRenderer'));
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -910,8 +911,8 @@ export default function CapsuleShell() {
   // Phase 17: Soundscape — active when particle-memory, awakened, not receding
   const soundscapeActive = isParticleMemory && awakeningComplete && !recessionDone;
   useSoundscape(soundscapeActive ? scene.id : null, {
-    duckSiteMusic: duckForCapsule,
-    restoreSiteMusic: restoreFromCapsule,
+    duckSiteMusic: () => audio.duckForCapsule(),
+    restoreSiteMusic: () => audio.restoreFromCapsule(),
     enabled: soundscapeActive,
   });
 
@@ -1124,7 +1125,7 @@ export default function CapsuleShell() {
             <span>Loading particle field...</span>
           </div>
         }>
-          <ParticleFieldRenderer
+          <MeshMemoryRenderer
             ref={particleRendererRef}
             scene={scene}
             tier={tier}
