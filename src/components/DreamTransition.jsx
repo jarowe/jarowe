@@ -43,6 +43,7 @@ const DEPARTURE_KEY = 'jarowe_dream_departure';
 export function buildDreamEntryTimeline(rendererRef, scene, options = {}) {
   const uniforms = rendererRef?.getUniforms?.();
   const camera = rendererRef?.getCamera?.();
+  const wireUniforms = rendererRef?.getWireUniforms?.();
 
   if (!uniforms) {
     console.warn('[DreamTransition] No particle uniforms available — skipping entry timeline');
@@ -75,6 +76,15 @@ export function buildDreamEntryTimeline(rendererRef, scene, options = {}) {
     ease: 'power1.in',
   }, 'dissolve');
 
+  // Fade wires during dissolve — they'd appear at wrong positions when scattered
+  if (wireUniforms) {
+    tl.to(wireUniforms.uWireTransitionAlpha, {
+      value: 0,
+      duration: 1.0,
+      ease: 'power2.in',
+    }, 'dissolve');
+  }
+
   // === Phase 2: TUNNEL VOID (D-05, D-06, D-07) ===
   // Camera auto-advances through the scattered particle field
   tl.addLabel('tunnel', `dissolve+=${DISSOLVE_DURATION}`);
@@ -92,6 +102,19 @@ export function buildDreamEntryTimeline(rendererRef, scene, options = {}) {
       ease: 'power2.in',
       onUpdate: () => camera.updateProjectionMatrix(),
     }, 'tunnel');
+  }
+
+  // Filament flashes during tunnel void — brief luminous wire structures appear and snap away (D-06)
+  if (wireUniforms) {
+    const flashTimes = [0.2, 0.5, 0.75]; // seconds into tunnel phase
+    flashTimes.forEach(t => {
+      tl.to(wireUniforms.uWireTransitionAlpha, {
+        value: 0.35, duration: 0.06, ease: 'none',
+      }, `tunnel+=${t}`);
+      tl.to(wireUniforms.uWireTransitionAlpha, {
+        value: 0, duration: 0.12, ease: 'power2.out',
+      }, `tunnel+=${t + 0.06}`);
+    });
   }
 
   // === Phase 3: REFORM (D-09, D-10) ===
@@ -128,6 +151,15 @@ export function buildDreamEntryTimeline(rendererRef, scene, options = {}) {
     }, 'reform');
   }
 
+  // Restore wires as particles reform — delayed start so wires appear after particles mostly reformed
+  if (wireUniforms) {
+    tl.to(wireUniforms.uWireTransitionAlpha, {
+      value: 1.0,
+      duration: 1.0,
+      ease: 'power2.out',
+    }, 'reform+=1.0');
+  }
+
   // Notify reform start (for narrative gating, etc.)
   if (options.onReform) {
     tl.call(options.onReform, [], 'reform');
@@ -147,6 +179,7 @@ export function buildDreamEntryTimeline(rendererRef, scene, options = {}) {
 export function buildDreamExitTimeline(rendererRef, scene, options = {}) {
   const uniforms = rendererRef?.getUniforms?.();
   const camera = rendererRef?.getCamera?.();
+  const wireUniforms = rendererRef?.getWireUniforms?.();
 
   if (!uniforms) {
     console.warn('[DreamTransition] No particle uniforms available — skipping exit timeline');
@@ -171,6 +204,15 @@ export function buildDreamExitTimeline(rendererRef, scene, options = {}) {
     ease: 'power2.in',
   }, 'dissolve');
 
+  // Fade wires during exit dissolve — same grammar as entry (D-11)
+  if (wireUniforms) {
+    tl.to(wireUniforms.uWireTransitionAlpha, {
+      value: 0,
+      duration: 1.0,
+      ease: 'power2.in',
+    }, 'dissolve');
+  }
+
   // === Phase 2: EXIT TUNNEL VOID ===
   tl.addLabel('tunnel', `dissolve+=${DISSOLVE_DURATION}`);
 
@@ -187,6 +229,19 @@ export function buildDreamExitTimeline(rendererRef, scene, options = {}) {
       ease: 'power2.in',
       onUpdate: () => camera.updateProjectionMatrix(),
     }, 'tunnel');
+  }
+
+  // Filament flashes during exit tunnel void — same visual grammar as entry (D-11)
+  if (wireUniforms) {
+    const flashTimes = [0.2, 0.5, 0.75]; // seconds into tunnel phase
+    flashTimes.forEach(t => {
+      tl.to(wireUniforms.uWireTransitionAlpha, {
+        value: 0.35, duration: 0.06, ease: 'none',
+      }, `tunnel+=${t}`);
+      tl.to(wireUniforms.uWireTransitionAlpha, {
+        value: 0, duration: 0.12, ease: 'power2.out',
+      }, `tunnel+=${t + 0.06}`);
+    });
   }
 
   // Fire onRupture at tunnel midpoint — this is when navigation should happen (D-03)
