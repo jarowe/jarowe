@@ -897,13 +897,13 @@ export default function StoryPanel({ onPortalEnter = null }) {
                               key={`${entity.type}-${entity.label}-${i}`}
                               onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
                               onMouseLeave={() => clearHighlightedEdgeNodeId()}
-                              onClick={() => entity.nodeId && focusNode(entity.nodeId)}
-                              style={{ display: 'inline-flex', cursor: entity.nodeId ? 'pointer' : 'default' }}
+                              style={{ display: 'inline-flex' }}
                             >
                               <EntityChip
                                 type={entity.type}
                                 label={entity.label}
                                 count={entity.count}
+                                onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
                               />
                             </div>
                           ))}
@@ -1121,13 +1121,13 @@ export default function StoryPanel({ onPortalEnter = null }) {
                               key={`${entity.type}-${entity.label}-${i}`}
                               onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
                               onMouseLeave={() => clearHighlightedEdgeNodeId()}
-                              onClick={() => entity.nodeId && focusNode(entity.nodeId)}
-                              style={{ display: 'inline-flex', cursor: entity.nodeId ? 'pointer' : 'default' }}
+                              style={{ display: 'inline-flex' }}
                             >
                               <EntityChip
                                 type={entity.type}
                                 label={entity.label}
                                 count={entity.count}
+                                onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
                               />
                             </div>
                           ))}

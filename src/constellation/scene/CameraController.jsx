@@ -394,11 +394,22 @@ export default function CameraController({
         return;
       }
 
-      // No focus in helix mode: scroll drives timeline via smooth momentum
-      e.preventDefault();
-      const impulse = (e.deltaY > 0 ? 1 : -1) * 0.008;
-      helixScrollVelocity.current += impulse;
-      helixScrollVelocity.current = Math.max(-0.06, Math.min(0.06, helixScrollVelocity.current));
+      // No focus in helix mode: behavior depends on cursor position.
+      // Center zone (near helix) = scrub timeline. Edge zone = zoom.
+      const rect = controls.domElement.getBoundingClientRect();
+      const cx = (e.clientX - rect.left) / rect.width;  // 0-1 normalized
+      const cy = (e.clientY - rect.top) / rect.height;
+      const distFromCenter = Math.sqrt((cx - 0.5) ** 2 + (cy - 0.5) ** 2);
+      const isCenter = distFromCenter < 0.35;
+
+      if (isCenter) {
+        // Center zone: scrub timeline (scroll down = forward in time = higher Y)
+        e.preventDefault();
+        const impulse = (e.deltaY > 0 ? -1 : 1) * 0.008;
+        helixScrollVelocity.current += impulse;
+        helixScrollVelocity.current = Math.max(-0.06, Math.min(0.06, helixScrollVelocity.current));
+      }
+      // Edge zone: let OrbitControls handle zoom (don't preventDefault)
     };
 
     const canvas = controls.domElement;
@@ -774,8 +785,11 @@ export default function CameraController({
     const { focusedNodeId: currentFocus, cameraMode: mode } = useConstellationStore.getState();
     if (currentFocus) return;
 
+    // Allow 15% overshoot beyond helix bounds so edges don't feel clamped
+    const range = helixBounds.maxY - helixBounds.minY;
+    const padding = range * 0.15;
     const mappedY =
-      helixBounds.minY + timelinePosition * (helixBounds.maxY - helixBounds.minY);
+      (helixBounds.minY - padding) + timelinePosition * (range + padding * 2);
 
     if (mode === 'tunnel') {
       useConstellationStore.getState().setTunnelY(mappedY);
@@ -786,11 +800,12 @@ export default function CameraController({
     controls.autoRotate = false;
     if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
 
-    // Use GSAP for scrubber clicks (single tween, not per-frame)
-    // Momentum scroll fires this rapidly but the short duration + overwrite
-    // mode keeps it smooth without the old competing-tween issue
+    // Zoom in closer when actively scrubbing (70% of landing distance)
+    const scrubZ = (initialCameraPos.current?.z ?? 110) * 0.7;
+
     gsap.to(camera.position, {
       y: mappedY,
+      z: scrubZ,
       duration: 0.5,
       ease: 'power2.out',
       overwrite: true,
