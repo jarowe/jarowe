@@ -282,6 +282,7 @@ function updateMetaWithAssets(meta, assets) {
     splatCount: assets.splatCount ?? null,
     sourceSplatCount: assets.sourceSplatCount ?? null,
     bounds: assets.bounds ?? null,
+    transform: assets.transform ?? meta.world?.transform ?? null,
   };
 }
 

@@ -761,11 +761,17 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const camFov = meta?.camera?.fov ?? scene.flightPath?.fovRange?.[0] ?? 50;
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
+  const previewUrl = resolveAsset(scene.previewImage ?? scene.photoUrl);
 
   // Show loading until meta is resolved
   if (!metaLoaded) {
     return (
-      <div className="memory-splat-container">
+      <div
+        className="memory-splat-container"
+        style={previewUrl ? {
+          background: `linear-gradient(rgba(4,4,10,0.68), rgba(4,4,10,0.84)), url(${previewUrl}) center / cover no-repeat`,
+        } : undefined}
+      >
         <div className="memory-loading">
           <div className="memory-loading-spinner" />
           <span>Preparing world...</span>
@@ -830,10 +836,22 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
         </Canvas>
 
         {!splatLoaded && (
-          <div className="memory-loading">
-            <div className="memory-loading-spinner" />
-            <span>Loading world...</span>
-          </div>
+          <>
+            {previewUrl && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(rgba(4,4,10,0.38), rgba(4,4,10,0.72)), url(${previewUrl}) center / cover no-repeat`,
+                  opacity: 0.9,
+                }}
+              />
+            )}
+            <div className="memory-loading">
+              <div className="memory-loading-spinner" />
+              <span>Loading world...</span>
+            </div>
+          </>
         )}
 
         {splatLoaded && (

@@ -19,7 +19,12 @@
     "format": "ply",
     "splatCount": 294912,
     "sourceSplatCount": 1179648,
-    "bounds": null
+    "bounds": null,
+    "transform": {
+      "position": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "rotation": [1, 0, 0, 0]
+    }
   },
   "fallback": {
     "type": "depth-particles",

@@ -52,6 +52,7 @@ import AuthModal from './components/AuthModal';
 import registry from './content/takeovers/registry';
 import { useTakeoverState } from './hooks/useTakeoverState';
 import { setupGlobalViewTransitions } from './utils/viewTransitions';
+import { getSceneById } from './data/memoryScenes';
 
 /* ── Registry-driven lazy page components ──────────────────
  * Created at module level so React.lazy() is called once per page,
@@ -95,6 +96,59 @@ function useTakeoverConfig(entry) {
 const LOADING_STYLE = { color: 'white', padding: '2rem', textAlign: 'center' };
 function LazyFallback({ label = 'Loading...' }) {
   return <div style={LOADING_STYLE}>{label}</div>;
+}
+
+function MemoryRouteFallback({ sceneId }) {
+  const scene = getSceneById(sceneId);
+  const previewUrl = scene?.previewImage || scene?.photoUrl || null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'grid',
+        placeItems: 'center',
+        background: previewUrl
+          ? `linear-gradient(rgba(5, 5, 10, 0.68), rgba(5, 5, 10, 0.82)), url(${previewUrl}) center / cover no-repeat`
+          : 'radial-gradient(circle at center, rgba(22,24,40,0.96), rgba(5,6,12,1))',
+        color: '#fff',
+        textAlign: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backdropFilter: 'blur(10px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'grid',
+          gap: '0.9rem',
+          justifyItems: 'center',
+          padding: '2rem',
+        }}
+      >
+        <div
+          style={{
+            width: '2.6rem',
+            height: '2.6rem',
+            borderRadius: '999px',
+            border: '2px solid rgba(255,255,255,0.18)',
+            borderTopColor: 'rgba(255,255,255,0.9)',
+            animation: 'jarowe-spin 0.9s linear infinite',
+          }}
+        />
+        <div style={{ fontSize: '1.05rem', letterSpacing: '0.03em' }}>Loading Memory...</div>
+      </div>
+      <style>{`@keyframes jarowe-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 }
 
 /* ── TakeoverRoute — registry-driven campaign page wrapper ─ *
@@ -152,6 +206,9 @@ function AppContent() {
   const takeover = useTakeoverState();
   const { pausePlayback } = useAudio();
   const prevReleaseRef = useRef(false);
+  const memorySceneId = location.pathname.startsWith('/memory/')
+    ? location.pathname.replace('/memory/', '').split('/')[0]
+    : null;
 
   // Determine if we're in a "release context":
   //   - On any /music/* path (preview/archived routes)
@@ -374,7 +431,7 @@ function AppContent() {
             </Suspense>
           } />
           <Route path="/memory/:sceneId" element={
-            <Suspense fallback={<LazyFallback label="Loading Memory..." />}>
+            <Suspense fallback={<MemoryRouteFallback sceneId={memorySceneId} />}>
               <CapsuleShell />
             </Suspense>
           } />
