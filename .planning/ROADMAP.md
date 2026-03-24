@@ -227,6 +227,7 @@ Plans:
 Plans:
 - [x] 14-01-PLAN.md -- ParticleMemoryField component (CPU sampling, dual buffers, breathing, wires, tier adaptation), CapsuleShell dispatch integration, scene registry update
 - [x] 14-02-PLAN.md -- Breathing, bloom, and visual polish (breathScale, vBreathPhase, brightnessPulse, PostProcessing, CinematicCamera)
+- [x] 14-03-PLAN.md -- Wire connections (spatial hash + LineSegments) in modular architecture, tier adaptation gating, parallax fallback verification, dead code cleanup
 
 ### Phase 15: Memory Flight Controller
 **Goal**: Scroll/trackpad/touch input drives the camera along a 3D spline through the particle field with momentum, inertial drift, and progress-normalized narrative card triggers -- the visitor flies through the memory at their own pace
@@ -274,7 +275,7 @@ Plans:
 | 11. Cinematic Polish | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
-| 14. Particle Field Core | v2.2 | 2/3 | In progress | - |
+| 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
 | 15. Memory Flight Controller | v2.2 | 0/0 | Not started | - |
 | 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
@@ -282,4 +283,4 @@ Plans:
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-23 (v2.2 Particle Memory Flight roadmap -- 4 phases, 16 requirements)*
-*Updated: 2026-03-24 (Plans 14-01 and 14-02 complete)*
+*Updated: 2026-03-24 (Phase 14 complete — all 3 plans done)*
