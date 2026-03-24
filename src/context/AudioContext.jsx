@@ -245,23 +245,28 @@ export function AudioProvider({ children }) {
         }
     };
 
-    // Duck GlobalPlayer for capsule soundtrack — fade to 0.15 over 1s
+    // Duck GlobalPlayer for capsule — per-instance fade to 15% over 1.2s
+    // Uses soundRef.current.fade() so soundscape layers are NOT affected
     const duckForCapsule = () => {
         if (capsuleDuckedRef.current) return;
         capsuleDuckedRef.current = true;
-        // IMPORTANT: Use Howler.volume() getter, NOT the `volume` React state.
-        // `volume` is captured by closure and may be stale; Howler.volume()
-        // returns the actual current global volume at call time.
-        preDuckVolumeRef.current = Howler.volume();
-        Howler.volume(0.15);
+        if (soundRef.current && soundRef.current.playing()) {
+            preDuckVolumeRef.current = soundRef.current.volume();
+            soundRef.current.fade(preDuckVolumeRef.current, 0.15, 1200);
+        } else {
+            // No music playing — flag ducked but skip fade
+            preDuckVolumeRef.current = null;
+        }
     };
 
-    // Restore GlobalPlayer from capsule duck — fade back over 1s
+    // Restore GlobalPlayer from capsule duck — per-instance fade back over 1s
     const restoreFromCapsule = () => {
         if (!capsuleDuckedRef.current) return;
         capsuleDuckedRef.current = false;
-        const restoreTo = preDuckVolumeRef.current != null ? preDuckVolumeRef.current : 0.7;
-        Howler.volume(restoreTo);
+        const restoreTo = preDuckVolumeRef.current != null ? preDuckVolumeRef.current : 1.0;
+        if (soundRef.current) {
+            soundRef.current.fade(soundRef.current.volume(), restoreTo, 1000);
+        }
         preDuckVolumeRef.current = null;
     };
 

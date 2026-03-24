@@ -17,7 +17,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Howl, Howler } from 'howler';
-import { getScene } from '../data/memoryScenes';
+import { getSceneById } from '../data/memoryScenes';
 import { getMuted } from '../utils/sounds';
 
 /**
@@ -108,7 +108,7 @@ export function useSoundscape(sceneId, options = {}) {
       return;
     }
 
-    const scene = getScene(sceneId);
+    const scene = getSceneById(sceneId);
     if (!scene?.soundscape) {
       setError(`Scene "${sceneId}" not found or has no soundscape config`);
       return;

@@ -17,6 +17,7 @@ import {
   storeDepartureState,
   retrieveDepartureState,
 } from '../components/DreamTransition';
+import { useSoundscape } from '../hooks/useSoundscape';
 import './MemoryPortal.css';
 
 const ParticleFieldRenderer = React.lazy(() => import('../components/ParticleFieldRenderer'));
@@ -904,6 +905,14 @@ export default function CapsuleShell() {
     onExitNavigate: () => {
       navigate(portalReturnRef.current || '/');
     },
+  });
+
+  // Phase 17: Soundscape — active when particle-memory, awakened, not receding
+  const soundscapeActive = isParticleMemory && awakeningComplete && !recessionDone;
+  useSoundscape(soundscapeActive ? scene.id : null, {
+    duckSiteMusic: duckForCapsule,
+    restoreSiteMusic: restoreFromCapsule,
+    enabled: soundscapeActive,
   });
 
   // Phase 16: Store departure state in sessionStorage on mount (for intentional return)
