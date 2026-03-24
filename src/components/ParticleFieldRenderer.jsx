@@ -1,0 +1,139 @@
+/**
+ * ParticleFieldRenderer — Top-level R3F renderer for particle-memory scenes
+ *
+ * Rendered by CapsuleShell when renderMode === 'particle-memory'.
+ * Mirrors the structure of DisplacedMeshRenderer: creates Canvas with
+ * tier-adapted DPR, loads particle data via CPU sampler, renders
+ * ParticleMemoryField + CinematicCamera + postprocessing (full tier).
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
+import { HalfFloatType } from 'three';
+import { sampleParticles } from './particleMemory/particleSampler';
+import ParticleMemoryField from './particleMemory/ParticleMemoryField';
+import { CinematicCamera } from '../pages/CapsuleShell';
+
+const BASE = import.meta.env.BASE_URL;
+
+function resolveAsset(path) {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${BASE}${path.replace(/^\//, '')}`;
+}
+
+// ---------------------------------------------------------------------------
+// ParticlePostProcessing — Bloom + Vignette for full tier only
+// ---------------------------------------------------------------------------
+function ParticlePostProcessing() {
+  return (
+    <EffectComposer
+      disableNormalPass
+      frameBufferType={HalfFloatType}
+    >
+      <Bloom
+        intensity={1.4}
+        luminanceThreshold={0.35}
+        luminanceSmoothing={0.7}
+        radius={0.6}
+        mipmapBlur
+      />
+      <Vignette
+        eskil={false}
+        offset={0.2}
+        darkness={0.6}
+        blendFunction={BlendFunction.NORMAL}
+      />
+    </EffectComposer>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ParticleFieldRenderer — main export
+// ---------------------------------------------------------------------------
+export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
+  const [particleData, setParticleData] = useState(null);
+  const fieldRef = useRef(null);
+
+  // Load + sample on mount
+  useEffect(() => {
+    let cancelled = false;
+    const config = {
+      ...scene.particleConfig,
+      // Tier adaptation (D-11, D-12): simplified tier gets grid only
+      ...(tier === 'simplified' ? {
+        gridParticleCount: 55000,
+        edgeBoostEnabled: false,
+        edgeBoostCount: 0,
+      } : {}),
+    };
+    sampleParticles(
+      resolveAsset(scene.photoUrl),
+      resolveAsset(scene.depthMapUrl),
+      config,
+    ).then((data) => {
+      if (!cancelled) setParticleData(data);
+    }).catch((err) => {
+      console.error('[ParticleFieldRenderer] Sampling failed:', err);
+    });
+    return () => { cancelled = true; };
+  }, [scene, tier]);
+
+  // DPR and Canvas config (tier-adaptive)
+  const dpr = tier === 'full' ? [1, 2] : [1, 1];
+
+  // Awakening callback — trigger after particle data loads
+  useEffect(() => {
+    if (!particleData) return;
+    const timer = setTimeout(() => {
+      if (onAwakeningComplete) onAwakeningComplete();
+    }, directAccess ? 500 : 2000);
+    return () => clearTimeout(timer);
+  }, [particleData, onAwakeningComplete, directAccess]);
+
+  return (
+    <div className="memory-splat-container">
+      {particleData && (
+        <Canvas
+          dpr={dpr}
+          camera={{
+            position: [scene.cameraPosition.x, scene.cameraPosition.y, scene.cameraPosition.z],
+            fov: 50,
+            near: 0.1,
+            far: 100,
+          }}
+          gl={{
+            antialias: tier === 'full',
+            alpha: false,
+            powerPreference: 'high-performance',
+          }}
+          onCreated={({ gl }) => { gl.setClearColor('#000000'); }}
+        >
+          <ParticleMemoryField
+            ref={fieldRef}
+            particleData={particleData}
+            config={scene.particleConfig}
+          />
+          <CinematicCamera
+            keyframes={scene.cameraKeyframes}
+            fallbackTarget={[
+              scene.cameraTarget.x,
+              scene.cameraTarget.y,
+              scene.cameraTarget.z,
+            ]}
+          />
+          {tier === 'full' && <ParticlePostProcessing />}
+        </Canvas>
+      )}
+      {!particleData && (
+        <div className="memory-loading">
+          <div className="memory-loading-spinner" />
+          <span>Forming memory...</span>
+        </div>
+      )}
+      {tier !== 'full' && particleData && <div className="capsule-vignette" />}
+    </div>
+  );
+}
