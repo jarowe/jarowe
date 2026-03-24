@@ -14,7 +14,7 @@ import { useAudio } from '../context/AudioContext';
 import PortalVFX from '../components/PortalVFX';
 import './MemoryPortal.css';
 
-const LazyParticleMemoryField = React.lazy(() => import('./ParticleMemoryField'));
+const ParticleFieldRenderer = React.lazy(() => import('../components/ParticleFieldRenderer'));
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -207,7 +207,7 @@ void main() {
 // CinematicCamera — GSAP-driven multi-beat keyframe choreography
 // No OrbitControls. Visitor is guided through the memory.
 // ---------------------------------------------------------------------------
-function CinematicCamera({ keyframes, fallbackTarget }) {
+export function CinematicCamera({ keyframes, fallbackTarget }) {
   const { camera } = useThree();
   const tlRef = useRef(null);
   const mouseOffset = useRef({ x: 0, y: 0 });
@@ -725,60 +725,6 @@ function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningCo
 }
 
 // ---------------------------------------------------------------------------
-// ParticleFieldRenderer — particle memory field with cinematic camera
-// ---------------------------------------------------------------------------
-function ParticleFieldRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
-  const dpr = tier === 'full' ? [1, 2] : [1, 1];
-
-  return (
-    <div className="memory-splat-container">
-      <Canvas
-        dpr={dpr}
-        camera={{
-          position: [
-            scene.cameraPosition.x,
-            scene.cameraPosition.y,
-            scene.cameraPosition.z,
-          ],
-          fov: 50,
-          near: 0.1,
-          far: 100,
-        }}
-        gl={{
-          antialias: tier === 'full',
-          alpha: false,
-          powerPreference: 'high-performance',
-        }}
-        onCreated={({ gl }) => {
-          gl.setClearColor('#000000');
-        }}
-      >
-        <React.Suspense fallback={null}>
-          <LazyParticleMemoryField
-            scene={scene}
-            tier={tier}
-            onSamplingComplete={() => {
-              if (onAwakeningComplete) onAwakeningComplete();
-            }}
-          />
-        </React.Suspense>
-        <AtmosphericParticles tier={tier} />
-        <CinematicCamera
-          keyframes={scene.cameraKeyframes}
-          fallbackTarget={[
-            scene.cameraTarget.x,
-            scene.cameraTarget.y,
-            scene.cameraTarget.z,
-          ]}
-        />
-        {tier === 'full' && <CapsulePostProcessing mood={scene.mood} />}
-      </Canvas>
-      {tier !== 'full' && <div className="capsule-vignette" />}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // ParallaxFallback — multi-layer Ken Burns with depth-based separation
 // ---------------------------------------------------------------------------
 function ParallaxFallback({ scene, loadError, renderMode }) {
@@ -1093,13 +1039,20 @@ export default function CapsuleShell() {
       )}
 
       {showParticleMemory && (
-        <ParticleFieldRenderer
-          scene={scene}
-          tier={tier}
-          onRecessionComplete={handleRecessionComplete}
-          onAwakeningComplete={() => setAwakeningComplete(true)}
-          directAccess={directAccess}
-        />
+        <React.Suspense fallback={
+          <div className="memory-loading">
+            <div className="memory-loading-spinner" />
+            <span>Loading particle field...</span>
+          </div>
+        }>
+          <ParticleFieldRenderer
+            scene={scene}
+            tier={tier}
+            onRecessionComplete={handleRecessionComplete}
+            onAwakeningComplete={() => setAwakeningComplete(true)}
+            directAccess={directAccess}
+          />
+        </React.Suspense>
       )}
 
       {showFallback && (

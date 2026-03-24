@@ -327,12 +327,3 @@
     transform: translate(15px, -20px) scale(1.2);
   }
 }
-
-/* ── Capsule vignette (simplified tier, no postprocessing) ── */
-.capsule-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.5) 100%);
-}

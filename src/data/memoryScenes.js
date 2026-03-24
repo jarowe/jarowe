@@ -10,6 +10,9 @@
  *   'splat'           → SplatRenderer (gaussian splats)
  *   'parallax'        → ParallaxFallback (CSS parallax + Ken Burns)
  *
+ * particleConfig: { gridParticleCount, edgeBoostEnabled, edgeBoostCount, sobelThreshold,
+ *   breathSpeed, breathAmplitude, baseSize, sizeVariation, maxSize, depthScale, scatteredRadius } | null
+ *
  * cameraKeyframes: Array<{ position: {x,y,z}, target: {x,y,z}, duration: number (sec),
  *   ease: string (GSAP ease), hold: number (sec pause at this beat) }> | null
  * mood: 'warm' | 'cool' | 'golden' | null — color grading preset (Phase 11 CINE-04)
@@ -55,6 +58,7 @@ const scenes = [
     // Experience arc (not used for splat scenes)
     arc: null,
     portalEntry: false, // splat scene — direct entry only
+    particleConfig: null,
   },
   {
     id: 'test-capsule',
@@ -155,6 +159,7 @@ const scenes = [
       },
     ],
     portalEntry: true,  // supports full portal entry → awakening → recession → portal exit
+    particleConfig: null,
   },
   {
     id: 'syros-cave',
@@ -255,6 +260,24 @@ const scenes = [
       },
     ],
     portalEntry: true,
+    particleConfig: {
+      // Sampling
+      gridParticleCount: 80000,        // base grid particles
+      edgeBoostEnabled: true,          // Sobel edge detection boost
+      edgeBoostCount: 70000,           // max extra particles from edge boost
+      sobelThreshold: 40,              // gradient magnitude threshold (0-255)
+      // Breathing
+      breathSpeed: 0.4,                // wave speed multiplier
+      breathAmplitude: 0.015,          // z-displacement amplitude
+      // Size
+      baseSize: 2.5,                   // base gl_PointSize
+      sizeVariation: 1.5,              // luminance+depth size range
+      maxSize: 25.0,                   // gl_PointSize clamp max
+      // Depth
+      depthScale: 0.35,                // z-displacement from depth
+      // Scattered (Phase 16 pre-allocation)
+      scatteredRadius: 3.5,            // spherical scatter radius
+    },
   },
 ];
 
