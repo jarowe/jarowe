@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 Constellation** - Phases 1-2 (shipped 2026-02-28, Phases 3-6 deferred to future)
 - 🚧 **v2.0 Living World** - Phases 3-7 (in progress)
+- 🚧 **v2.2 Particle Memory Flight** - Phases 14-17 (in progress)
 
 ## Phases
 
@@ -137,10 +138,36 @@ Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
+### v2.2 Particle Memory Flight (In Progress)
+
+**Milestone Goal:** Transform memory capsules from displaced-mesh surfaces into luminous 3D particle fields with breathing animation, wire connections, bloom, cinematic camera, scroll-driven flight, dream portal transitions, and reactive soundscapes.
+
+### Phase 14: Particle Field Core
+**Goal**: A photo + depth map produces a luminous 3D particle field of 80K-150K points with breathing animation and tier-adaptive rendering
+**Plans**: 3 plans
+
+Plans:
+- [ ] 14-01-PLAN.md -- CapsuleShell integration, particle sampling core, dual position buffers
+- [x] 14-02-PLAN.md -- Breathing, bloom, and visual polish (breathScale, vBreathPhase, brightnessPulse, PostProcessing, CinematicCamera)
+- [ ] 14-03-PLAN.md -- Wire connections + tier adaptation
+
+### Phase 15: Memory Flight Controller
+**Goal**: Scroll-driven camera flight through the particle field
+**Plans**: TBD
+
+### Phase 16: Dream Portal Transition
+**Goal**: Particle dissolve/reform transitions using dual position buffers
+**Plans**: TBD
+
+### Phase 17: Memory Soundscape
+**Goal**: Progress-reactive audio soundscape for memory capsules
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+- v2.0: 3 -> 4 -> 5 -> 6 -> 7
+- v2.2: 14 -> 15 -> 16 -> 17
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -151,7 +178,12 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 14. Particle Field Core | v2.2 | 1/3 | In progress | - |
+| 15. Memory Flight Controller | v2.2 | 0/? | Not started | - |
+| 16. Dream Portal Transition | v2.2 | 0/? | Not started | - |
+| 17. Memory Soundscape | v2.2 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
+*Updated: 2026-03-23 (v2.2 Particle Memory Flight added, Phases 14-17; Plan 14-02 complete)*
