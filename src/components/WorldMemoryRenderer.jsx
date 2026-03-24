@@ -45,6 +45,13 @@ function resolveAsset(path) {
   return `${BASE}${path.replace(/^\//, '')}`;
 }
 
+function resolveMemoryWorldPath(sceneId, assetPath) {
+  if (!assetPath) return null;
+  if (assetPath.startsWith('http')) return assetPath;
+  const normalized = assetPath.includes('/') ? assetPath : `world/${assetPath}`;
+  return `memory/${sceneId}/${normalized}`;
+}
+
 // ---------------------------------------------------------------------------
 // SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
 // ---------------------------------------------------------------------------
@@ -476,8 +483,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
     if (meta?.world?.splat) {
-      // meta.json splat paths are relative to the memory directory
-      return `memory/${scene.id}/${meta.world.splat}`;
+      // meta.json splat paths are relative to the memory directory.
+      // Support both the current world/scene.ply contract and legacy scene.ply values.
+      return resolveMemoryWorldPath(scene.id, meta.world.splat);
     }
     return scene.splatUrl || null;
   }, [meta, scene.id, scene.splatUrl]);

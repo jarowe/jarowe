@@ -3,124 +3,50 @@
 /**
  * generate-memory-world.mjs
  *
- * Generates a 3D world asset from a memory scene's source photo.
+ * Generates or registers a 3D world asset from a memory scene's source photo.
  *
  * Usage:
  *   node pipeline/generate-memory-world.mjs syros-cave
- *   node pipeline/generate-memory-world.mjs syros-cave --generator trellis
  *   node pipeline/generate-memory-world.mjs syros-cave --generator sharp
+ *   node pipeline/generate-memory-world.mjs syros-cave --generator trellis
  *   node pipeline/generate-memory-world.mjs syros-cave --generator marble
- *
- * Pipeline:
- *   1. Read meta.json from public/memory/{scene-id}/
- *   2. Validate source photo exists
- *   3. Run generator (TRELLIS, SHARP, or Marble API)
- *   4. Post-process output (convert formats, optimize)
- *   5. Write world assets to public/memory/{scene-id}/world/
- *   6. Update meta.json with world asset info
  *
  * Asset contract:
  *   public/memory/{scene-id}/world/
- *     scene.ply     — Gaussian splat (PLY format, standard)
- *     scene.spz     — Gaussian splat (SPZ compressed, optional)
- *     scene.glb     — Triangulated mesh fallback (optional)
- *     bounds.json   — Axis-aligned bounding box + center
+ *     scene.ply
+ *     scene.spz
+ *     scene.glb
+ *     collider.glb
+ *     bounds.json
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { resolve, join, dirname } from 'path';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
+import { spawnSync } from 'child_process';
+import { tmpdir } from 'os';
+import { dirname, extname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const MEMORY_ROOT = join(ROOT, 'public', 'memory');
-
-// ---------------------------------------------------------------------------
-// Generator registry
-// Each generator stub prints setup instructions and returns null.
-// Real implementations replace the run() body only — interface stays the same.
-// ---------------------------------------------------------------------------
-
-const GENERATORS = {
-  trellis: {
-    name: 'TRELLIS',
-    description: 'Microsoft TRELLIS — MIT licensed, image → Gaussian splat + mesh',
-    requirements: 'Python 3.10+, CUDA GPU, trellis package',
-    outputFormats: ['.ply', '.glb'],
-    /**
-     * @param {string} inputPhoto  Absolute path to source image
-     * @param {string} outputDir   Absolute path to world/ output directory
-     * @param {object} options     { sceneId, meta }
-     * @returns {object|null}      Asset manifest or null on failure/stub
-     */
-    run: async (inputPhoto, outputDir, options) => {
-      console.log('\n[TRELLIS] Generation stub — not yet wired up.');
-      console.log('[TRELLIS] To set up:');
-      console.log('  1. Install: pip install git+https://github.com/microsoft/TRELLIS.git');
-      console.log('  2. Download model: huggingface-cli download microsoft/TRELLIS-image-large');
-      console.log('  3. Run inference:');
-      console.log(`       python -m trellis.generate \\`);
-      console.log(`         --image "${inputPhoto}" \\`);
-      console.log(`         --output "${outputDir}" \\`);
-      console.log(`         --format ply glb`);
-      console.log('[TRELLIS] Then re-run this script — it will detect the output and update meta.json.\n');
-      return null;
-    },
-  },
-
-  sharp: {
-    name: 'SHARP',
-    description: 'Apple SHARP — single image → Gaussian splat scene (research)',
-    requirements: 'Python 3.10+, CUDA GPU, ml-sharp repo',
-    outputFormats: ['.ply'],
-    run: async (inputPhoto, outputDir, options) => {
-      console.log('\n[SHARP] Generation stub — not yet wired up.');
-      console.log('[SHARP] To set up:');
-      console.log('  1. Clone: git clone https://github.com/apple/ml-sharp');
-      console.log('  2. Install: pip install -r ml-sharp/requirements.txt');
-      console.log('  3. Run inference:');
-      console.log(`       python ml-sharp/inference.py \\`);
-      console.log(`         --image "${inputPhoto}" \\`);
-      console.log(`         --output "${outputDir}/scene.ply"`);
-      console.log('[SHARP] Then re-run this script — it will detect the output and update meta.json.\n');
-      return null;
-    },
-  },
-
-  marble: {
-    name: 'Marble (World Labs)',
-    description: 'World Labs Marble API — commercial, highest quality, SPZ output',
-    requirements: 'API key from worldlabs.ai, MARBLE_API_KEY env var',
-    outputFormats: ['.spz', '.ply', '.glb'],
-    run: async (inputPhoto, outputDir, options) => {
-      const apiKey = process.env.MARBLE_API_KEY;
-      console.log('\n[Marble] API integration stub — not yet wired up.');
-      if (!apiKey) {
-        console.log('[Marble] Missing: MARBLE_API_KEY environment variable');
-      }
-      console.log('[Marble] To set up:');
-      console.log('  1. Get API key from https://worldlabs.ai');
-      console.log('  2. export MARBLE_API_KEY=your_key_here');
-      console.log('  3. Implement: POST https://api.worldlabs.ai/v1/worlds');
-      console.log('     Body: { image: base64(inputPhoto), format: ["spz", "ply", "glb"] }');
-      console.log('     Poll job status until complete, download assets to outputDir');
-      console.log('[Marble] Then re-run this script — it will detect the output and update meta.json.\n');
-      return null;
-    },
-  },
-};
-
-const DEFAULT_GENERATOR = 'trellis';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const TODAY = new Date().toISOString().split('T')[0];
+const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
+const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const sceneId = args.find(a => !a.startsWith('--'));
-  const genFlag = args.indexOf('--generator');
-  const generator = genFlag !== -1 ? args[genFlag + 1] : DEFAULT_GENERATOR;
+  const sceneId = args.find(arg => !arg.startsWith('--'));
+  const generatorIndex = args.indexOf('--generator');
+  const generator = generatorIndex !== -1 ? args[generatorIndex + 1] : 'sharp';
   return { sceneId, generator };
 }
 
@@ -129,137 +55,247 @@ function readMeta(sceneDir) {
   if (!existsSync(metaPath)) {
     throw new Error(`meta.json not found at: ${metaPath}`);
   }
-  return { meta: JSON.parse(readFileSync(metaPath, 'utf8')), metaPath };
+  return { metaPath, meta: JSON.parse(readFileSync(metaPath, 'utf8')) };
 }
 
 function writeMeta(metaPath, meta) {
   writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
 }
 
-/** Detect which world assets already exist in the world/ dir. */
-function detectExistingAssets(worldDir) {
-  const candidates = {
-    splat: ['scene.ply', 'scene.spz'],
-    mesh: ['scene.glb'],
-    collider: ['collider.glb'],
-    bounds: 'bounds.json',
-  };
-  const found = { splat: null, mesh: null, collider: null, bounds: null, format: null };
+function toWorldRelative(filename) {
+  return filename ? `world/${filename}` : null;
+}
 
-  for (const [key, names] of Object.entries(candidates)) {
-    if (key === 'bounds') continue;
-    const files = Array.isArray(names) ? names : [names];
-    for (const f of files) {
-      if (existsSync(join(worldDir, f))) {
-        found[key] = f;
-        if (key === 'splat') found.format = f.endsWith('.spz') ? 'spz' : 'ply';
-        break;
-      }
-    }
+function parsePlyVertexCount(plyPath) {
+  try {
+    const header = readFileSync(plyPath, 'utf8').slice(0, 8192);
+    const match = header.match(/element vertex\s+(\d+)/);
+    return match ? Number.parseInt(match[1], 10) : null;
+  } catch {
+    return null;
   }
-  if (existsSync(join(worldDir, 'bounds.json'))) {
-    found.bounds = JSON.parse(readFileSync(join(worldDir, 'bounds.json'), 'utf8'));
-  }
-  return found;
+}
+
+function normalizeGeneratedWorldAssets(worldDir) {
+  const files = readdirSync(worldDir, { withFileTypes: true })
+    .filter(entry => entry.isFile())
+    .map(entry => entry.name);
+
+  const promoteFirstMatch = (predicate, targetName) => {
+    if (existsSync(join(worldDir, targetName))) return targetName;
+    const match = files.find(predicate);
+    if (!match) return null;
+    renameSync(join(worldDir, match), join(worldDir, targetName));
+    return targetName;
+  };
+
+  const splatFile =
+    promoteFirstMatch(name => name.toLowerCase().endsWith('.spz'), 'scene.spz') ||
+    promoteFirstMatch(name => name.toLowerCase().endsWith('.ply'), 'scene.ply');
+  const meshFile = promoteFirstMatch(
+    name => name.toLowerCase().endsWith('.glb') && name.toLowerCase() !== 'collider.glb',
+    'scene.glb',
+  );
+  const colliderFile = existsSync(join(worldDir, 'collider.glb')) ? 'collider.glb' : null;
+  const boundsPath = join(worldDir, 'bounds.json');
+  const bounds = existsSync(boundsPath) ? JSON.parse(readFileSync(boundsPath, 'utf8')) : null;
+
+  return {
+    splat: toWorldRelative(splatFile),
+    mesh: toWorldRelative(meshFile),
+    collider: toWorldRelative(colliderFile),
+    format: splatFile?.endsWith('.spz') ? 'spz' : splatFile?.endsWith('.ply') ? 'ply' : null,
+    splatCount: splatFile?.endsWith('.ply') ? parsePlyVertexCount(join(worldDir, splatFile)) : null,
+    bounds,
+  };
+}
+
+function detectExistingAssets(worldDir) {
+  const normalized = normalizeGeneratedWorldAssets(worldDir);
+  return normalized.splat ? normalized : null;
 }
 
 function updateMetaWithAssets(meta, assets) {
-  meta.source.generator = meta.source.generator || 'external';
-  meta.source.generated = meta.source.generated || new Date().toISOString().split('T')[0];
+  meta.source.generator = assets.generator || meta.source.generator || 'external';
+  meta.source.generated = assets.generated || meta.source.generated || TODAY;
   meta.world = {
     splat: assets.splat,
     mesh: assets.mesh,
     collider: assets.collider,
     format: assets.format,
-    splatCount: null,       // TODO: parse from PLY header
-    bounds: assets.bounds,
+    splatCount: assets.splatCount ?? null,
+    bounds: assets.bounds ?? null,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
+function runShellCommand(command, cwd = ROOT) {
+  return spawnSync(command, {
+    cwd,
+    encoding: 'utf8',
+    shell: true,
+    stdio: 'pipe',
+  });
+}
+
+const GENERATORS = {
+  sharp: {
+    name: 'SHARP',
+    description: 'Apple SHARP single-image Gaussian splat generation',
+    requirements: 'Python 3.10+, CUDA GPU, SHARP CLI installed (`pip install "sharp[f3d]"`)',
+    async run(inputPhoto, worldDir, options) {
+      const sharpCommand = process.env.SHARP_CLI || (existsSync(LOCAL_SHARP_CLI) ? LOCAL_SHARP_CLI : 'sharp');
+      const sharpDevice = process.env.SHARP_DEVICE || 'cpu';
+      const checkpointPath = process.env.SHARP_CHECKPOINT || (existsSync(LOCAL_SHARP_CHECKPOINT) ? LOCAL_SHARP_CHECKPOINT : '');
+      const tempInputDir = join(tmpdir(), `jarowe-sharp-${options.sceneId}-${Date.now()}`);
+      const tempInputPath = join(tempInputDir, `source${extname(inputPhoto) || '.png'}`);
+      mkdirSync(tempInputDir, { recursive: true });
+      copyFileSync(inputPhoto, tempInputPath);
+
+      const checkpointArg = checkpointPath ? ` -c "${checkpointPath}"` : '';
+      const command = `"${sharpCommand}" predict -i "${tempInputDir}" -o "${worldDir}" --device ${sharpDevice} --no-render${checkpointArg}`;
+
+      console.log(`\n[SHARP] Running: ${command}`);
+      console.log('[SHARP] First run may download weights and take a while.\n');
+
+      const result = runShellCommand(command);
+      rmSync(tempInputDir, { recursive: true, force: true });
+
+      if (result.stdout?.trim()) console.log(result.stdout.trim());
+      if (result.stderr?.trim()) console.log(result.stderr.trim());
+
+      if (result.status !== 0) {
+        throw new Error(
+          [
+            '[SHARP] Generation failed.',
+            `Command: ${command}`,
+            result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+            'Install SHARP from Apple\'s repo, ensure the CLI exists, or set SHARP_CLI to the full command path.',
+          ].join('\n'),
+        );
+      }
+
+      const assets = normalizeGeneratedWorldAssets(worldDir);
+      if (!assets.splat) {
+        throw new Error('[SHARP] No .ply or .spz file was produced in the world directory.');
+      }
+      return assets;
+    },
+  },
+
+  trellis: {
+    name: 'TRELLIS',
+    description: 'Microsoft TRELLIS image-to-3D generation',
+    requirements: 'Python 3.10+, CUDA GPU, TRELLIS installed locally',
+    async run(inputPhoto, worldDir) {
+      const trellisCommand = process.env.TRELLIS_COMMAND || '';
+      if (!trellisCommand) {
+        throw new Error(
+          [
+            '[TRELLIS] No command configured.',
+            'Set TRELLIS_COMMAND to your working invocation, for example:',
+            'python -m trellis.generate --image "{input}" --output "{output}" --format ply glb',
+          ].join('\n'),
+        );
+      }
+
+      const command = trellisCommand
+        .replaceAll('{input}', inputPhoto)
+        .replaceAll('{output}', worldDir);
+
+      console.log(`\n[TRELLIS] Running: ${command}\n`);
+      const result = runShellCommand(command);
+
+      if (result.stdout?.trim()) console.log(result.stdout.trim());
+      if (result.stderr?.trim()) console.log(result.stderr.trim());
+
+      if (result.status !== 0) {
+        throw new Error(
+          [
+            '[TRELLIS] Generation failed.',
+            `Command: ${command}`,
+            result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+          ].join('\n'),
+        );
+      }
+
+      const assets = normalizeGeneratedWorldAssets(worldDir);
+      if (!assets.splat && !assets.mesh) {
+        throw new Error('[TRELLIS] No world assets were produced in the world directory.');
+      }
+      return assets;
+    },
+  },
+
+  marble: {
+    name: 'Marble',
+    description: 'World Labs Marble export registration',
+    requirements: 'Manual export or API integration',
+    async run() {
+      throw new Error(
+        [
+          '[Marble] API integration is not implemented in this repo yet.',
+          'Export the assets externally into public/memory/{scene-id}/world and rerun this script to register them.',
+        ].join('\n'),
+      );
+    },
+  },
+};
 
 async function main() {
   const { sceneId, generator: generatorKey } = parseArgs();
 
-  // Usage guard
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator trellis|sharp|marble]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|trellis|marble]');
     console.log('\nAvailable generators:');
-    for (const [key, g] of Object.entries(GENERATORS)) {
-      console.log(`  ${key.padEnd(8)} — ${g.description}`);
+    for (const [key, generator] of Object.entries(GENERATORS)) {
+      console.log(`  ${key.padEnd(8)} - ${generator.description}`);
     }
     process.exit(1);
   }
 
-  // Generator guard
   const generator = GENERATORS[generatorKey];
   if (!generator) {
-    console.error(`Unknown generator: "${generatorKey}". Choose from: ${Object.keys(GENERATORS).join(', ')}`);
+    console.error(`Unknown generator "${generatorKey}". Choose from: ${Object.keys(GENERATORS).join(', ')}`);
     process.exit(1);
   }
 
   const sceneDir = join(MEMORY_ROOT, sceneId);
   if (!existsSync(sceneDir)) {
-    console.error(`Scene directory not found: ${sceneDir}`);
-    process.exit(1);
+    throw new Error(`Scene directory not found: ${sceneDir}`);
   }
 
-  // 1. Read meta.json
-  const { meta, metaPath } = readMeta(sceneDir);
-  console.log(`\nScene: ${meta.title} (${sceneId})`);
-  console.log(`Generator: ${generator.name}`);
-
-  // 2. Validate source photo
+  const { metaPath, meta } = readMeta(sceneDir);
   const photoPath = join(sceneDir, meta.source.photo);
   if (!existsSync(photoPath)) {
-    console.error(`Source photo not found: ${photoPath}`);
-    process.exit(1);
+    throw new Error(`Source photo not found: ${photoPath}`);
   }
-  console.log(`Source photo: ${meta.source.photo} ✓`);
 
-  // 3. Ensure world/ output dir
   const worldDir = join(sceneDir, 'world');
-  if (!existsSync(worldDir)) {
-    mkdirSync(worldDir, { recursive: true });
-    console.log(`Created: ${worldDir}`);
-  }
+  mkdirSync(worldDir, { recursive: true });
 
-  // 4. Check for existing assets (generated externally or by a previous run)
+  console.log(`\nScene: ${meta.title} (${sceneId})`);
+  console.log(`Generator: ${generator.name}`);
+  console.log(`Source photo: ${meta.source.photo}`);
+  console.log(`World dir: ${worldDir}`);
+
   const existingAssets = detectExistingAssets(worldDir);
-  if (existingAssets.splat) {
-    console.log(`\nExisting world assets detected in world/:`);
-    console.log(`  splat:    ${existingAssets.splat}`);
-    if (existingAssets.mesh) console.log(`  mesh:     ${existingAssets.mesh}`);
-    if (existingAssets.collider) console.log(`  collider: ${existingAssets.collider}`);
-    console.log('\nUpdating meta.json with detected assets...');
-    updateMetaWithAssets(meta, existingAssets);
+  if (existingAssets?.splat || existingAssets?.mesh) {
+    console.log('\nExisting world assets detected. Registering them in meta.json...');
+    updateMetaWithAssets(meta, { ...existingAssets, generator: generatorKey, generated: TODAY });
     writeMeta(metaPath, meta);
-    console.log(`meta.json updated. World is ready.\n`);
-    process.exit(0);
+    console.log(JSON.stringify(meta.world, null, 2));
+    return;
   }
 
-  // 5. Run generator (stub — returns null until implemented)
-  const result = await generator.run(photoPath, worldDir, { sceneId, meta });
+  const generatedAssets = await generator.run(photoPath, worldDir, { sceneId, meta });
+  updateMetaWithAssets(meta, { ...generatedAssets, generator: generatorKey, generated: TODAY });
+  writeMeta(metaPath, meta);
 
-  // 6. If generator produced output, update meta.json
-  if (result) {
-    updateMetaWithAssets(meta, result);
-    writeMeta(metaPath, meta);
-    console.log('\nmeta.json updated with new world assets.');
-    console.log(`Output: ${worldDir}\n`);
-  } else {
-    console.log('No assets generated yet. Set up the generator above, then re-run this script.');
-    console.log(`\nOr place assets manually in: ${worldDir}`);
-    console.log('  world/scene.ply   — Gaussian splat');
-    console.log('  world/scene.glb   — Mesh fallback (optional)');
-    console.log('  world/bounds.json — { min:[x,y,z], max:[x,y,z], center:[x,y,z] } (optional)');
-    console.log('\nThen re-run: node pipeline/generate-memory-world.mjs', sceneId, '\n');
-  }
+  console.log('\nWorld asset generated and registered:');
+  console.log(JSON.stringify(meta.world, null, 2));
 }
 
-main().catch(err => {
-  console.error('\nPipeline error:', err.message);
+main().catch(error => {
+  console.error(`\nPipeline error: ${error.message}`);
   process.exit(1);
 });

@@ -8,7 +8,7 @@ Converts a memory scene's source photo into a 3D world asset (Gaussian splat or 
 # List what scene IDs are available
 ls public/memory/
 
-# Dry run — prints generator setup instructions
+# Register existing generated assets or run the default generator
 node pipeline/generate-memory-world.mjs syros-cave
 
 # With a specific generator
@@ -55,17 +55,24 @@ node pipeline/generate-memory-world.mjs syros-cave
 
 ### SHARP (Apple Research)
 
-Single-image Gaussian splat from Apple ML. PLY output only.
+Single-image Gaussian splat from Apple ML. This is the fastest open path for `syros-cave` right now because it outputs a directly usable `.ply` splat world.
 
 ```bash
-git clone https://github.com/apple/ml-sharp
-pip install -r ml-sharp/requirements.txt
+# Prerequisites: Python 3.10+, CUDA GPU
+python -m venv .venv-sharp
+.venv-sharp\Scripts\python.exe -m pip install git+https://github.com/apple/ml-sharp.git
 
-python ml-sharp/inference.py \
-  --image public/memory/syros-cave/photo.webp \
-  --output public/memory/syros-cave/world/scene.ply
+# Optional: download and pin the checkpoint locally
+curl.exe -k -L https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt -o .models\sharp_2572gikvuh.pt
 
-node pipeline/generate-memory-world.mjs syros-cave
+# The pipeline autodetects:
+#   .venv-sharp\Scripts\sharp.exe
+#   .models\sharp_2572gikvuh.pt
+# and runs:
+#   sharp predict -i <temp-input-dir> -o public/memory/syros-cave/world/ --device cpu --no-render
+
+# Then it normalizes the output to world/scene.ply and updates meta.json
+node pipeline/generate-memory-world.mjs syros-cave --generator sharp
 ```
 
 ### Marble API (World Labs)
@@ -99,8 +106,8 @@ The pipeline writes these paths into `meta.json` under the `world` key:
 ```json
 {
   "world": {
-    "splat": "scene.ply",
-    "mesh": "scene.glb",
+    "splat": "world/scene.ply",
+    "mesh": "world/scene.glb",
     "collider": null,
     "format": "ply",
     "splatCount": null,
@@ -113,7 +120,7 @@ The pipeline writes these paths into `meta.json` under the `world` key:
 
 ## Placing Assets Manually
 
-If you generate assets externally (e.g. Luma AI, Polycam, Gaussian Opacity Fields), just drop them in the `world/` folder and run the pipeline script — it auto-detects and updates `meta.json`:
+If you generate assets externally (e.g. SHARP, Marble export, Polycam, Gaussian Opacity Fields), just drop them in the `world/` folder and run the pipeline script. It normalizes names to `scene.ply` / `scene.glb` and updates `meta.json`:
 
 ```bash
 # Place your files:

@@ -8,15 +8,15 @@
     "photo": "photo.webp",
     "depth": "depth.png",
     "mask": "mask.png",
-    "generator": null,
-    "generated": null
+    "generator": "sharp",
+    "generated": "2026-03-24"
   },
   "world": {
-    "splat": null,
+    "splat": "world/scene.ply",
     "mesh": null,
     "collider": null,
-    "format": null,
-    "splatCount": null,
+    "format": "ply",
+    "splatCount": 1179648,
     "bounds": null
   },
   "fallback": {

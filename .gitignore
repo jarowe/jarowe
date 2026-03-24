@@ -41,6 +41,15 @@ carbonmade-archive/
 C*devjarowetmp_*
 public/images/Facebook/
 
+# SHARP / ML generation pipeline (local only)
+.venv-sharp/
+.models/
+
+# Generated world assets (too large for git, regenerate with pipeline/)
+public/memory/*/world/*.ply
+public/memory/*/world/*.spz
+public/memory/*/world/*.glb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
