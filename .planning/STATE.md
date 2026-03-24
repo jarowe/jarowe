@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: Executing Phase 15
-stopped_at: Plan 15-01 complete
-last_updated: "2026-03-24T04:00:00Z"
+status: Phase 15 Complete
+stopped_at: Phase 15 complete (plans 15-01 + 15-02)
+last_updated: "2026-03-24T04:30:00Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,19 +19,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 15 — Memory Flight Controller (plan 15-01 complete)
+**Current focus:** Phase 15 complete — ready for Phase 16
 
 ## Current Position
 
-Phase: 15 (Memory Flight Controller) — Plan 15-01 COMPLETE
-Next: Phase 16 (Dream Portal Transition) or additional 15-0x plans if needed
+Phase: 15 (Memory Flight Controller) — COMPLETE (plans 15-01 + 15-02)
+Next: Phase 16 (Dream Portal Transition)
 
 ## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
 | 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
-| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Plan 15-01 complete |
+| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Complete |
 | 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
@@ -48,16 +48,16 @@ Next: Phase 16 (Dream Portal Transition) or additional 15-0x plans if needed
 
 **Velocity:**
 
-- Total plans completed: 4 (v2.2: Phase 14 x3 + Phase 15 x1)
-- Average duration: ~8 min
+- Total plans completed: 5 (v2.2: Phase 14 x3 + Phase 15 x2)
+- Average duration: ~7 min
 - Total execution time: ~35 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 14 | 3 | ~25 min | ~8 min |
-| 15 | 1 | ~10 min | 10 min |
+| 14 | 3/3 | ~25 min | ~8 min |
+| 15 | 2/2 | ~15 min | ~7 min |
 
 **Recent Trend:**
 
@@ -73,7 +73,7 @@ Next: Phase 16 (Dream Portal Transition) or additional 15-0x plans if needed
 ## v2.2 Summary (in progress)
 
 Phase 14 complete (3 plans): ParticleMemoryField, breathing + bloom, wire connections + tier adaptation
-Phase 15 plan 01 complete: FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration
+Phase 15 complete (2 plans): FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration, progress-threshold narrative triggers in CapsuleShell
 
 ## v2.1 Summary
 
@@ -128,6 +128,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 15]: Three motion layers: spline progress, mouse parallax (lerped), sine micro-drift (12s)
 - [Phase 15]: FOV bell-curve narrowing 50→40→50 at power-2 easing centered at progress=0.5
 - [Phase 15]: Narrative cards driven by progress thresholds (0.15/0.35/0.6/0.85), not time delays
+- [Phase 15]: Dual-path narrative: progress-threshold (rAF poll of flightProgressRef) for particle-memory, time-based delay for all other scenes
 
 ### v2.2 Research Flags
 
@@ -152,5 +153,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Plan 15-01 complete — FlightCamera built, integrated, build verified
-Resume file: .planning/phases/15-memory-flight-controller/15-01-SUMMARY.md
+Stopped at: Phase 15 complete — both plans merged (15-01 FlightCamera, 15-02 progress-threshold narrative)
+Resume file: .planning/phases/15-memory-flight-controller/15-02-SUMMARY.md

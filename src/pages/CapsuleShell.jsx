@@ -885,6 +885,7 @@ export default function CapsuleShell() {
   const navigate = useNavigate();
   const exitTimersRef = useRef([]);
   const soundRef = useRef(null);
+  const flightProgressRef = useRef(0); // Written by flight controller, read by narrative triggers
   const audio = useAudio();
   const handleRecessionComplete = useCallback(() => setRecessionDone(true), []);
 
@@ -972,11 +973,40 @@ export default function CapsuleShell() {
     };
   }, [scene.soundtrack]);
 
-  // Narrative cards — gated behind awakening completion (D-03: no text during depth reveal)
+  // Narrative cards — two trigger paths:
+  //   1. Progress-threshold (particle-memory scenes with threshold fields): poll flightProgressRef
+  //   2. Time-based delay (all other scenes): existing timed setTimeout approach
   useEffect(() => {
     if (!scene.narrative?.length) return;
     if (!awakeningComplete && scene.arc) return; // Wait for awakening if arc is configured
 
+    const hasThresholds = scene.renderMode === 'particle-memory' &&
+      scene.narrative.some((card) => typeof card.threshold === 'number');
+
+    if (hasThresholds) {
+      // Progress-threshold path: poll flightProgressRef via rAF
+      const firedSet = new Set();
+      let rafId;
+
+      const poll = () => {
+        const progress = flightProgressRef.current;
+        scene.narrative.forEach((card, i) => {
+          if (!firedSet.has(i) && typeof card.threshold === 'number' && progress >= card.threshold) {
+            firedSet.add(i);
+            setVisibleCards((prev) => [...prev, i]);
+          }
+        });
+        rafId = requestAnimationFrame(poll);
+      };
+      rafId = requestAnimationFrame(poll);
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        setVisibleCards([]);
+      };
+    }
+
+    // Time-based delay path (non-particle-memory or no thresholds)
     const timers = scene.narrative.map((card, i) =>
       setTimeout(() => setVisibleCards((prev) => [...prev, i]), card.delay)
     );
@@ -984,7 +1014,7 @@ export default function CapsuleShell() {
       timers.forEach(clearTimeout);
       setVisibleCards([]);
     };
-  }, [scene.narrative, awakeningComplete, scene.arc]);
+  }, [scene.narrative, awakeningComplete, scene.arc, scene.renderMode]);
 
   const handleUnmute = useCallback(() => {
     if (!soundRef.current) return;
@@ -1060,6 +1090,7 @@ export default function CapsuleShell() {
             onRecessionComplete={handleRecessionComplete}
             onAwakeningComplete={() => setAwakeningComplete(true)}
             directAccess={directAccess}
+            flightProgressRef={flightProgressRef}
           />
         </React.Suspense>
       )}

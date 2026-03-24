@@ -230,6 +230,7 @@ Plans:
 - [x] 14-03-PLAN.md -- Wire connections (spatial hash + LineSegments) in modular architecture, tier adaptation gating, parallax fallback verification, dead code cleanup
 
 ### Phase 15: Memory Flight Controller
+**Plans**: 2 plans (complete)
 **Goal**: Scroll/trackpad/touch input drives the camera along a 3D spline through the particle field with momentum, inertial drift, and progress-normalized narrative card triggers -- the visitor flies through the memory at their own pace
 **Depends on**: Phase 14 (particle field must render before camera can fly through it)
 **Requirements**: FLIGHT-01, FLIGHT-02, FLIGHT-03, FLIGHT-04
@@ -241,6 +242,7 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md -- FlightCamera with CatmullRom spline + scroll momentum + micro-drift, flightPath config for syros-cave, ParticleFieldRenderer integration, build verification
+- [x] 15-02-PLAN.md -- Progress-threshold narrative triggers in memoryScenes.js + CapsuleShell dual-path narrative (progress vs time-based)
 
 ### Phase 16: Dream Portal Transition
 **Goal**: Entry to the capsule dissolves reality into scattered particles, streams through a luminous void, and reforms particles into the memory photo formation -- exit reverses the grammar -- replacing the existing PortalVFX with dream-logic transitions
@@ -279,7 +281,7 @@ Plans:
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
 | 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
-| 15. Memory Flight Controller | v2.2 | 1/1 | Complete | 2026-03-24 |
+| 15. Memory Flight Controller | v2.2 | 2/2 | Complete | 2026-03-24 |
 | 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 
@@ -287,4 +289,4 @@ Plans:
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-23 (v2.2 Particle Memory Flight roadmap -- 4 phases, 16 requirements)*
 *Updated: 2026-03-24 (Phase 14 complete — all 3 plans done)*
-*Updated: 2026-03-24 (Phase 15 complete — plan 15-01 done, FlightCamera + scroll-driven spline)*
+*Updated: 2026-03-24 (Phase 15 complete — plan 15-01 FlightCamera + scroll-driven spline, plan 15-02 progress-threshold narrative triggers)*

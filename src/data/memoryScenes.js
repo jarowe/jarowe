@@ -189,21 +189,25 @@ const scenes = [
         // Card 1: Place — the cave itself
         text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
         delay: 2000,
+        threshold: 0.15, // progress-based trigger for particle-memory flight
       },
       {
         // Card 2: Feeling — what it was like to stand there
         text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
         delay: 6000,
+        threshold: 0.40,
       },
       {
         // Card 3: Meaning — why this place matters
         text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
         delay: 11000,
+        threshold: 0.65,
       },
       {
         // Card 4: Gratitude — the final thought
         text: 'I found joy here.',
         delay: 16000,
+        threshold: 0.85,
       },
     ],
     cameraPosition: { x: 0, y: 0.18, z: 3.4 },
