@@ -4,7 +4,11 @@
  * Rendered by CapsuleShell when renderMode === 'particle-memory'.
  * Mirrors the structure of DisplacedMeshRenderer: creates Canvas with
  * tier-adapted DPR, loads particle data via CPU sampler, renders
- * ParticleMemoryField + CinematicCamera + postprocessing (full tier).
+ * ParticleMemoryField + camera + postprocessing (full tier).
+ *
+ * Camera selection:
+ *   - FlightCamera (scroll-driven spline) when scene.flightPath is present
+ *   - CinematicCamera (GSAP keyframes) as fallback
  *
  * Tier adaptation:
  *   full:       150K particles + wire connections + bloom + DPR 2.0
@@ -12,7 +16,7 @@
  *   parallax:   handled by CapsuleShell (ParallaxFallback + CSS dots)
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
@@ -20,6 +24,7 @@ import { HalfFloatType } from 'three';
 import { sampleParticles } from './particleMemory/particleSampler';
 import { computeWireConnections } from './particleMemory/wireConnections';
 import ParticleMemoryField from './particleMemory/ParticleMemoryField';
+import FlightCamera from './particleMemory/FlightCamera';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
 const BASE = import.meta.env.BASE_URL;
@@ -59,12 +64,24 @@ function ParticlePostProcessing() {
 // ---------------------------------------------------------------------------
 // ParticleFieldRenderer — main export
 // ---------------------------------------------------------------------------
-export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
+const ParticleFieldRenderer = forwardRef(function ParticleFieldRenderer(
+  { scene, tier, onRecessionComplete, onAwakeningComplete, directAccess, onProgress },
+  ref,
+) {
   const [particleData, setParticleData] = useState(null);
   const [wireData, setWireData] = useState(null);
   const fieldRef = useRef(null);
+  const flightCameraRef = useRef(null);
 
   const isFullTier = tier === 'full';
+  const hasFlightPath = !!scene.flightPath;
+
+  // Expose flight camera progress to parent (CapsuleShell)
+  useImperativeHandle(ref, () => ({
+    getProgress: () => flightCameraRef.current?.getProgress?.() ?? 0,
+    flightCameraRef,
+    fieldRef,
+  }));
 
   // Load + sample on mount, compute wires for full tier
   useEffect(() => {
@@ -115,14 +132,22 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
     return () => clearTimeout(timer);
   }, [particleData, onAwakeningComplete, directAccess]);
 
+  // Progress callback passthrough for narrative card integration
+  const handleProgress = useCallback((p) => {
+    if (onProgress) onProgress(p);
+  }, [onProgress]);
+
   return (
-    <div className="memory-splat-container">
+    <div
+      className="memory-splat-container"
+      style={hasFlightPath ? { touchAction: 'none' } : undefined}
+    >
       {particleData && (
         <Canvas
           dpr={dpr}
           camera={{
             position: [scene.cameraPosition.x, scene.cameraPosition.y, scene.cameraPosition.z],
-            fov: 50,
+            fov: scene.flightPath?.fovRange?.[0] ?? 50,
             near: 0.1,
             far: 100,
           }}
@@ -139,14 +164,22 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
             config={scene.particleConfig}
             wireData={wireData}
           />
-          <CinematicCamera
-            keyframes={scene.cameraKeyframes}
-            fallbackTarget={[
-              scene.cameraTarget.x,
-              scene.cameraTarget.y,
-              scene.cameraTarget.z,
-            ]}
-          />
+          {hasFlightPath ? (
+            <FlightCamera
+              ref={flightCameraRef}
+              flightPath={scene.flightPath}
+              onProgress={handleProgress}
+            />
+          ) : (
+            <CinematicCamera
+              keyframes={scene.cameraKeyframes}
+              fallbackTarget={[
+                scene.cameraTarget.x,
+                scene.cameraTarget.y,
+                scene.cameraTarget.z,
+              ]}
+            />
+          )}
           {isFullTier && <ParticlePostProcessing />}
         </Canvas>
       )}
@@ -159,4 +192,6 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
       {!isFullTier && particleData && <div className="capsule-vignette" />}
     </div>
   );
-}
+});
+
+export default ParticleFieldRenderer;
