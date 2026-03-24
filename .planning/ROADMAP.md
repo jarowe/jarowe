@@ -256,7 +256,7 @@ Plans:
 
 Plans:
 - [x] 16-01-PLAN.md -- Directional tunnel scatter in particleSampler, uMorphStagger uniform for depth-staggered convergence, wireUniforms exposed via ParticleMemoryField ref
-- [ ] 16-02-PLAN.md -- DreamTransition component with GSAP entry/exit timelines, dissolve + tunnel void + reform phases
+- [x] 16-02-PLAN.md -- DreamTransition component with GSAP entry/exit timelines, FlightCamera tunnel mode, CapsuleShell integration, sessionStorage departure state
 - [ ] 16-03-PLAN.md -- Wire filament flashes during tunnel void, exit reversal, FOV convergence, polish
 
 ### Phase 17: Memory Soundscape
@@ -287,7 +287,7 @@ Plans:
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
 | 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
 | 15. Memory Flight Controller | v2.2 | 2/2 | Complete | 2026-03-24 |
-| 16. Dream Portal Transition | v2.2 | 1/3 | In progress | - |
+| 16. Dream Portal Transition | v2.2 | 2/3 | In progress | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 
 ---
@@ -296,3 +296,4 @@ Plans:
 *Updated: 2026-03-24 (Phase 14 complete — all 3 plans done)*
 *Updated: 2026-03-24 (Phase 15 complete — plan 15-01 FlightCamera + scroll-driven spline, plan 15-02 progress-threshold narrative triggers)*
 *Updated: 2026-03-24 (Phase 16 plan 16-01 complete — directional tunnel scatter, morph stagger, wireUniforms ref)*
+*Updated: 2026-03-24 (Phase 16 plan 16-02 complete — DreamTransition GSAP timelines, FlightCamera tunnel mode, CapsuleShell integration)*

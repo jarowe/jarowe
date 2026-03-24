@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
 status: Phase 16 In Progress
-stopped_at: Phase 16 plan 16-01 complete (tunnel scatter + morph stagger foundation)
-last_updated: "2026-03-24T06:00:00Z"
+stopped_at: Phase 16 plan 16-02 complete (DreamTransition + GSAP timelines + CapsuleShell integration)
+last_updated: "2026-03-24T07:00:00Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 16 — Dream Portal Transition (plan 16-01 complete)
+**Current focus:** Phase 16 — Dream Portal Transition (plan 16-02 complete)
 
 ## Current Position
 
-Phase: 16 (Dream Portal Transition) — IN PROGRESS (plan 16-01 complete)
-Next plan: 16-02 (DreamTransition component + GSAP timelines)
+Phase: 16 (Dream Portal Transition) — IN PROGRESS (plans 16-01, 16-02 complete)
+Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
 
 ## v2.2 Roadmap Summary
 
@@ -32,7 +32,7 @@ Next plan: 16-02 (DreamTransition component + GSAP timelines)
 |-------|------|-------------|--------|
 | 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
 | 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Complete |
-| 16 | Dream Portal Transition | DREAM-01/02/03/04 | In progress (16-01 done) |
+| 16 | Dream Portal Transition | DREAM-01/02/03/04 | In progress (16-01, 16-02 done) |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
 **Phase ordering rationale:**
@@ -48,9 +48,9 @@ Next plan: 16-02 (DreamTransition component + GSAP timelines)
 
 **Velocity:**
 
-- Total plans completed: 6 (v2.2: Phase 14 x3 + Phase 15 x2 + Phase 16 x1)
+- Total plans completed: 7 (v2.2: Phase 14 x3 + Phase 15 x2 + Phase 16 x2)
 - Average duration: ~7 min
-- Total execution time: ~35 min
+- Total execution time: ~43 min
 
 **By Phase:**
 
@@ -67,6 +67,8 @@ Next plan: 16-02 (DreamTransition component + GSAP timelines)
 | Phase 14 P02 | ~8min | 2 tasks | 3 files |
 | Phase 14 P03 | ~8min | 4 tasks | 4 files |
 | Phase 15 P01 | ~10min | 4 tasks | 7 files |
+| Phase 16 P01 | ~5min | 3 tasks | 3 files |
+| Phase 16 P02 | ~8min | 5 tasks | 4 files |
 
 *Updated after each plan completion*
 
@@ -74,7 +76,7 @@ Next plan: 16-02 (DreamTransition component + GSAP timelines)
 
 Phase 14 complete (3 plans): ParticleMemoryField, breathing + bloom, wire connections + tier adaptation
 Phase 15 complete (2 plans): FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration, progress-threshold narrative triggers in CapsuleShell
-Phase 16 in progress (1/3 plans): 16-01 directional tunnel scatter + uMorphStagger uniform + wireUniforms exposed via ref
+Phase 16 in progress (2/3 plans): 16-01 directional tunnel scatter + uMorphStagger + wireUniforms ref; 16-02 DreamTransition GSAP timelines + FlightCamera tunnel mode + CapsuleShell integration
 
 ## v2.1 Summary
 
@@ -130,6 +132,11 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 15]: FOV bell-curve narrowing 50→40→50 at power-2 easing centered at progress=0.5
 - [Phase 15]: Narrative cards driven by progress thresholds (0.15/0.35/0.6/0.85), not time delays
 - [Phase 15]: Dual-path narrative: progress-threshold (rAF poll of flightProgressRef) for particle-memory, time-based delay for all other scenes
+- [Phase 16]: DreamTransition replaces PortalVFX for particle-memory scenes; PortalVFX preserved for splat/displaced-mesh
+- [Phase 16]: 3-phase timeline: dissolve 1.5s (morph 1->0 + stagger ramp) -> tunnel 1.0s (auto-advance + FOV 30deg) -> reform 2.0s (morph 0->1 depth-staggered + FOV restore)
+- [Phase 16]: FlightCamera tunnel mode: setTunnelMode(enabled, speed) — kills scroll, auto-advances, skips FOV bell-curve
+- [Phase 16]: sessionStorage departure state (jarowe_dream_departure) with 5-min expiry for intentional return
+- [Phase 16]: Exit dissolve is uniform (stagger=0), entry reform is depth-staggered (stagger=0.35)
 
 ### v2.2 Research Flags
 
@@ -138,7 +145,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - **Phase 14 (wire connections):** Naive K-nearest-neighbor over 150K particles is O(n^2). Use spatial hash grid. Pre-compute once at load, not per-frame. Target ~10K connections as pre-built LineSegments index buffer.
 - **Phase 14 (asset weight):** Photo WebP q80 max 2048px, depth 8-bit single-channel max 1024px. Target <500KB total per capsule.
 - ~~**Phase 15 (camera feel):** Spring-smooth progress before it drives the spline. Never let camera fully stop. Layer: spline progress (scroll), mouse parallax (15-30ms), breathing micro-drift (8-20s sine). Test at 2x speed.~~ RESOLVED in 15-01.
-- **Phase 16 (portal disorientation):** Store departure globe camera state in sessionStorage on entry; restore on return. Pre-load memory scene photo during portal animation.
+- ~~**Phase 16 (portal disorientation):** Store departure globe camera state in sessionStorage on entry; restore on return. Pre-load memory scene photo during portal animation.~~ PARTIALLY RESOLVED in 16-02 (departure state stored; photo pre-load deferred).
 - **Phase 17 (audio assets):** Each scene needs 2-4 ambient layers (drone, wind, texture, climax). Source during Phase 15/16 so Phase 17 has real content.
 
 ### Pending Todos (carried from v1.0/v2.0)
@@ -154,5 +161,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Phase 16 plan 16-01 complete — directional tunnel scatter, morph stagger, wireUniforms ref
-Resume file: .planning/phases/16-dream-portal-transition/16-01-SUMMARY.md
+Stopped at: Phase 16 plan 16-02 complete — DreamTransition GSAP timelines, FlightCamera tunnel mode, CapsuleShell integration
+Resume file: .planning/phases/16-dream-portal-transition/16-02-SUMMARY.md
