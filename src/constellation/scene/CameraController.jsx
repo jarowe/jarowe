@@ -359,18 +359,7 @@ export default function CameraController({
 
       const state = useConstellationStore.getState();
 
-      // Tunnel mode: smooth gentle scroll along Y axis
-      if (state.cameraMode === 'tunnel') {
-        e.preventDefault();
-        // Negate: scroll-down (deltaY>0) = move down (lower Y = older)
-        const impulse = -e.deltaY * 0.005;
-        tunnelVelocity.current += impulse;
-        // Clamp max velocity to prevent overshooting
-        tunnelVelocity.current = Math.max(-1.8, Math.min(1.8, tunnelVelocity.current));
-        return;
-      }
-
-      // Helix mode with focused node: scroll-to-next/prev node on the rail
+      // Focused node in ANY mode: scroll steps to next/prev node on the rail
       if (state.focusedNodeId && sortedHelixNodes.length > 1) {
         e.preventDefault();
 
@@ -391,6 +380,15 @@ export default function CameraController({
         if (nextIdx >= 0 && nextIdx < sortedHelixNodes.length) {
           state.focusNode(sortedHelixNodes[nextIdx].id);
         }
+        return;
+      }
+
+      // Tunnel mode without focus: smooth scroll along Y axis
+      if (state.cameraMode === 'tunnel') {
+        e.preventDefault();
+        const impulse = -e.deltaY * 0.005;
+        tunnelVelocity.current += impulse;
+        tunnelVelocity.current = Math.max(-1.8, Math.min(1.8, tunnelVelocity.current));
         return;
       }
 
