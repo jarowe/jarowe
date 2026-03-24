@@ -582,11 +582,15 @@ export default function CameraController({
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
       // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV.
-      // Do NOT enable OrbitControls — user must stay on the axis.
+      // controls.enabled stays false so user can't drag off-axis, but we
+      // still call controls.update() each frame so the camera smoothly
+      // re-orients toward the target during the tween.
       if (mode === 'tunnel') {
         const tl = gsap.timeline({
+          onUpdate: () => controls.update(),
           onComplete: () => {
             isFlyingRef.current = false;
+            // Restore forward-looking target after panel closes
           },
         });
         tl.to(
@@ -601,7 +605,6 @@ export default function CameraController({
         );
         flyTimeline.current = tl;
         prevFocusRef.current = focusedNodeId;
-        // Update tunnelY so clear-focus returns here
         useConstellationStore.getState().setTunnelY(node.y);
         return;
       }
