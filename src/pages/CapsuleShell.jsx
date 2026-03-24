@@ -12,6 +12,11 @@ import { getSceneById } from '../data/memoryScenes';
 import { getGpuTier } from '../utils/gpuCapability';
 import { useAudio } from '../context/AudioContext';
 import PortalVFX from '../components/PortalVFX';
+import {
+  useDreamTransition,
+  storeDepartureState,
+  retrieveDepartureState,
+} from '../components/DreamTransition';
 import './MemoryPortal.css';
 
 const ParticleFieldRenderer = React.lazy(() => import('../components/ParticleFieldRenderer'));
@@ -886,14 +891,40 @@ export default function CapsuleShell() {
   const exitTimersRef = useRef([]);
   const soundRef = useRef(null);
   const flightProgressRef = useRef(0); // Written by flight controller, read by narrative triggers
+  const particleRendererRef = useRef(null); // Phase 16: ref to ParticleFieldRenderer for dream transitions
   const audio = useAudio();
   const handleRecessionComplete = useCallback(() => setRecessionDone(true), []);
 
+  // Phase 16: Determine if this is a particle-memory scene (uses dream transition, not PortalVFX)
+  const isParticleMemory = scene.renderMode === 'particle-memory';
+
+  // Phase 16: Dream transition hook — manages entry/exit timelines
+  const dreamTransition = useDreamTransition(particleRendererRef, scene, {
+    directAccess,
+    onExitNavigate: () => {
+      navigate(portalReturnRef.current || '/');
+    },
+  });
+
+  // Phase 16: Store departure state in sessionStorage on mount (for intentional return)
+  useEffect(() => {
+    if (isParticleMemory && !directAccess) {
+      storeDepartureState(scene.id);
+    }
+  }, [isParticleMemory, directAccess, scene.id]);
+
   // PORT-03: Two-stage exit — recession fades content, then reverse portal closes
+  // Phase 16: particle-memory scenes use dream exit (DreamTransition) instead of PortalVFX
   useEffect(() => {
     if (!recessionDone) return;
 
-    // Stage 2: Reverse portal sequence (content already faded by recession)
+    if (isParticleMemory) {
+      // Phase 16: Dream exit — dissolve particles → tunnel → navigate at rupture
+      dreamTransition.triggerExit();
+      return;
+    }
+
+    // Non-particle-memory scenes: existing PortalVFX exit sequence
     const eT = (fn, ms) => {
       const id = setTimeout(fn, ms);
       exitTimersRef.current.push(id);
@@ -915,7 +946,7 @@ export default function CapsuleShell() {
       exitTimersRef.current.forEach(clearTimeout);
       exitTimersRef.current = [];
     };
-  }, [recessionDone, navigate]);
+  }, [recessionDone, navigate, isParticleMemory, dreamTransition]);
 
   // GPU capability check
   useEffect(() => {
@@ -1085,10 +1116,19 @@ export default function CapsuleShell() {
           </div>
         }>
           <ParticleFieldRenderer
+            ref={particleRendererRef}
             scene={scene}
             tier={tier}
             onRecessionComplete={handleRecessionComplete}
-            onAwakeningComplete={() => setAwakeningComplete(true)}
+            onAwakeningComplete={() => {
+              setAwakeningComplete(true);
+              // Phase 16: trigger dream entry transition after particles form
+              // On portal entry (not direct access), play the dissolve → tunnel → reform sequence
+              if (!directAccess) {
+                // Small delay to let refs settle after first render
+                setTimeout(() => dreamTransition.triggerEntry(), 100);
+              }
+            }}
             directAccess={directAccess}
             onProgress={(p) => { flightProgressRef.current = p; }}
           />
@@ -1114,7 +1154,18 @@ export default function CapsuleShell() {
 
       {/* === Chrome (always visible) === */}
       <div className="memory-back">
-        {scene.arc ? (
+        {isParticleMemory ? (
+          <button
+            className="back-link"
+            onClick={() => {
+              // Phase 16: Dream exit — dissolve particles → tunnel → navigate
+              dreamTransition.triggerExit();
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Back</span>
+          </button>
+        ) : scene.arc ? (
           <button
             className="back-link"
             onClick={() => {
@@ -1171,12 +1222,15 @@ export default function CapsuleShell() {
         </button>
       )}
 
-      {/* Portal exit VFX — reverse phases after recession */}
-      <PortalVFX
-        phase={exitPortalPhase}
-        originX="50%"
-        originY="50%"
-      />
+      {/* Portal exit VFX — reverse phases after recession (non-particle-memory only) */}
+      {/* Phase 16: particle-memory scenes use DreamTransition instead of PortalVFX */}
+      {!isParticleMemory && (
+        <PortalVFX
+          phase={exitPortalPhase}
+          originX="50%"
+          originY="50%"
+        />
+      )}
     </div>
   );
 }
