@@ -5,9 +5,10 @@
  * narrative text, soundtrack, and camera placement.
  *
  * renderMode determines which renderer CapsuleShell routes to:
- *   'displaced-mesh' → DisplacedMeshRenderer (photo + depth map → 3D mesh)
- *   'splat'          → SplatRenderer (gaussian splats)
- *   'parallax'       → ParallaxFallback (CSS parallax + Ken Burns)
+ *   'particle-memory' → ParticleFieldRenderer (photo + depth → luminous 3D particle field)
+ *   'displaced-mesh'  → DisplacedMeshRenderer (photo + depth map → 3D mesh)
+ *   'splat'           → SplatRenderer (gaussian splats)
+ *   'parallax'        → ParallaxFallback (CSS parallax + Ken Burns)
  *
  * cameraKeyframes: Array<{ position: {x,y,z}, target: {x,y,z}, duration: number (sec),
  *   ease: string (GSAP ease), hold: number (sec pause at this beat) }> | null
@@ -160,7 +161,7 @@ const scenes = [
     title: 'The Cave at the Edge',
     location: 'Syros, Greece — May 2024',
     coordinates: { lat: 37.444, lng: 24.942 },
-    renderMode: 'displaced-mesh',
+    renderMode: 'particle-memory',
     // Displaced mesh fields
     photoUrl: 'memory/syros-cave/photo.webp',
     depthMapUrl: 'memory/syros-cave/depth.png',

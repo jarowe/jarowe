@@ -293,3 +293,46 @@
   pointer-events: none;
   will-change: transform;
 }
+
+/* ── Sparse CSS particle dots (parallax fallback for particle-memory) ── */
+.memory-portal__particle-dots {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.memory-portal__dot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+  animation: particle-dot-drift ease-in-out infinite alternate;
+  opacity: 0;
+}
+
+@keyframes particle-dot-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  30% {
+    opacity: 0.6;
+  }
+  70% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(15px, -20px) scale(1.2);
+  }
+}
+
+/* ── Capsule vignette (simplified tier, no postprocessing) ── */
+.capsule-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.5) 100%);
+}

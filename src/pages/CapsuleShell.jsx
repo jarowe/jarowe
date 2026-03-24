@@ -14,6 +14,8 @@ import { useAudio } from '../context/AudioContext';
 import PortalVFX from '../components/PortalVFX';
 import './MemoryPortal.css';
 
+const LazyParticleMemoryField = React.lazy(() => import('./ParticleMemoryField'));
+
 const BASE = import.meta.env.BASE_URL;
 
 function resolveAsset(path, isRemote) {
@@ -723,9 +725,63 @@ function DisplacedMeshRenderer({ scene, tier, onRecessionComplete, onAwakeningCo
 }
 
 // ---------------------------------------------------------------------------
+// ParticleFieldRenderer — particle memory field with cinematic camera
+// ---------------------------------------------------------------------------
+function ParticleFieldRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
+  const dpr = tier === 'full' ? [1, 2] : [1, 1];
+
+  return (
+    <div className="memory-splat-container">
+      <Canvas
+        dpr={dpr}
+        camera={{
+          position: [
+            scene.cameraPosition.x,
+            scene.cameraPosition.y,
+            scene.cameraPosition.z,
+          ],
+          fov: 50,
+          near: 0.1,
+          far: 100,
+        }}
+        gl={{
+          antialias: tier === 'full',
+          alpha: false,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          gl.setClearColor('#000000');
+        }}
+      >
+        <React.Suspense fallback={null}>
+          <LazyParticleMemoryField
+            scene={scene}
+            tier={tier}
+            onSamplingComplete={() => {
+              if (onAwakeningComplete) onAwakeningComplete();
+            }}
+          />
+        </React.Suspense>
+        <AtmosphericParticles tier={tier} />
+        <CinematicCamera
+          keyframes={scene.cameraKeyframes}
+          fallbackTarget={[
+            scene.cameraTarget.x,
+            scene.cameraTarget.y,
+            scene.cameraTarget.z,
+          ]}
+        />
+        {tier === 'full' && <CapsulePostProcessing mood={scene.mood} />}
+      </Canvas>
+      {tier !== 'full' && <div className="capsule-vignette" />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ParallaxFallback — multi-layer Ken Burns with depth-based separation
 // ---------------------------------------------------------------------------
-function ParallaxFallback({ scene, loadError }) {
+function ParallaxFallback({ scene, loadError, renderMode }) {
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const containerRef = useRef(null);
 
@@ -810,6 +866,26 @@ function ParallaxFallback({ scene, loadError }) {
         className="memory-portal__light-leak"
         style={{ x: fgX * 1.5, y: fgY * 1.5 }}
       />
+
+      {/* Sparse CSS particle overlay for particle-memory scenes */}
+      {renderMode === 'particle-memory' && (
+        <div className="memory-portal__particle-dots">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span
+              key={i}
+              className="memory-portal__dot"
+              style={{
+                left: `${10 + Math.random() * 80}%`,
+                top: `${10 + Math.random() * 80}%`,
+                animationDelay: `${Math.random() * 8}s`,
+                animationDuration: `${4 + Math.random() * 6}s`,
+                width: `${2 + Math.random() * 3}px`,
+                height: `${2 + Math.random() * 3}px`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Center content */}
       <motion.div
@@ -977,12 +1053,15 @@ export default function CapsuleShell() {
   const renderMode = scene.renderMode || 'splat';
   let showSplat = false;
   let showDisplaced = false;
+  let showParticleMemory = false;
   let showFallback = false;
 
   if (tier === null) {
     // Still checking capabilities — show loading state
   } else if (tier === 'parallax') {
     showFallback = true;
+  } else if (renderMode === 'particle-memory') {
+    showParticleMemory = true;
   } else if (renderMode === 'displaced-mesh') {
     showDisplaced = true;
   } else if (renderMode === 'splat') {
@@ -1013,8 +1092,18 @@ export default function CapsuleShell() {
         />
       )}
 
+      {showParticleMemory && (
+        <ParticleFieldRenderer
+          scene={scene}
+          tier={tier}
+          onRecessionComplete={handleRecessionComplete}
+          onAwakeningComplete={() => setAwakeningComplete(true)}
+          directAccess={directAccess}
+        />
+      )}
+
       {showFallback && (
-        <ParallaxFallback scene={scene} loadError={loadError} />
+        <ParallaxFallback scene={scene} loadError={loadError} renderMode={renderMode} />
       )}
 
       {/* === Loading states === */}
