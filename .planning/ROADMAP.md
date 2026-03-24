@@ -51,6 +51,7 @@ Plans:
 - [ ] **Phase 5: Starseed Hub & Labs** - Project cards, client contact, DNS strategy, scratchpad (Milkdown), canvas (Excalidraw), and Labs hub page
 - [ ] **Phase 6: Automation & Retention** - Weather-responsive atmosphere, dynamic OG images, visitor streaks, date-locked easter eggs, Glint-to-Labs handoff, and brainstorm mode
 - [ ] **Phase 7: Immersive Portal** - Gaussian splat memory capsule with portal transition, soundtrack, narrative overlay, and shareable URL
+- 🚧 **Phase 17: Memory Soundscape** (INSERTED) - Ambient soundscape system for memory capsule scenes with multi-layer Howler.js audio and gain envelopes
 
 ## Phase Details
 
@@ -137,10 +138,24 @@ Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
+### Phase 17: Memory Soundscape (INSERTED)
+**Goal**: Provide ambient soundscape infrastructure for memory capsule scenes — multi-layer audio with gain envelopes, staggered entry, and site music ducking
+**Depends on**: None (foundational audio infrastructure)
+**Requirements**: PORTAL-03 (soundtrack auto-plays inside splat scene)
+**Success Criteria** (what must be TRUE):
+  1. `useSoundscape` hook loads ambient audio layers via Howler.js with gain envelope fade-in/fade-out
+  2. `memoryScenes.js` exports scene registry with soundscape config for at least `syros-cave`
+  3. Audio layers can be individually configured with volume, loop, and fade durations
+  4. Hook ducks site music via AudioContext when soundscape starts
+  5. Build succeeds with no errors
+
+Plans:
+- [x] 17-01-PLAN.md -- memoryScenes registry, useSoundscape hook, placeholder audio assets
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7 (inserted phases execute independently)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -151,7 +166,9 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 17. Memory Soundscape | v2.0 | 1/? | In progress | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
+*Updated: 2026-03-24 (Phase 17 Memory Soundscape inserted, plan 17-01 complete)*
