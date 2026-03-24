@@ -254,11 +254,6 @@ Plans:
   3. On arrival, particles visibly assemble from scattered chaos into the photo formation over 1-3 seconds -- the memory crystallizes, and the moment of recognition ("oh, it's a photo!") is the emotional peak
   4. Exiting the capsule reverses the dream grammar -- photo dissolves back into particles, same void/tunnel, particles reform into the origin page -- it is NOT a different transition or a hard navigate
 
-Plans:
-- [x] 16-01-PLAN.md -- Directional tunnel scatter in particleSampler, uMorphStagger uniform for depth-staggered convergence, wireUniforms exposed via ParticleMemoryField ref
-- [ ] 16-02-PLAN.md -- DreamTransition component with GSAP entry/exit timelines, dissolve + tunnel void + reform phases
-- [ ] 16-03-PLAN.md -- Wire filament flashes during tunnel void, exit reversal, FOV convergence, polish
-
 ### Phase 17: Memory Soundscape
 **Goal**: Layered ambient audio (drone, texture, detail) evolves with scroll progress through per-layer volume envelopes, with smooth GlobalPlayer ducking on capsule entry/exit -- the flight has an emotional sound journey, not silence
 **Depends on**: Phase 15 (progress float drives soundscape envelopes)
@@ -286,8 +281,8 @@ Plans:
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
 | 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
-| 15. Memory Flight Controller | v2.2 | 2/2 | Complete | 2026-03-24 |
-| 16. Dream Portal Transition | v2.2 | 1/3 | In progress | - |
+| 15. Memory Flight Controller | v2.2 | 2/2 | Complete    | 2026-03-24 |
+| 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 
 ---
@@ -295,4 +290,3 @@ Plans:
 *Updated: 2026-03-23 (v2.2 Particle Memory Flight roadmap -- 4 phases, 16 requirements)*
 *Updated: 2026-03-24 (Phase 14 complete — all 3 plans done)*
 *Updated: 2026-03-24 (Phase 15 complete — plan 15-01 FlightCamera + scroll-driven spline, plan 15-02 progress-threshold narrative triggers)*
-*Updated: 2026-03-24 (Phase 16 plan 16-01 complete — directional tunnel scatter, morph stagger, wireUniforms ref)*
