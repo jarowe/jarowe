@@ -2,13 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
-status: in-progress
-last_updated: "2026-03-24T00:00:00Z"
+status: executing
+stopped_at: Phase 17-02 complete. CapsuleShell + useSoundscape + capsule ducking all wired. Build passes.
+last_updated: "2026-03-24T06:44:56.787Z"
+last_activity: 2026-03-24
 progress:
   total_phases: 6
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 1
+  completed_phases: 6
+  total_plans: 15
+  completed_plans: 16
+  percent: 50
 ---
 
 # Project State
@@ -22,16 +25,17 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 17 (Memory Soundscape) -- inserted phase for immersive portal audio
-Plan: 17-02 complete
+Phase: 17
+Plan: Not started
 Status: In progress (plan 17-02 done, phase continues)
-Last activity: 2026-03-24 -- Phase 17-02 executed (capsule ducking + soundscape wiring)
+Last activity: 2026-03-24
 
 Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending, phase 17 in progress)
 
 ## v1.0 Summary
 
 Phases 1-2 complete (9 plans, 1.74 hours total execution):
+
 - Phase 1: Constellation Scene (4 plans, complete)
 - Phase 2: Data Pipeline & Privacy (5/6 plans, gap closure pending)
 - Phases 3-6 from v1.0 scope deferred (Narrator, Admin, Automation, Bento Hub)
@@ -39,11 +43,13 @@ Phases 1-2 complete (9 plans, 1.74 hours total execution):
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 9 (v1.0)
 - Average duration: 11.6 min
 - Total execution time: 1.74 hours
 
 **Recent Trend:**
+
 - Stable (v1.0 baseline established)
 
 ## Accumulated Context
@@ -51,6 +57,7 @@ Phases 1-2 complete (9 plans, 1.74 hours total execution):
 ### Decisions
 
 Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
+
 - Starseed Hub uses campaign-shell pattern (proven from music takeover)
 - Daily engine before spectacle (retention before acquisition)
 - Anonymous-first auth with Supabase upgrade path
