@@ -239,6 +239,9 @@ Plans:
   3. Narrative glass cards appear at specific progress thresholds (e.g., 0.25, 0.5, 0.75) rather than at fixed time delays -- a visitor who scrolls slowly sees cards later in clock time than one who scrolls fast
   4. When the visitor stops scrolling for several seconds, an imperceptible micro-drift keeps the camera alive -- the scene never feels frozen, but the next scroll input immediately overrides the drift
 
+Plans:
+- [x] 15-01-PLAN.md -- FlightCamera with CatmullRom spline + scroll momentum + micro-drift, flightPath config for syros-cave, ParticleFieldRenderer integration, build verification
+
 ### Phase 16: Dream Portal Transition
 **Goal**: Entry to the capsule dissolves reality into scattered particles, streams through a luminous void, and reforms particles into the memory photo formation -- exit reverses the grammar -- replacing the existing PortalVFX with dream-logic transitions
 **Depends on**: Phase 14 (dual position buffers), Phase 15 (progress system for activation gating)
@@ -276,7 +279,7 @@ Plans:
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
 | 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
-| 15. Memory Flight Controller | v2.2 | 0/0 | Not started | - |
+| 15. Memory Flight Controller | v2.2 | 1/1 | Complete | 2026-03-24 |
 | 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 
@@ -284,3 +287,4 @@ Plans:
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-23 (v2.2 Particle Memory Flight roadmap -- 4 phases, 16 requirements)*
 *Updated: 2026-03-24 (Phase 14 complete — all 3 plans done)*
+*Updated: 2026-03-24 (Phase 15 complete — plan 15-01 done, FlightCamera + scroll-driven spline)*

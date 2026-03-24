@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: Executing Phase 14
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-24T02:31:17.938Z"
+status: Executing Phase 15
+stopped_at: Plan 15-01 complete
+last_updated: "2026-03-24T04:00:00Z"
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,19 +19,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 14 — Particle Field Core
+**Current focus:** Phase 15 — Memory Flight Controller (plan 15-01 complete)
 
 ## Current Position
 
-Phase: 14 (Particle Field Core) — EXECUTING
-Plan: 1 of 3
+Phase: 15 (Memory Flight Controller) — Plan 15-01 COMPLETE
+Next: Phase 16 (Dream Portal Transition) or additional 15-0x plans if needed
 
 ## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
-| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
-| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
+| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Plan 15-01 complete |
 | 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
@@ -48,31 +48,32 @@ Plan: 1 of 3
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.2)
-- Average duration: --
-- Total execution time: --
+- Total plans completed: 4 (v2.2: Phase 14 x3 + Phase 15 x1)
+- Average duration: ~8 min
+- Total execution time: ~35 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 14 | 3 | ~25 min | ~8 min |
+| 15 | 1 | ~10 min | 10 min |
 
-**Recent Trend (from v2.1):**
+**Recent Trend:**
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
-| Phase 10 P01 | 5min | 4 tasks | 4 files |
-| Phase 10 P02 | 3min | 2 tasks | 6 files |
-| Phase 10 P03 | 4min | 3 tasks | 2 files |
-| Phase 11 P01 | 4min | 2 tasks | 2 files |
-| Phase 11 P02 | 6min | 4 tasks | 2 files |
-| Phase 11 P03 | 4min | 3 tasks | 3 files |
-| Phase 12 P01 | 8min | 3 tasks | 2 files |
-| Phase 12 P02 | 8min | 2 tasks | 3 files |
-| Phase 12 P03 | 7min | 3 tasks | 3 files |
+| Phase 14 P01 | ~8min | 3 tasks | 5 files |
+| Phase 14 P02 | ~8min | 2 tasks | 3 files |
+| Phase 14 P03 | ~8min | 4 tasks | 4 files |
+| Phase 15 P01 | ~10min | 4 tasks | 7 files |
 
 *Updated after each plan completion*
+
+## v2.2 Summary (in progress)
+
+Phase 14 complete (3 plans): ParticleMemoryField, breathing + bloom, wire connections + tier adaptation
+Phase 15 plan 01 complete: FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration
 
 ## v2.1 Summary
 
@@ -122,6 +123,11 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation
 - [Phase 12]: Narrative cards gated behind awakeningComplete; 4-card emotional arc at timed delays
 - [Phase 12]: Portal entry navigates at rupture phase; direct URL access shortens awakening
+- [Phase 15]: FlightCamera replaces CinematicCamera for particle-memory scenes with flightPath
+- [Phase 15]: Spring-smoothed scroll progress with exponential decay (0.95/frame) for momentum
+- [Phase 15]: Three motion layers: spline progress, mouse parallax (lerped), sine micro-drift (12s)
+- [Phase 15]: FOV bell-curve narrowing 50→40→50 at power-2 easing centered at progress=0.5
+- [Phase 15]: Narrative cards driven by progress thresholds (0.15/0.35/0.6/0.85), not time delays
 
 ### v2.2 Research Flags
 
@@ -129,7 +135,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - **Phase 14 (depth/photo UV):** Depth map must exactly match photo dimensions. Validate by overlaying at 50% opacity -- edges must align exactly.
 - **Phase 14 (wire connections):** Naive K-nearest-neighbor over 150K particles is O(n^2). Use spatial hash grid. Pre-compute once at load, not per-frame. Target ~10K connections as pre-built LineSegments index buffer.
 - **Phase 14 (asset weight):** Photo WebP q80 max 2048px, depth 8-bit single-channel max 1024px. Target <500KB total per capsule.
-- **Phase 15 (camera feel):** Spring-smooth progress before it drives the spline. Never let camera fully stop. Layer: spline progress (scroll), mouse parallax (15-30ms), breathing micro-drift (8-20s sine). Test at 2x speed.
+- ~~**Phase 15 (camera feel):** Spring-smooth progress before it drives the spline. Never let camera fully stop. Layer: spline progress (scroll), mouse parallax (15-30ms), breathing micro-drift (8-20s sine). Test at 2x speed.~~ RESOLVED in 15-01.
 - **Phase 16 (portal disorientation):** Store departure globe camera state in sessionStorage on entry; restore on return. Pre-load memory scene photo during portal animation.
 - **Phase 17 (audio assets):** Each scene needs 2-4 ambient layers (drone, wind, texture, climax). Source during Phase 15/16 so Phase 17 has real content.
 
@@ -141,10 +147,10 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:19:42.923Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-particle-field-core/14-CONTEXT.md
+Last session: 2026-03-24
+Stopped at: Plan 15-01 complete — FlightCamera built, integrated, build verified
+Resume file: .planning/phases/15-memory-flight-controller/15-01-SUMMARY.md
