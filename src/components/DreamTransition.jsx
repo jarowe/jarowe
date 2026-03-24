@@ -2,12 +2,16 @@
  * DreamTransition — GSAP-based 3-phase dream portal transition orchestrator
  *
  * Replaces PortalVFX for particle-memory scenes with a morph-based transition:
- *   Phase 1 (Dissolve):  uMorphProgress 1→0 + uMorphStagger ramp
- *   Phase 2 (Tunnel):    Camera auto-advance through scattered particles, FOV narrowing
- *   Phase 3 (Reform):    uMorphProgress 0→1 with depth-staggered convergence, FOV restore
+ *   Phase 1 (Dissolve):  uMorphProgress 1→0 + uMorphStagger ramp + wire fade to 0
+ *   Phase 2 (Tunnel):    Camera auto-advance, FOV→30deg, filament flashes (3 bursts)
+ *   Phase 3 (Reform):    uMorphProgress 0→1 depth-staggered, FOV restore, wire restore
+ *
+ * Wire filament flashes (D-06): During tunnel void, 3 brief luminous wire bursts
+ * (~60ms on at 0.35 alpha, ~120ms decay) create "directed memory current" character.
  *
  * Entry: particles dissolve from photo → scattered → tunnel → reform into photo
  * Exit:  reverse grammar — photo → scattered → tunnel → navigate away
+ * Both share identical visual language: same wire fade, same flashes, same FOV convergence.
  *
  * Decisions: 16-CONTEXT D-01 through D-12
  * Requirements: DREAM-01, DREAM-02, DREAM-03, DREAM-04
@@ -35,7 +39,7 @@ const DEPARTURE_KEY = 'jarowe_dream_departure';
 /**
  * Build a GSAP entry timeline: dissolve → tunnel → reform
  *
- * @param {object} rendererRef - ParticleFieldRenderer ref with getUniforms, getCamera, setTunnelMode
+ * @param {object} rendererRef - ParticleFieldRenderer ref with getUniforms, getWireUniforms, getCamera, setTunnelMode
  * @param {object} scene - Scene config from memoryScenes.js
  * @param {object} options - { onReform, onComplete }
  * @returns {gsap.core.Timeline | null}
