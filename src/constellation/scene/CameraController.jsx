@@ -266,10 +266,11 @@ export default function CameraController({
         },
       });
 
-      // Phase 1: fly to near-axis (slight Z offset to see helix walls)
+      // Phase 1: fly to tunnel position (Z offset so helix nodes are visible)
+      const tunnelZ = getCfg('tunnelFocusDistance');
       tl.to(
         camera.position,
-        { x: 0, y: startY, z: 0, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
         0
       );
       // Phase 2: look forward along axis
@@ -491,14 +492,15 @@ export default function CameraController({
     const targetY = useConstellationStore.getState().tunnelY;
     const lerpFactor = 0.08;
 
-    // Smoothly interpolate camera Y — on the helix axis, looking straight ahead
+    // Smoothly interpolate camera Y — Z offset from axis so nodes are visible
+    const tunnelZ = getCfg('tunnelFocusDistance');
     camera.position.x += (0 - camera.position.x) * lerpFactor;
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
-    camera.position.z += (0 - camera.position.z) * lerpFactor;
+    camera.position.z += (tunnelZ - camera.position.z) * lerpFactor;
 
     controls.target.x += (0 - controls.target.x) * lerpFactor;
     controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
-    controls.target.z += (0 - controls.target.z) * lerpFactor;
+    controls.target.z += (tunnelZ - controls.target.z) * lerpFactor;
 
     controls.update();
 
@@ -587,19 +589,19 @@ export default function CameraController({
       // The node is visible in the tunnel's natural perspective; the StoryPanel
       // provides the detail view.
       if (mode === 'tunnel') {
+        const tunnelZ = getCfg('tunnelFocusDistance');
         const tl = gsap.timeline({
           onUpdate: () => {
-            // Keep looking straight down the tunnel as we slide
-            camera.lookAt(0, camera.position.y + 40, 0);
+            camera.lookAt(0, camera.position.y + 40, tunnelZ);
           },
           onComplete: () => {
             isFlyingRef.current = false;
-            controls.target.set(0, node.y + 40, 0);
+            controls.target.set(0, node.y + 40, tunnelZ);
           },
         });
         tl.to(
           camera.position,
-          { x: 0, y: node.y, z: 0, duration, ease },
+          { x: 0, y: node.y, z: tunnelZ, duration, ease },
           0
         );
         flyTimeline.current = tl;
@@ -703,9 +705,10 @@ export default function CameraController({
       }
 
       if (mode === 'tunnel') {
-        // Fly back into the tunnel axis using lookAt proxy (not controls.update)
+        // Fly back into the tunnel using lookAt proxy (not controls.update)
         isFlyingRef.current = true;
         const currentY = useConstellationStore.getState().tunnelY;
+        const tunnelZ = getCfg('tunnelFocusDistance');
         const lookProxy = {
           x: controls.target.x,
           y: controls.target.y,
@@ -718,7 +721,7 @@ export default function CameraController({
           },
           onComplete: () => {
             isFlyingRef.current = false;
-            controls.target.set(0, currentY + 50, 0);
+            controls.target.set(0, currentY + 50, tunnelZ);
             controls.enabled = false;
             controls.autoRotate = false;
           },
@@ -726,12 +729,12 @@ export default function CameraController({
 
         tl.to(
           camera.position,
-          { x: 0, y: currentY, z: 0, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
           0
         );
         tl.to(
           lookProxy,
-          { x: 0, y: currentY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY + 50, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
           0
         );
 
