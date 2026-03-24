@@ -211,6 +211,7 @@ export function AudioProvider({ children }) {
     const [musicCellVisible, setMusicCellVisible] = useState(true);
 
     // Duck / restore for node-level audio (constellation panel music or unmuted video)
+    // Fades the current Howl instance to 0 — per-instance, NOT Howler.volume global.
     const duckedRef = useRef(false);
     const duckForNodeAudio = () => {
         if (soundRef.current && isPlaying && !duckedRef.current) {
@@ -223,6 +224,29 @@ export function AudioProvider({ children }) {
             duckedRef.current = false;
             if (soundRef.current) {
                 soundRef.current.fade(soundRef.current.volume(), 1.0, 800);
+            }
+        }
+    };
+
+    // Duck / restore for memory-capsule soundscapes.
+    // Reduces music to a low bed (15% volume) rather than full mute,
+    // so the ambient soundscape layers over it. Uses per-instance fade
+    // on soundRef.current — never touches Howler.volume() global.
+    const capsuleDuckedRef = useRef(false);
+    const CAPSULE_DUCK_LEVEL = 0.15;
+    const CAPSULE_FADE_MS = 1200;
+
+    const duckForCapsule = () => {
+        if (soundRef.current && isPlaying && !capsuleDuckedRef.current) {
+            capsuleDuckedRef.current = true;
+            soundRef.current.fade(soundRef.current.volume(), CAPSULE_DUCK_LEVEL, CAPSULE_FADE_MS);
+        }
+    };
+    const restoreFromCapsuleDuck = () => {
+        if (capsuleDuckedRef.current) {
+            capsuleDuckedRef.current = false;
+            if (soundRef.current) {
+                soundRef.current.fade(soundRef.current.volume(), 1.0, CAPSULE_FADE_MS);
             }
         }
     };
@@ -243,6 +267,8 @@ export function AudioProvider({ children }) {
         pausePlayback,
         duckForNodeAudio,
         restoreFromDuck,
+        duckForCapsule,
+        restoreFromCapsuleDuck,
         musicCellVisible,
         setMusicCellVisible
     };
