@@ -224,6 +224,9 @@ Plans:
   4. On a mid-range GPU (simplified tier), the scene renders at 50-80K particles without wire connections or bloom, still at 60fps -- and on low-end devices, the existing CSS parallax fallback renders instead
   5. Both `scatteredPositions` and `photoPositions` buffers exist in the geometry at init time -- verified by inspecting the BufferGeometry attributes (two position-like attributes present)
 
+Plans:
+- [x] 14-01-PLAN.md -- ParticleMemoryField component (CPU sampling, dual buffers, breathing, wires, tier adaptation), CapsuleShell dispatch integration, scene registry update
+
 ### Phase 15: Memory Flight Controller
 **Goal**: Scroll/trackpad/touch input drives the camera along a 3D spline through the particle field with momentum, inertial drift, and progress-normalized narrative card triggers -- the visitor flies through the memory at their own pace
 **Depends on**: Phase 14 (particle field must render before camera can fly through it)
@@ -270,7 +273,7 @@ Plans:
 | 11. Cinematic Polish | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
-| 14. Particle Field Core | v2.2 | 0/0 | Not started | - |
+| 14. Particle Field Core | v2.2 | 1/1 | Complete | 2026-03-24 |
 | 15. Memory Flight Controller | v2.2 | 0/0 | Not started | - |
 | 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |

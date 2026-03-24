@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: planning
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-23T23:19:42.926Z"
+status: in-progress
+stopped_at: Phase 14 plan 01 complete
+last_updated: "2026-03-24T03:30:00Z"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,18 +19,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** v2.2 Particle Memory Flight -- roadmap created, ready for Phase 14 planning
+**Current focus:** v2.2 Particle Memory Flight -- Phase 14 Plan 01 complete (particle field renderer + CapsuleShell integration)
 
 ## Current Position
 
 Phase: 14
-Plan: Not started
+Plan: 01 complete
+Next: Phase 14 Plan 02 (if needed) or Phase 15
 
 ## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
-| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Plan 01 complete |
 | 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
 | 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
@@ -48,15 +49,15 @@ Plan: Not started
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.2)
-- Average duration: --
-- Total execution time: --
+- Total plans completed: 1 (v2.2)
+- Average duration: ~8 min
+- Total execution time: ~8 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 14 P01 | 1 | ~8min | ~8min |
 
 **Recent Trend (from v2.1):**
 
@@ -122,6 +123,11 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation
 - [Phase 12]: Narrative cards gated behind awakeningComplete; 4-card emotional arc at timed delays
 - [Phase 12]: Portal entry navigates at rupture phase; direct URL access shortens awakening
+- [Phase 14]: CPU-side hybrid grid + Sobel edge-boost particle sampling (280x280 grid ≈ 78K base, edge boost to 150K)
+- [Phase 14]: Dual position buffers (aPhotoPosition + aScatteredPosition) with uMorphProgress vertex shader mix
+- [Phase 14]: Spatial hash grid (cell size 0.15) for O(n) wire connection precompute (~10K LineSegments)
+- [Phase 14]: Depth-correlated breathing: sin(time * 1.2 - depth * 3.0 + random * 0.8)
+- [Phase 14]: AdditiveBlending for particle points + wire connections (dream luminous quality)
 
 ### v2.2 Research Flags
 
@@ -145,6 +151,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:19:42.923Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-particle-field-core/14-CONTEXT.md
+Last session: 2026-03-24T03:30:00Z
+Stopped at: Phase 14 plan 01 complete — particle field renderer + CapsuleShell integration
+Resume file: .planning/phases/14-particle-field-core/14-01-SUMMARY.md
