@@ -1,0 +1,88 @@
+{
+  "id": "syros-cave",
+  "title": "The Cave at Syros",
+  "subtitle": "Syros, Greece — Summer 2024",
+  "description": "A hidden sea cave on the coast of Syros where the family explored during their three-month worldschooling stay in Greece.",
+  "source": {
+    "type": "single-image",
+    "photo": "photo.webp",
+    "depth": "depth.png",
+    "mask": "mask.png",
+    "generator": null,
+    "generated": null
+  },
+  "world": {
+    "splat": null,
+    "mesh": null,
+    "collider": null,
+    "format": null,
+    "splatCount": null,
+    "bounds": null
+  },
+  "fallback": {
+    "type": "depth-particles",
+    "photo": "photo.webp",
+    "depth": "depth.png",
+    "particleCount": 300000
+  },
+  "camera": {
+    "startPosition": [
+      0,
+      0,
+      5
+    ],
+    "startTarget": [
+      0,
+      0,
+      0
+    ],
+    "fov": 50,
+    "near": 0.1,
+    "far": 200
+  },
+  "narrative": [
+    {
+      "threshold": 0.15,
+      "text": "The sound of water against stone. A bell that hasn't rung in years."
+    },
+    {
+      "threshold": 0.4,
+      "text": "I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still."
+    },
+    {
+      "threshold": 0.65,
+      "text": "You spend your life looking for the door between who you are and who you're becoming. Sometimes it's carved from rock."
+    },
+    {
+      "threshold": 0.85,
+      "text": "I found joy here."
+    }
+  ],
+  "soundscape": {
+    "layers": [
+      {
+        "id": "drone",
+        "src": "audio/drone.ogg",
+        "volume": 0.5,
+        "fadeIn": 3000
+      },
+      {
+        "id": "texture",
+        "src": "audio/water.ogg",
+        "volume": 0.35,
+        "fadeIn": 4000
+      },
+      {
+        "id": "detail",
+        "src": "audio/drips.ogg",
+        "volume": 0.2,
+        "fadeIn": 5000
+      }
+    ]
+  },
+  "transitions": {
+    "next": null,
+    "previous": null,
+    "anchors": []
+  }
+}
