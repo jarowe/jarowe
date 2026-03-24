@@ -276,7 +276,7 @@ export default function CameraController({
       // Phase 2: look forward along axis
       tl.to(
         controls.target,
-        { x: 0, y: startY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY + 50, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
         0
       );
       // FOV expansion
@@ -496,9 +496,8 @@ export default function CameraController({
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
     camera.position.z += (TUNNEL_Z - camera.position.z) * lerpFactor;
 
-    // Look ahead along the Y axis — use camera.lookAt directly
-    // (controls.update() fights this by snapping to stale spherical state)
-    camera.lookAt(0, camera.position.y + 40, 0);
+    // Look straight down the tunnel (along Y axis) from z=TUNNEL_Z
+    camera.lookAt(0, camera.position.y + 40, TUNNEL_Z);
 
     // Sync timeline scrubber with tunnel scroll position
     if (helixBounds) {
@@ -724,7 +723,7 @@ export default function CameraController({
           },
           onComplete: () => {
             isFlyingRef.current = false;
-            controls.target.set(0, currentY + 50, 0);
+            controls.target.set(0, currentY + 50, TUNNEL_Z);
             controls.enabled = false;
             controls.autoRotate = false;
           },
