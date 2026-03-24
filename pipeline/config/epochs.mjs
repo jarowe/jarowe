@@ -12,10 +12,10 @@
  * Ranges are [start, end) -- start is inclusive, end is exclusive.
  */
 export const EPOCH_CONFIG = Object.freeze([
-  { id: 'early-years', label: 'Early Years', range: '2001-2010', color: '#fbbf24', start: 2001, end: 2010 },
-  { id: 'college', label: 'College', range: '2010-2014', color: '#f59e0b', start: 2010, end: 2014 },
-  { id: 'career-start', label: 'Career Start', range: '2014-2018', color: '#f87171', start: 2014, end: 2018 },
-  { id: 'growth', label: 'Growth', range: '2018-2022', color: '#a78bfa', start: 2018, end: 2022 },
+  { id: 'early-years', label: 'Early Years', range: '2001-2004', color: '#fbbf24', start: 2001, end: 2004 },
+  { id: 'college', label: 'College', range: '2004-2008', color: '#f59e0b', start: 2004, end: 2008 },
+  { id: 'career-start', label: 'Career Start', range: '2008-2014', color: '#f87171', start: 2008, end: 2014 },
+  { id: 'growth', label: 'Growth', range: '2014-2022', color: '#a78bfa', start: 2014, end: 2022 },
   { id: 'present', label: 'Present', range: '2022-2026', color: '#22d3ee', start: 2022, end: 2026 },
 ]);
 

@@ -362,7 +362,9 @@ export default function ConstellationPage() {
     loadData();
   }, [loadData]);
 
-  const skipIntro = Boolean(urlNodeId) || prefersReducedMotion || introPlayedThisSession;
+  // Intro plays on every visit. Only skip for deep-links (camera flies
+  // to the specific node instead) and reduced-motion preference.
+  const skipIntro = Boolean(urlNodeId) || prefersReducedMotion;
 
   useEffect(() => {
     if (skipIntro) {

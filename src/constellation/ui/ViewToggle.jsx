@@ -32,13 +32,16 @@ export default function ViewToggle() {
         strokeLinejoin="round"
       >
         {isTunnel ? (
-          /* Helix/orbit icon — concentric ellipse */
+          /* DNA helix icon — side view */
           <>
-            <ellipse cx="12" cy="12" rx="10" ry="4" />
-            <circle cx="12" cy="12" r="2" fill="currentColor" />
+            <path d="M6 3c0 4.5 6 7.5 6 12s-6 7.5-6 12" opacity="0.5" />
+            <path d="M18 3c0 4.5-6 7.5-6 12s6 7.5 6 12" opacity="0.5" />
+            <line x1="7" y1="7" x2="17" y2="7" />
+            <line x1="7" y1="12" x2="17" y2="12" />
+            <line x1="7" y1="17" x2="17" y2="17" />
           </>
         ) : (
-          /* Tunnel icon — converging lines */
+          /* Tunnel icon — converging lines into center */
           <>
             <circle cx="12" cy="12" r="3" />
             <circle cx="12" cy="12" r="8" opacity="0.4" />

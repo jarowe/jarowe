@@ -541,10 +541,17 @@ export default function CameraController({
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (rampInterval.current) clearInterval(rampInterval.current);
 
-      // Camera offset differs: tunnel pulls back wide, helix stays close
-      const dist = mode === 'tunnel' ? 80 : getCfg('focusDistance');
-      const yLift = mode === 'tunnel' ? 12 : getCfg('focusYLift');
-      const camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
+      // Camera positioning differs by mode:
+      // Tunnel: stay on axis, slide to node's Y, look outward at node
+      // Helix: fly to an offset position near the node
+      let camTarget;
+      if (mode === 'tunnel') {
+        camTarget = { x: 0, y: node.y, z: 0 };
+      } else {
+        const dist = getCfg('focusDistance');
+        const yLift = getCfg('focusYLift');
+        camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
+      }
 
       // Shorter duration for stepping between nodes, longer for first focus
       const prevNode = prevFocusRef.current;
@@ -552,9 +559,33 @@ export default function CameraController({
       const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
-      // In tunnel mode: re-enable controls temporarily for the fly-out animation
+      // In tunnel mode: re-enable controls temporarily for the fly animation
       if (mode === 'tunnel') {
         controls.enabled = true;
+      }
+
+      // In tunnel mode: skip frustum offset (panel renders differently)
+      if (mode === 'tunnel') {
+        // Just animate camera to node's Y on the axis, looking at the node
+        const tl = gsap.timeline({
+          onUpdate: () => controls.update(),
+          onComplete: () => {
+            isFlyingRef.current = false;
+          },
+        });
+        tl.to(
+          camera.position,
+          { x: 0, y: node.y, z: 0, duration, ease },
+          0
+        );
+        tl.to(
+          controls.target,
+          { x: node.x, y: node.y, z: node.z, duration, ease },
+          0
+        );
+        flyTimeline.current = tl;
+        prevFocusRef.current = focusedNodeId;
+        return;
       }
 
       // ---- Shift frustum center so helix appears in the left viewport area ----

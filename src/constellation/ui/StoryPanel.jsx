@@ -897,7 +897,8 @@ export default function StoryPanel({ onPortalEnter = null }) {
                               key={`${entity.type}-${entity.label}-${i}`}
                               onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
                               onMouseLeave={() => clearHighlightedEdgeNodeId()}
-                              style={{ display: 'inline-flex' }}
+                              onClick={() => entity.nodeId && focusNode(entity.nodeId)}
+                              style={{ display: 'inline-flex', cursor: entity.nodeId ? 'pointer' : 'default' }}
                             >
                               <EntityChip
                                 type={entity.type}
@@ -1120,7 +1121,8 @@ export default function StoryPanel({ onPortalEnter = null }) {
                               key={`${entity.type}-${entity.label}-${i}`}
                               onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
                               onMouseLeave={() => clearHighlightedEdgeNodeId()}
-                              style={{ display: 'inline-flex' }}
+                              onClick={() => entity.nodeId && focusNode(entity.nodeId)}
+                              style={{ display: 'inline-flex', cursor: entity.nodeId ? 'pointer' : 'default' }}
                             >
                               <EntityChip
                                 type={entity.type}
