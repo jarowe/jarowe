@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: Phase 16 In Progress
-stopped_at: Phase 16 plan 16-02 complete (DreamTransition + GSAP timelines + CapsuleShell integration)
-last_updated: "2026-03-24T07:00:00Z"
+status: Phase 16 Complete
+stopped_at: Phase 16 plan 16-03 complete (wire filament flashes + exit reversal + polish)
+last_updated: "2026-03-24T09:00:00Z"
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 3
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 16 — Dream Portal Transition (plan 16-02 complete)
+**Current focus:** Phase 17 — Memory Soundscape (not started)
 
 ## Current Position
 
-Phase: 16 (Dream Portal Transition) — IN PROGRESS (plans 16-01, 16-02 complete)
-Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
+Phase: 16 (Dream Portal Transition) — COMPLETE (plans 16-01, 16-02, 16-03 all done)
+Next phase: 17 (Memory Soundscape)
 
 ## v2.2 Roadmap Summary
 
@@ -32,7 +32,7 @@ Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
 |-------|------|-------------|--------|
 | 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
 | 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Complete |
-| 16 | Dream Portal Transition | DREAM-01/02/03/04 | In progress (16-01, 16-02 done) |
+| 16 | Dream Portal Transition | DREAM-01/02/03/04 | Complete |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
 **Phase ordering rationale:**
@@ -48,9 +48,9 @@ Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
 
 **Velocity:**
 
-- Total plans completed: 7 (v2.2: Phase 14 x3 + Phase 15 x2 + Phase 16 x2)
-- Average duration: ~7 min
-- Total execution time: ~43 min
+- Total plans completed: 8 (v2.2: Phase 14 x3 + Phase 15 x2 + Phase 16 x3)
+- Average duration: ~6 min
+- Total execution time: ~48 min
 
 **By Phase:**
 
@@ -69,6 +69,7 @@ Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
 | Phase 15 P01 | ~10min | 4 tasks | 7 files |
 | Phase 16 P01 | ~5min | 3 tasks | 3 files |
 | Phase 16 P02 | ~8min | 5 tasks | 4 files |
+| Phase 16 P03 | ~5min | 4 tasks | 3 files |
 
 *Updated after each plan completion*
 
@@ -76,7 +77,7 @@ Next plan: 16-03 (Wire filament flashes + exit reversal + polish)
 
 Phase 14 complete (3 plans): ParticleMemoryField, breathing + bloom, wire connections + tier adaptation
 Phase 15 complete (2 plans): FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration, progress-threshold narrative triggers in CapsuleShell
-Phase 16 in progress (2/3 plans): 16-01 directional tunnel scatter + uMorphStagger + wireUniforms ref; 16-02 DreamTransition GSAP timelines + FlightCamera tunnel mode + CapsuleShell integration
+Phase 16 complete (3 plans): 16-01 directional tunnel scatter + uMorphStagger + wireUniforms ref; 16-02 DreamTransition GSAP timelines + FlightCamera tunnel mode + CapsuleShell integration; 16-03 wire filament flashes + exit reversal grammar + polish
 
 ## v2.1 Summary
 
@@ -137,6 +138,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 16]: FlightCamera tunnel mode: setTunnelMode(enabled, speed) — kills scroll, auto-advances, skips FOV bell-curve
 - [Phase 16]: sessionStorage departure state (jarowe_dream_departure) with 5-min expiry for intentional return
 - [Phase 16]: Exit dissolve is uniform (stagger=0), entry reform is depth-staggered (stagger=0.35)
+- [Phase 16]: Wire filament flashes during tunnel void: uWireTransitionAlpha fades to 0 during dissolve, 3 brief flash bursts (~60ms on at 0.35 alpha, ~120ms decay) at 0.2/0.5/0.75s, restored to 1.0 during reform. Exit mirrors entry grammar.
 
 ### v2.2 Research Flags
 
@@ -161,5 +163,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Phase 16 plan 16-02 complete — DreamTransition GSAP timelines, FlightCamera tunnel mode, CapsuleShell integration
-Resume file: .planning/phases/16-dream-portal-transition/16-02-SUMMARY.md
+Stopped at: Phase 16 complete — wire filament flashes, exit reversal grammar, dream portal transition system fully operational
+Resume file: .planning/phases/16-dream-portal-transition/16-03-SUMMARY.md
