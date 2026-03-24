@@ -31,6 +31,7 @@ const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
+const CapsuleShell = lazyRetry(() => import('./pages/CapsuleShell'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -255,6 +256,11 @@ function AppContent() {
           <Route path="/constellation/:nodeId" element={
             <Suspense fallback={<LazyFallback label="Loading Constellation..." />}>
               <ConstellationPage />
+            </Suspense>
+          } />
+          <Route path="/memory/:sceneId" element={
+            <Suspense fallback={<LazyFallback label="Entering memory..." />}>
+              <CapsuleShell />
             </Suspense>
           } />
           <Route path="/profile" element={
