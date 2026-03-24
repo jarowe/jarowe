@@ -20,6 +20,8 @@
  * layerSeparation: { foregroundDepthScale, backgroundDepthScale, foregroundDriftSpeed, backgroundDriftSpeed } | null
  * arc: { awakeningDuration, awakeningEase, awakeningDelay, recessionDuration, recessionEase, recessionDelay, recessionFadeColor } | null
  * portalEntry: boolean — whether the scene supports portal entry/exit transitions
+ * flightPath: { keypoints: Array<{x,y,z}>, lookAtKeypoints: Array<{x,y,z}>, fovRange: [number,number] } | null — scroll-driven CatmullRom spline (Phase 15)
+ * narrativeThresholds: Array<{ progress: number, text: string }> | null — progress-based card triggers (Phase 15, replaces time-based delays)
  */
 
 const scenes = [
@@ -278,6 +280,48 @@ const scenes = [
       // Scattered (Phase 16 pre-allocation)
       scatteredRadius: 3.5,            // spherical scatter radius
     },
+    // Flight path — scroll-driven CatmullRom spline through the particle field (Phase 15)
+    flightPath: {
+      // 6 keypoints defining the camera's journey through the cave memory
+      keypoints: [
+        { x: 0, y: 0.2, z: 4.5 },       // 1. Outside — looking at the field from a distance
+        { x: -0.15, y: 0.22, z: 3.2 },   // 2. Approach — drifting toward the cave mouth
+        { x: -0.08, y: 0.18, z: 2.0 },   // 3. Surface — sweeping past the cave entrance
+        { x: 0.05, y: 0.12, z: 0.8 },    // 4. Interior — diving through the particle field
+        { x: 0.12, y: 0.2, z: -0.3 },    // 5. Deepest — emerging on the other side
+        { x: 0, y: 0.25, z: -1.0 },      // 6. Settled — resting beyond, looking back
+      ],
+      // Corresponding look-at targets — what the camera gazes at along the path
+      lookAtKeypoints: [
+        { x: 0, y: 0.08, z: 0.5 },       // 1. Center of the field
+        { x: -0.05, y: 0.08, z: 0.3 },   // 2. Slightly left toward bell
+        { x: 0, y: 0.06, z: -0.2 },      // 3. Through the cave opening
+        { x: 0.02, y: 0.04, z: -0.8 },   // 4. Into the depth
+        { x: 0, y: 0.1, z: -1.5 },       // 5. Beyond
+        { x: 0, y: 0.15, z: -2.0 },      // 6. Far horizon
+      ],
+      // FOV range: [start, minimum at deepest point]
+      fovRange: [50, 40],
+    },
+    // Progress-threshold narrative cards (replaces time-based delays for flight mode)
+    narrativeThresholds: [
+      {
+        progress: 0.15,
+        text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
+      },
+      {
+        progress: 0.35,
+        text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
+      },
+      {
+        progress: 0.6,
+        text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
+      },
+      {
+        progress: 0.85,
+        text: 'I found joy here.',
+      },
+    ],
   },
 ];
 
