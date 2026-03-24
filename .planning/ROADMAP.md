@@ -230,6 +230,7 @@ Plans:
 - [x] 14-03-PLAN.md -- Wire connections (spatial hash + LineSegments) in modular architecture, tier adaptation gating, parallax fallback verification, dead code cleanup
 
 ### Phase 15: Memory Flight Controller
+**Plans**: 2 plans (in progress)
 **Goal**: Scroll/trackpad/touch input drives the camera along a 3D spline through the particle field with momentum, inertial drift, and progress-normalized narrative card triggers -- the visitor flies through the memory at their own pace
 **Depends on**: Phase 14 (particle field must render before camera can fly through it)
 **Requirements**: FLIGHT-01, FLIGHT-02, FLIGHT-03, FLIGHT-04
@@ -238,6 +239,10 @@ Plans:
   2. Releasing the scroll input does not instantly stop the camera -- momentum carries it forward with visible exponential decay, creating a physical "gliding" sensation
   3. Narrative glass cards appear at specific progress thresholds (e.g., 0.25, 0.5, 0.75) rather than at fixed time delays -- a visitor who scrolls slowly sees cards later in clock time than one who scrolls fast
   4. When the visitor stops scrolling for several seconds, an imperceptible micro-drift keeps the camera alive -- the scene never feels frozen, but the next scroll input immediately overrides the drift
+
+Plans:
+- [ ] 15-01-PLAN.md -- Scroll-driven flight controller with CatmullRom spline, spring-smoothed momentum, FOV narrowing, mouse parallax, micro-drift (parallel)
+- [x] 15-02-PLAN.md -- Progress-threshold narrative triggers in memoryScenes.js + CapsuleShell dual-path narrative (progress vs time-based)
 
 ### Phase 16: Dream Portal Transition
 **Goal**: Entry to the capsule dissolves reality into scattered particles, streams through a luminous void, and reforms particles into the memory photo formation -- exit reverses the grammar -- replacing the existing PortalVFX with dream-logic transitions
@@ -276,7 +281,7 @@ Plans:
 | 12. Flagship Scene + Portal | v2.1 | 3/3 | Complete    | 2026-03-23 |
 | 13. Integration + Expansion | v2.1 | 0/0 | Deferred | - |
 | 14. Particle Field Core | v2.2 | 3/3 | Complete | 2026-03-24 |
-| 15. Memory Flight Controller | v2.2 | 0/0 | Not started | - |
+| 15. Memory Flight Controller | v2.2 | 1/2 | In progress | - |
 | 16. Dream Portal Transition | v2.2 | 0/0 | Not started | - |
 | 17. Memory Soundscape | v2.2 | 0/0 | Not started | - |
 

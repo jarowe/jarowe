@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: Executing Phase 14
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-24T02:31:17.938Z"
+status: Executing Phase 15
+stopped_at: Phase 15 plan 02 complete
+last_updated: "2026-03-24T03:00:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,19 +19,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 14 — Particle Field Core
+**Current focus:** Phase 15 — Memory Flight Controller
 
 ## Current Position
 
-Phase: 14 (Particle Field Core) — EXECUTING
-Plan: 1 of 3
+Phase: 15 (Memory Flight Controller) — EXECUTING
+Plan: 2 of 2 (Plan 15-02 complete, Plan 15-01 parallel)
 
 ## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
-| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
-| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
+| 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | In progress |
 | 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
@@ -48,15 +48,16 @@ Plan: 1 of 3
 
 **Velocity:**
 
-- Total plans completed: 0 (v2.2)
-- Average duration: --
-- Total execution time: --
+- Total plans completed: 4 (v2.2)
+- Average duration: ~5 min
+- Total execution time: ~20 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 14 | 3/3 | ~15min | ~5min |
+| 15 | 1/2 | ~5min | ~5min |
 
 **Recent Trend (from v2.1):**
 
@@ -122,6 +123,7 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation
 - [Phase 12]: Narrative cards gated behind awakeningComplete; 4-card emotional arc at timed delays
 - [Phase 12]: Portal entry navigates at rupture phase; direct URL access shortens awakening
+- [Phase 15]: Dual-path narrative: progress-threshold (rAF poll of flightProgressRef) for particle-memory, time-based delay for all other scenes
 
 ### v2.2 Research Flags
 
@@ -145,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-23T23:19:42.923Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-particle-field-core/14-CONTEXT.md
+Last session: 2026-03-24
+Stopped at: Phase 15, Plan 02 complete (progress-threshold narrative triggers)
+Resume file: .planning/phases/15-memory-flight-controller/15-02-SUMMARY.md
