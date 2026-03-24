@@ -5,6 +5,11 @@
  * Mirrors the structure of DisplacedMeshRenderer: creates Canvas with
  * tier-adapted DPR, loads particle data via CPU sampler, renders
  * ParticleMemoryField + CinematicCamera + postprocessing (full tier).
+ *
+ * Tier adaptation:
+ *   full:       150K particles + wire connections + bloom + DPR 2.0
+ *   simplified: 55K particles, NO wires, NO bloom, DPR 1.0, CSS vignette
+ *   parallax:   handled by CapsuleShell (ParallaxFallback + CSS dots)
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -13,6 +18,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { HalfFloatType } from 'three';
 import { sampleParticles } from './particleMemory/particleSampler';
+import { computeWireConnections } from './particleMemory/wireConnections';
 import ParticleMemoryField from './particleMemory/ParticleMemoryField';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
@@ -55,9 +61,12 @@ function ParticlePostProcessing() {
 // ---------------------------------------------------------------------------
 export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete, onAwakeningComplete, directAccess }) {
   const [particleData, setParticleData] = useState(null);
+  const [wireData, setWireData] = useState(null);
   const fieldRef = useRef(null);
 
-  // Load + sample on mount
+  const isFullTier = tier === 'full';
+
+  // Load + sample on mount, compute wires for full tier
   useEffect(() => {
     let cancelled = false;
     const config = {
@@ -74,15 +83,28 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
       resolveAsset(scene.depthMapUrl),
       config,
     ).then((data) => {
-      if (!cancelled) setParticleData(data);
+      if (cancelled) return;
+      setParticleData(data);
+
+      // Compute wire connections for full tier only (D-11: simplified has no wires)
+      if (isFullTier && data.isEdgeFlags) {
+        const wires = computeWireConnections(
+          data.photoPositions,
+          data.colors,
+          data.isEdgeFlags,
+          data.count,
+          { maxConnections: 10000 },
+        );
+        if (!cancelled) setWireData(wires);
+      }
     }).catch((err) => {
       console.error('[ParticleFieldRenderer] Sampling failed:', err);
     });
     return () => { cancelled = true; };
-  }, [scene, tier]);
+  }, [scene, tier, isFullTier]);
 
   // DPR and Canvas config (tier-adaptive)
-  const dpr = tier === 'full' ? [1, 2] : [1, 1];
+  const dpr = isFullTier ? [1, 2] : [1, 1];
 
   // Awakening callback — trigger after particle data loads
   useEffect(() => {
@@ -105,7 +127,7 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
             far: 100,
           }}
           gl={{
-            antialias: tier === 'full',
+            antialias: isFullTier,
             alpha: false,
             powerPreference: 'high-performance',
           }}
@@ -115,6 +137,7 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
             ref={fieldRef}
             particleData={particleData}
             config={scene.particleConfig}
+            wireData={wireData}
           />
           <CinematicCamera
             keyframes={scene.cameraKeyframes}
@@ -124,7 +147,7 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
               scene.cameraTarget.z,
             ]}
           />
-          {tier === 'full' && <ParticlePostProcessing />}
+          {isFullTier && <ParticlePostProcessing />}
         </Canvas>
       )}
       {!particleData && (
@@ -133,7 +156,7 @@ export default function ParticleFieldRenderer({ scene, tier, onRecessionComplete
           <span>Forming memory...</span>
         </div>
       )}
-      {tier !== 'full' && particleData && <div className="capsule-vignette" />}
+      {!isFullTier && particleData && <div className="capsule-vignette" />}
     </div>
   );
 }
