@@ -171,13 +171,25 @@ export async function sampleParticles(photoUrl, depthMapUrl, config) {
     phases[i] = p.phase;
     isEdgeFlags[i] = i >= gridParticles.length ? 1.0 : 0.0;
 
-    // Scattered positions: deterministic spherical distribution (INTEG-02)
+    // Scattered positions: directional tunnel ellipsoid (D-02, DREAM-01/02)
+    // Elongated along Z (camera travel axis) so dissolve reads as "falling into a dream corridor"
+    const tunnelStretch = config.tunnelStretch || 3.5;  // Z-axis stretch factor
+    const forwardBias = config.tunnelForwardBias || 0.3; // shift center of mass toward +Z
+    const scatterRadius = config.scatteredRadius || 3.5;
+
     const theta = 2 * Math.PI * i * golden;
     const phi = Math.acos(1 - 2 * ((i * 0.61803398875) % 1));
-    const scatterR = (config.scatteredRadius || 3.5) * (0.4 + 0.6 * Math.cbrt(((i * 7.31) % 1)));
-    scatteredPositions[i * 3] = scatterR * Math.sin(phi) * Math.cos(theta);
-    scatteredPositions[i * 3 + 1] = scatterR * Math.sin(phi) * Math.sin(theta);
-    scatteredPositions[i * 3 + 2] = scatterR * Math.cos(phi);
+    // Power-law radial distribution biased toward tunnel walls (layered depth bands)
+    const radialT = ((i * 7.31) % 1);
+    const scatterR = scatterRadius * (0.3 + 0.7 * Math.sqrt(radialT));
+
+    const rawX = scatterR * Math.sin(phi) * Math.cos(theta);
+    const rawY = scatterR * Math.sin(phi) * Math.sin(theta);
+    const rawZ = scatterR * Math.cos(phi) * tunnelStretch + forwardBias * scatterRadius;
+
+    scatteredPositions[i * 3] = rawX;
+    scatteredPositions[i * 3 + 1] = rawY;
+    scatteredPositions[i * 3 + 2] = rawZ;
   }
 
   console.log(`[ParticleSampler] Grid: ${gridParticles.length}, Edge boost: ${edgeParticles.length}, Total: ${count}`);

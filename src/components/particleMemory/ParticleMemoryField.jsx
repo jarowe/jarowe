@@ -22,6 +22,7 @@ const ParticleMemoryField = forwardRef(function ParticleMemoryField({ particleDa
     uBreathSpeed: { value: config.breathSpeed || 0.4 },
     uBreathAmplitude: { value: config.breathAmplitude || 0.015 },
     uMorphProgress: { value: 1.0 }, // 1.0 = photo-formed (Phase 14 default)
+    uMorphStagger: { value: 0.0 },  // Phase 16: depth-stagger offset for reform convergence
   });
 
   // Wire uniforms — separate ref for wire material
@@ -30,8 +31,11 @@ const ParticleMemoryField = forwardRef(function ParticleMemoryField({ particleDa
     uWirePulse: { value: 0.15 },
   });
 
-  // Expose uniforms so ArcController / Phase 16 can animate uMorphProgress
-  useImperativeHandle(ref, () => ({ uniforms: uniforms.current }));
+  // Expose uniforms so ArcController / Phase 16 can animate uMorphProgress + wireUniforms
+  useImperativeHandle(ref, () => ({
+    uniforms: uniforms.current,
+    wireUniforms: wireUniforms.current,
+  }));
 
   // BufferGeometry with all particle attributes
   const geometry = useMemo(() => {

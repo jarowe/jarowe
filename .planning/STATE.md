@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: Phase 15 Complete
-stopped_at: Phase 15 complete (plans 15-01 + 15-02)
-last_updated: "2026-03-24T04:30:00Z"
+status: Phase 16 In Progress
+stopped_at: Phase 16 plan 16-01 complete (tunnel scatter + morph stagger foundation)
+last_updated: "2026-03-24T06:00:00Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 15 complete — ready for Phase 16
+**Current focus:** Phase 16 — Dream Portal Transition (plan 16-01 complete)
 
 ## Current Position
 
-Phase: 15 (Memory Flight Controller) — COMPLETE (plans 15-01 + 15-02)
-Next: Phase 16 (Dream Portal Transition)
+Phase: 16 (Dream Portal Transition) — IN PROGRESS (plan 16-01 complete)
+Next plan: 16-02 (DreamTransition component + GSAP timelines)
 
 ## v2.2 Roadmap Summary
 
@@ -32,7 +32,7 @@ Next: Phase 16 (Dream Portal Transition)
 |-------|------|-------------|--------|
 | 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
 | 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Complete |
-| 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
+| 16 | Dream Portal Transition | DREAM-01/02/03/04 | In progress (16-01 done) |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
 
 **Phase ordering rationale:**
@@ -48,7 +48,7 @@ Next: Phase 16 (Dream Portal Transition)
 
 **Velocity:**
 
-- Total plans completed: 5 (v2.2: Phase 14 x3 + Phase 15 x2)
+- Total plans completed: 6 (v2.2: Phase 14 x3 + Phase 15 x2 + Phase 16 x1)
 - Average duration: ~7 min
 - Total execution time: ~35 min
 
@@ -74,6 +74,7 @@ Next: Phase 16 (Dream Portal Transition)
 
 Phase 14 complete (3 plans): ParticleMemoryField, breathing + bloom, wire connections + tier adaptation
 Phase 15 complete (2 plans): FlightCamera (CatmullRom + scroll + momentum + micro-drift), flightPath config, ParticleFieldRenderer integration, progress-threshold narrative triggers in CapsuleShell
+Phase 16 in progress (1/3 plans): 16-01 directional tunnel scatter + uMorphStagger uniform + wireUniforms exposed via ref
 
 ## v2.1 Summary
 
@@ -153,5 +154,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Phase 15 complete — both plans merged (15-01 FlightCamera, 15-02 progress-threshold narrative)
-Resume file: .planning/phases/15-memory-flight-controller/15-02-SUMMARY.md
+Stopped at: Phase 16 plan 16-01 complete — directional tunnel scatter, morph stagger, wireUniforms ref
+Resume file: .planning/phases/16-dream-portal-transition/16-01-SUMMARY.md

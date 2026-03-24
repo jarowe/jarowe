@@ -11,6 +11,7 @@ uniform float uTime;
 uniform float uBreathSpeed;
 uniform float uBreathAmplitude;
 uniform float uMorphProgress;  // 0 = scattered, 1 = photo-formed (Phase 16)
+uniform float uMorphStagger;  // depth-stagger offset for reform convergence (D-10)
 
 attribute vec3 aPhotoPosition;
 attribute vec3 aScatteredPosition;
@@ -25,8 +26,11 @@ varying float vDepth;
 varying float vBreathPhase;
 
 void main() {
-  // Dual buffer interpolation (INTEG-02 — Phase 16 ready)
-  vec3 basePos = mix(aScatteredPosition, aPhotoPosition, uMorphProgress);
+  // Dual buffer interpolation with depth-staggered convergence (D-10)
+  // Foreground (low depth) converges first; background lags by uMorphStagger amount
+  float staggerOffset = aDepthValue * uMorphStagger;
+  float effectiveMorph = clamp(uMorphProgress - staggerOffset, 0.0, 1.0);
+  vec3 basePos = mix(aScatteredPosition, aPhotoPosition, effectiveMorph);
 
   // Depth-correlated breathing wave (D-08)
   // Foreground (low depth) breathes first, wave rolls backward into the scene
