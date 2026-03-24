@@ -4,8 +4,7 @@ import gsap from 'gsap';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
 
-const TUNNEL_FOV = 72;
-const TUNNEL_Z = 50; // Pull back from axis to see helix cross-section
+const TUNNEL_FOV = 100;
 const HELIX_FOV = 60;
 
 function clearCameraOffset(camera) {
@@ -270,13 +269,13 @@ export default function CameraController({
       // Phase 1: fly to near-axis (slight Z offset to see helix walls)
       tl.to(
         camera.position,
-        { x: 0, y: startY, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY, z: 0, duration: 1, ease: 'power2.inOut' },
         0
       );
       // Phase 2: look forward along axis
       tl.to(
         controls.target,
-        { x: 0, y: startY + 50, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
         0
       );
       // FOV expansion
@@ -491,13 +490,16 @@ export default function CameraController({
     const targetY = useConstellationStore.getState().tunnelY;
     const lerpFactor = 0.08;
 
-    // Smoothly interpolate camera position along the tunnel
+    // Smoothly interpolate camera Y — on the helix axis, looking straight ahead
     camera.position.x += (0 - camera.position.x) * lerpFactor;
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
-    camera.position.z += (TUNNEL_Z - camera.position.z) * lerpFactor;
+    camera.position.z += (0 - camera.position.z) * lerpFactor;
 
-    // Look straight down the tunnel (along Y axis) from z=TUNNEL_Z
-    camera.lookAt(0, camera.position.y + 40, TUNNEL_Z);
+    controls.target.x += (0 - controls.target.x) * lerpFactor;
+    controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
+    controls.target.z += (0 - controls.target.z) * lerpFactor;
+
+    controls.update();
 
     // Sync timeline scrubber with tunnel scroll position
     if (helixBounds) {
@@ -599,7 +601,7 @@ export default function CameraController({
         });
         tl.to(
           camera.position,
-          { x: 0, y: node.y, z: TUNNEL_Z, duration, ease },
+          { x: 0, y: node.y, z: 0, duration, ease },
           0
         );
         tl.to(
@@ -723,7 +725,7 @@ export default function CameraController({
           },
           onComplete: () => {
             isFlyingRef.current = false;
-            controls.target.set(0, currentY + 50, TUNNEL_Z);
+            controls.target.set(0, currentY + 50, 0);
             controls.enabled = false;
             controls.autoRotate = false;
           },
@@ -731,12 +733,12 @@ export default function CameraController({
 
         tl.to(
           camera.position,
-          { x: 0, y: currentY, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY, z: 0, duration: 1, ease: 'power2.inOut' },
           0
         );
         tl.to(
           lookProxy,
-          { x: 0, y: currentY + 50, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
           0
         );
 
