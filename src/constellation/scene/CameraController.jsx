@@ -582,15 +582,22 @@ export default function CameraController({
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
       // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV.
-      // controls.enabled stays false so user can't drag off-axis, but we
-      // still call controls.update() each frame so the camera smoothly
-      // re-orients toward the target during the tween.
+      // Don't use controls.update() — it fights the tween by snapping
+      // to its internal spherical state. Instead animate a lookAt proxy.
       if (mode === 'tunnel') {
+        const lookProxy = {
+          x: controls.target.x,
+          y: controls.target.y,
+          z: controls.target.z,
+        };
         const tl = gsap.timeline({
-          onUpdate: () => controls.update(),
+          onUpdate: () => {
+            camera.lookAt(lookProxy.x, lookProxy.y, lookProxy.z);
+          },
           onComplete: () => {
             isFlyingRef.current = false;
-            // Restore forward-looking target after panel closes
+            // Sync OrbitControls target so clearFocus works correctly
+            controls.target.set(lookProxy.x, lookProxy.y, lookProxy.z);
           },
         });
         tl.to(
@@ -599,7 +606,7 @@ export default function CameraController({
           0
         );
         tl.to(
-          controls.target,
+          lookProxy,
           { x: node.x, y: node.y, z: node.z, duration, ease },
           0
         );
