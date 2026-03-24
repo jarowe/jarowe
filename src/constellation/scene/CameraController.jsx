@@ -60,6 +60,9 @@ export default function CameraController({
   // Tunnel smooth scroll velocity for momentum
   const tunnelVelocity = useRef(0);
 
+  // Helix timeline scroll velocity for smooth momentum
+  const helixScrollVelocity = useRef(0);
+
   // Animated view offset proxy for panel shift
   const viewOffsetProxy = useRef({ x: 0, y: 0 });
 
@@ -80,19 +83,21 @@ export default function CameraController({
     }
   }, [camera, controlsRef]);
 
-  // Helper: start auto-rotate ramp
+  // Helper: start auto-rotate ramp — exponential ease-in for smooth feel
   function startAutoRotateRamp(controls) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0;
+    if (rampInterval.current) clearInterval(rampInterval.current);
     rampInterval.current = setInterval(() => {
       const target = getCfg('autoRotateSpeed');
-      if (controls.autoRotateSpeed < target) {
-        controls.autoRotateSpeed += 0.015;
+      const diff = target - controls.autoRotateSpeed;
+      if (diff > 0.001) {
+        controls.autoRotateSpeed += diff * 0.04;
       } else {
         controls.autoRotateSpeed = target;
         clearInterval(rampInterval.current);
       }
-    }, 50);
+    }, 16);
   }
 
   useEffect(() => {
@@ -358,10 +363,10 @@ export default function CameraController({
       if (state.cameraMode === 'tunnel') {
         e.preventDefault();
         // Negate: scroll-down (deltaY>0) = move down (lower Y = older)
-        const impulse = -e.deltaY * 0.012;
+        const impulse = -e.deltaY * 0.005;
         tunnelVelocity.current += impulse;
         // Clamp max velocity to prevent overshooting
-        tunnelVelocity.current = Math.max(-3, Math.min(3, tunnelVelocity.current));
+        tunnelVelocity.current = Math.max(-1.8, Math.min(1.8, tunnelVelocity.current));
         return;
       }
 
@@ -389,7 +394,11 @@ export default function CameraController({
         return;
       }
 
-      // No focus: let default orbit controls handle zoom
+      // No focus in helix mode: scroll drives timeline via smooth momentum
+      e.preventDefault();
+      const impulse = (e.deltaY > 0 ? 1 : -1) * 0.008;
+      helixScrollVelocity.current += impulse;
+      helixScrollVelocity.current = Math.max(-0.06, Math.min(0.06, helixScrollVelocity.current));
     };
 
     const canvas = controls.domElement;
@@ -480,6 +489,25 @@ export default function CameraController({
     controls.target.z += (0 - controls.target.z) * lerpFactor;
 
     controls.update();
+  });
+
+  // ---- Smooth helix scroll momentum ----
+  useFrame(() => {
+    const { cameraMode: mode, focusedNodeId: focused } = useConstellationStore.getState();
+    if (mode === 'tunnel' || focused || isFlyingRef.current || introRef?.current?.active) {
+      helixScrollVelocity.current = 0;
+      return;
+    }
+
+    if (Math.abs(helixScrollVelocity.current) > 0.0002) {
+      const state = useConstellationStore.getState();
+      const current = state.timelinePosition ?? 0.5;
+      const next = Math.max(0, Math.min(1, current + helixScrollVelocity.current));
+      state.setTimelinePosition(next);
+      helixScrollVelocity.current *= 0.93;
+    } else {
+      helixScrollVelocity.current = 0;
+    }
   });
 
   // ---- Fly-to on focusedNodeId change ----
@@ -699,19 +727,19 @@ export default function CameraController({
   }, [focusedNodeId, positions, camera, controlsRef]);
 
   // ---- Timeline-driven camera ----
+  // Uses smooth lerp for scroll-driven changes, GSAP for click-driven scrubber.
+  // Only activates when timelinePosition actually changes (not every frame).
   const timelinePosition = useConstellationStore((s) => s.timelinePosition);
   const prevTimelineRef = useRef(0);
 
   useEffect(() => {
-    // Skip initial render and tiny changes
     if (Math.abs(timelinePosition - prevTimelineRef.current) < 0.001) return;
     prevTimelineRef.current = timelinePosition;
 
     const controls = controlsRef.current;
     if (!controls || !helixBounds) return;
-    if (introRef?.current?.active) return;
+    if (introRef?.current?.active || isFlyingRef.current) return;
 
-    // Don't override focus fly-to
     const { focusedNodeId: currentFocus, cameraMode: mode } = useConstellationStore.getState();
     if (currentFocus) return;
 
@@ -719,37 +747,35 @@ export default function CameraController({
       helixBounds.minY + timelinePosition * (helixBounds.maxY - helixBounds.minY);
 
     if (mode === 'tunnel') {
-      // In tunnel mode: timeline directly maps to tunnelY
       useConstellationStore.getState().setTunnelY(mappedY);
       return;
     }
 
-    // Pause auto-rotate during timeline scrub
+    // Pause auto-rotate during scrub
     controls.autoRotate = false;
     if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
 
+    // Use GSAP for scrubber clicks (single tween, not per-frame)
+    // Momentum scroll fires this rapidly but the short duration + overwrite
+    // mode keeps it smooth without the old competing-tween issue
     gsap.to(camera.position, {
-      x: 0,
       y: mappedY,
-      z: 110,
-      duration: 0.3,
+      duration: 0.5,
       ease: 'power2.out',
+      overwrite: true,
       onUpdate: () => controls.update(),
     });
     gsap.to(controls.target, {
-      x: 0,
       y: mappedY,
-      z: 0,
-      duration: 0.3,
+      duration: 0.5,
       ease: 'power2.out',
+      overwrite: true,
     });
 
     // Resume auto-rotate after scrub settles
     autoRotateTimer.current = setTimeout(() => {
       const { focusedNodeId: f } = useConstellationStore.getState();
-      if (!f) {
-        startAutoRotateRamp(controls);
-      }
+      if (!f) startAutoRotateRamp(controls);
     }, 2000);
   }, [timelinePosition, camera, controlsRef, helixBounds, introRef]);
 

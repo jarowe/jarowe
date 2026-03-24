@@ -369,7 +369,7 @@ export default function ConstellationCanvas({
         autoRotate
         autoRotateSpeed={0.35}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.04}
         enablePan={false}
         minPolarAngle={Math.PI * (15 / 180)}
         maxPolarAngle={Math.PI * (165 / 180)}

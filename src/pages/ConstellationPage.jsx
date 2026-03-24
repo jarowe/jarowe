@@ -548,6 +548,9 @@ export default function ConstellationPage() {
     portalTimersRef.current.forEach(clearTimeout);
   }, []);
 
+  // Intro fires when: 3D mode, data ready, canvas ready, not skipped, not yet complete.
+  // The preload may cause dataLoaded to be true before canvasReady — that's fine,
+  // the intro just waits for both conditions before starting.
   const introActive = viewMode === '3d'
     && dataLoaded
     && canvasReady
