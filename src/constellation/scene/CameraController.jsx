@@ -550,6 +550,7 @@ export default function CameraController({
     }
 
     const { cameraMode: mode } = useConstellationStore.getState();
+    console.log('[CameraController] focus effect: focusedNodeId=', focusedNodeId, 'mode=', mode);
 
     if (focusedNodeId) {
       // Find node position
@@ -584,6 +585,7 @@ export default function CameraController({
       const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
+      console.log('[CameraController] focus path: mode=', mode, 'entering tunnel?', mode === 'tunnel');
       // In tunnel mode: slide to node Y, pull back to tunnelFocusDistance
       // so the node and helix structure are visible. Uses camera.lookAt()
       // instead of controls.update() to avoid spherical state conflicts.
@@ -619,6 +621,7 @@ export default function CameraController({
         return;
       }
 
+      console.log('[CameraController] HELIX focus path (NOT tunnel) — this should not run in tunnel mode');
       // ---- Shift frustum center so helix appears in the left viewport area ----
       const vw = window.innerWidth;
       const vh = window.innerHeight;
