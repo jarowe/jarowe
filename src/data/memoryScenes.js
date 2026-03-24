@@ -326,6 +326,44 @@ const scenes = [
         text: 'I found joy here.',
       },
     ],
+    // Soundscape configuration — three-layer ambient mix (Phase 17)
+    soundscape: {
+      masterVolume: 0.8,
+      masterFadeIn: 2000,
+      masterFadeOut: 3000,
+      layers: [
+        {
+          id: 'drone',
+          label: 'Cave Ambience',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drone.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drone.wav`],
+          volume: 0.5,
+          loop: true,
+          fadeIn: 3000,
+          fadeOut: 4000,
+          delay: 0,
+        },
+        {
+          id: 'texture',
+          label: 'Water Lapping',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-water.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-water.wav`],
+          volume: 0.35,
+          loop: true,
+          fadeIn: 4000,
+          fadeOut: 3000,
+          delay: 1000,
+        },
+        {
+          id: 'detail',
+          label: 'Cave Drips',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drips.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drips.wav`],
+          volume: 0.2,
+          loop: true,
+          fadeIn: 5000,
+          fadeOut: 2000,
+          delay: 2500,
+        },
+      ],
+    },
   },
 ];
 
