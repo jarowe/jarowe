@@ -4,7 +4,8 @@ import gsap from 'gsap';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
 
-const TUNNEL_FOV = 82;
+const TUNNEL_FOV = 72;
+const TUNNEL_Z = 50; // Pull back from axis to see helix cross-section
 const HELIX_FOV = 60;
 
 function clearCameraOffset(camera) {
@@ -269,7 +270,7 @@ export default function CameraController({
       // Phase 1: fly to near-axis (slight Z offset to see helix walls)
       tl.to(
         camera.position,
-        { x: 0, y: startY, z: 12, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
         0
       );
       // Phase 2: look forward along axis
@@ -490,16 +491,14 @@ export default function CameraController({
     const targetY = useConstellationStore.getState().tunnelY;
     const lerpFactor = 0.08;
 
-    // Smoothly interpolate camera Y — always centered on axis
+    // Smoothly interpolate camera position along the tunnel
     camera.position.x += (0 - camera.position.x) * lerpFactor;
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
-    camera.position.z += (12 - camera.position.z) * lerpFactor;
+    camera.position.z += (TUNNEL_Z - camera.position.z) * lerpFactor;
 
-    controls.target.x += (0 - controls.target.x) * lerpFactor;
-    controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
-    controls.target.z += (0 - controls.target.z) * lerpFactor;
-
-    controls.update();
+    // Look ahead along the Y axis — use camera.lookAt directly
+    // (controls.update() fights this by snapping to stale spherical state)
+    camera.lookAt(0, camera.position.y + 40, 0);
 
     // Sync timeline scrubber with tunnel scroll position
     if (helixBounds) {
@@ -601,7 +600,7 @@ export default function CameraController({
         });
         tl.to(
           camera.position,
-          { x: 0, y: node.y, z: 12, duration, ease },
+          { x: 0, y: node.y, z: TUNNEL_Z, duration, ease },
           0
         );
         tl.to(
@@ -733,12 +732,12 @@ export default function CameraController({
 
         tl.to(
           camera.position,
-          { x: 0, y: currentY, z: 12, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
           0
         );
         tl.to(
           lookProxy,
-          { x: 0, y: currentY + 50, z: 12, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY + 50, z: TUNNEL_Z, duration: 1, ease: 'power2.inOut' },
           0
         );
 
