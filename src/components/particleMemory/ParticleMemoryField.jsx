@@ -29,6 +29,7 @@ const ParticleMemoryField = forwardRef(function ParticleMemoryField({ particleDa
   const wireUniforms = useRef({
     uTime: { value: 0 },
     uWirePulse: { value: 0.15 },
+    uWireTransitionAlpha: { value: 1.0 },  // Phase 16: transition visibility control
   });
 
   // Expose uniforms so ArcController / Phase 16 can animate uMorphProgress + wireUniforms

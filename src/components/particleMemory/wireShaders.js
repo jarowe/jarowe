@@ -27,6 +27,7 @@ void main() {
 export const WIRE_FRAG = /* glsl */ `
 uniform float uTime;
 uniform float uWirePulse;
+uniform float uWireTransitionAlpha;  // 1.0 = normal, 0.0 = hidden (Phase 16 transition control)
 
 varying vec3 vWireColor;
 varying float vWireAlpha;
@@ -34,7 +35,7 @@ varying float vWireAlpha;
 void main() {
   // Gentle pulse on wire alpha — breathing coherence
   float pulse = 1.0 + sin(uTime * 0.8) * uWirePulse;
-  float alpha = vWireAlpha * pulse * 0.4;
+  float alpha = vWireAlpha * pulse * 0.4 * uWireTransitionAlpha;
   if (alpha < 0.005) discard;
 
   // Emissive — slightly brighter than particle colors (filaments of intelligence)
