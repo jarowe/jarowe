@@ -314,11 +314,11 @@ const scenes = [
         text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
       },
       {
-        progress: 0.35,
+        progress: 0.40,
         text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
       },
       {
-        progress: 0.6,
+        progress: 0.65,
         text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
       },
       {

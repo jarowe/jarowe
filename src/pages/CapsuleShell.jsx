@@ -1090,7 +1090,7 @@ export default function CapsuleShell() {
             onRecessionComplete={handleRecessionComplete}
             onAwakeningComplete={() => setAwakeningComplete(true)}
             directAccess={directAccess}
-            flightProgressRef={flightProgressRef}
+            onProgress={(p) => { flightProgressRef.current = p; }}
           />
         </React.Suspense>
       )}
