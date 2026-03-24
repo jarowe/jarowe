@@ -20,6 +20,7 @@ import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import { useConstellationStore } from '../store';
 import { useAudio } from '../../context/AudioContext';
 import { TYPE_COLORS, THEME_COLORS } from './DetailPanel';
+import { getPortalSceneId } from '../data/portalScenes';
 import EntityChip from './EntityChip';
 import useNodeConnections from './useNodeConnections';
 import './StoryPanel.css';
@@ -133,6 +134,27 @@ function getProfile(node) {
   if (hasMedia && hasDesc) return 'B';
   if (hasMedia) return 'A';
   return 'C';
+}
+
+/* ─── Portal CTA ──────────────────────────────────────────────── */
+
+function PortalCTA({ node, onPortalEnter }) {
+  if (!onPortalEnter || !node) return null;
+  const sceneId = getPortalSceneId(node.id);
+  if (!sceneId) return null;
+
+  return (
+    <motion.button
+      className="story-panel__portal-cta"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }}
+      onClick={() => onPortalEnter(node.id, sceneId)}
+    >
+      <span className="story-panel__portal-icon" aria-hidden="true" />
+      <span className="story-panel__portal-label">Enter this memory</span>
+    </motion.button>
+  );
 }
 
 /* ─── Badges row ───────────────────────────────────────────────── */
@@ -397,7 +419,7 @@ function TypewriterDescription({ text, nodeId, centered }) {
 
 /* ─── Main StoryPanel ──────────────────────────────────────────── */
 
-export default function StoryPanel() {
+export default function StoryPanel({ onPortalEnter = null }) {
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const focusNode = useConstellationStore((s) => s.focusNode);
   const openLightbox = useConstellationStore((s) => s.openLightbox);
@@ -888,6 +910,7 @@ export default function StoryPanel() {
                       </div>
                     )}
 
+                    <PortalCTA node={node} onPortalEnter={onPortalEnter} />
                     <BecauseSection
                       connectionGroups={connectionGroups}
                       focusNode={focusNode}
@@ -1110,6 +1133,7 @@ export default function StoryPanel() {
                       </div>
                     )}
 
+                    <PortalCTA node={node} onPortalEnter={onPortalEnter} />
                     <BecauseSection
                       connectionGroups={connectionGroups}
                       focusNode={focusNode}

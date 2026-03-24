@@ -2,7 +2,7 @@
 
 .story-panel {
   position: fixed;
-  top: 0;
+  top: 64px;
   right: 0;
   bottom: 0;
   width: clamp(380px, 48vw, 720px);
@@ -15,6 +15,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-radius: 12px 0 0 0;
 }
 
 /* ─── Drag handle (mobile only) ─────────────────────────────── */
@@ -903,4 +904,54 @@
   .story-panel__gallery {
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   }
+}
+
+/* ─── Portal CTA ──────────────────────────────────────────────── */
+
+.story-panel__portal-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin: 1.1rem 0 0.6rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(99, 102, 241, 0.08));
+  color: rgba(248, 250, 255, 0.92);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+
+.story-panel__portal-cta:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(99, 102, 241, 0.16));
+  border-color: rgba(124, 58, 237, 0.5);
+  transform: translateY(-1px);
+}
+
+.story-panel__portal-cta:active {
+  transform: translateY(0);
+}
+
+.story-panel__portal-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(167, 139, 250, 0.6), rgba(124, 58, 237, 0.25));
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.35), inset 0 0 6px rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  animation: portal-icon-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes portal-icon-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(124, 58, 237, 0.35), inset 0 0 6px rgba(255, 255, 255, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.55), inset 0 0 8px rgba(255, 255, 255, 0.2); }
+}
+
+.story-panel__portal-label {
+  flex: 1;
 }

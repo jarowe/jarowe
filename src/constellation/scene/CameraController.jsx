@@ -1,12 +1,29 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import gsap from 'gsap';
-import * as THREE from 'three';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
 
 const TUNNEL_FOV = 100;
 const HELIX_FOV = 60;
+
+function clearCameraOffset(camera) {
+  camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+
+function applyCameraOffset(camera, viewportWidth, viewportHeight, offsetX, offsetY) {
+  const x = Math.round(offsetX);
+  const y = Math.round(offsetY);
+
+  if (Math.abs(x) > 0.5 || Math.abs(y) > 0.5) {
+    camera.setViewOffset(viewportWidth, viewportHeight, x, y, viewportWidth, viewportHeight);
+  } else {
+    camera.clearViewOffset();
+  }
+
+  camera.updateProjectionMatrix();
+}
 
 /**
  * Camera controller for constellation scene.
@@ -18,7 +35,13 @@ const HELIX_FOV = 60;
  * - Auto-orbit pause/resume with idle timer and speed ramp
  * - Tunnel mode: camera inside the helix axis, looking forward
  */
-export default function CameraController({ controlsRef, positions, helixBounds }) {
+export default function CameraController({
+  controlsRef,
+  positions,
+  helixBounds,
+  introEnabled = false,
+  introRef = null,
+}) {
   const { camera } = useThree();
 
   // Store initial camera position on mount
@@ -38,7 +61,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   const tunnelVelocity = useRef(0);
 
   // Animated view offset proxy for panel shift
-  const viewOffsetProxy = useRef({ x: 0 });
+  const viewOffsetProxy = useRef({ x: 0, y: 0 });
 
   // Capture initial camera state on mount
   useEffect(() => {
@@ -58,7 +81,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   }, [camera, controlsRef]);
 
   // Helper: start auto-rotate ramp
-  const startAutoRotateRamp = (controls) => {
+  function startAutoRotateRamp(controls) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0;
     rampInterval.current = setInterval(() => {
@@ -70,7 +93,95 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         clearInterval(rampInterval.current);
       }
     }, 50);
-  };
+  }
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls || !introEnabled || !initialCameraPos.current || !initialTarget.current) {
+      return undefined;
+    }
+
+    if (flyTimeline.current) {
+      flyTimeline.current.kill();
+      flyTimeline.current = null;
+    }
+
+    isFlyingRef.current = true;
+    controls.enabled = false;
+    controls.autoRotate = false;
+    if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
+    if (rampInterval.current) clearInterval(rampInterval.current);
+
+    viewOffsetProxy.current.x = 0;
+    viewOffsetProxy.current.y = 0;
+    clearCameraOffset(camera);
+
+    const startCamera = {
+      x: initialCameraPos.current.x * 0.2,
+      y: initialCameraPos.current.y + 26,
+      z: Math.max(initialCameraPos.current.z + 240, 320),
+    };
+    const startTarget = {
+      x: initialTarget.current.x,
+      y: initialTarget.current.y + 12,
+      z: initialTarget.current.z,
+    };
+
+    camera.position.set(startCamera.x, startCamera.y, startCamera.z);
+    controls.target.set(startTarget.x, startTarget.y, startTarget.z);
+    camera.fov = 48;
+    camera.updateProjectionMatrix();
+    controls.update();
+
+    const tl = gsap.timeline({
+      onUpdate: () => controls.update(),
+      onComplete: () => {
+        isFlyingRef.current = false;
+        controls.enabled = true;
+        startAutoRotateRamp(controls);
+      },
+    });
+
+    tl.to(
+      camera.position,
+      {
+        x: initialCameraPos.current.x,
+        y: initialCameraPos.current.y,
+        z: initialCameraPos.current.z,
+        duration: 3.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+    tl.to(
+      controls.target,
+      {
+        x: initialTarget.current.x,
+        y: initialTarget.current.y,
+        z: initialTarget.current.z,
+        duration: 3.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+    tl.to(
+      camera,
+      {
+        fov: HELIX_FOV,
+        duration: 2.8,
+        ease: 'power2.out',
+        onUpdate: () => camera.updateProjectionMatrix(),
+      },
+      0
+    );
+
+    flyTimeline.current = tl;
+
+    return () => {
+      tl.kill();
+      controls.enabled = true;
+    };
+  }, [camera, controlsRef, introEnabled]);
 
   // ---- Auto-orbit pause/resume ----
   useEffect(() => {
@@ -115,13 +226,13 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
   // ---- Tunnel mode transitions ----
   const cameraMode = useConstellationStore((s) => s.cameraMode);
-  const tunnelY = useConstellationStore((s) => s.tunnelY);
   const setTunnelY = useConstellationStore((s) => s.setTunnelY);
   const prevCameraMode = useRef('helix');
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls || !helixBounds) return;
+    if (introRef?.current?.active) return;
 
     if (cameraMode === 'tunnel' && prevCameraMode.current === 'helix') {
       // ---- ENTER TUNNEL ----
@@ -236,6 +347,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     if (!controls) return;
 
     const handleWheel = (e) => {
+      if (introRef?.current?.active) {
+        e.preventDefault();
+        return;
+      }
+
       const state = useConstellationStore.getState();
 
       // Tunnel mode: smooth gentle scroll along Y axis
@@ -291,6 +407,8 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // ---- Keyboard navigation: tunnel + focused node stepping ----
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (introRef?.current?.active) return;
+
       const state = useConstellationStore.getState();
 
       // Tunnel mode: gentle Y movement
@@ -330,7 +448,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // ---- Smooth tunnel camera follow with momentum ----
   useFrame(() => {
     const { cameraMode: mode } = useConstellationStore.getState();
-    if (mode !== 'tunnel' || isFlyingRef.current) return;
+    if (mode !== 'tunnel' || isFlyingRef.current || introRef?.current?.active) return;
 
     const controls = controlsRef.current;
     if (!controls) return;
@@ -370,6 +488,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (introRef?.current?.active) return;
 
     // Kill any running fly animation
     if (flyTimeline.current) {
@@ -411,23 +530,36 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       }
 
       // ---- Shift frustum center so helix appears in the left viewport area ----
-      const isMobileView = window.innerWidth <= 768;
-      if (!isMobileView) {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const panelPx = Math.min(720, Math.max(380, vw * 0.48));
-        const targetOffsetX = panelPx / 2;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isMobileView = vw <= 768;
+      const panelEl = document.querySelector('.story-panel');
+      const panelRect = panelEl?.getBoundingClientRect();
+      const targetOffsetX = isMobileView
+        ? 0
+        : Math.min(
+            (panelRect?.width ?? Math.min(720, Math.max(380, vw * 0.48))) * 0.66,
+            Math.max(120, (vw - (panelRect?.width ?? 0)) * 0.58)
+          );
+      const targetOffsetY = isMobileView
+        ? Math.min((panelRect?.height ?? vh * 0.75) * 0.24, vh * 0.18)
+        : 0;
 
-        gsap.to(viewOffsetProxy.current, {
-          x: targetOffsetX,
-          duration: duration * 0.8,
-          ease,
-          onUpdate: () => {
-            camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
-            camera.updateProjectionMatrix();
-          },
-        });
-      }
+      gsap.to(viewOffsetProxy.current, {
+        x: targetOffsetX,
+        y: targetOffsetY,
+        duration: duration * 0.8,
+        ease,
+        onUpdate: () => {
+          applyCameraOffset(
+            camera,
+            vw,
+            vh,
+            viewOffsetProxy.current.x,
+            viewOffsetProxy.current.y
+          );
+        },
+      });
 
       // In tunnel mode: contract FOV back to normal for the pulled-back view
       if (mode === 'tunnel') {
@@ -470,22 +602,23 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       // Animate view offset back to center
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      if (viewOffsetProxy.current.x > 0) {
+      if (Math.abs(viewOffsetProxy.current.x) > 0.5 || Math.abs(viewOffsetProxy.current.y) > 0.5) {
         gsap.to(viewOffsetProxy.current, {
           x: 0,
+          y: 0,
           duration: 0.8,
           ease: 'power2.inOut',
           onUpdate: () => {
-            if (viewOffsetProxy.current.x > 0.5) {
-              camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
-            } else {
-              camera.clearViewOffset();
-            }
-            camera.updateProjectionMatrix();
+            applyCameraOffset(
+              camera,
+              vw,
+              vh,
+              viewOffsetProxy.current.x,
+              viewOffsetProxy.current.y
+            );
           },
           onComplete: () => {
-            camera.clearViewOffset();
-            camera.updateProjectionMatrix();
+            clearCameraOffset(camera);
           },
         });
       }
@@ -576,6 +709,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
     const controls = controlsRef.current;
     if (!controls || !helixBounds) return;
+    if (introRef?.current?.active) return;
 
     // Don't override focus fly-to
     const { focusedNodeId: currentFocus, cameraMode: mode } = useConstellationStore.getState();
@@ -617,7 +751,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         startAutoRotateRamp(controls);
       }
     }, 2000);
-  }, [timelinePosition, camera, controlsRef, helixBounds]);
+  }, [timelinePosition, camera, controlsRef, helixBounds, introRef]);
 
   return null;
 }

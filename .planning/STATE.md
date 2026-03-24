@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.2
 milestone_name: Particle Memory Flight
-status: in-progress
-stopped_at: Phase 14 complete (all 3 plans)
-last_updated: "2026-03-24T04:00:00Z"
+status: Executing Phase 14
+stopped_at: Phase 14 context gathered
+last_updated: "2026-03-24T02:31:17.938Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 3
-  completed_plans: 3
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,21 +19,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** v2.2 Particle Memory Flight -- Phase 14 complete (particle field core with wire connections + tier adaptation)
+**Current focus:** Phase 14 — Particle Field Core
 
 ## Current Position
 
-Phase: 14 of 17 (Particle Field Core) -- COMPLETE
-Plan: All 3 plans complete (14-01, 14-02, 14-03)
-Next: Phase 15 (Memory Flight Controller)
-Status: Phase 14 complete, Phase 15 not started
-Last activity: 2026-03-24 -- Plan 14-03 complete (wire connections, tier adaptation, parallax fallback, dead code cleanup)
+Phase: 14 (Particle Field Core) — EXECUTING
+Plan: 1 of 3
 
 ## v2.2 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|-------------|--------|
-| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Complete |
+| 14 | Particle Field Core | PART-01/02/03/04, INTEG-01/02 | Not started |
 | 15 | Memory Flight Controller | FLIGHT-01/02/03/04 | Not started |
 | 16 | Dream Portal Transition | DREAM-01/02/03/04 | Not started |
 | 17 | Memory Soundscape | SOUND-01/02 | Not started |
@@ -51,17 +48,15 @@ Last activity: 2026-03-24 -- Plan 14-03 complete (wire connections, tier adaptat
 
 **Velocity:**
 
-- Total plans completed: 3 (v2.2)
-- Average duration: ~8 min
-- Total execution time: ~24 min
+- Total plans completed: 0 (v2.2)
+- Average duration: --
+- Total execution time: --
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 14 P01 | 1 | ~8min | ~8min |
-| 14 P02 | 1 | ~8min | ~8min |
-| 14 P03 | 1 | ~8min | ~8min |
+| - | - | - | - |
 
 **Recent Trend (from v2.1):**
 
@@ -127,22 +122,12 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - [Phase 12]: SAM mask smoothstep(0.4, 0.6) for soft foreground/background depth separation
 - [Phase 12]: Narrative cards gated behind awakeningComplete; 4-card emotional arc at timed delays
 - [Phase 12]: Portal entry navigates at rupture phase; direct URL access shortens awakening
-- [Phase 14]: CPU-side hybrid grid + Sobel edge-boost particle sampling (280x280 grid base, edge boost to 150K)
-- [Phase 14]: Dual position buffers (aPhotoPosition + aScatteredPosition) with uMorphProgress vertex shader mix
-- [Phase 14]: Spatial hash grid for O(n) wire connection precompute (~10K LineSegments)
-- [Phase 14]: Depth-correlated breathing: sin(time * breathSpeed - depth * pi + phase * 0.5)
-- [Phase 14]: Breathing brightness moved to fragment shader via vBreathPhase varying
-- [Phase 14]: Bloom luminanceThreshold 0.35 -- only bright foreground particles contribute
-- [Phase 14]: CinematicCamera exported as named export from CapsuleShell (non-breaking)
-- [Phase 14]: CSS vignette fallback for simplified tier
-- [Phase 14]: Wire connections: dense edge (70%) + sparse ambient (30%), static topology, dynamic alpha pulse
-- [Phase 14]: Modular architecture: particleSampler.js, particleShaders.js, wireConnections.js, wireShaders.js, ParticleMemoryField.jsx, ParticleFieldRenderer.jsx
 
 ### v2.2 Research Flags
 
 - **Phase 14 (WebGL context):** Site already runs 3 WebGL contexts (globe, Prism3D, constellation). Fourth risks context exhaustion on mobile. Must confirm previous contexts are released before mounting particle Canvas. Never render globe + particle scene simultaneously.
 - **Phase 14 (depth/photo UV):** Depth map must exactly match photo dimensions. Validate by overlaying at 50% opacity -- edges must align exactly.
-- **Phase 14 (wire connections):** RESOLVED -- Spatial hash grid implemented. Pre-computed once at load in computeWireConnections(). ~10K connections as LineSegments geometry.
+- **Phase 14 (wire connections):** Naive K-nearest-neighbor over 150K particles is O(n^2). Use spatial hash grid. Pre-compute once at load, not per-frame. Target ~10K connections as pre-built LineSegments index buffer.
 - **Phase 14 (asset weight):** Photo WebP q80 max 2048px, depth 8-bit single-channel max 1024px. Target <500KB total per capsule.
 - **Phase 15 (camera feel):** Spring-smooth progress before it drives the spline. Never let camera fully stop. Layer: spline progress (scroll), mouse parallax (15-30ms), breathing micro-drift (8-20s sine). Test at 2x speed.
 - **Phase 16 (portal disorientation):** Store departure globe camera state in sessionStorage on entry; restore on return. Pre-load memory scene photo during portal animation.
@@ -153,14 +138,13 @@ Decisions logged in PROJECT.md Key Decisions table. Key decisions carried forwar
 - Re-enable Bloom in production mode
 - Instagram parser selector tuning
 - Populate allowlist.json with real names
-- Tune node colors (instanceColor blending)
 
 ### Blockers/Concerns
 
-None.
+None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T04:00:00Z
-Stopped at: Phase 14 complete -- all 3 plans done. Wire connections + tier adaptation + parallax fallback verified. Ready for Phase 15 (Memory Flight Controller).
-Resume file: .planning/phases/14-particle-field-core/14-03-SUMMARY.md
+Last session: 2026-03-23T23:19:42.923Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-particle-field-core/14-CONTEXT.md

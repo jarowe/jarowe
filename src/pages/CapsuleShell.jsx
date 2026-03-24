@@ -873,6 +873,15 @@ export default function CapsuleShell() {
     sessionStorage.removeItem('jarowe_portal_entry');
     return !portalEntry;
   });
+  // Capture and clear return path on mount so it can't go stale.
+  // The scripted exit reads from this ref; any other exit path (back button,
+  // direct navigation) leaves no dangling session key.
+  const portalReturnRef = useRef(
+    sessionStorage.getItem('jarowe_portal_return')
+  );
+  useState(() => {
+    sessionStorage.removeItem('jarowe_portal_return');
+  });
   const navigate = useNavigate();
   const exitTimersRef = useRef([]);
   const soundRef = useRef(null);
@@ -896,8 +905,8 @@ export default function CapsuleShell() {
     eT(() => setExitPortalPhase('rupture'), 2500);
     eT(() => {
       setExitPortalPhase('gathering');
-      // Navigate home during the closing rupture
-      navigate('/');
+      // Navigate back: constellation if we came from there, home otherwise
+      navigate(portalReturnRef.current || '/');
     }, 3200);
     eT(() => setExitPortalPhase(null), 4000);
 

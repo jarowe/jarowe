@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
+import { getIntroReveal } from './introMath';
 
 /** Theme-based color palette (matches NodeCloud) */
 const THEME_COLORS = {
@@ -124,9 +125,8 @@ const fragmentShader = `
  * Renders shaped particles (circle, diamond, square, heart, triangle, star)
  * based on node type. Each particle is color-coordinated by theme/type.
  */
-export default function ParticleCloud({ nodes, tunnelMode = false }) {
+export default function ParticleCloud({ nodes, tunnelMode = false, introRef = null }) {
   const pointsRef = useRef();
-  const materialRef = useRef();
   const focusNode = useConstellationStore((s) => s.focusNode);
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const count = nodes.length;
@@ -204,17 +204,6 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
     geo.computeBoundingSphere();
   }, [positions, colors, sizes, shapes]);
 
-  // Focus dimming + tunnel mode dimming
-  useEffect(() => {
-    if (tunnelMode) {
-      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacityTunnel');
-    } else if (focusedNodeId) {
-      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacityFocused');
-    } else {
-      shaderMaterial.uniforms.uOpacity.value = getCfg('particleOpacity');
-    }
-  }, [focusedNodeId, tunnelMode, shaderMaterial]);
-
   // Gentle floating drift animation (reads config every frame for live tuning)
   useFrame(({ clock }) => {
     if (!pointsRef.current) return;
@@ -228,6 +217,14 @@ export default function ParticleCloud({ nodes, tunnelMode = false }) {
     const driftAX = getCfg('particleDriftAmplitudeX');
     const driftAY = getCfg('particleDriftAmplitudeY');
     const driftAZ = getCfg('particleDriftAmplitudeZ');
+    const introOpacity = getIntroReveal(introRef?.current?.progress ?? 1, 0.48, 0.94);
+    const baseOpacity = tunnelMode
+      ? getCfg('particleOpacityTunnel')
+      : focusedNodeId
+        ? getCfg('particleOpacityFocused')
+        : getCfg('particleOpacity');
+
+    shaderMaterial.uniforms.uOpacity.value = baseOpacity * introOpacity;
 
     const arr = posAttr.array;
     for (let i = 0; i < count; i++) {
