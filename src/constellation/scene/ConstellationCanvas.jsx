@@ -184,7 +184,9 @@ export default function ConstellationCanvas({
 }) {
   const rendererRef = useRef();
   const controlsRef = useRef();
-  const introRef = useRef({ active: false, progress: 1 });
+  // Start at 0 when intro will play (nodes invisible until tween starts).
+  // Start at 1 when intro is skipped (everything visible immediately).
+  const introRef = useRef({ active: false, progress: introEnabled ? 0 : 1 });
   const setGpuTier = useConstellationStore((s) => s.setGpuTier);
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const storeNodes = useConstellationStore((s) => s.nodes);
