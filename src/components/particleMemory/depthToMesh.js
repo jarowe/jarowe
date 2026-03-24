@@ -2,7 +2,7 @@
  * depthToMesh.js — Create 3D BufferGeometry from a photo + depth map
  *
  * Loads photo.webp and depth.png as images, builds a PlaneGeometry with
- * vertices displaced by depth values to produce real 3D topology.
+ * vertices displaced by shaped depth values to produce stronger 3D topology.
  * Vertex colors are sampled from the photo at each UV.
  *
  * Output: BufferGeometry with position, color, uv, and normal attributes
@@ -51,7 +51,11 @@ function loadImageData(url) {
  * @param {string} depthUrl  — path to depth map image (relative or absolute)
  * @param {Object} [options]
  * @param {number} [options.maxSegments=256]  — max segments per axis (for performance)
- * @param {number} [options.depthScale=2.0]   — z-displacement range (0 to depthScale)
+ * @param {number} [options.depthScale=2.0]   — z-displacement range
+ * @param {number} [options.depthBias=0.0]    — additive depth bias before shaping
+ * @param {number} [options.depthContrast=1.0] — contrast multiplier around 0.5
+ * @param {boolean} [options.centerDepth=true] — center depth around z=0 instead of only pushing forward
+ * @param {number} [options.depthPower=1.0]   — optional power curve applied after contrast shaping
  * @param {number} [options.planeWidth=4.0]   — width of the plane in world units
  * @param {number} [options.planeHeight]      — height (auto from aspect ratio if omitted)
  * @returns {Promise<{ geometry: THREE.BufferGeometry, photoTexture: THREE.Texture }>}
@@ -60,6 +64,10 @@ export async function buildMeshFromDepth(photoUrl, depthUrl, options = {}) {
   const {
     maxSegments = 256,
     depthScale = 2.0,
+    depthBias = 0.0,
+    depthContrast = 1.0,
+    centerDepth = true,
+    depthPower = 1.0,
     planeWidth = 4.0,
     planeHeight = null,
   } = options;
@@ -102,10 +110,20 @@ export async function buildMeshFromDepth(photoUrl, depthUrl, options = {}) {
     const depthPx = Math.min(Math.floor(u * depthData.width), depthData.width - 1);
     const depthPy = Math.min(Math.floor((1 - v) * depthData.height), depthData.height - 1);
     const depthIdx = (depthPy * depthData.width + depthPx) * 4;
-    const depthValue = depthData.data[depthIdx] * inv255; // 0-1 range
+    const rawDepth = depthData.data[depthIdx] * inv255; // 0-1 range
+    const contrastedDepth = THREE.MathUtils.clamp(
+      ((rawDepth + depthBias) - 0.5) * depthContrast + 0.5,
+      0,
+      1,
+    );
+    const shapedDepth = depthPower !== 1.0
+      ? Math.pow(contrastedDepth, depthPower)
+      : contrastedDepth;
 
-    // Displace Z — depth 1 (bright) = near/forward, depth 0 (dark) = far/back
-    const z = depthValue * depthScale;
+    // Center depth around z=0 for a true particle volume instead of a flat sheet
+    const z = centerDepth
+      ? (shapedDepth - 0.5) * depthScale
+      : shapedDepth * depthScale;
     posAttr.setZ(i, z);
 
     // Sample photo color at this UV

@@ -123,6 +123,41 @@ function getParticleCount(tier) {
   return 80000; // parallax fallback (shouldn't get here)
 }
 
+function buildStaticPositionTexture(positions) {
+  const count = Math.floor(positions.length / 3);
+  const side = Math.ceil(Math.sqrt(count));
+  const data = new Float32Array(side * side * 4);
+
+  for (let i = 0; i < side * side; i++) {
+    const i4 = i * 4;
+    const i3 = i * 3;
+    if (i < count) {
+      data[i4] = positions[i3];
+      data[i4 + 1] = positions[i3 + 1];
+      data[i4 + 2] = positions[i3 + 2];
+      data[i4 + 3] = 1.0;
+    } else {
+      data[i4] = 0;
+      data[i4 + 1] = 0;
+      data[i4 + 2] = 0;
+      data[i4 + 3] = 0;
+    }
+  }
+
+  const texture = new THREE.DataTexture(
+    data,
+    side,
+    side,
+    THREE.RGBAFormat,
+    THREE.FloatType,
+  );
+  texture.needsUpdate = true;
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  return texture;
+}
+
 // ---------------------------------------------------------------------------
 // MeshMemoryScene — inner R3F component (runs inside Canvas context)
 // ---------------------------------------------------------------------------
@@ -135,6 +170,7 @@ function MeshMemoryScene({
 }) {
   const { gl } = useThree();
   const fboRef = useRef(null);
+  const staticPositionTextureRef = useRef(null);
   const colorTextureRef = useRef(null);
   const mouseWorld = useRef(new THREE.Vector3(0, 999, 0));
   const flightProgressLocal = useRef(0);
@@ -142,16 +178,23 @@ function MeshMemoryScene({
   const isFullTier = tier === 'full';
   const particleCount = getParticleCount(tier);
   const hasFlightPath = !!scene.flightPath;
+  const meshMemoryConfig = scene.meshMemoryConfig || {};
+  const useGpuSimulation = meshMemoryConfig.useGpuSimulation === true;
 
-  const { targetPositions, colors, colorTexture: colorTex } = meshData;
+  const { targetPositions, colors } = meshData;
 
   // Initialize FBO on mount
   useEffect(() => {
-    const fbo = new FBOCore(gl, particleCount, targetPositions);
-    fboRef.current = fbo;
+    if (useGpuSimulation) {
+      const fbo = new FBOCore(gl, particleCount, targetPositions);
+      fboRef.current = fbo;
+    }
+
+    const staticPosTex = buildStaticPositionTexture(targetPositions);
+    staticPositionTextureRef.current = staticPosTex;
 
     // Build color DataTexture for FBOInstancedParticles
-    const side = fbo.textureWidth;
+    const side = staticPosTex.image.width;
     const colorData = new Float32Array(side * side * 4);
     const numPoints = Math.floor(colors.length / 3);
     for (let i = 0; i < side * side; i++) {
@@ -172,15 +215,20 @@ function MeshMemoryScene({
       colorData, side, side, THREE.RGBAFormat, THREE.FloatType,
     );
     dataTex.needsUpdate = true;
+    dataTex.minFilter = THREE.NearestFilter;
+    dataTex.magFilter = THREE.NearestFilter;
+    dataTex.generateMipmaps = false;
     colorTextureRef.current = dataTex;
 
     return () => {
-      fbo.dispose();
+      fboRef.current?.dispose();
+      staticPosTex.dispose();
       dataTex.dispose();
       fboRef.current = null;
+      staticPositionTextureRef.current = null;
       colorTextureRef.current = null;
     };
-  }, [gl, particleCount, targetPositions, colors]);
+  }, [gl, particleCount, targetPositions, colors, useGpuSimulation]);
 
   // Track mouse in 3D space via pointer events on the canvas
   useEffect(() => {
@@ -205,6 +253,7 @@ function MeshMemoryScene({
 
   // Per-frame: update FBO simulation
   useFrame((state, delta) => {
+    if (!useGpuSimulation) return;
     const fbo = fboRef.current;
     if (!fbo) return;
 
@@ -248,32 +297,48 @@ function MeshMemoryScene({
   const fbo = fboRef.current;
   const posTexture = fbo?.getPositionTexture() ?? null;
   const colorDataTex = colorTextureRef.current;
+  const renderPositionTexture = useGpuSimulation
+    ? posTexture
+    : staticPositionTextureRef.current;
 
   return (
     <>
-      {/* Particle rendering layer */}
-      {posTexture && colorDataTex && (
-        <FBOInstancedParticles
-          positionTexture={posTexture}
-          colorTexture={colorDataTex}
-          particleCount={particleCount}
-          pointScale={isFullTier ? 1.2 : 0.9}
-          focusDistance={3.0}
-          dofStrength={isFullTier ? 0.8 : 0.0}
-          opacity={0.85}
-          additiveBlending
-        />
+      {renderPositionTexture && colorDataTex && (
+        <>
+          <FBOInstancedParticles
+            positionTexture={renderPositionTexture}
+            colorTexture={colorDataTex}
+            particleCount={particleCount}
+            pointScale={isFullTier ? 0.95 : 0.78}
+            focusDistance={isFullTier ? 4.2 : 4.8}
+            dofStrength={isFullTier ? 0.42 : 0.22}
+            opacity={0.52}
+            additiveBlending={false}
+            mousePosition={mouseWorld.current}
+            mouseRadius={isFullTier ? 0.85 : 0.55}
+            mouseStrength={isFullTier ? 0.24 : 0.16}
+            depthWave={isFullTier ? 0.1 : 0.06}
+          />
+          {isFullTier && (
+            <FBOInstancedParticles
+              positionTexture={renderPositionTexture}
+              colorTexture={colorDataTex}
+              particleCount={particleCount}
+              pointScale={1.75}
+              focusDistance={4.0}
+              dofStrength={0.75}
+              opacity={0.055}
+              additiveBlending
+              mousePosition={mouseWorld.current}
+              mouseRadius={0.95}
+              mouseStrength={0.18}
+              depthWave={0.14}
+            />
+          )}
+        </>
       )}
 
-      {/* Plexus connections — full tier only */}
-      {isFullTier && posTexture && (
-        <FBOPlexusLines
-          positionTexture={posTexture}
-          particleCount={particleCount}
-          distance={0.35}
-          opacity={0.25}
-        />
-      )}
+      {/* Plexus disabled during debug */}
 
       {/* Camera */}
       {hasFlightPath ? (
@@ -306,16 +371,16 @@ function MeshMemoryPostProcessing() {
       frameBufferType={HalfFloatType}
     >
       <Bloom
-        intensity={1.2}
-        luminanceThreshold={0.3}
-        luminanceSmoothing={0.7}
-        radius={0.5}
+        intensity={0.45}
+        luminanceThreshold={0.58}
+        luminanceSmoothing={0.45}
+        radius={0.32}
         mipmapBlur
       />
       <DepthOfField
-        focusDistance={0.03}
-        focalLength={0.06}
-        bokehScale={3.0}
+        focusDistance={0.024}
+        focalLength={0.045}
+        bokehScale={1.8}
       />
       <Vignette
         eskil={false}
@@ -356,17 +421,23 @@ const MeshMemoryRenderer = forwardRef(function MeshMemoryRenderer(
   useEffect(() => {
     let cancelled = false;
     const particleCount = getParticleCount(tier);
+    const meshMemoryConfig = scene.meshMemoryConfig || {};
 
     async function loadMeshData() {
       try {
+        console.log('[MeshMemoryRenderer] Loading mesh data...', { photoUrl: scene.photoUrl, depthMapUrl: scene.depthMapUrl, tier, particleCount });
         // Step 1: Build 3D geometry from photo + depth map
         const { geometry, photoTexture } = await buildMeshFromDepth(
           scene.photoUrl,
           scene.depthMapUrl,
           {
-            maxSegments: isFullTier ? 512 : 256,
-            depthScale: scene.depthConfig?.depthScale ?? 2.0,
-            planeWidth: 6.0,
+            maxSegments: meshMemoryConfig.maxSegments ?? (isFullTier ? 640 : 320),
+            depthScale: meshMemoryConfig.depthScale ?? Math.max((scene.depthConfig?.depthScale ?? 0.35) * 8.0, 2.2),
+            depthBias: meshMemoryConfig.depthBias ?? scene.depthConfig?.depthBias ?? 0,
+            depthContrast: meshMemoryConfig.depthContrast ?? Math.max(scene.depthConfig?.depthContrast ?? 1.0, 1.45),
+            centerDepth: meshMemoryConfig.centerDepth ?? true,
+            depthPower: meshMemoryConfig.depthPower ?? 1.0,
+            planeWidth: meshMemoryConfig.planeWidth ?? 6.8,
           },
         );
 
@@ -376,15 +447,18 @@ const MeshMemoryRenderer = forwardRef(function MeshMemoryRenderer(
           return;
         }
 
+        console.log('[MeshMemoryRenderer] Mesh built, sampling', particleCount, 'particles...');
         // Step 2: Sample mesh surface into particles
         // Use vertex colors from the depth-displaced geometry (set by depthToMesh)
         // OR sample from the photo texture via UVs
         const sampleResult = samplePointsFromMesh(geometry, {
           count: particleCount,
-          radius: 3.0,
+          radius: meshMemoryConfig.radius ?? 3.6,
           mode: 'surface',
           seed: 42,
           colorTexture: photoTexture,
+          normalExtrusion: meshMemoryConfig.normalExtrusion ?? (isFullTier ? 0.24 : 0.14),
+          lateralJitter: meshMemoryConfig.lateralJitter ?? (isFullTier ? 0.07 : 0.04),
         });
 
         if (cancelled) {
@@ -393,6 +467,7 @@ const MeshMemoryRenderer = forwardRef(function MeshMemoryRenderer(
           return;
         }
 
+        console.log('[MeshMemoryRenderer] Sampling complete. Positions:', sampleResult.positions.length / 3, 'Colors:', sampleResult.colors.length / 3);
         setMeshData({
           targetPositions: sampleResult.positions,
           colors: sampleResult.colors,

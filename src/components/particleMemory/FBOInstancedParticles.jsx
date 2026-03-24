@@ -39,6 +39,10 @@ uniform float uFocusDistance;
 uniform float uDofStrength;
 uniform float uOpacity;
 uniform float uPixelRatio;
+uniform vec3 uMousePos;
+uniform float uMouseRadius;
+uniform float uMouseStrength;
+uniform float uDepthWave;
 
 attribute vec2 aReference;   // UV into FBO textures (per-vertex)
 
@@ -57,6 +61,21 @@ void main() {
   // ── Read color from static texture ──
   vec4 colData = texture2D(tColor, aReference);
   vColor = colData.rgb;
+
+  // Brush-through interaction: nearby particles peel away from the pointer.
+  if (uMouseStrength > 0.001) {
+    vec3 awayFromMouse = pos - uMousePos;
+    float mouseDist = length(awayFromMouse);
+    if (mouseDist > 0.0001 && mouseDist < uMouseRadius) {
+      float mouseInfluence = 1.0 - mouseDist / uMouseRadius;
+      mouseInfluence *= mouseInfluence;
+      pos += normalize(awayFromMouse) * mouseInfluence * uMouseStrength;
+    }
+  }
+
+  // Roll a soft depth wave through the field so the volume feels like it breathes.
+  float depthWave = sin(uTime * 0.45 + pos.y * 1.35 + aReference.x * 8.0) * uDepthWave;
+  pos.z += depthWave;
 
   // ── Model-view transform ──
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
@@ -77,7 +96,7 @@ void main() {
   float breathPhase = uTime * 0.6 + aReference.x * 6.2831 + aReference.y * 3.1415;
   float breathScale = 1.0 + sin(breathPhase) * 0.08;
 
-  gl_PointSize = clamp(perspSize * breathScale * uPixelRatio, 0.5, 64.0);
+  gl_PointSize = clamp(perspSize * breathScale * uPixelRatio, 0.5, 20.0);
 
   // ── Alpha ──
   // DOF: distant-from-focus particles become more transparent
@@ -148,6 +167,10 @@ export default function FBOInstancedParticles({
   dofStrength = 0.0,
   opacity = 1.0,
   additiveBlending = true,
+  mousePosition = null,
+  mouseRadius = 0.0,
+  mouseStrength = 0.0,
+  depthWave = 0.0,
 }) {
   const pointsRef = useRef();
   const { viewport } = useThree();
@@ -192,6 +215,10 @@ export default function FBOInstancedParticles({
         uDofStrength: { value: dofStrength },
         uOpacity: { value: opacity },
         uPixelRatio: { value: viewport.dpr || 1 },
+        uMousePos: { value: new THREE.Vector3(0, 999, 0) },
+        uMouseRadius: { value: mouseRadius },
+        uMouseStrength: { value: mouseStrength },
+        uDepthWave: { value: depthWave },
       },
       vertexShader,
       fragmentShader,
@@ -212,6 +239,15 @@ export default function FBOInstancedParticles({
     mat.uniforms.uDofStrength.value = dofStrength;
     mat.uniforms.uOpacity.value = opacity;
     mat.uniforms.uPixelRatio.value = viewport.dpr || 1;
+    mat.uniforms.uMouseRadius.value = mouseRadius;
+    mat.uniforms.uMouseStrength.value = mouseStrength;
+    mat.uniforms.uDepthWave.value = depthWave;
+    const mouseUniform = mat.uniforms.uMousePos.value;
+    if (mousePosition) {
+      mouseUniform.copy(mousePosition);
+    } else {
+      mouseUniform.set(0, 999, 0);
+    }
   });
 
   return (

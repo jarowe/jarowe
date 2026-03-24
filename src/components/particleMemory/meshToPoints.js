@@ -35,6 +35,8 @@ function mulberry32(seed) {
  * @param {number} [options.jitter=0]     — jitter amount (fraction of radius) for vertex mode
  * @param {number} [options.seed=42]      — random seed for reproducibility
  * @param {THREE.Texture|null} [options.colorTexture=null] — if provided, sample colors from this texture via UVs
+ * @param {number} [options.normalExtrusion=0] — shell thickness along interpolated normals
+ * @param {number} [options.lateralJitter=0] — tangent jitter for smoke-like volume around the surface
  * @returns {{ positions: Float32Array, colors: Float32Array }}
  *   positions: flat [x,y,z,...], colors: flat [r,g,b,...] per point (0-1 range)
  */
@@ -46,23 +48,28 @@ export function samplePointsFromMesh(geometry, options) {
     jitter = 0,
     seed = 42,
     colorTexture = null,
+    normalExtrusion = 0,
+    lateralJitter = 0,
   } = options;
   const rand = mulberry32(seed);
 
   let rawPoints;
   let rawUVs = null;   // Float32Array of [u,v,...] per sampled point (for texture color)
   let rawBary = null;  // barycentric data for vertex-color interpolation
+  let rawNormals = null;
 
   if (mode === 'vertex') {
     const result = sampleFromVertices(geometry, count, jitter, rand);
     rawPoints = result.positions;
     rawUVs = result.uvs;
     rawBary = result.vertexIndices; // indices into vertex buffer for color lookup
+    rawNormals = result.normals;
   } else {
     const result = sampleFromSurface(geometry, count, rand);
     rawPoints = result.positions;
     rawUVs = result.uvs;
     rawBary = result.baryData;
+    rawNormals = result.normals;
   }
 
   // Center at origin
@@ -70,6 +77,12 @@ export function samplePointsFromMesh(geometry, options) {
 
   // Normalize to bounding sphere
   normalizeToSphere(rawPoints, radius);
+
+  // Add volume around the sampled surface so the memory reads as a 3D field,
+  // not a single postcard-thin shell.
+  if (rawNormals && (normalExtrusion > 0 || lateralJitter > 0)) {
+    addVolumeAroundSurface(rawPoints, rawNormals, count, rand, normalExtrusion, lateralJitter);
+  }
 
   // ── Sample colors ──
   const colors = new Float32Array(count * 3);
@@ -96,7 +109,7 @@ export function samplePointsFromMesh(geometry, options) {
  * @param {THREE.BufferGeometry} geometry
  * @param {number} count
  * @param {() => number} rand
- * @returns {{ positions: Float32Array, uvs: Float32Array|null, baryData: Array|null }}
+ * @returns {{ positions: Float32Array, uvs: Float32Array|null, baryData: Array|null, normals: Float32Array|null }}
  */
 function sampleFromSurface(geometry, count, rand) {
   const posAttr = geometry.getAttribute('position');
@@ -106,6 +119,7 @@ function sampleFromSurface(geometry, count, rand) {
   const index = geometry.index;
   const uvAttr = geometry.getAttribute('uv');
   const colorAttr = geometry.getAttribute('color');
+  const normalAttr = geometry.getAttribute('normal');
 
   // Build triangle list
   const triangles = [];
@@ -156,6 +170,7 @@ function sampleFromSurface(geometry, count, rand) {
   // Sample points
   const out = new Float32Array(count * 3);
   const uvs = uvAttr ? new Float32Array(count * 2) : null;
+  const normals = normalAttr ? new Float32Array(count * 3) : null;
   // Store barycentric data for vertex color interpolation: [triIdx, u, v] per point
   const baryData = colorAttr ? [] : null;
 
@@ -192,13 +207,29 @@ function sampleFromSurface(geometry, count, rand) {
       uvs[i * 2 + 1] = vA2 * w + vB2 * u + vC2 * v;
     }
 
+    if (normalAttr && normals) {
+      const nAx = normalAttr.getX(ia), nAy = normalAttr.getY(ia), nAz = normalAttr.getZ(ia);
+      const nBx = normalAttr.getX(ib), nBy = normalAttr.getY(ib), nBz = normalAttr.getZ(ib);
+      const nCx = normalAttr.getX(ic), nCy = normalAttr.getY(ic), nCz = normalAttr.getZ(ic);
+      let nx = nAx * w + nBx * u + nCx * v;
+      let ny = nAy * w + nBy * u + nCy * v;
+      let nz = nAz * w + nBz * u + nCz * v;
+      const nLen = Math.hypot(nx, ny, nz) || 1;
+      nx /= nLen;
+      ny /= nLen;
+      nz /= nLen;
+      normals[i * 3] = nx;
+      normals[i * 3 + 1] = ny;
+      normals[i * 3 + 2] = nz;
+    }
+
     // Store barycentric data for vertex color interpolation
     if (baryData) {
       baryData.push({ triIdx, ia, ib, ic, u, v, w });
     }
   }
 
-  return { positions: out, uvs, baryData };
+  return { positions: out, uvs, baryData, normals };
 }
 
 /**
@@ -227,7 +258,7 @@ function binarySearch(cdf, value) {
  * @param {number} count
  * @param {number} jitter
  * @param {() => number} rand
- * @returns {{ positions: Float32Array, uvs: Float32Array|null, vertexIndices: Uint32Array }}
+ * @returns {{ positions: Float32Array, uvs: Float32Array|null, vertexIndices: Uint32Array, normals: Float32Array|null }}
  */
 function sampleFromVertices(geometry, count, jitter, rand) {
   const posAttr = geometry.getAttribute('position');
@@ -236,10 +267,12 @@ function sampleFromVertices(geometry, count, jitter, rand) {
   const positions = posAttr.array;
   const vertCount = posAttr.count;
   const uvAttr = geometry.getAttribute('uv');
+  const normalAttr = geometry.getAttribute('normal');
 
   const out = new Float32Array(count * 3);
   const uvs = uvAttr ? new Float32Array(count * 2) : null;
   const vertexIndices = new Uint32Array(count);
+  const normals = normalAttr ? new Float32Array(count * 3) : null;
 
   for (let i = 0; i < count; i++) {
     const vi = Math.floor(rand() * vertCount) % vertCount;
@@ -253,9 +286,49 @@ function sampleFromVertices(geometry, count, jitter, rand) {
       uvs[i * 2]     = uvAttr.getX(vi);
       uvs[i * 2 + 1] = uvAttr.getY(vi);
     }
+
+    if (normalAttr && normals) {
+      normals[i * 3] = normalAttr.getX(vi);
+      normals[i * 3 + 1] = normalAttr.getY(vi);
+      normals[i * 3 + 2] = normalAttr.getZ(vi);
+    }
   }
 
-  return { positions: out, uvs, vertexIndices };
+  return { positions: out, uvs, vertexIndices, normals };
+}
+
+function addVolumeAroundSurface(points, normals, count, rand, normalExtrusion, lateralJitter) {
+  const tangent = new THREE.Vector3();
+  const bitangent = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+  const alt = new THREE.Vector3(1, 0, 0);
+
+  for (let i = 0; i < count; i++) {
+    const base = i * 3;
+    const nx = normals[base];
+    const ny = normals[base + 1];
+    const nz = normals[base + 2];
+
+    // Shell thickness concentrated near the surface with a little asymmetry
+    const shellOffset = (rand() * 2 - 1) * normalExtrusion * (0.35 + rand() * 0.65);
+    points[base] += nx * shellOffset;
+    points[base + 1] += ny * shellOffset;
+    points[base + 2] += nz * shellOffset;
+
+    if (lateralJitter > 0) {
+      tangent.set(nx, ny, nz).cross(Math.abs(ny) < 0.9 ? up : alt);
+      if (tangent.lengthSq() < 1e-5) tangent.set(1, 0, 0);
+      tangent.normalize();
+      bitangent.crossVectors(new THREE.Vector3(nx, ny, nz), tangent).normalize();
+
+      const tx = (rand() * 2 - 1) * lateralJitter;
+      const ty = (rand() * 2 - 1) * lateralJitter;
+
+      points[base] += tangent.x * tx + bitangent.x * ty;
+      points[base + 1] += tangent.y * tx + bitangent.y * ty;
+      points[base + 2] += tangent.z * tx + bitangent.z * ty;
+    }
+  }
 }
 
 // ── Color sampling helpers ───────────────────────────────────
