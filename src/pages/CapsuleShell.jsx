@@ -22,6 +22,7 @@ import './MemoryPortal.css';
 
 const ParticleFieldRenderer = React.lazy(() => import('../components/ParticleFieldRenderer'));
 const MeshMemoryRenderer = React.lazy(() => import('../components/MeshMemoryRenderer'));
+const WorldMemoryRenderer = React.lazy(() => import('../components/WorldMemoryRenderer'));
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -1076,7 +1077,9 @@ export default function CapsuleShell() {
   }, []);
 
   // Determine renderer based on scene.renderMode x GPU tier
+  // Priority: world-memory (splat world) > particle-memory > displaced-mesh > splat > fallback
   const renderMode = scene.renderMode || 'splat';
+  let showWorldMemory = false;
   let showSplat = false;
   let showDisplaced = false;
   let showParticleMemory = false;
@@ -1086,6 +1089,9 @@ export default function CapsuleShell() {
     // Still checking capabilities — show loading state
   } else if (tier === 'parallax') {
     showFallback = true;
+  } else if (renderMode === 'world-memory' || scene.splatUrl) {
+    // New priority: scenes with splatUrl or world-memory renderMode use WorldMemoryRenderer
+    showWorldMemory = true;
   } else if (renderMode === 'particle-memory') {
     showParticleMemory = true;
   } else if (renderMode === 'displaced-mesh') {
@@ -1100,6 +1106,30 @@ export default function CapsuleShell() {
   return (
     <div className="memory-portal">
       {/* === Renderer === */}
+      {showWorldMemory && (
+        <React.Suspense fallback={
+          <div className="memory-loading">
+            <div className="memory-loading-spinner" />
+            <span>Preparing world...</span>
+          </div>
+        }>
+          <WorldMemoryRenderer
+            ref={particleRendererRef}
+            scene={scene}
+            tier={tier}
+            onRecessionComplete={handleRecessionComplete}
+            onAwakeningComplete={() => {
+              setAwakeningComplete(true);
+              if (!directAccess) {
+                setTimeout(() => dreamTransition.triggerEntry(), 100);
+              }
+            }}
+            directAccess={directAccess}
+            onProgress={(p) => { flightProgressRef.current = p; }}
+          />
+        </React.Suspense>
+      )}
+
       {showSplat && (
         <SplatRenderer
           scene={scene}
