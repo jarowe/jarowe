@@ -500,6 +500,17 @@ export default function CameraController({
     controls.target.z += (0 - controls.target.z) * lerpFactor;
 
     controls.update();
+
+    // Sync timeline scrubber with tunnel scroll position
+    if (helixBounds) {
+      const range = helixBounds.maxY - helixBounds.minY;
+      if (range > 0) {
+        const normalized = (targetY - helixBounds.minY) / range;
+        useConstellationStore.getState().setTimelinePosition(
+          Math.max(0, Math.min(1, normalized))
+        );
+      }
+    }
   });
 
   // ---- Smooth helix scroll momentum ----
@@ -575,9 +586,8 @@ export default function CameraController({
         controls.enabled = true;
       }
 
-      // In tunnel mode: skip frustum offset (panel renders differently)
+      // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV
       if (mode === 'tunnel') {
-        // Just animate camera to node's Y on the axis, looking at the node
         const tl = gsap.timeline({
           onUpdate: () => controls.update(),
           onComplete: () => {
@@ -596,6 +606,8 @@ export default function CameraController({
         );
         flyTimeline.current = tl;
         prevFocusRef.current = focusedNodeId;
+        // Update tunnelY so clear-focus returns here
+        useConstellationStore.getState().setTunnelY(node.y);
         return;
       }
 

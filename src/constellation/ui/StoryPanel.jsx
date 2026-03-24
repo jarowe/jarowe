@@ -136,6 +136,86 @@ function getProfile(node) {
   return 'C';
 }
 
+/* ─── Hero Parallax Image ─────────────────────────────────────── */
+
+function HeroParallaxImage({ src, alt, onClick }) {
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
+  const mouseActive = useRef(false);
+  const idleTimer = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const PARALLAX = 12;
+    const IDLE_DELAY = 2500;
+
+    const handleMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const nx = (e.clientX - rect.left) / rect.width - 0.5;
+      const ny = (e.clientY - rect.top) / rect.height - 0.5;
+      mouseActive.current = true;
+
+      if (imgRef.current) {
+        imgRef.current.style.transform =
+          `scale(1.06) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
+        imgRef.current.classList.remove('story-panel__hero-media--idle');
+      }
+
+      clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => {
+        mouseActive.current = false;
+        if (imgRef.current) {
+          imgRef.current.style.transform = '';
+          imgRef.current.classList.add('story-panel__hero-media--idle');
+        }
+      }, IDLE_DELAY);
+    };
+
+    const handleLeave = () => {
+      mouseActive.current = false;
+      if (imgRef.current) {
+        imgRef.current.style.transform = '';
+        imgRef.current.classList.add('story-panel__hero-media--idle');
+      }
+    };
+
+    container.addEventListener('mousemove', handleMove);
+    container.addEventListener('mouseleave', handleLeave);
+
+    idleTimer.current = setTimeout(() => {
+      if (imgRef.current) {
+        imgRef.current.classList.add('story-panel__hero-media--idle');
+      }
+    }, 800);
+
+    return () => {
+      container.removeEventListener('mousemove', handleMove);
+      container.removeEventListener('mouseleave', handleLeave);
+      clearTimeout(idleTimer.current);
+    };
+  }, [src]);
+
+  return (
+    <div ref={containerRef} className="story-panel__hero-parallax">
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        className="story-panel__hero-media"
+        loading="eager"
+        onClick={onClick}
+        style={{
+          cursor: 'pointer',
+          willChange: 'transform',
+          transition: 'transform 0.6s ease-out',
+        }}
+      />
+    </div>
+  );
+}
+
 /* ─── Portal CTA ──────────────────────────────────────────────── */
 
 function PortalCTA({ node, onPortalEnter }) {
@@ -738,13 +818,10 @@ export default function StoryPanel({ onPortalEnter = null }) {
                             onVolumeChange={handleVolumeChange}
                           />
                         ) : (
-                          <img
+                          <HeroParallaxImage
                             src={heroUrl}
                             alt={node.title}
-                            className="story-panel__hero-media"
-                            loading="eager"
                             onClick={() => openLightbox(media, heroIdx)}
-                            style={{ cursor: 'pointer' }}
                           />
                         )}
                       </motion.div>
@@ -951,13 +1028,10 @@ export default function StoryPanel({ onPortalEnter = null }) {
                             onVolumeChange={handleVolumeChange}
                           />
                         ) : (
-                          <img
+                          <HeroParallaxImage
                             src={heroUrl}
                             alt={node.title}
-                            className="story-panel__hero-media"
-                            loading="eager"
                             onClick={() => openLightbox(media, heroIdx)}
-                            style={{ cursor: 'pointer' }}
                           />
                         )}
                       </motion.div>
@@ -1205,6 +1279,7 @@ export default function StoryPanel({ onPortalEnter = null }) {
                             type={entity.type}
                             label={entity.label}
                             count={entity.count}
+                            onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
                           />
                         ))}
                       </div>
