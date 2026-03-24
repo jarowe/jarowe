@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Living World
-status: ready-to-plan
-last_updated: "2026-03-20T21:00:00Z"
+status: in-progress
+last_updated: "2026-03-24T00:00:00Z"
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 3 - Living Homepage
+**Current focus:** Phase 17 - Memory Soundscape (inserted phase)
 
 ## Current Position
 
-Phase: 3 of 7 (Living Homepage) -- first phase of v2.0
-Plan: --
-Status: Ready to plan
-Last activity: 2026-03-20 -- v2.0 roadmap created (Phases 3-7, 37 requirements mapped)
+Phase: 17 (Memory Soundscape) -- inserted phase for immersive portal audio
+Plan: 17-02 complete
+Status: In progress (plan 17-02 done, phase continues)
+Last activity: 2026-03-24 -- Phase 17-02 executed (capsule ducking + soundscape wiring)
 
-Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending)
+Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending, phase 17 in progress)
 
 ## v1.0 Summary
 
@@ -69,6 +69,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: v2.0 roadmap created with 5 phases (3-7), 37 requirements mapped. Ready to plan Phase 3.
+Last session: 2026-03-24
+Stopped at: Phase 17-02 complete. CapsuleShell + useSoundscape + capsule ducking all wired. Build passes.
 Resume file: None

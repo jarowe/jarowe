@@ -51,6 +51,7 @@ Plans:
 - [ ] **Phase 5: Starseed Hub & Labs** - Project cards, client contact, DNS strategy, scratchpad (Milkdown), canvas (Excalidraw), and Labs hub page
 - [ ] **Phase 6: Automation & Retention** - Weather-responsive atmosphere, dynamic OG images, visitor streaks, date-locked easter eggs, Glint-to-Labs handoff, and brainstorm mode
 - [ ] **Phase 7: Immersive Portal** - Gaussian splat memory capsule with portal transition, soundtrack, narrative overlay, and shareable URL
+- [x] **Phase 17: Memory Soundscape** (INSERTED) - Layered soundscape audio for memory capsules with per-instance ducking and CapsuleShell viewer
 
 ## Phase Details
 
@@ -137,10 +138,20 @@ Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
+### Phase 17: Memory Soundscape (INSERTED)
+**Goal**: Layered soundscape audio system for memory capsules with per-instance music ducking, reusable hook, and CapsuleShell page
+**Depends on**: None (inserted phase, builds foundation for Phase 7)
+**Plans**: 2
+
+Plans:
+- [x] 17-01 -- useSoundscape hook, memoryScenes data, placeholder audio (bundled into 17-02)
+- [x] 17-02 -- Per-instance capsule ducking in AudioContext, CapsuleShell page, route wiring
+
 ## Progress
 
 **Execution Order:**
 Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+Inserted phases (17+) execute independently as needed.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -151,7 +162,9 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 17. Memory Soundscape | v2.0 | 2/2 | Complete | 2026-03-24 |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
+*Updated: 2026-03-24 (Phase 17 Memory Soundscape inserted and completed)*
