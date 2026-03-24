@@ -50,6 +50,8 @@ const FlightCamera = forwardRef(function FlightCamera({ flightPath, onProgress }
   const mouseCurrent = useRef({ x: 0, y: 0 });
   const touchStartY = useRef(null);
   const domElement = useRef(null);
+  const tunnelMode = useRef(false);       // Phase 16: when true, skip FOV bell-curve (let GSAP control)
+  const tunnelSpeed = useRef(0.0);        // Phase 16: auto-advance speed during tunnel void
 
   // Build CatmullRom splines from flightPath keypoints
   const positionSpline = useMemo(() => {
@@ -68,10 +70,19 @@ const FlightCamera = forwardRef(function FlightCamera({ flightPath, onProgress }
   const fovStart = flightPath?.fovRange?.[0] ?? 50;
   const fovMin = flightPath?.fovRange?.[1] ?? 40;
 
-  // Expose progress via ref (for narrative cards, soundscape)
+  // Expose progress + tunnel mode + camera via ref (for narrative cards, soundscape, DreamTransition)
   useImperativeHandle(ref, () => ({
     getProgress: () => progress.current,
     progress,
+    getCamera: () => camera,
+    setTunnelMode: (enabled, speed = 0.0) => {
+      tunnelMode.current = enabled;
+      tunnelSpeed.current = speed;
+      if (enabled) {
+        // Kill user scroll velocity during tunnel — GSAP controls now
+        velocity.current = 0;
+      }
+    },
   }));
 
   // -------------------------------------------------------------------------
@@ -173,16 +184,27 @@ const FlightCamera = forwardRef(function FlightCamera({ flightPath, onProgress }
     const dt = Math.min(delta, 0.05); // cap large frame spikes
 
     // --- 1. Apply velocity to progress ---
-    progress.current = THREE.MathUtils.clamp(
-      progress.current + velocity.current,
-      0,
-      1,
-    );
+    if (tunnelMode.current && tunnelSpeed.current !== 0) {
+      // Phase 16: auto-advance during tunnel void — GSAP controls speed
+      progress.current = THREE.MathUtils.clamp(
+        progress.current + tunnelSpeed.current * dt,
+        0,
+        1,
+      );
+    } else {
+      progress.current = THREE.MathUtils.clamp(
+        progress.current + velocity.current,
+        0,
+        1,
+      );
+    }
 
     // Exponential decay (D-02)
-    velocity.current *= VELOCITY_DECAY;
-    if (Math.abs(velocity.current) < VELOCITY_EPSILON) {
-      velocity.current = 0;
+    if (!tunnelMode.current) {
+      velocity.current *= VELOCITY_DECAY;
+      if (Math.abs(velocity.current) < VELOCITY_EPSILON) {
+        velocity.current = 0;
+      }
     }
 
     // Clamp at boundaries — kill velocity when hitting 0 or 1
@@ -230,12 +252,15 @@ const FlightCamera = forwardRef(function FlightCamera({ flightPath, onProgress }
     camera.lookAt(lookAtTarget);
 
     // --- 8. FOV narrowing (D-06) ---
-    // Bell curve: narrows at midpoint (t=0.5), widens at ends
-    const fovT = 1 - Math.pow(2 * Math.abs(t - 0.5), FOV_EASE_POWER);
-    const fov = fovStart - (fovStart - fovMin) * fovT;
-    if (Math.abs(camera.fov - fov) > 0.1) {
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
+    // During tunnel mode, skip FOV bell-curve — let external GSAP tween control FOV (Phase 16)
+    if (!tunnelMode.current) {
+      // Bell curve: narrows at midpoint (t=0.5), widens at ends
+      const fovT = 1 - Math.pow(2 * Math.abs(t - 0.5), FOV_EASE_POWER);
+      const fov = fovStart - (fovStart - fovMin) * fovT;
+      if (Math.abs(camera.fov - fov) > 0.1) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
     }
 
     // --- 9. Notify progress consumers ---
