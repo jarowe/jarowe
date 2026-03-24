@@ -4,7 +4,7 @@ import gsap from 'gsap';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
 
-const TUNNEL_FOV = 100;
+const TUNNEL_FOV = 82;
 const HELIX_FOV = 60;
 
 function clearCameraOffset(camera) {
@@ -266,10 +266,10 @@ export default function CameraController({
         },
       });
 
-      // Phase 1: fly to axis center (1s)
+      // Phase 1: fly to near-axis (slight Z offset to see helix walls)
       tl.to(
         camera.position,
-        { x: 0, y: startY, z: 0, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY, z: 12, duration: 1, ease: 'power2.inOut' },
         0
       );
       // Phase 2: look forward along axis
@@ -493,7 +493,7 @@ export default function CameraController({
     // Smoothly interpolate camera Y — always centered on axis
     camera.position.x += (0 - camera.position.x) * lerpFactor;
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
-    camera.position.z += (0 - camera.position.z) * lerpFactor;
+    camera.position.z += (12 - camera.position.z) * lerpFactor;
 
     controls.target.x += (0 - controls.target.x) * lerpFactor;
     controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
@@ -596,13 +596,12 @@ export default function CameraController({
           },
           onComplete: () => {
             isFlyingRef.current = false;
-            // Sync OrbitControls target so clearFocus works correctly
             controls.target.set(lookProxy.x, lookProxy.y, lookProxy.z);
           },
         });
         tl.to(
           camera.position,
-          { x: 0, y: node.y, z: 0, duration, ease },
+          { x: 0, y: node.y, z: 12, duration, ease },
           0
         );
         tl.to(
@@ -711,36 +710,37 @@ export default function CameraController({
       }
 
       if (mode === 'tunnel') {
-        // Fly back into the tunnel axis, restore wide FOV, disable controls
+        // Fly back into the tunnel axis using lookAt proxy (not controls.update)
         isFlyingRef.current = true;
         const currentY = useConstellationStore.getState().tunnelY;
+        const lookProxy = {
+          x: controls.target.x,
+          y: controls.target.y,
+          z: controls.target.z,
+        };
 
         const tl = gsap.timeline({
-          onUpdate: () => controls.update(),
+          onUpdate: () => {
+            camera.lookAt(lookProxy.x, lookProxy.y, lookProxy.z);
+          },
           onComplete: () => {
             isFlyingRef.current = false;
+            controls.target.set(0, currentY + 50, 0);
             controls.enabled = false;
             controls.autoRotate = false;
           },
         });
 
-        // Fly camera back to axis center
         tl.to(
           camera.position,
-          { x: 0, y: currentY, z: 0, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY, z: 12, duration: 1, ease: 'power2.inOut' },
           0
         );
-        // Look forward along axis
         tl.to(
-          controls.target,
-          { x: 0, y: currentY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
+          lookProxy,
+          { x: 0, y: currentY + 50, z: 12, duration: 1, ease: 'power2.inOut' },
           0
         );
-        // Restore wide FOV
-        tl.to(camera, {
-          fov: TUNNEL_FOV, duration: 0.5, ease: 'power2.out',
-          onUpdate: () => camera.updateProjectionMatrix(),
-        }, 0.3);
 
         flyTimeline.current = tl;
         return;
@@ -824,15 +824,15 @@ export default function CameraController({
     gsap.to(camera.position, {
       y: mappedY,
       z: scrubZ,
-      duration: 0.5,
-      ease: 'power2.out',
+      duration: 0.25,
+      ease: 'power3.out',
       overwrite: true,
       onUpdate: () => controls.update(),
     });
     gsap.to(controls.target, {
       y: mappedY,
-      duration: 0.5,
-      ease: 'power2.out',
+      duration: 0.25,
+      ease: 'power3.out',
       overwrite: true,
     });
 

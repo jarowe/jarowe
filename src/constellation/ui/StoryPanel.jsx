@@ -581,6 +581,18 @@ export default function StoryPanel({ onPortalEnter = null }) {
   useEffect(() => {
     if (!audioSrc) return;
 
+    // If there's a previous audio still fading out, kill it fast
+    // since we're about to start a new track
+    const prevAudioEls = document.querySelectorAll('audio');
+    prevAudioEls.forEach((el) => {
+      if (el._fadeOutId) {
+        clearInterval(el._fadeOutId);
+        el.volume = 0;
+        el.pause();
+        el.src = '';
+      }
+    });
+
     const audio = new Audio(audioSrc);
     audio.loop = true;
     audio.volume = 0;
@@ -619,20 +631,29 @@ export default function StoryPanel({ onPortalEnter = null }) {
     }).catch(() => {});
 
     return () => {
-      // Fade out and cleanup
+      // Detach loop handler from the outgoing audio
       const a = nodeAudioRef.current;
       if (a) {
         a.removeEventListener('timeupdate', onTimeUpdate);
+
+        // Slow fade-out: 3.5s if next node has no audio, fast if it does.
+        // We can't know the next node here, so always start a slow fade.
+        // If the next effect fires with new audioSrc, it will kill this
+        // element fast via a.src = '' when the new audio is ready.
+        const fadeStep = 0.008; // ~3.5s fade at 30ms interval
         let v = a.volume;
-        const fade = setInterval(() => {
-          v = Math.max(v - 0.05, 0);
+        const fadeId = setInterval(() => {
+          v = Math.max(v - fadeStep, 0);
           a.volume = v;
           if (v <= 0) {
-            clearInterval(fade);
+            clearInterval(fadeId);
             a.pause();
             a.src = '';
           }
         }, 30);
+
+        // Store the fade interval so the next effect can kill it fast
+        a._fadeOutId = fadeId;
       }
       nodeAudioRef.current = null;
       restoreFromDuck();
