@@ -467,8 +467,11 @@ export default function CameraController({
 
   // ---- Smooth tunnel camera follow with momentum ----
   useFrame(() => {
-    const { cameraMode: mode } = useConstellationStore.getState();
+    const { cameraMode: mode, focusedNodeId: tunnelFocused } = useConstellationStore.getState();
     if (mode !== 'tunnel' || isFlyingRef.current || introRef?.current?.active) return;
+    // When a node is focused in tunnel, don't run the scroll loop —
+    // it calls controls.update() which overwrites the lookAt from the focus tween
+    if (tunnelFocused) return;
 
     const controls = controlsRef.current;
     if (!controls) return;
@@ -581,10 +584,11 @@ export default function CameraController({
       const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
-      // In tunnel mode: stay on the axis, slide to node Y, keep wide FOV.
-      // Don't use controls.update() — it fights the tween by snapping
-      // to its internal spherical state. Instead animate a lookAt proxy.
+      // In tunnel mode: slide to node Y, pull back to tunnelFocusDistance
+      // so the node and helix structure are visible. Uses camera.lookAt()
+      // instead of controls.update() to avoid spherical state conflicts.
       if (mode === 'tunnel') {
+        const tunnelDist = getCfg('tunnelFocusDistance');
         const lookProxy = {
           x: controls.target.x,
           y: controls.target.y,
@@ -601,7 +605,7 @@ export default function CameraController({
         });
         tl.to(
           camera.position,
-          { x: 0, y: node.y, z: 0, duration, ease },
+          { x: 0, y: node.y, z: tunnelDist, duration, ease },
           0
         );
         tl.to(

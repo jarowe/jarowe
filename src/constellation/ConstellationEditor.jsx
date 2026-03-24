@@ -131,6 +131,7 @@ export default function ConstellationEditor({ parentGui }) {
     const camKeys = [
       'autoRotateSpeed', 'focusedRotateSpeed', 'dampingFactor',
       'flyToDuration', 'flyToStepDuration', 'focusDistance', 'focusYLift',
+      'tunnelFocusDistance',
     ];
     camControllers.push(tracked(camFolder.add(cfg, 'autoRotateSpeed', 0, 2.0, 0.01).name('Auto Rotate Speed')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusedRotateSpeed', 0, 1.0, 0.01).name('Focused Rotate')));
@@ -139,6 +140,7 @@ export default function ConstellationEditor({ parentGui }) {
     camControllers.push(tracked(camFolder.add(cfg, 'flyToStepDuration', 0.2, 3.0, 0.1).name('Step Duration')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusDistance', 10, 120, 1).name('Focus Distance')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusYLift', 0, 30, 0.5).name('Focus Y Lift')));
+    camControllers.push(tracked(camFolder.add(cfg, 'tunnelFocusDistance', 10, 120, 1).name('Tunnel Focus Dist')));
     camFolder.add({ reset: () => resetKeys(camKeys, camControllers) }, 'reset').name('Reset Camera');
     camFolder.close();
 

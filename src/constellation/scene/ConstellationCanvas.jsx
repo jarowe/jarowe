@@ -346,7 +346,7 @@ export default function ConstellationCanvas({
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{
-        position: [0, center.y + 10, cameraFit.z],
+        position: [0, (helixBounds.minY + helixBounds.maxY) * 0.5, cameraFit.z],
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
@@ -377,7 +377,7 @@ export default function ConstellationCanvas({
         maxPolarAngle={Math.PI * (165 / 180)}
         minDistance={cameraFit.minDistance}
         maxDistance={cameraFit.maxDistance}
-        target={[center.x, center.y, center.z]}
+        target={[center.x, (helixBounds.minY + helixBounds.maxY) * 0.5, center.z]}
       />
 
       <CameraController
