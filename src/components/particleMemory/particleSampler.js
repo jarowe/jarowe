@@ -57,7 +57,7 @@ function computeSobelMagnitude(depthData, width, height) {
  * @param {string} photoUrl - URL to the photo image
  * @param {string} depthMapUrl - URL to the depth map image
  * @param {object} config - particleConfig from scene registry
- * @returns {Promise<{photoPositions, scatteredPositions, colors, sizes, depthValues, phases, count}>}
+ * @returns {Promise<{photoPositions, scatteredPositions, colors, sizes, depthValues, phases, isEdgeFlags, count}>}
  */
 export async function sampleParticles(photoUrl, depthMapUrl, config) {
   // Load images
@@ -152,6 +152,7 @@ export async function sampleParticles(photoUrl, depthMapUrl, config) {
   const sizes = new Float32Array(count);
   const depthValues = new Float32Array(count);
   const phases = new Float32Array(count);
+  const isEdgeFlags = new Float32Array(count); // 1.0 = edge-boost, 0.0 = grid
 
   const golden = (1 + Math.sqrt(5)) / 2;
 
@@ -168,6 +169,7 @@ export async function sampleParticles(photoUrl, depthMapUrl, config) {
     sizes[i] = p.size;
     depthValues[i] = p.depth;
     phases[i] = p.phase;
+    isEdgeFlags[i] = i >= gridParticles.length ? 1.0 : 0.0;
 
     // Scattered positions: deterministic spherical distribution (INTEG-02)
     const theta = 2 * Math.PI * i * golden;
@@ -180,5 +182,5 @@ export async function sampleParticles(photoUrl, depthMapUrl, config) {
 
   console.log(`[ParticleSampler] Grid: ${gridParticles.length}, Edge boost: ${edgeParticles.length}, Total: ${count}`);
 
-  return { photoPositions, scatteredPositions, colors, sizes, depthValues, phases, count };
+  return { photoPositions, scatteredPositions, colors, sizes, depthValues, phases, isEdgeFlags, count };
 }
