@@ -168,7 +168,7 @@ const scenes = [
     title: 'The Cave at the Edge',
     location: 'Syros, Greece — May 2024',
     coordinates: { lat: 37.444, lng: 24.942 },
-    renderMode: 'particle-memory',
+    renderMode: 'world-memory',
     // Displaced mesh fields
     photoUrl: 'memory/syros-cave/photo.webp',
     depthMapUrl: 'memory/syros-cave/depth.png',

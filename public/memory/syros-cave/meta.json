@@ -12,11 +12,13 @@
     "generated": "2026-03-24"
   },
   "world": {
-    "splat": "world/scene.ply",
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
     "mesh": null,
     "collider": null,
     "format": "ply",
-    "splatCount": 1179648,
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
     "bounds": null
   },
   "fallback": {
@@ -28,17 +30,17 @@
   "camera": {
     "startPosition": [
       0,
-      0,
-      5
+      0.35,
+      10.5
     ],
     "startTarget": [
       0,
       0,
       0
     ],
-    "fov": 50,
+    "fov": 55,
     "near": 0.1,
-    "far": 200
+    "far": 80
   },
   "narrative": [
     {

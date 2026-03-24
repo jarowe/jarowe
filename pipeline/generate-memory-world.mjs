@@ -41,6 +41,7 @@ const MEMORY_ROOT = join(ROOT, 'public', 'memory');
 const TODAY = new Date().toISOString().split('T')[0];
 const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
+const MAX_RUNTIME_SPLATS = 300000;
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -64,6 +65,136 @@ function writeMeta(metaPath, meta) {
 
 function toWorldRelative(filename) {
   return filename ? `world/${filename}` : null;
+}
+
+const PLY_TYPE_SIZES = {
+  char: 1,
+  int8: 1,
+  uchar: 1,
+  uint8: 1,
+  short: 2,
+  int16: 2,
+  ushort: 2,
+  uint16: 2,
+  int: 4,
+  int32: 4,
+  uint: 4,
+  uint32: 4,
+  float: 4,
+  float32: 4,
+  double: 8,
+  float64: 8,
+};
+
+function parseBinaryPlyHeader(buffer) {
+  const endHeaderLf = buffer.indexOf(Buffer.from('end_header\n'));
+  const endHeaderCrLf = buffer.indexOf(Buffer.from('end_header\r\n'));
+  const headerEnd =
+    endHeaderLf !== -1
+      ? endHeaderLf + 'end_header\n'.length
+      : endHeaderCrLf !== -1
+        ? endHeaderCrLf + 'end_header\r\n'.length
+        : -1;
+
+  if (headerEnd === -1) {
+    throw new Error('Could not locate end_header in binary PLY file.');
+  }
+
+  const headerText = buffer.subarray(0, headerEnd).toString('ascii');
+  const lines = headerText.split(/\r?\n/).filter(Boolean);
+  const elements = [];
+  let currentElement = null;
+
+  for (const line of lines) {
+    if (line.startsWith('element ')) {
+      const [, name, countStr] = line.split(/\s+/);
+      currentElement = {
+        name,
+        count: Number.parseInt(countStr, 10),
+        properties: [],
+      };
+      elements.push(currentElement);
+    } else if (line.startsWith('property ')) {
+      if (!currentElement) continue;
+      const tokens = line.split(/\s+/);
+      if (tokens[1] === 'list') {
+        throw new Error('List properties are not supported in runtime PLY preview generation.');
+      }
+      const type = tokens[1];
+      currentElement.properties.push({ type, size: PLY_TYPE_SIZES[type] });
+    }
+  }
+
+  const vertexElementIndex = elements.findIndex(element => element.name === 'vertex');
+  if (vertexElementIndex === -1) {
+    throw new Error('PLY file does not contain a vertex element.');
+  }
+
+  const vertexStride = elements[vertexElementIndex].properties.reduce((total, prop) => {
+    if (!prop.size) {
+      throw new Error(`Unsupported PLY property type: ${prop.type}`);
+    }
+    return total + prop.size;
+  }, 0);
+
+  let vertexOffset = headerEnd;
+  for (let index = 0; index < vertexElementIndex; index += 1) {
+    const element = elements[index];
+    const stride = element.properties.reduce((total, prop) => total + prop.size, 0);
+    vertexOffset += element.count * stride;
+  }
+
+  return {
+    headerText,
+    headerEnd,
+    elements,
+    vertexElementIndex,
+    vertexStride,
+    vertexCount: elements[vertexElementIndex].count,
+    vertexOffset,
+  };
+}
+
+function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX_RUNTIME_SPLATS) {
+  const sourceBuffer = readFileSync(sourcePath);
+  const {
+    headerText,
+    vertexStride,
+    vertexCount,
+    vertexOffset,
+  } = parseBinaryPlyHeader(sourceBuffer);
+
+  if (vertexCount <= targetVertexCount) {
+    copyFileSync(sourcePath, outputPath);
+    return vertexCount;
+  }
+
+  const stride = Math.max(1, Math.ceil(vertexCount / targetVertexCount));
+  const previewCount = Math.ceil(vertexCount / stride);
+  const vertexBlockLength = vertexCount * vertexStride;
+  const restOffset = vertexOffset + vertexBlockLength;
+  const previewVertices = Buffer.allocUnsafe(previewCount * vertexStride);
+
+  let destOffset = 0;
+  for (let index = 0; index < vertexCount; index += stride) {
+    const sourceStart = vertexOffset + index * vertexStride;
+    sourceBuffer.copy(previewVertices, destOffset, sourceStart, sourceStart + vertexStride);
+    destOffset += vertexStride;
+  }
+
+  const previewHeader = headerText.replace(
+    /element vertex\s+\d+/,
+    `element vertex ${previewCount}`,
+  );
+
+  const outputBuffer = Buffer.concat([
+    Buffer.from(previewHeader, 'ascii'),
+    previewVertices.subarray(0, destOffset),
+    sourceBuffer.subarray(restOffset),
+  ]);
+
+  writeFileSync(outputPath, outputBuffer);
+  return previewCount;
 }
 
 function parsePlyVertexCount(plyPath) {
@@ -110,6 +241,30 @@ function normalizeGeneratedWorldAssets(worldDir) {
   };
 }
 
+function prepareRuntimeAssets(worldDir, assets) {
+  if (assets.format !== 'ply' || !assets.splat) {
+    return assets;
+  }
+
+  const sourceFile = join(worldDir, assets.splat.replace(/^world\//, ''));
+  const sourceCount = assets.splatCount ?? parsePlyVertexCount(sourceFile);
+  if (!sourceCount || sourceCount <= MAX_RUNTIME_SPLATS) {
+    return assets;
+  }
+
+  const runtimeFilename = 'scene.runtime.ply';
+  const runtimePath = join(worldDir, runtimeFilename);
+  const runtimeCount = createRuntimePreviewPly(sourceFile, runtimePath, MAX_RUNTIME_SPLATS);
+
+  return {
+    ...assets,
+    splat: toWorldRelative(runtimeFilename),
+    sourceSplat: assets.splat,
+    splatCount: runtimeCount,
+    sourceSplatCount: sourceCount,
+  };
+}
+
 function detectExistingAssets(worldDir) {
   const normalized = normalizeGeneratedWorldAssets(worldDir);
   return normalized.splat ? normalized : null;
@@ -120,10 +275,12 @@ function updateMetaWithAssets(meta, assets) {
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
   meta.world = {
     splat: assets.splat,
+    sourceSplat: assets.sourceSplat ?? null,
     mesh: assets.mesh,
     collider: assets.collider,
     format: assets.format,
     splatCount: assets.splatCount ?? null,
+    sourceSplatCount: assets.sourceSplatCount ?? null,
     bounds: assets.bounds ?? null,
   };
 }
@@ -281,14 +438,16 @@ async function main() {
   const existingAssets = detectExistingAssets(worldDir);
   if (existingAssets?.splat || existingAssets?.mesh) {
     console.log('\nExisting world assets detected. Registering them in meta.json...');
-    updateMetaWithAssets(meta, { ...existingAssets, generator: generatorKey, generated: TODAY });
+    const runtimeAssets = prepareRuntimeAssets(worldDir, existingAssets);
+    updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
     writeMeta(metaPath, meta);
     console.log(JSON.stringify(meta.world, null, 2));
     return;
   }
 
   const generatedAssets = await generator.run(photoPath, worldDir, { sceneId, meta });
-  updateMetaWithAssets(meta, { ...generatedAssets, generator: generatorKey, generated: TODAY });
+  const runtimeAssets = prepareRuntimeAssets(worldDir, generatedAssets);
+  updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
   writeMeta(metaPath, meta);
 
   console.log('\nWorld asset generated and registered:');

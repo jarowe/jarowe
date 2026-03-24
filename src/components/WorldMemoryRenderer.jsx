@@ -34,6 +34,7 @@ import { BlendFunction } from 'postprocessing';
 import { HalfFloatType } from 'three';
 import * as THREE from 'three';
 
+import { OrbitControls } from '@react-three/drei';
 import FlightCamera from './particleMemory/FlightCamera';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
@@ -48,14 +49,93 @@ function resolveAsset(path) {
 function resolveMemoryWorldPath(sceneId, assetPath) {
   if (!assetPath) return null;
   if (assetPath.startsWith('http')) return assetPath;
+  // Absolute paths (start with /) are relative to public root
+  if (assetPath.startsWith('/')) return assetPath.slice(1);
   const normalized = assetPath.includes('/') ? assetPath : `world/${assetPath}`;
   return `memory/${sceneId}/${normalized}`;
+}
+
+function createSuperSplatSettingsDataUrl({ position, target, fov }) {
+  const settings = {
+    background: { color: [0, 0, 0] },
+    camera: {
+      fov,
+      position,
+      target,
+      startAnim: 'none',
+      animTrack: '',
+    },
+    animTracks: [],
+  };
+  return `data:application/json,${encodeURIComponent(JSON.stringify(settings))}`;
+}
+
+function normalizeWorldTransform(transform) {
+  if (!transform) return null;
+  const position = Array.isArray(transform.position) && transform.position.length === 3
+    ? transform.position
+    : [0, 0, 0];
+  const scale = Array.isArray(transform.scale) && transform.scale.length === 3
+    ? transform.scale
+    : [1, 1, 1];
+  const rotation = Array.isArray(transform.rotation)
+    ? (transform.rotation.length === 4 ? transform.rotation : [0, 0, 0, 1])
+    : [0, 0, 0, 1];
+  return { position, scale, rotation };
+}
+
+function getAlphaRemovalThreshold(splatUrl) {
+  if (!splatUrl) return 1;
+  const normalized = splatUrl.split('?')[0];
+  return normalized.endsWith('.ply') ? 1 : 5;
+}
+
+function SuperSplatWorldFrame({
+  splatUrl,
+  cameraPosition,
+  cameraTarget,
+  cameraFov,
+  onLoaded,
+}) {
+  const src = useMemo(() => {
+    const viewerBase = `${BASE}vendor/supersplat-viewer/index.html`;
+    const params = new URLSearchParams();
+    params.set('content', resolveAsset(splatUrl));
+    params.set(
+      'settings',
+      createSuperSplatSettingsDataUrl({
+        position: cameraPosition,
+        target: cameraTarget,
+        fov: cameraFov,
+      }),
+    );
+    params.set('aa', '1');
+    params.set('gpusort', '1');
+    return `${viewerBase}?${params.toString()}`;
+  }, [cameraFov, cameraPosition, cameraTarget, splatUrl]);
+
+  return (
+    <iframe
+      title="Memory world"
+      src={src}
+      className="memory-splat-frame"
+      allow="fullscreen; xr-spatial-tracking"
+      onLoad={onLoaded}
+      style={{
+        width: '100%',
+        height: '100%',
+        border: 0,
+        display: 'block',
+        background: '#000',
+      }}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
 // SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
 // ---------------------------------------------------------------------------
-function SplatWorld({ splatUrl, onLoaded, onError }) {
+function SplatWorld({ splatUrl, transform, onLoaded, onError }) {
   const { scene } = useThree();
   const viewerRef = useRef(null);
 
@@ -81,8 +161,11 @@ function SplatWorld({ splatUrl, onLoaded, onError }) {
         console.log('[WorldMemoryRenderer] Loading splat:', resolvedUrl);
 
         await dropIn.addSplatScene(resolvedUrl, {
-          splatAlphaRemovalThreshold: 5,
+          splatAlphaRemovalThreshold: getAlphaRemovalThreshold(resolvedUrl),
           showLoadingUI: false,
+          position: transform?.position,
+          rotation: transform?.rotation,
+          scale: transform?.scale,
         });
 
         if (!disposed) {
@@ -114,6 +197,90 @@ function SplatWorld({ splatUrl, onLoaded, onError }) {
   }, [splatUrl, scene, onLoaded, onError]);
 
   return null;
+}
+
+function StandaloneWorldViewer({
+  splatUrl,
+  cameraPosition,
+  cameraTarget,
+  transform,
+  onLoaded,
+  onError,
+}) {
+  const containerRef = useRef(null);
+  const viewerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !splatUrl) return;
+
+    let disposed = false;
+
+    async function initViewer() {
+      try {
+        const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
+        if (disposed || !containerRef.current) return;
+
+        if (viewerRef.current) {
+          try {
+            viewerRef.current.dispose();
+          } catch {
+            // ignore viewer cleanup issues on hot reload
+          }
+          viewerRef.current = null;
+        }
+
+        const viewer = new GaussianSplats3D.Viewer({
+          cameraUp: [0, 1, 0],
+          initialCameraPosition: cameraPosition,
+          initialCameraLookAt: cameraTarget,
+          rootElement: containerRef.current,
+          selfDrivenMode: true,
+          useBuiltInControls: true,
+          dynamicScene: false,
+          sharedMemoryForWorkers: false,
+          progressiveLoad: true,
+        });
+        viewerRef.current = viewer;
+
+        const resolvedUrl = resolveAsset(splatUrl);
+        console.log('[WorldMemoryRenderer] Loading splat:', resolvedUrl);
+
+        await viewer.addSplatScene(resolvedUrl, {
+          splatAlphaRemovalThreshold: getAlphaRemovalThreshold(resolvedUrl),
+          showLoadingUI: false,
+          position: transform?.position,
+          rotation: transform?.rotation,
+          scale: transform?.scale,
+        });
+
+        if (!disposed) {
+          console.log('[WorldMemoryRenderer] Splat loaded');
+          onLoaded?.();
+        }
+      } catch (err) {
+        console.error('[WorldMemoryRenderer] Splat load failed:', err);
+        if (!disposed) {
+          onError?.(err.message || 'Failed to load splat');
+        }
+      }
+    }
+
+    const timer = setTimeout(initViewer, 300);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+      if (viewerRef.current) {
+        try {
+          viewerRef.current.dispose();
+        } catch {
+          // ignore viewer cleanup issues on hot reload
+        }
+        viewerRef.current = null;
+      }
+    };
+  }, [cameraPosition, cameraTarget, onError, onLoaded, splatUrl, transform]);
+
+  return <div ref={containerRef} className="memory-splat-container" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +510,42 @@ function SlowAutoOrbit({ target = [0, 0, 0], radius = 5, speed = 0.08, height = 
   return null;
 }
 
+function WorldExploreControls({ target = [0, 0, 0], startPosition = [0, 0, 5] }) {
+  const controlsRef = useRef(null);
+  const { camera } = useThree();
+
+  useEffect(() => {
+    camera.position.set(startPosition[0], startPosition[1], startPosition[2]);
+    if (controlsRef.current) {
+      controlsRef.current.target.set(target[0], target[1], target[2]);
+      controlsRef.current.update();
+    }
+  }, [camera, startPosition, target]);
+
+  const startDistance = useMemo(() => {
+    const cam = new THREE.Vector3(startPosition[0], startPosition[1], startPosition[2]);
+    const look = new THREE.Vector3(target[0], target[1], target[2]);
+    return Math.max(cam.distanceTo(look), 1.5);
+  }, [startPosition, target]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      enableDamping
+      dampingFactor={0.08}
+      rotateSpeed={0.45}
+      zoomSpeed={0.8}
+      panSpeed={0.55}
+      minDistance={Math.max(0.35, startDistance * 0.15)}
+      maxDistance={Math.max(14, startDistance * 6)}
+      maxPolarAngle={Math.PI * 0.92}
+      minPolarAngle={0.08}
+      screenSpacePanning={false}
+    />
+  );
+}
+
 // ---------------------------------------------------------------------------
 // WorldScene — inner R3F component that composes all layers
 // ---------------------------------------------------------------------------
@@ -354,9 +557,13 @@ function WorldScene({
   onProgress,
   onSplatLoaded,
   onSplatError,
+  cameraTarget,
+  cameraPosition,
+  worldTransform,
 }) {
   const isFullTier = tier === 'full';
   const hasFlightPath = !!scene.flightPath;
+  const hasRealWorld = !!splatUrl;
 
   const handleProgress = useCallback(
     (p) => {
@@ -373,6 +580,7 @@ function WorldScene({
       {splatUrl && (
         <SplatWorld
           splatUrl={splatUrl}
+          transform={worldTransform}
           onLoaded={onSplatLoaded}
           onError={onSplatError}
         />
@@ -392,7 +600,12 @@ function WorldScene({
       />
 
       {/* Layer 4: Camera */}
-      {hasFlightPath ? (
+      {hasRealWorld ? (
+        <WorldExploreControls
+          target={cameraTarget}
+          startPosition={cameraPosition}
+        />
+      ) : hasFlightPath ? (
         <FlightCamera
           ref={flightCameraRef}
           flightPath={scene.flightPath}
@@ -460,7 +673,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
 
     async function loadMeta() {
       try {
-        const res = await fetch(metaUrl);
+        const res = await fetch(metaUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
@@ -540,6 +753,11 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     scene.cameraPosition?.y ?? 0.5,
     scene.cameraPosition?.z ?? 5,
   ];
+  const camTarget = meta?.camera?.startTarget ?? [
+    scene.cameraTarget?.x ?? 0,
+    scene.cameraTarget?.y ?? 0,
+    scene.cameraTarget?.z ?? 0,
+  ];
   const camFov = meta?.camera?.fov ?? scene.flightPath?.fovRange?.[0] ?? 50;
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
@@ -556,10 +774,99 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     );
   }
 
+  if (hasSplat) {
+    return (
+      <div
+        className="memory-splat-container"
+        style={{ touchAction: 'none' }}
+      >
+        {/* Single R3F Canvas — splat world + dream particles + atmosphere in one scene */}
+        <Canvas
+          dpr={isFullTier ? [1, 2] : [1, 1]}
+          camera={{
+            position: camPos,
+            fov: camFov,
+            near: camNear,
+            far: camFar,
+          }}
+          gl={{
+            antialias: isFullTier,
+            alpha: false,
+            powerPreference: 'high-performance',
+          }}
+          onCreated={({ gl }) => {
+            gl.setClearColor('#000000');
+          }}
+        >
+          {/* Layer 1: Gaussian splat world via DropInViewer */}
+          <SplatWorld
+            splatUrl={splatUrl}
+            transform={normalizeWorldTransform(meta?.world?.transform)}
+            onLoaded={handleSplatLoaded}
+            onError={handleSplatError}
+          />
+
+          {/* Layer 2: Dream particles — luminous dust motes */}
+          <DreamParticles
+            count={isFullTier ? 6000 : 3000}
+            radius={isFullTier ? 15.0 : 10.0}
+            color="#FFE4B5"
+          />
+
+          {/* Layer 3: Atmosphere fog */}
+          <WorldAtmosphere
+            fogColor="#0a0a12"
+            radius={isFullTier ? 30.0 : 20.0}
+          />
+
+          {/* Layer 4: Camera controls */}
+          <WorldExploreControls
+            target={camTarget}
+            startPosition={camPos}
+          />
+
+          {/* Layer 5: Post-processing (full tier) */}
+          {isFullTier && <WorldPostProcessing />}
+        </Canvas>
+
+        {!splatLoaded && (
+          <div className="memory-loading">
+            <div className="memory-loading-spinner" />
+            <span>Loading world...</span>
+          </div>
+        )}
+
+        {splatLoaded && (
+          <div
+            style={{
+              position: 'absolute',
+              right: '1.25rem',
+              bottom: '1.25rem',
+              zIndex: 12,
+              padding: '0.55rem 0.75rem',
+              borderRadius: '999px',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(10, 10, 16, 0.55)',
+              backdropFilter: 'blur(10px)',
+              color: 'rgba(255,255,255,0.72)',
+              fontSize: '0.82rem',
+              letterSpacing: '0.02em',
+              pointerEvents: 'none',
+            }}
+          >
+            Drag to orbit / Scroll to zoom
+          </div>
+        )}
+
+        <div className="capsule-vignette" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="memory-splat-container"
-      style={hasFlightPath ? { touchAction: 'none' } : undefined}
+      style={hasSplat || hasFlightPath ? { touchAction: 'none' } : undefined}
     >
       <Canvas
         dpr={dpr}
@@ -586,6 +893,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           onProgress={handleProgress}
           onSplatLoaded={handleSplatLoaded}
           onSplatError={handleSplatError}
+          cameraTarget={camTarget}
+          cameraPosition={camPos}
+          worldTransform={normalizeWorldTransform(meta?.world?.transform)}
         />
       </Canvas>
 
