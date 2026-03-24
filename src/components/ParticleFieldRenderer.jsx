@@ -76,11 +76,16 @@ const ParticleFieldRenderer = forwardRef(function ParticleFieldRenderer(
   const isFullTier = tier === 'full';
   const hasFlightPath = !!scene.flightPath;
 
-  // Expose flight camera progress to parent (CapsuleShell)
+  // Expose flight camera progress + refs to parent (CapsuleShell, DreamTransition)
   useImperativeHandle(ref, () => ({
     getProgress: () => flightCameraRef.current?.getProgress?.() ?? 0,
     flightCameraRef,
     fieldRef,
+    // Convenience accessors for DreamTransition (Phase 16)
+    getCamera: () => flightCameraRef.current?.getCamera?.() ?? null,
+    setTunnelMode: (enabled, speed) => flightCameraRef.current?.setTunnelMode?.(enabled, speed),
+    getUniforms: () => fieldRef.current?.uniforms ?? null,
+    getWireUniforms: () => fieldRef.current?.wireUniforms ?? null,
   }));
 
   // Load + sample on mount, compute wires for full tier
