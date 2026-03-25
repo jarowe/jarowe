@@ -37,6 +37,7 @@ const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
 const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
 const CapsuleShell = lazyRetry(() => import('./pages/CapsuleShell'));
+const MemoryArchiveScene = lazyRetry(() => import('./pages/MemoryArchiveScene'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -225,6 +226,7 @@ function AppContent() {
   const isAliasRelease = isAliasPath && !!takeover.entry;
   const isReleaseContext = isReleaseRoute || isTakeoverHome || isAliasRelease;
   const isStarseedRoute = location.pathname.startsWith('/starseed');
+  const isMemoryArchiveRoute = location.pathname.startsWith('/archive');
 
   // Chrome rules — only apply when in release context
   const chrome = isReleaseContext ? takeover.chrome : {};
@@ -329,8 +331,8 @@ function AppContent() {
       <HolidayBodyClass disabled={!!(isReleaseContext && chrome.disableHolidayBodyFx)} />
 
       {/* Site chrome — hidden per campaign chrome rules */}
-      {!chrome.hideNavbar && !isStarseedRoute && <Navbar />}
-      {!chrome.hideGameOverlay && <GameOverlay />}
+      {!chrome.hideNavbar && !isStarseedRoute && !isMemoryArchiveRoute && <Navbar />}
+      {!chrome.hideGameOverlay && !isMemoryArchiveRoute && <GameOverlay />}
       {!chrome.hideGlobalPlayer && <GlobalPlayer />}
 
       <main className="main-content">
@@ -433,6 +435,16 @@ function AppContent() {
           <Route path="/memory/:sceneId" element={
             <Suspense fallback={<MemoryRouteFallback sceneId={memorySceneId} />}>
               <CapsuleShell />
+            </Suspense>
+          } />
+          <Route path="/archive" element={
+            <Suspense fallback={<MemoryRouteFallback sceneId="syros-cave" />}>
+              <MemoryArchiveScene />
+            </Suspense>
+          } />
+          <Route path="/archive/:sceneId" element={
+            <Suspense fallback={<MemoryRouteFallback sceneId={memorySceneId || 'syros-cave'} />}>
+              <MemoryArchiveScene />
             </Suspense>
           } />
           <Route path="/profile" element={

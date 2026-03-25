@@ -61,6 +61,24 @@ const scenes = [
     arc: null,
     portalEntry: false, // splat scene — direct entry only
     particleConfig: null,
+    archiveNode: {
+      cluster: 'thresholds',
+      themes: ['arrival', 'belonging', 'transit'],
+      emotionalTone: 'reflective',
+      nextMemoryIds: ['syros-cave'],
+      previousMemoryIds: [],
+      travelAnchors: {
+        focus: { x: 0, y: 0.2, z: -2 },
+        depart: { x: -1.4, y: 0.25, z: -4.5 },
+      },
+      narration: {
+        arrival: 'Some places wait for years before they let you back inside them.',
+        explore: 'This one still hums with the ache of becoming.',
+        departure: 'Follow the thread. Another memory is already pulling at the edge of the light.',
+        connective: 'Every place that mattered left a filament behind.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
   },
   {
     id: 'test-capsule',
@@ -162,6 +180,24 @@ const scenes = [
     ],
     portalEntry: true,  // supports full portal entry → awakening → recession → portal exit
     particleConfig: null,
+    archiveNode: {
+      cluster: 'family-chapters',
+      themes: ['family', 'gratitude', 'becoming'],
+      emotionalTone: 'tender',
+      nextMemoryIds: ['syros-cave'],
+      previousMemoryIds: ['placeholder-scene'],
+      travelAnchors: {
+        focus: { x: 0, y: 0.08, z: 0 },
+        depart: { x: 0.3, y: 0.18, z: -1.4 },
+      },
+      narration: {
+        arrival: 'Some memories do not ask to be viewed. They ask to be inhabited.',
+        explore: 'This one slows the blood down enough to hear what mattered.',
+        departure: 'There is another chamber past this one. Keep going.',
+        connective: 'The archive is not a shelf. It is a living sequence.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
   },
   {
     id: 'syros-cave',
@@ -364,11 +400,54 @@ const scenes = [
         },
       ],
     },
+    archiveNode: {
+      cluster: 'greece-worldschooling',
+      themes: ['family', 'threshold', 'wonder', 'becoming'],
+      emotionalTone: 'awe',
+      nextMemoryIds: ['placeholder-scene'],
+      previousMemoryIds: ['test-capsule'],
+      travelAnchors: {
+        focus: { x: 0, y: 0.08, z: 0 },
+        depart: { x: 0.18, y: 0.24, z: -1.8 },
+      },
+      narration: {
+        arrival: 'The cave held that strange kind of silence that feels older than language.',
+        explore: 'Rock, bell, sea, family, light. The whole chapter folds inward right here.',
+        departure: 'The archive does not end at the edge of this cave. Another memory is already forming in the current.',
+        connective: 'Every memory that survives becomes a doorway to the next.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
   },
 ];
 
 export function getSceneById(id) {
   return scenes.find((s) => s.id === id) || scenes[0];
+}
+
+export function getArchiveScenes() {
+  return scenes.filter((scene) => scene.archiveNode);
+}
+
+export function getDefaultArchiveSceneId() {
+  return 'syros-cave';
+}
+
+export function getSceneNeighbors(id) {
+  const scene = getSceneById(id);
+  const node = scene.archiveNode || {};
+
+  return {
+    nextScenes: (node.nextMemoryIds || []).map((sceneId) => getSceneById(sceneId)),
+    previousScenes: (node.previousMemoryIds || []).map((sceneId) => getSceneById(sceneId)),
+  };
+}
+
+export function getPreferredNeighborSceneId(id, direction = 'next') {
+  const scene = getSceneById(id);
+  const node = scene.archiveNode || {};
+  const ids = direction === 'previous' ? node.previousMemoryIds : node.nextMemoryIds;
+  return ids?.[0] || null;
 }
 
 /**
