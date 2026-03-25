@@ -10,7 +10,7 @@ export const CONSTELLATION_DEFAULTS = {
   flyToStepDuration: 0.8,
   focusDistance: 35,
   focusYLift: 8,
-  tunnelFocusDistance: 45,
+  tunnelFocusDistance: 8,
 
   // ── Depth of Field & Post-processing ──
   focusedBokehScale: 6,
