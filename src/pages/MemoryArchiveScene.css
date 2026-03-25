@@ -205,13 +205,73 @@
 }
 
 .memory-archive__travel-button {
-  padding: 0.75rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(180deg, rgba(38, 50, 88, 0.86), rgba(19, 22, 42, 0.92));
+  --travel-progress: 0deg;
+  position: relative;
+  min-width: 10.25rem;
+  min-height: 4.6rem;
+  padding: 0;
+  border-radius: 1.3rem;
+  border: 0;
+  background: transparent;
   color: #fff;
   font-size: 0.9rem;
   cursor: pointer;
+  isolation: isolate;
+}
+
+.memory-archive__travel-button::before,
+.memory-archive__travel-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.memory-archive__travel-button::before {
+  background: conic-gradient(
+    from -90deg,
+    rgba(255, 228, 176, 0.95) 0deg,
+    rgba(134, 196, 255, 0.92) var(--travel-progress),
+    rgba(255, 255, 255, 0.08) var(--travel-progress)
+  );
+  box-shadow: 0 0 32px rgba(107, 163, 255, 0.28);
+}
+
+.memory-archive__travel-button::after {
+  inset: 2px;
+  background:
+    radial-gradient(circle at top, rgba(255, 233, 192, 0.14), transparent 54%),
+    linear-gradient(180deg, rgba(24, 30, 54, 0.96), rgba(11, 13, 28, 0.96));
+}
+
+.memory-archive__travel-button:hover::after {
+  background:
+    radial-gradient(circle at top, rgba(255, 233, 192, 0.2), transparent 54%),
+    linear-gradient(180deg, rgba(30, 37, 66, 0.98), rgba(12, 15, 32, 0.98));
+}
+
+.memory-archive__travel-button-inner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.22rem;
+  padding: 1rem 1.15rem;
+}
+
+.memory-archive__travel-button-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.memory-archive__travel-button-caption {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.58);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .memory-archive__travel-progress {
@@ -259,6 +319,67 @@
   color: #fff;
 }
 
+.memory-archive__travel-destination-card {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 7.25rem 1fr auto;
+  gap: 0.9rem;
+  align-items: stretch;
+  width: 100%;
+}
+
+.memory-archive__travel-preview {
+  min-height: 5.6rem;
+  border-radius: 1.05rem;
+  background:
+    linear-gradient(rgba(7, 8, 18, 0.22), rgba(7, 8, 18, 0.72)),
+    radial-gradient(circle at top, rgba(255, 229, 179, 0.22), transparent 44%),
+    rgba(15, 18, 28, 0.92);
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.memory-archive__travel-meta {
+  display: grid;
+  gap: 0.2rem;
+  align-content: center;
+}
+
+.memory-archive__travel-meta strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.memory-archive__travel-meta > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.83rem;
+}
+
+.memory-archive__travel-meta-label {
+  font-size: 0.7rem !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.memory-archive__travel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.22rem;
+}
+
+.memory-archive__travel-tag {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
 @media (max-width: 880px) {
   .memory-archive__chrome {
     grid-template-columns: 1fr;
@@ -286,5 +407,17 @@
   .memory-archive__travel-actions {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .memory-archive__travel-destination-card {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-archive__travel-preview {
+    min-height: 7rem;
+  }
+
+  .memory-archive__travel-button {
+    width: 100%;
   }
 }
