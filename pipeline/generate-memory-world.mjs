@@ -157,6 +157,14 @@ function expandCommandTemplate(template, variables) {
 }
 
 function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
+  return buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, {});
+}
+
+function buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, options = {}) {
+  const {
+    allowExternalViewCommand = true,
+    allowLocalDepthSynthesis = true,
+  } = options;
   const bundleRoot = join(tmpdir(), `jarowe-expanded-${sceneId}-${Date.now()}`);
   const sourceDir = join(bundleRoot, 'source');
   const generatedDir = join(bundleRoot, 'generated');
@@ -187,7 +195,9 @@ function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
     primarySource: primaryView?.absolutePath ?? '',
   };
 
-  const viewCommand = process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND || '';
+  const viewCommand = allowExternalViewCommand
+    ? process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND || ''
+    : '';
   if (viewCommand) {
     const command = expandCommandTemplate(viewCommand, bundleVariables);
     console.log(`\n[Expanded] Synthesizing complementary views: ${command}\n`);
@@ -208,7 +218,7 @@ function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
 
   const depthPath = resolveSceneAssetPath(sceneDir, meta.source?.depth);
   const maskPath = resolveSceneAssetPath(sceneDir, meta.source?.mask);
-  if (!viewCommand && depthPath && existsSync(depthPath) && existsSync(LOCAL_DEPTH_VIEW_SCRIPT)) {
+  if (!viewCommand && allowLocalDepthSynthesis && depthPath && existsSync(depthPath) && existsSync(LOCAL_DEPTH_VIEW_SCRIPT)) {
     const command = [
       'python',
       `"${LOCAL_DEPTH_VIEW_SCRIPT}"`,
@@ -268,6 +278,42 @@ function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
     generatedViews,
     manifestRelativePath,
     strategy,
+  };
+}
+
+function collectGeneratedBundleViews(generatedDir) {
+  return collectDirectoryImages(generatedDir).map((filePath, index) => ({
+    role: 'synthetic-view',
+    kind: 'generated',
+    absolutePath: filePath,
+    ext: extname(filePath) || '.png',
+    relativePath: toPosixPath(filePath),
+    stagedFilename: `generated-${String(index).padStart(3, '0')}${extname(filePath) || '.png'}`,
+    stagedPath: filePath,
+  }));
+}
+
+function refreshExpandedBundleManifest(worldDir, meta, bundle, strategy) {
+  const generatedViews = collectGeneratedBundleViews(bundle.generatedDir);
+  const manifestRelativePath = writeExpandedBundleManifest(worldDir, meta, {
+    strategy,
+    sourceViewCount: bundle.sourceViews.length,
+    generatedViewCount: generatedViews.length,
+    totalViewCount: bundle.sourceViews.length + generatedViews.length,
+    anchorSource: meta.source?.photo,
+    views: [...bundle.sourceViews, ...generatedViews].map(view => ({
+      role: view.role,
+      kind: view.kind,
+      relativePath: view.relativePath,
+      stagedFilename: view.stagedFilename,
+    })),
+  });
+
+  return {
+    ...bundle,
+    strategy,
+    generatedViews,
+    manifestRelativePath,
   };
 }
 
@@ -745,6 +791,96 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
   }
 }
 
+async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
+  const { meta, sceneDir, sceneId } = options;
+  const worldModelCommand = process.env.SINGLE_IMAGE_WORLD_COMMAND || process.env.WORLD_MODEL_COMMAND || '';
+  if (!worldModelCommand) {
+    throw new Error(
+      [
+        '[World Model] No command configured.',
+        'Set SINGLE_IMAGE_WORLD_COMMAND or WORLD_MODEL_COMMAND to a working single-image world generator.',
+        'Supported placeholders:',
+        '  {input} {primary} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
+      ].join('\n'),
+    );
+  }
+
+  const bundle = buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, {
+    allowExternalViewCommand: false,
+    allowLocalDepthSynthesis: false,
+  });
+
+  try {
+    const command = expandCommandTemplate(worldModelCommand, {
+      input: inputPhoto,
+      output: worldDir,
+      sceneId,
+      sceneDir,
+      worldDir,
+      bundleDir: bundle.bundleRoot,
+      sourceDir: bundle.sourceDir,
+      generatedDir: bundle.generatedDir,
+      primary: bundle.primaryView?.stagedPath ?? inputPhoto,
+      bundleJson: join(worldDir, 'view-bundle.json'),
+    });
+
+    console.log(`\n[World Model] Running: ${command}\n`);
+    const result = runShellCommand(command);
+    if (result.stdout?.trim()) console.log(result.stdout.trim());
+    if (result.stderr?.trim()) console.log(result.stderr.trim());
+
+    if (result.status !== 0) {
+      throw new Error(
+        [
+          '[World Model] Single-image world generation failed.',
+          `Command: ${command}`,
+          result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+        ].join('\n'),
+      );
+    }
+
+    const refreshedBundle = refreshExpandedBundleManifest(
+      worldDir,
+      meta,
+      bundle,
+      'learned-scene-expansion',
+    );
+    const assets = normalizeGeneratedWorldAssets(worldDir);
+    if (!assets.splat && !assets.mesh) {
+      throw new Error(
+        [
+          '[World Model] Command completed but no world assets were produced.',
+          'Expected at least one of: scene.ply, scene.spz, scene.glb, collider.glb in the world directory.',
+        ].join('\n'),
+      );
+    }
+
+    return {
+      ...assets,
+      generationMode: 'single-image-world-model',
+      expansion: {
+        strategy: 'learned-scene-expansion',
+        stage: 'world-model-fused',
+        bundle: refreshedBundle.manifestRelativePath,
+        sourceViewCount: refreshedBundle.sourceViews.length,
+        generatedViewCount: refreshedBundle.generatedViews.length,
+        totalViewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
+        anchorGenerator: 'source-photo',
+        viewSynthesizer: 'world-model',
+        fusionEngine: 'world-model',
+      },
+      provenance: {
+        tier: 'world-model-fused',
+        anchorGenerator: 'source-photo',
+        reconstruction: 'single-image-world-model',
+        viewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
+      },
+    };
+  } finally {
+    rmSync(bundle.bundleRoot, { recursive: true, force: true });
+  }
+}
+
 function detectExistingAssets(worldDir) {
   const normalized = normalizeGeneratedWorldAssets(worldDir);
   return normalized.splat ? normalized : null;
@@ -843,12 +979,27 @@ const GENERATORS = {
     },
   },
 
+  'world-model': {
+    name: 'World Model',
+    description: 'Single-image scene/world completion + fused splat generation',
+    requirements: 'External single-image world-model command configured via SINGLE_IMAGE_WORLD_COMMAND or WORLD_MODEL_COMMAND',
+    async run(inputPhoto, worldDir, options) {
+      return runSingleImageWorldModel(inputPhoto, worldDir, options);
+    },
+  },
+
   expanded: {
     name: 'Expanded',
     description: 'Single-image anchor + synthetic/multi-view bundle + fused world registration',
     requirements: 'Optional external view synthesis and reconstruction commands; falls back to SHARP anchor draft',
     async run(inputPhoto, worldDir, options) {
       const { meta, sceneDir, sceneId, existingAssets } = options;
+      const wantsWorldModel = !meta.source?.postImages?.length &&
+        Boolean(process.env.SINGLE_IMAGE_WORLD_COMMAND || process.env.WORLD_MODEL_COMMAND);
+      if (wantsWorldModel) {
+        return runSingleImageWorldModel(inputPhoto, worldDir, options);
+      }
+
       const bundle = buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta);
       const fuseCommandTemplate = process.env.EXPANDED_FUSE_COMMAND || process.env.FUSED_WORLD_COMMAND || process.env.GSPLAT_COMMAND || '';
 
@@ -987,7 +1138,7 @@ async function main() {
   const { sceneId, generator: generatorKey, force } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|trellis|marble] [--force]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);
@@ -1026,7 +1177,7 @@ async function main() {
   }
   const currentAssets = force ? null : existingAssets;
 
-  if ((currentAssets?.splat || currentAssets?.mesh) && generatorKey !== 'expanded') {
+  if ((currentAssets?.splat || currentAssets?.mesh) && !['expanded', 'world-model'].includes(generatorKey)) {
     console.log('\nExisting world assets detected. Registering them in meta.json...');
     const runtimeAssets = prepareRuntimeAssets(worldDir, currentAssets);
     updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });

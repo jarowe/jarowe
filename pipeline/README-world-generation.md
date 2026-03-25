@@ -13,19 +13,21 @@ node pipeline/generate-memory-world.mjs syros-cave
 
 # Run a specific generator tier
 node pipeline/generate-memory-world.mjs syros-cave --generator expanded
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model
 node pipeline/generate-memory-world.mjs syros-cave --generator trellis
 node pipeline/generate-memory-world.mjs syros-cave --generator sharp
 node pipeline/generate-memory-world.mjs syros-cave --generator marble
 
 # Force a fresh run and overwrite normalized world outputs
-node pipeline/generate-memory-world.mjs syros-cave --generator expanded --force
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
 ```
 
 ## Supported Generators
 
 | Generator | License | Quality | Setup Cost |
 |-----------|---------|---------|------------|
-| Expanded | Mixed / local | Best open architecture | External tools + local GPU |
+| Expanded | Mixed / local | Best orchestration tier | External tools + local GPU |
+| World Model | Mixed / local | Best single-image world path | External tools + local GPU |
 | TRELLIS | MIT | High | Local GPU |
 | SHARP | Research | High nearby-view draft | Local GPU |
 | Marble | Commercial | Highest | API key |
@@ -34,7 +36,7 @@ node pipeline/generate-memory-world.mjs syros-cave --generator expanded --force
 
 ### Expanded
 
-Use SHARP as the identity-preserving anchor pass, then add synthetic or real complementary views before fusing the final world. This is the bridge between the current single-image draft tier and a more Marble-like explorable world.
+Use SHARP as the identity-preserving anchor pass, then add synthetic or real complementary views before fusing the final world. This is the orchestration tier. For true single-image world completion, point it at a real world-model backend instead of the current local synthetic-depth fallback.
 
 What it does:
 
@@ -56,6 +58,10 @@ set EXPANDED_VIEW_COMMAND=python tools\\synth_views.py --input "{primary}" --out
 # Optional external fusion step (for COLMAP/gsplat or another reconstructor)
 set EXPANDED_FUSE_COMMAND=python tools\\fuse_world.py --bundle "{bundleDir}" --output "{worldDir}"
 
+# Optional: if this is a single-image memory and a real world-model backend is configured,
+# Expanded will prefer it automatically over the local synthetic-depth fallback.
+set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --output "{worldDir}" --views "{generatedDir}"
+
 # Then rerun
 node pipeline/generate-memory-world.mjs syros-cave --generator expanded --force
 ```
@@ -64,7 +70,43 @@ Recommended tiers:
 
 - `single-image draft`: SHARP only
 - `single-image expanded`: SHARP anchor + synthetic complementary views + fused splat world
+- `single-image world model`: learned scene/world completion from one photo + fused splat world
 - `multi-view cluster`: carousel images / real capture bundle + fused splat world
+
+### World Model
+
+Use this when you want the actual Marble-like path from a single image: one source photo goes through a learned world/scene completion backend, which generates complementary views and/or a fused world asset directly.
+
+The pipeline does not hardcode one model. Instead it shells out to a working backend that you configure through environment variables. That keeps the repo neutral while allowing you to swap between candidates like WorldGen, VistaDream, or a future ComfyUI workflow.
+
+```bash
+# Required: point to a working single-image world generator
+set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --output "{worldDir}" --views "{generatedDir}"
+
+# Then run the dedicated generator
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+```
+
+Supported placeholders in `WORLD_MODEL_COMMAND` / `SINGLE_IMAGE_WORLD_COMMAND`:
+
+- `{input}`: absolute path to the scene's source photo
+- `{primary}`: absolute path to the staged primary input inside the temporary bundle
+- `{output}` / `{worldDir}`: absolute path to `public/memory/{scene-id}/world`
+- `{sceneDir}`: absolute path to the scene directory
+- `{sceneId}`: memory scene id
+- `{bundleDir}`: temporary bundle root
+- `{sourceDir}`: staged source views directory
+- `{generatedDir}`: where the world model can write synthetic views for provenance/debug
+- `{bundleJson}`: destination `world/view-bundle.json`
+
+The command is expected to produce at least one of:
+
+- `scene.ply`
+- `scene.spz`
+- `scene.glb`
+- `collider.glb`
+
+in the target world directory.
 
 ### TRELLIS
 
@@ -142,28 +184,30 @@ The pipeline writes these paths into `meta.json` under the `world` key:
 }
 ```
 
-For expanded runs, the pipeline also stores generation provenance:
+For expanded or world-model runs, the pipeline also stores generation provenance:
 
 ```json
 {
   "source": {
-    "generationMode": "single-image-expanded",
+    "generationMode": "single-image-world-model",
     "expansion": {
-      "strategy": "synthetic-multiview-fusion",
-      "stage": "anchor-draft",
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
       "bundle": "world/view-bundle.json",
       "sourceViewCount": 1,
-      "generatedViewCount": 0,
-      "totalViewCount": 1,
-      "anchorGenerator": "sharp"
+      "generatedViewCount": 6,
+      "totalViewCount": 7,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model"
     }
   },
   "world": {
     "provenance": {
-      "tier": "anchor-draft",
-      "anchorGenerator": "sharp",
-      "reconstruction": "single-image-anchor",
-      "viewCount": 1
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 7
     }
   }
 }
