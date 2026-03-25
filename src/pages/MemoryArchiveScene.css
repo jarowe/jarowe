@@ -227,35 +227,25 @@
   overflow: hidden;
 }
 
+.memory-archive__corridor-canvas {
+  position: absolute;
+  inset: 0;
+}
+
 .memory-archive__corridor-wash {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, rgba(92, 134, 255, 0.22), transparent 34%),
-    radial-gradient(circle at 50% 50%, rgba(255, 223, 168, 0.18), transparent 45%),
-    linear-gradient(180deg, rgba(2, 2, 8, 0.14), rgba(2, 2, 10, 0.76));
-  backdrop-filter: blur(10px);
-}
-
-.memory-archive__corridor-grid {
-  position: absolute;
-  inset: 0;
-}
-
-.memory-archive__corridor-node {
-  position: absolute;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: rgba(255, 234, 196, 0.95);
-  box-shadow: 0 0 18px rgba(155, 198, 255, 0.7);
-  animation: archive-node-pulse 1.8s ease-in-out infinite;
+    radial-gradient(circle at center, rgba(110, 151, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 52% 48%, rgba(255, 226, 170, 0.14), transparent 43%),
+    linear-gradient(180deg, rgba(2, 2, 8, 0.1), rgba(2, 2, 10, 0.58));
+  backdrop-filter: blur(3px);
 }
 
 .memory-archive__corridor-copy {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 12%;
   transform: translate(-50%, -50%);
   display: inline-flex;
   align-items: center;
@@ -267,19 +257,6 @@
   backdrop-filter: blur(16px);
   font-size: 0.94rem;
   color: #fff;
-}
-
-@keyframes archive-node-pulse {
-  0%,
-  100% {
-    transform: scale(0.72);
-    opacity: 0.32;
-  }
-
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
 }
 
 @media (max-width: 880px) {

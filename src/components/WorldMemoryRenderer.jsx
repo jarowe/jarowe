@@ -633,7 +633,7 @@ function WorldScene({
       )}
 
       {/* Layer 5: Post-processing (full tier only) */}
-      {isFullTier && <WorldPostProcessing />}
+      {isFullTier && enablePostProcessing && <WorldPostProcessing />}
     </>
   );
 }
@@ -642,7 +642,15 @@ function WorldScene({
 // WorldMemoryRenderer — main export (matches ParticleFieldRenderer props)
 // ---------------------------------------------------------------------------
 const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
-  { scene, tier, onRecessionComplete, onAwakeningComplete, directAccess, onProgress },
+  {
+    scene,
+    tier,
+    onRecessionComplete,
+    onAwakeningComplete,
+    directAccess,
+    onProgress,
+    enablePostProcessing = true,
+  },
   ref,
 ) {
   const [splatLoaded, setSplatLoaded] = useState(false);
@@ -832,7 +840,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           />
 
           {/* Layer 5: Post-processing (full tier) */}
-          {isFullTier && <WorldPostProcessing />}
+          {isFullTier && enablePostProcessing && <WorldPostProcessing />}
         </Canvas>
 
         {!splatLoaded && (
