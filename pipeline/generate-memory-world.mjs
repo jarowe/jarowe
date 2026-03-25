@@ -41,6 +41,7 @@ const MEMORY_ROOT = join(ROOT, 'public', 'memory');
 const TODAY = new Date().toISOString().split('T')[0];
 const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
+const LOCAL_DEPTH_VIEW_SCRIPT = join(ROOT, 'pipeline', 'synthesize_depth_views.py');
 const MAX_RUNTIME_SPLATS = 300000;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const DEFAULT_CLUSTER_VIEW_LIMIT = 4;
@@ -198,6 +199,34 @@ function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
       throw new Error(
         [
           '[Expanded] View synthesis command failed.',
+          `Command: ${command}`,
+          result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+        ].join('\n'),
+      );
+    }
+  }
+
+  const depthPath = resolveSceneAssetPath(sceneDir, meta.source?.depth);
+  const maskPath = resolveSceneAssetPath(sceneDir, meta.source?.mask);
+  if (!viewCommand && depthPath && existsSync(depthPath) && existsSync(LOCAL_DEPTH_VIEW_SCRIPT)) {
+    const command = [
+      'python',
+      `"${LOCAL_DEPTH_VIEW_SCRIPT}"`,
+      `--photo "${primaryView?.absolutePath ?? resolveSceneAssetPath(sceneDir, meta.source?.photo)}"`,
+      `--depth "${depthPath}"`,
+      `--output "${generatedDir}"`,
+      maskPath && existsSync(maskPath) ? `--mask "${maskPath}"` : '',
+    ].filter(Boolean).join(' ');
+
+    console.log(`\n[Expanded] Synthesizing depth-warped support views: ${command}\n`);
+    const result = runShellCommand(command);
+    if (result.stdout?.trim()) console.log(result.stdout.trim());
+    if (result.stderr?.trim()) console.log(result.stderr.trim());
+    if (result.status !== 0) {
+      rmSync(bundleRoot, { recursive: true, force: true });
+      throw new Error(
+        [
+          '[Expanded] Local depth-view synthesis failed.',
           `Command: ${command}`,
           result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
         ].join('\n'),
@@ -638,13 +667,18 @@ function resolveAnchorDraftPath(worldDir) {
   return null;
 }
 
-async function buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle) {
+async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle) {
   const configuredMaxViews = Number.parseInt(
     process.env.EXPANDED_CLUSTER_MAX_VIEWS || `${DEFAULT_CLUSTER_VIEW_LIMIT}`,
     10,
   );
   const maxViews = clamp(Number.isFinite(configuredMaxViews) ? configuredMaxViews : DEFAULT_CLUSTER_VIEW_LIMIT, 2, 6);
-  const selectedViews = bundle.sourceViews.slice(0, maxViews);
+  const rankedViews = [
+    ...bundle.sourceViews.filter(view => view.role === 'primary'),
+    ...bundle.generatedViews,
+    ...bundle.sourceViews.filter(view => view.role !== 'primary'),
+  ];
+  const selectedViews = rankedViews.slice(0, maxViews);
   const transforms = createClusterViewTransforms(selectedViews.length);
   const tempWorldDirs = [];
   const plyInputs = [];
@@ -676,14 +710,18 @@ async function buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle)
     const compositePath = join(worldDir, 'scene.ply');
     const compositeVertexCount = mergeClusterDraftPlys(plyInputs, compositePath);
     const compositeAssets = normalizeGeneratedWorldAssets(worldDir);
+    const isCluster = bundle.strategy === 'cluster-fusion';
+    const compositeStage = isCluster ? 'cluster-composite' : 'synthetic-view-composite';
+    const provenanceTier = isCluster ? 'cluster-composite' : 'expanded-composite';
+    const reconstruction = isCluster ? 'synthetic-cluster-composite' : 'synthetic-depth-composite';
 
     return {
       ...compositeAssets,
       splatCount: compositeVertexCount,
-      generationMode: 'multi-view-cluster',
+      generationMode: isCluster ? 'multi-view-cluster' : 'single-image-expanded',
       expansion: {
         strategy: bundle.strategy,
-        stage: 'cluster-composite',
+        stage: compositeStage,
         bundle: bundle.manifestRelativePath,
         sourceViewCount: bundle.sourceViews.length,
         generatedViewCount: bundle.generatedViews.length,
@@ -694,9 +732,9 @@ async function buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle)
         compositeViewCount: selectedViews.length,
       },
       provenance: {
-        tier: 'cluster-composite',
+        tier: provenanceTier,
         anchorGenerator: 'sharp',
-        reconstruction: 'synthetic-cluster-composite',
+        reconstruction,
         viewCount: selectedViews.length,
       },
     };
@@ -870,11 +908,11 @@ const GENERATORS = {
         }
 
         if (
-          bundle.strategy === 'cluster-fusion' &&
-          meta.world?.provenance?.tier !== 'cluster-composite' &&
-          bundle.sourceViews.length > 1
+          ((bundle.strategy === 'cluster-fusion' && bundle.sourceViews.length > 1) ||
+            (bundle.strategy === 'synthetic-multiview-fusion' && bundle.generatedViews.length > 0)) &&
+          !['cluster-composite', 'expanded-composite'].includes(meta.world?.provenance?.tier)
         ) {
-          return await buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle);
+          return await buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle);
         }
 
         if (existingAssets?.splat || existingAssets?.mesh) {

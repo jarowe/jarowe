@@ -13,14 +13,15 @@
     "generationMode": "single-image-expanded",
     "expansion": {
       "strategy": "synthetic-multiview-fusion",
-      "stage": "bundle-prepared",
+      "stage": "synthetic-view-composite",
       "bundle": "world/view-bundle.json",
       "sourceViewCount": 1,
-      "generatedViewCount": 0,
-      "totalViewCount": 1,
+      "generatedViewCount": 4,
+      "totalViewCount": 5,
       "anchorGenerator": "sharp",
       "viewSynthesizer": null,
-      "fusionEngine": null
+      "fusionEngine": "cluster-composite",
+      "compositeViewCount": 4
     }
   },
   "world": {
@@ -51,10 +52,10 @@
       ]
     },
     "provenance": {
-      "tier": "existing-world",
+      "tier": "expanded-composite",
       "anchorGenerator": "sharp",
-      "reconstruction": "registered-existing",
-      "viewCount": 1
+      "reconstruction": "synthetic-depth-composite",
+      "viewCount": 4
     }
   },
   "fallback": {
