@@ -34,8 +34,37 @@ function getScenePalette(scene, role = 'current') {
     : ['#81c9ff', '#d4efff', '#ffffff'];
 }
 
-function createParticleAttributes(currentScene, nextScene, direction = 'next') {
-  const count = 5200;
+function sampleGlobalAudioBands(targetArray) {
+  const analyser = window.globalAnalyser;
+  if (!analyser) {
+    return { low: 0, mid: 0, high: 0, energy: 0 };
+  }
+
+  analyser.getByteFrequencyData(targetArray);
+  const ranges = [
+    [0, 12],
+    [12, 42],
+    [42, 96],
+  ];
+
+  const values = ranges.map(([from, to]) => {
+    let sum = 0;
+    const end = Math.min(to, targetArray.length);
+    for (let index = from; index < end; index += 1) sum += targetArray[index];
+    return end > from ? sum / (end - from) / 255 : 0;
+  });
+
+  return {
+    low: values[0],
+    mid: values[1],
+    high: values[2],
+    energy: (values[0] + values[1] + values[2]) / 3,
+  };
+}
+
+function createParticleAttributes(currentScene, nextScene, direction = 'next', options = {}) {
+  const count = options.count ?? 5200;
+  const profile = options.profile ?? 'core';
   const startPalette = getScenePalette(currentScene, 'current');
   const endPalette = getScenePalette(nextScene, 'next');
   const startColors = startPalette.map(colorToArray);
@@ -50,23 +79,26 @@ function createParticleAttributes(currentScene, nextScene, direction = 'next') {
   const scale = new Float32Array(count);
 
   const directionSign = direction === 'previous' ? -1 : 1;
+  const isMist = profile === 'mist';
 
   for (let i = 0; i < count; i += 1) {
     const t = i / count;
     const band = i % 3;
-    const radius = 0.45 + Math.pow(Math.random(), 0.32) * 5.6;
+    const radius = isMist
+      ? 0.9 + Math.pow(Math.random(), 0.42) * 7.8
+      : 0.45 + Math.pow(Math.random(), 0.32) * 5.6;
     const theta = Math.random() * Math.PI * 2;
-    const heightBias = (Math.random() - 0.5) * 4.8;
+    const heightBias = (Math.random() - 0.5) * (isMist ? 8.2 : 4.8);
     const driftBias = band === 0 ? -1.35 : band === 1 ? 0 : 1.35;
-    const startZ = 4.8 + Math.random() * 2.4;
-    const endZ = -11.5 - Math.random() * 5.2;
+    const startZ = (isMist ? 6.8 : 4.8) + Math.random() * (isMist ? 3.8 : 2.4);
+    const endZ = -(isMist ? 14.8 : 11.5) - Math.random() * (isMist ? 8.4 : 5.2);
 
-    start[i * 3] = Math.cos(theta) * radius * 1.12 + driftBias * 0.28;
-    start[i * 3 + 1] = Math.sin(theta * 1.7) * radius * 0.48 + heightBias;
+    start[i * 3] = Math.cos(theta) * radius * (isMist ? 1.36 : 1.12) + driftBias * (isMist ? 0.22 : 0.28);
+    start[i * 3 + 1] = Math.sin(theta * 1.7) * radius * (isMist ? 0.62 : 0.48) + heightBias;
     start[i * 3 + 2] = startZ * directionSign;
 
-    end[i * 3] = (Math.cos(theta * 0.55 + 0.75) * radius * 0.26 + driftBias * 0.06) * directionSign;
-    end[i * 3 + 1] = Math.sin(theta * 0.35 + 1.4) * radius * 0.2 + heightBias * 0.22;
+    end[i * 3] = (Math.cos(theta * 0.55 + 0.75) * radius * (isMist ? 0.34 : 0.26) + driftBias * 0.06) * directionSign;
+    end[i * 3 + 1] = Math.sin(theta * 0.35 + 1.4) * radius * (isMist ? 0.28 : 0.2) + heightBias * (isMist ? 0.28 : 0.22);
     end[i * 3 + 2] = endZ * directionSign;
 
     const startColor = startColors[Math.floor(Math.random() * startColors.length)];
@@ -74,8 +106,10 @@ function createParticleAttributes(currentScene, nextScene, direction = 'next') {
     colorA.set(startColor, i * 3);
     colorB.set(endColor, i * 3);
     phase[i] = Math.random() * Math.PI * 2;
-    speed[i] = 0.45 + Math.random() * 0.75;
-    scale[i] = 0.85 + Math.random() * 1.75;
+    speed[i] = (isMist ? 0.28 : 0.45) + Math.random() * (isMist ? 0.55 : 0.75);
+    scale[i] = isMist
+      ? 0.24 + Math.random() * 0.78
+      : 0.68 + Math.random() * 1.18;
   }
 
   return { count, start, end, colorA, colorB, phase, speed, scale };
@@ -84,6 +118,13 @@ function createParticleAttributes(currentScene, nextScene, direction = 'next') {
 const PARTICLE_VERT = /* glsl */ `
 uniform float uTime;
 uniform float uProgress;
+uniform float uAudioLow;
+uniform float uAudioMid;
+uniform float uAudioHigh;
+uniform float uFlowScale;
+uniform float uSizeBase;
+uniform float uSizeMax;
+uniform float uAlphaScale;
 attribute vec3 aStart;
 attribute vec3 aEnd;
 attribute vec3 aColorA;
@@ -104,19 +145,22 @@ void main() {
   vec3 pos = mix(aStart, aEnd, p);
 
   float swirl = uTime * (0.45 + aSpeed) + aPhase;
-  float corridorPull = sin(swirl + pos.z * 0.55) * (1.0 - p) * 1.35;
-  pos.x += cos(swirl * 1.3) * 0.38 + corridorPull * 0.28;
-  pos.y += sin(swirl * 0.8) * 0.26 + cos(swirl * 0.6 + pos.z) * 0.16;
-  pos.z += sin(swirl * 0.5) * 0.18;
+  float musicWave = sin(pos.z * 0.95 + uTime * (0.8 + aSpeed * 0.35) + aPhase) * (0.18 + uAudioMid * 0.42);
+  float corridorPull = sin(swirl + pos.z * 0.55) * (1.0 - p) * (1.05 + uAudioLow * 1.1);
+  pos.x += (cos(swirl * 1.3) * 0.22 + corridorPull * 0.22 + musicWave * 0.3) * uFlowScale;
+  pos.y += (sin(swirl * 0.8) * 0.16 + cos(swirl * 0.6 + pos.z) * 0.12 + musicWave * 0.12) * uFlowScale;
+  pos.z += sin(swirl * 0.5) * 0.14 + uAudioLow * 0.36;
 
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
   float depth = max(-mvPos.z, 0.01);
-  gl_PointSize = clamp((aScale * 58.0) / depth, 1.0, 19.0);
+  float size = (aScale * (uSizeBase + uAudioHigh * 18.0)) / depth;
+  gl_PointSize = clamp(size, 0.7, uSizeMax);
   gl_Position = projectionMatrix * mvPos;
 
   vColor = mix(aColorA, aColorB, smoothstep(0.15, 0.92, p));
   float travelFade = smoothstep(0.0, 0.1, p) * (1.0 - smoothstep(0.96, 1.0, p));
-  vAlpha = (0.38 + aScale * 0.16) * max(0.3, travelFade);
+  float energy = max(uAudioLow, max(uAudioMid, uAudioHigh));
+  vAlpha = (0.24 + aScale * 0.12 + energy * 0.18) * max(0.26, travelFade) * uAlphaScale;
 }
 `;
 
@@ -127,9 +171,9 @@ varying float vAlpha;
 void main() {
   vec2 uv = gl_PointCoord - 0.5;
   float d = length(uv);
-  float core = 1.0 - smoothstep(0.14, 0.48, d);
-  float halo = 1.0 - smoothstep(0.22, 0.78, d);
-  float alpha = (core * 0.8 + halo * 0.35) * vAlpha;
+  float core = 1.0 - smoothstep(0.08, 0.34, d);
+  float halo = 1.0 - smoothstep(0.18, 0.68, d);
+  float alpha = (core * 0.92 + halo * 0.28) * vAlpha;
   if (alpha < 0.01) discard;
   gl_FragColor = vec4(vColor, alpha);
 }
@@ -138,24 +182,50 @@ void main() {
 function CorridorCamera({ progress, direction = 'next' }) {
   const { camera } = useThree();
   const sign = direction === 'previous' ? -1 : 1;
+  const audioDataRef = useRef(new Uint8Array(128));
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
     const eased = 1 - ((1 - progress) * (1 - progress));
-    camera.position.x = Math.sin(eased * Math.PI * 1.4) * 0.42 * sign;
-    camera.position.y = 0.08 + Math.sin(eased * Math.PI * 1.85) * 0.22;
-    camera.position.z = 8.4 - eased * 7.2;
-    camera.lookAt(Math.sin(eased * Math.PI * 0.8) * 0.32 * sign, Math.sin(eased * Math.PI) * 0.08, -10.8 * sign);
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
+    const time = clock.getElapsedTime();
+    camera.position.x = Math.sin(eased * Math.PI * 1.56 + time * 0.18) * (0.36 + audioBands.mid * 0.34) * sign;
+    camera.position.y = 0.02 + Math.sin(eased * Math.PI * 1.95 + time * 0.12) * (0.16 + audioBands.low * 0.14);
+    camera.position.z = 8.6 - eased * 7.5;
+    camera.lookAt(
+      Math.sin(eased * Math.PI * 0.8 + time * 0.08) * 0.28 * sign,
+      Math.sin(eased * Math.PI + time * 0.11) * 0.12,
+      -11.2 * sign,
+    );
+    camera.rotation.z = Math.sin(time * 0.2 + eased * 2.2) * 0.018 * sign;
   });
 
   return null;
 }
 
-function CorridorParticles({ currentScene, nextScene, progress, direction }) {
+function CorridorParticles({ currentScene, nextScene, progress, direction, profile = 'core' }) {
   const particlesRef = useRef(null);
   const materialRef = useRef(null);
+  const audioDataRef = useRef(new Uint8Array(128));
+  const settings = useMemo(() => (
+    profile === 'mist'
+      ? {
+          count: 12400,
+          flowScale: 1.36,
+          sizeBase: 18,
+          sizeMax: 6.5,
+          alphaScale: 0.42,
+        }
+      : {
+          count: 7600,
+          flowScale: 1,
+          sizeBase: 28,
+          sizeMax: 12,
+          alphaScale: 0.78,
+        }
+  ), [profile]);
   const data = useMemo(
-    () => createParticleAttributes(currentScene, nextScene, direction),
-    [currentScene, nextScene, direction],
+    () => createParticleAttributes(currentScene, nextScene, direction, settings),
+    [currentScene, nextScene, direction, settings],
   );
 
   const geometry = useMemo(() => {
@@ -173,8 +243,24 @@ function CorridorParticles({ currentScene, nextScene, progress, direction }) {
 
   useFrame(({ clock }) => {
     if (!materialRef.current) return;
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
     materialRef.current.uniforms.uProgress.value = progress;
+    materialRef.current.uniforms.uAudioLow.value = THREE.MathUtils.lerp(
+      materialRef.current.uniforms.uAudioLow.value,
+      audioBands.low,
+      0.14,
+    );
+    materialRef.current.uniforms.uAudioMid.value = THREE.MathUtils.lerp(
+      materialRef.current.uniforms.uAudioMid.value,
+      audioBands.mid,
+      0.14,
+    );
+    materialRef.current.uniforms.uAudioHigh.value = THREE.MathUtils.lerp(
+      materialRef.current.uniforms.uAudioHigh.value,
+      audioBands.high,
+      0.14,
+    );
   });
 
   useEffect(() => () => {
@@ -194,6 +280,13 @@ function CorridorParticles({ currentScene, nextScene, progress, direction }) {
         uniforms={{
           uTime: { value: 0 },
           uProgress: { value: progress },
+          uAudioLow: { value: 0 },
+          uAudioMid: { value: 0 },
+          uAudioHigh: { value: 0 },
+          uFlowScale: { value: settings.flowScale },
+          uSizeBase: { value: settings.sizeBase },
+          uSizeMax: { value: settings.sizeMax },
+          uAlphaScale: { value: settings.alphaScale },
         }}
       />
     </points>
@@ -214,9 +307,10 @@ function MemoryPreviewPlane({ scene, progress, position, rotationY = 0, mode = '
     const opacity = mode === 'current'
       ? 1 - Math.min(progress * 1.65, 1)
       : Math.max(0, Math.min((progress - 0.36) / 0.5, 1));
-    meshRef.current.material.opacity = opacity * (mode === 'current' ? 0.18 : 0.24);
+    meshRef.current.material.opacity = opacity * (mode === 'current' ? 0.09 : 0.12);
     meshRef.current.position.x = position[0] + Math.sin(progress * Math.PI * 1.2 + rotationY) * 0.12;
     meshRef.current.position.y = position[1] + Math.cos(progress * Math.PI * 0.9 + rotationY) * 0.05;
+    meshRef.current.position.z = position[2] + Math.sin(progress * Math.PI * 1.4 + rotationY) * 0.26;
   });
 
   return (
@@ -430,16 +524,18 @@ function PlexusThreads({ progress, currentScene, nextScene, direction = 'next' }
 
 function PlexusThread({ points, progress, colorA, colorB, delay }) {
   const lineRef = useRef(null);
+  const audioDataRef = useRef(new Uint8Array(128));
 
   useFrame(({ clock }) => {
     if (!lineRef.current?.material) return;
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     const mat = lineRef.current.material;
     const pulse = 0.5 + Math.sin(clock.getElapsedTime() * 2.4 + delay * 6.0) * 0.5;
     const reveal = Math.max(0, Math.min((progress - delay) / 0.55, 1));
     const color = new Color(colorA).lerp(new Color(colorB), Math.max(0, Math.min((progress - 0.3) / 0.7, 1)));
     mat.color.copy(color);
-    mat.opacity = reveal * (0.16 + pulse * 0.12);
-    mat.dashOffset -= 0.015;
+    mat.opacity = reveal * (0.1 + pulse * 0.1 + audioBands.high * 0.18);
+    mat.dashOffset -= 0.015 + audioBands.mid * 0.04;
   });
 
   return (
@@ -502,6 +598,13 @@ export default function MemoryCorridorTransition({
 
         <CorridorCamera progress={progress} direction={direction} />
         <CorridorFog progress={progress} currentScene={currentScene} nextScene={nextScene} />
+        <CorridorParticles
+          currentScene={currentScene}
+          nextScene={nextScene}
+          progress={progress}
+          direction={direction}
+          profile="mist"
+        />
         <MemoryGhostShell
           scene={currentScene}
           progress={progress}
@@ -545,6 +648,7 @@ export default function MemoryCorridorTransition({
           nextScene={nextScene}
           progress={progress}
           direction={direction}
+          profile="core"
         />
       </Canvas>
     </div>
