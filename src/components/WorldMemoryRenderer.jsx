@@ -55,6 +55,36 @@ function resolveMemoryWorldPath(sceneId, assetPath) {
   return `memory/${sceneId}/${normalized}`;
 }
 
+function sampleGlobalAudioBands(targetArray) {
+  const analyser = window.globalAnalyser;
+  if (!analyser) {
+    return { low: 0, mid: 0, high: 0, energy: 0 };
+  }
+
+  analyser.getByteFrequencyData(targetArray);
+  const ranges = [
+    [0, 12],
+    [12, 42],
+    [42, 96],
+  ];
+
+  const values = ranges.map(([from, to]) => {
+    let sum = 0;
+    for (let index = from; index < Math.min(to, targetArray.length); index += 1) {
+      sum += targetArray[index];
+    }
+    const count = Math.max(1, Math.min(to, targetArray.length) - from);
+    return sum / count / 255;
+  });
+
+  return {
+    low: values[0],
+    mid: values[1],
+    high: values[2],
+    energy: (values[0] + values[1] + values[2]) / 3,
+  };
+}
+
 function createSuperSplatSettingsDataUrl({ position, target, fov }) {
   const settings = {
     background: { color: [0, 0, 0] },
@@ -288,11 +318,18 @@ function StandaloneWorldViewer({
 // ---------------------------------------------------------------------------
 const DREAM_VERT = /* glsl */ `
 uniform float uTime;
+uniform float uTravel;
+uniform float uAudioLow;
+uniform float uAudioMid;
+uniform float uAudioHigh;
+uniform float uMouseActivity;
+uniform vec2 uPointer;
 attribute float aPhase;
 attribute float aSpeed;
 attribute float aScale;
 varying float vAlpha;
 varying float vScale;
+varying float vReveal;
 
 void main() {
   vec3 pos = position;
@@ -302,19 +339,28 @@ void main() {
   pos.x += sin(t + aPhase * 6.2831) * 0.3;
   pos.y += cos(t * 0.7 + aPhase * 3.1416) * 0.25;
   pos.z += sin(t * 0.5 + aPhase * 1.5708) * 0.15;
+  pos.z += uTravel * (1.55 + aScale * 0.55);
+  pos.y += sin(t * 1.6 + aPhase * 9.0) * uAudioLow * 0.55;
+  pos.x += cos(t * 1.3 + aPhase * 7.0) * uAudioMid * 0.42;
+  pos.z += sin(t * 2.2 + aPhase * 11.0) * uAudioHigh * 0.35;
 
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+  vec4 clipPos = projectionMatrix * mvPos;
+  vec2 ndc = clipPos.xy / max(clipPos.w, 0.0001);
+  float cursorDist = distance(ndc, uPointer);
+  float cursorReveal = smoothstep(0.92, 0.0, cursorDist) * uMouseActivity;
 
   // Size attenuation — closer particles are larger
   float sizeFactor = aScale * (120.0 / max(-mvPos.z, 0.8));
-  gl_PointSize = clamp(sizeFactor, 0.5, 12.0);
+  gl_PointSize = clamp(sizeFactor * (1.0 + uAudioHigh * 0.9 + cursorReveal * 1.1 + uTravel * 0.55), 0.5, 16.5);
 
   // Depth-based alpha: farther = dimmer
   float dist = length(mvPos.xyz);
-  vAlpha = smoothstep(25.0, 2.0, dist) * (0.3 + aPhase * 0.5);
+  vAlpha = smoothstep(25.0, 2.0, dist) * (0.3 + aPhase * 0.5) * (1.0 + uAudioMid * 0.55 + cursorReveal * 1.2);
+  vReveal = cursorReveal;
   vScale = aScale;
 
-  gl_Position = projectionMatrix * mvPos;
+  gl_Position = clipPos;
 }
 `;
 
@@ -323,6 +369,7 @@ uniform vec3 uColor;
 uniform float uOpacity;
 varying float vAlpha;
 varying float vScale;
+varying float vReveal;
 
 void main() {
   // Soft circular point sprite
@@ -330,14 +377,28 @@ void main() {
   float circle = 1.0 - smoothstep(0.3, 1.0, d);
   if (circle < 0.01) discard;
 
-  gl_FragColor = vec4(uColor, circle * vAlpha * uOpacity);
+  vec3 color = mix(uColor, vec3(0.82, 0.9, 1.0), clamp(vReveal * 0.9, 0.0, 1.0));
+  gl_FragColor = vec4(color, circle * vAlpha * uOpacity);
 }
 `;
 
-function DreamParticles({ count = 8000, radius = 15.0, color = '#FFE4B5' }) {
+function DreamParticles({
+  count = 8000,
+  radius = 15.0,
+  color = '#FFE4B5',
+  travelProgress = 0,
+  pointer = { x: 0, y: 0, activity: 0 },
+}) {
   const meshRef = useRef();
+  const audioDataRef = useRef(new Uint8Array(128));
   const uniformsRef = useRef({
     uTime: { value: 0 },
+    uTravel: { value: 0 },
+    uAudioLow: { value: 0 },
+    uAudioMid: { value: 0 },
+    uAudioHigh: { value: 0 },
+    uMouseActivity: { value: 0 },
+    uPointer: { value: new THREE.Vector2(0, 0) },
     uColor: { value: new THREE.Color(color) },
     uOpacity: { value: 0.6 },
   });
@@ -382,7 +443,37 @@ function DreamParticles({ count = 8000, radius = 15.0, color = '#FFE4B5' }) {
   }, [count, radius, color]);
 
   useFrame(({ clock }) => {
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     uniformsRef.current.uTime.value = clock.getElapsedTime();
+    uniformsRef.current.uTravel.value = THREE.MathUtils.lerp(
+      uniformsRef.current.uTravel.value,
+      travelProgress,
+      0.08,
+    );
+    uniformsRef.current.uAudioLow.value = THREE.MathUtils.lerp(
+      uniformsRef.current.uAudioLow.value,
+      audioBands.low,
+      0.14,
+    );
+    uniformsRef.current.uAudioMid.value = THREE.MathUtils.lerp(
+      uniformsRef.current.uAudioMid.value,
+      audioBands.mid,
+      0.14,
+    );
+    uniformsRef.current.uAudioHigh.value = THREE.MathUtils.lerp(
+      uniformsRef.current.uAudioHigh.value,
+      audioBands.high,
+      0.14,
+    );
+    uniformsRef.current.uMouseActivity.value = THREE.MathUtils.lerp(
+      uniformsRef.current.uMouseActivity.value,
+      pointer.activity,
+      0.16,
+    );
+    uniformsRef.current.uPointer.value.lerp(
+      new THREE.Vector2(pointer.x, pointer.y),
+      0.16,
+    );
   });
 
   useEffect(() => {
@@ -393,6 +484,181 @@ function DreamParticles({ count = 8000, radius = 15.0, color = '#FFE4B5' }) {
   }, [geometry, material]);
 
   return <points ref={meshRef} geometry={geometry} material={material} />;
+}
+
+function ArchiveWorldController({
+  target = [0, 0, 0],
+  startPosition = [0, 0, 5],
+  fov = 50,
+  travelProgress = 0,
+  pointer = { x: 0, y: 0, activity: 0 },
+  direction = 'next',
+}) {
+  const { camera } = useThree();
+  const targetVector = useMemo(() => new THREE.Vector3(...target), [target]);
+  const startVector = useMemo(() => new THREE.Vector3(...startPosition), [startPosition]);
+  const lookDirection = useMemo(
+    () => targetVector.clone().sub(startVector).normalize(),
+    [startVector, targetVector],
+  );
+  const upVector = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+  const rightVector = useMemo(
+    () => new THREE.Vector3().crossVectors(lookDirection, upVector).normalize(),
+    [lookDirection, upVector],
+  );
+  const cameraDistance = useMemo(
+    () => Math.max(startVector.distanceTo(targetVector), 2),
+    [startVector, targetVector],
+  );
+  const audioDataRef = useRef(new Uint8Array(128));
+
+  useFrame(({ clock }) => {
+    const easedTravel = THREE.MathUtils.smoothstep(travelProgress, 0, 1);
+    const directionSign = direction === 'previous' ? -0.35 : 1;
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
+    const time = clock.getElapsedTime();
+    const basePosition = startVector.clone().add(
+      lookDirection.clone().multiplyScalar(cameraDistance * 1.28 * easedTravel * directionSign),
+    );
+    const pointerOffset = rightVector.clone().multiplyScalar(pointer.x * (0.72 + easedTravel * 0.78));
+    pointerOffset.add(upVector.clone().multiplyScalar(pointer.y * (0.38 + pointer.activity * 0.35)));
+    basePosition.add(pointerOffset);
+    basePosition.y += Math.sin(time * 0.35) * 0.08 + audioBands.low * 0.24;
+    basePosition.z += audioBands.mid * 0.3 + Math.sin(time * 0.82 + easedTravel * 4.0) * 0.12;
+
+    camera.position.lerp(basePosition, 0.08);
+
+    const lookTarget = targetVector.clone()
+      .add(rightVector.clone().multiplyScalar(pointer.x * 0.45))
+      .add(upVector.clone().multiplyScalar(pointer.y * 0.24))
+      .add(lookDirection.clone().multiplyScalar(easedTravel * 1.2));
+
+    camera.lookAt(lookTarget);
+    camera.fov = THREE.MathUtils.lerp(camera.fov, fov - easedTravel * 10 - audioBands.high * 4.5, 0.08);
+    camera.updateProjectionMatrix();
+  });
+
+  return null;
+}
+
+function SynapseField({
+  pointer = { x: 0, y: 0, activity: 0 },
+  travelProgress = 0,
+}) {
+  const groupRef = useRef(null);
+  const lineRef = useRef(null);
+  const pointRef = useRef(null);
+  const audioDataRef = useRef(new Uint8Array(128));
+
+  const data = useMemo(() => {
+    const nodeCount = 18;
+    const positions = new Float32Array(nodeCount * 3);
+    const linePositions = [];
+
+    for (let index = 0; index < nodeCount; index += 1) {
+      positions[index * 3] = (Math.random() - 0.5) * 3.2;
+      positions[index * 3 + 1] = (Math.random() - 0.5) * 2.1;
+      positions[index * 3 + 2] = -Math.random() * 1.8;
+    }
+
+    for (let index = 0; index < nodeCount; index += 1) {
+      const next = (index + 1) % nodeCount;
+      linePositions.push(
+        positions[index * 3],
+        positions[index * 3 + 1],
+        positions[index * 3 + 2],
+        positions[next * 3],
+        positions[next * 3 + 1],
+        positions[next * 3 + 2],
+      );
+      if (index % 3 === 0) {
+        const skip = (index + 5) % nodeCount;
+        linePositions.push(
+          positions[index * 3],
+          positions[index * 3 + 1],
+          positions[index * 3 + 2],
+          positions[skip * 3],
+          positions[skip * 3 + 1],
+          positions[skip * 3 + 2],
+        );
+      }
+    }
+
+    const nodeGeometry = new THREE.BufferGeometry();
+    nodeGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+
+    return { nodeGeometry, lineGeometry };
+  }, []);
+
+  useFrame(({ clock }) => {
+    const audioBands = sampleGlobalAudioBands(audioDataRef.current);
+    const reveal = THREE.MathUtils.clamp(
+      pointer.activity * 1.05 + Math.max(0, travelProgress - 0.15) * 0.35 + audioBands.high * 0.28,
+      0,
+      1,
+    );
+    const drift = clock.getElapsedTime() * 0.08;
+    if (groupRef.current) {
+      groupRef.current.position.x = THREE.MathUtils.lerp(
+        groupRef.current.position.x,
+        pointer.x * 2.6,
+        0.14,
+      );
+      groupRef.current.position.y = THREE.MathUtils.lerp(
+        groupRef.current.position.y,
+        pointer.y * 1.6,
+        0.14,
+      );
+      groupRef.current.position.z = THREE.MathUtils.lerp(
+        groupRef.current.position.z,
+        -2.4 - travelProgress * 1.6,
+        0.08,
+      );
+    }
+
+    if (lineRef.current) {
+      lineRef.current.rotation.y = drift + pointer.x * 0.14;
+      lineRef.current.rotation.x = pointer.y * 0.08;
+      lineRef.current.material.opacity = reveal * 0.34;
+      lineRef.current.material.color.setRGB(
+        0.42 + audioBands.high * 0.22,
+        0.62 + pointer.activity * 0.26,
+        1,
+      );
+    }
+
+    if (pointRef.current) {
+      pointRef.current.rotation.y = -drift * 1.15;
+      pointRef.current.material.opacity = reveal * 0.95;
+      pointRef.current.material.size = 0.08 + reveal * 0.11 + audioBands.high * 0.08;
+    }
+  });
+
+  useEffect(() => () => {
+    data.nodeGeometry.dispose();
+    data.lineGeometry.dispose();
+  }, [data]);
+
+  return (
+    <group ref={groupRef} position={[0, 0.2, -2.4]}>
+      <lineSegments ref={lineRef} geometry={data.lineGeometry}>
+        <lineBasicMaterial transparent opacity={0} color="#79c7ff" depthWrite={false} toneMapped={false} blending={THREE.AdditiveBlending} />
+      </lineSegments>
+      <points ref={pointRef} geometry={data.nodeGeometry}>
+        <pointsMaterial
+          transparent
+          opacity={0}
+          color="#e6f4ff"
+          size={0.1}
+          sizeAttenuation
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </points>
+    </group>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -560,6 +826,11 @@ function WorldScene({
   cameraTarget,
   cameraPosition,
   worldTransform,
+  enablePostProcessing = true,
+  archiveMode = false,
+  archiveTravelProgress = 0,
+  archivePointer = { x: 0, y: 0, activity: 0 },
+  travelDirection = 'next',
 }) {
   const isFullTier = tier === 'full';
   const hasFlightPath = !!scene.flightPath;
@@ -591,7 +862,16 @@ function WorldScene({
         count={dreamCount}
         radius={isFullTier ? 18.0 : 12.0}
         color="#FFE4B5"
+        travelProgress={archiveTravelProgress}
+        pointer={archivePointer}
       />
+
+      {archiveMode && (
+        <SynapseField
+          pointer={archivePointer}
+          travelProgress={archiveTravelProgress}
+        />
+      )}
 
       {/* Layer 3: Atmosphere */}
       <WorldAtmosphere
@@ -600,7 +880,16 @@ function WorldScene({
       />
 
       {/* Layer 4: Camera */}
-      {hasRealWorld ? (
+      {hasRealWorld && archiveMode ? (
+        <ArchiveWorldController
+          target={cameraTarget}
+          startPosition={cameraPosition}
+          fov={scene.flightPath?.fovRange?.[0] ?? 50}
+          travelProgress={archiveTravelProgress}
+          pointer={archivePointer}
+          direction={travelDirection}
+        />
+      ) : hasRealWorld ? (
         <WorldExploreControls
           target={cameraTarget}
           startPosition={cameraPosition}
@@ -650,6 +939,10 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     directAccess,
     onProgress,
     enablePostProcessing = true,
+    archiveMode = false,
+    archiveTravelProgress = 0,
+    archivePointer = { x: 0, y: 0, activity: 0 },
+    travelDirection = 'next',
   },
   ref,
 ) {
@@ -825,7 +1118,16 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             count={isFullTier ? 6000 : 3000}
             radius={isFullTier ? 15.0 : 10.0}
             color="#FFE4B5"
+            travelProgress={archiveTravelProgress}
+            pointer={archivePointer}
           />
+
+          {archiveMode && (
+            <SynapseField
+              pointer={archivePointer}
+              travelProgress={archiveTravelProgress}
+            />
+          )}
 
           {/* Layer 3: Atmosphere fog */}
           <WorldAtmosphere
@@ -834,10 +1136,21 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           />
 
           {/* Layer 4: Camera controls */}
-          <WorldExploreControls
-            target={camTarget}
-            startPosition={camPos}
-          />
+          {archiveMode ? (
+            <ArchiveWorldController
+              target={camTarget}
+              startPosition={camPos}
+              fov={camFov}
+              travelProgress={archiveTravelProgress}
+              pointer={archivePointer}
+              direction={travelDirection}
+            />
+          ) : (
+            <WorldExploreControls
+              target={camTarget}
+              startPosition={camPos}
+            />
+          )}
 
           {/* Layer 5: Post-processing (full tier) */}
           {isFullTier && enablePostProcessing && <WorldPostProcessing />}
@@ -880,7 +1193,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               pointerEvents: 'none',
             }}
           >
-            Drag to orbit / Scroll to zoom
+            {archiveMode ? 'Scroll to drift deeper / Move cursor to wake threads' : 'Drag to orbit / Scroll to zoom'}
           </div>
         )}
 
@@ -922,6 +1235,11 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           cameraTarget={camTarget}
           cameraPosition={camPos}
           worldTransform={normalizeWorldTransform(meta?.world?.transform)}
+          enablePostProcessing={enablePostProcessing}
+          archiveMode={archiveMode}
+          archiveTravelProgress={archiveTravelProgress}
+          archivePointer={archivePointer}
+          travelDirection={travelDirection}
         />
       </Canvas>
 

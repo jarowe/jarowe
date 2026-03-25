@@ -19,10 +19,10 @@ import './MemoryArchiveScene.css';
 const BASE = import.meta.env.BASE_URL;
 const ARRIVAL_DURATION_MS = 1800;
 const CORRIDOR_DURATION_MS = 1800;
-const TRAVEL_THRESHOLD = 1400;
-const TRAVEL_DECAY = 0.018;
+const TRAVEL_THRESHOLD = 420;
+const TRAVEL_DECAY = 0.006;
+const WHEEL_DELTA_CAP = 420;
 const TRAVEL_SESSION_KEY = 'jarowe_archive_travel';
-const TRAVEL_HOLD_DURATION_MS = 1100;
 
 function resolveAsset(path) {
   if (!path) return null;
@@ -104,12 +104,11 @@ export default function MemoryArchiveScene() {
   const [pendingSceneId, setPendingSceneId] = useState(null);
   const [pendingDirection, setPendingDirection] = useState('next');
   const [sceneProgress, setSceneProgress] = useState(0);
-  const [isHoldingTravel, setIsHoldingTravel] = useState(false);
+  const [pointerState, setPointerState] = useState({ x: 0, y: 0, activity: 0 });
   const arrivalTimerRef = useRef(null);
   const corridorTimerRef = useRef(null);
   const corridorStartRef = useRef(0);
-  const holdFrameRef = useRef(0);
-  const holdStartRef = useRef(0);
+  const pointerDecayRef = useRef(0);
 
   useEffect(() => {
     setTier(getGpuTier());
@@ -189,7 +188,7 @@ export default function MemoryArchiveScene() {
   }, [activeSceneId]);
 
   useEffect(() => {
-    if (phase !== 'depart' || isHoldingTravel) return undefined;
+    if (phase !== 'depart') return undefined;
 
     const decayTimer = window.setInterval(() => {
       setTravelCharge((value) => {
@@ -203,7 +202,7 @@ export default function MemoryArchiveScene() {
     }, 16);
 
     return () => window.clearInterval(decayTimer);
-  }, [isHoldingTravel, phase]);
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'corridor') return undefined;
@@ -227,7 +226,7 @@ export default function MemoryArchiveScene() {
   useEffect(() => () => {
     clearTimeout(arrivalTimerRef.current);
     window.clearTimeout(corridorTimerRef.current);
-    cancelAnimationFrame(holdFrameRef.current);
+    cancelAnimationFrame(pointerDecayRef.current);
   }, []);
 
   const scene = getSceneById(activeSceneId);
@@ -249,8 +248,6 @@ export default function MemoryArchiveScene() {
     if (!targetSceneId || phase === 'corridor') return;
     clearTimeout(arrivalTimerRef.current);
     window.clearTimeout(corridorTimerRef.current);
-    cancelAnimationFrame(holdFrameRef.current);
-    setIsHoldingTravel(false);
     writeArchiveTravel({
       sourceSceneId: activeSceneId,
       targetSceneId,
@@ -267,14 +264,12 @@ export default function MemoryArchiveScene() {
     }, CORRIDOR_DURATION_MS);
   }, [activeSceneId, navigate, phase]);
 
-  const stopTravelHold = useCallback(() => {
-    cancelAnimationFrame(holdFrameRef.current);
-    holdFrameRef.current = 0;
-    setIsHoldingTravel(false);
-  }, []);
-
   const handleTravelWheel = useCallback((event) => {
     if (phase === 'corridor') return;
+    const target = event.target;
+    if (target instanceof HTMLElement && target.closest('a, button, input, textarea, [role="slider"]')) {
+      return;
+    }
 
     const direction = event.deltaY >= 0 ? 'next' : 'previous';
     const targetSceneId = getPreferredNeighborSceneId(activeSceneId, direction);
@@ -283,9 +278,10 @@ export default function MemoryArchiveScene() {
     event.stopPropagation();
     beginTravel(targetSceneId, direction);
 
-    const normalizedDelta = Math.min(Math.abs(event.deltaY), 240) / TRAVEL_THRESHOLD;
+    const normalizedDelta = Math.min(Math.abs(event.deltaY), WHEEL_DELTA_CAP) / TRAVEL_THRESHOLD;
     setTravelCharge((value) => {
-      const nextValue = Math.min(1, value + normalizedDelta);
+      const seedValue = pendingSceneId && pendingDirection !== direction ? normalizedDelta * 0.85 : value;
+      const nextValue = Math.min(1, seedValue + normalizedDelta);
       if (nextValue >= 1 && targetSceneId) {
         window.setTimeout(() => {
           startCorridorTravel(targetSceneId, direction);
@@ -293,77 +289,58 @@ export default function MemoryArchiveScene() {
       }
       return nextValue;
     });
-  }, [activeSceneId, beginTravel, phase, startCorridorTravel]);
+  }, [activeSceneId, beginTravel, pendingDirection, pendingSceneId, phase, startCorridorTravel]);
 
-  const beginTravelHold = useCallback((targetSceneId, direction) => {
-    if (!targetSceneId || phase === 'corridor') return;
-    beginTravel(targetSceneId, direction);
-    cancelAnimationFrame(holdFrameRef.current);
-    holdStartRef.current = performance.now();
-    setIsHoldingTravel(true);
+  const handleTravelClick = useCallback(() => {
+    if (!nextScene || phase === 'corridor') return;
+    beginTravel(nextScene.id, 'next');
+    startCorridorTravel(nextScene.id, 'next');
+  }, [beginTravel, nextScene, phase, startCorridorTravel]);
 
-    const tick = (now) => {
-      const nextValue = Math.min((now - holdStartRef.current) / TRAVEL_HOLD_DURATION_MS, 1);
-      setTravelCharge(nextValue);
+  const handleArchivePointerMove = useCallback((event) => {
+    const x = (event.clientX / window.innerWidth) * 2 - 1;
+    const y = -((event.clientY / window.innerHeight) * 2 - 1);
+    setPointerState({ x, y, activity: 1 });
+  }, []);
 
-      if (nextValue >= 1) {
-        holdFrameRef.current = 0;
-        startCorridorTravel(targetSceneId, direction);
-        return;
-      }
+  const handleArchivePointerLeave = useCallback(() => {
+    setPointerState((current) => ({ ...current, activity: 0 }));
+  }, []);
 
-      holdFrameRef.current = requestAnimationFrame(tick);
+  useEffect(() => {
+    const tick = () => {
+      setPointerState((current) => {
+        if (current.activity <= 0.02) {
+          return current.activity === 0 ? current : { ...current, activity: 0 };
+        }
+        return { ...current, activity: Math.max(0, current.activity - 0.012) };
+      });
+      pointerDecayRef.current = requestAnimationFrame(tick);
     };
 
-    holdFrameRef.current = requestAnimationFrame(tick);
-  }, [beginTravel, phase, startCorridorTravel]);
+    pointerDecayRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(pointerDecayRef.current);
+  }, []);
 
   const nextThemes = nextScene?.archiveNode?.themes?.slice(0, 3) ?? [];
   const nextPreviewUrl = nextScene ? resolveAsset(nextScene.previewImage || nextScene.photoUrl) : null;
-  const travelButtonLabel = phase === 'corridor'
-    ? 'Crossing the thread'
-    : isHoldingTravel
-      ? 'Keep holding'
-      : phase === 'depart'
-        ? 'Hold to follow'
-        : 'Press & hold';
   const travelStatus = phase === 'corridor'
     ? `thread ${Math.round(corridorProgress * 100)}% formed`
-    : isHoldingTravel
-      ? `filament ${Math.round(travelCharge * 100)}% charged`
-      : phase === 'depart'
-        ? `release to stay or keep holding`
-        : `memory ${Math.round(sceneProgress * 100)}% resolved`;
-
-  useEffect(() => {
-    if (phase === 'corridor' || !nextScene) return undefined;
-
-    const handleKeyDown = (event) => {
-      if (event.repeat || (event.code !== 'Space' && event.code !== 'Enter')) return;
-      const target = event.target;
-      if (target instanceof HTMLElement) {
-        const tagName = target.tagName.toLowerCase();
-        if (tagName === 'input' || tagName === 'textarea' || target.isContentEditable) return;
-      }
-      event.preventDefault();
-      beginTravelHold(nextScene.id, 'next');
-    };
-
-    const handleKeyUp = (event) => {
-      if (event.code !== 'Space' && event.code !== 'Enter') return;
-      stopTravelHold();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [beginTravelHold, nextScene, phase, stopTravelHold]);
+    : phase === 'depart'
+      ? `drift ${(travelCharge * 100).toFixed(0)}% toward ${nextScene?.title ?? 'the next memory'}`
+      : travelCharge > 0.02
+        ? `filament ${(travelCharge * 100).toFixed(0)}% awake`
+        : sceneProgress > 0.01
+          ? `memory ${(sceneProgress * 100).toFixed(0)}% resolved`
+          : 'archive listening';
 
   return (
-    <div className="memory-archive">
+    <div
+      className="memory-archive"
+      onWheelCapture={handleTravelWheel}
+      onPointerMove={handleArchivePointerMove}
+      onPointerLeave={handleArchivePointerLeave}
+    >
       <div className="memory-archive__world">
         {tier === null ? (
           <ArchiveFallback scene={scene} />
@@ -378,6 +355,10 @@ export default function MemoryArchiveScene() {
               onAwakeningComplete={() => undefined}
               onRecessionComplete={() => undefined}
               onProgress={setSceneProgress}
+              archiveMode
+              archiveTravelProgress={phase === 'corridor' ? 1 : travelCharge}
+              archivePointer={pointerState}
+              travelDirection={pendingDirection}
             />
           </Suspense>
         )}
@@ -428,7 +409,7 @@ export default function MemoryArchiveScene() {
             {phase === 'corridor'
               ? 'Crossing the thread'
               : nextScene
-                ? 'Press and hold to follow the next filament'
+                ? 'Scroll to drift deeper. Move your cursor to wake the hidden threads.'
                 : pendingDirection === 'previous'
                   ? 'Look back through the previous filament'
                   : 'No linked memories yet'}
@@ -460,10 +441,7 @@ export default function MemoryArchiveScene() {
           />
         </div>
 
-        <div
-          className="memory-archive__travel-actions"
-          onWheel={handleTravelWheel}
-        >
+        <div className="memory-archive__travel-actions">
           {nextScene && (
             <div className="memory-archive__travel-destination-card">
               <div
@@ -488,14 +466,13 @@ export default function MemoryArchiveScene() {
                 type="button"
                 className="memory-archive__travel-button"
                 style={{ '--travel-progress': `${Math.round((phase === 'corridor' ? corridorProgress : travelCharge) * 360)}deg` }}
-                onPointerDown={() => beginTravelHold(nextScene.id, 'next')}
-                onPointerUp={stopTravelHold}
-                onPointerLeave={stopTravelHold}
-                onPointerCancel={stopTravelHold}
+                onClick={handleTravelClick}
               >
                 <span className="memory-archive__travel-button-inner">
-                  <span className="memory-archive__travel-button-label">{travelButtonLabel}</span>
-                  <span className="memory-archive__travel-button-caption">or scroll this dock</span>
+                  <span className="memory-archive__travel-button-label">
+                    {phase === 'corridor' ? 'Crossing the thread' : 'Skip ahead'}
+                  </span>
+                  <span className="memory-archive__travel-button-caption">secondary control</span>
                 </span>
               </button>
             </div>
