@@ -20,14 +20,15 @@
     "generationMode": "multi-view-cluster",
     "expansion": {
       "strategy": "cluster-fusion",
-      "stage": "bundle-prepared",
+      "stage": "cluster-composite",
       "bundle": "world/view-bundle.json",
       "sourceViewCount": 5,
       "generatedViewCount": 0,
       "totalViewCount": 5,
       "anchorGenerator": "sharp",
       "viewSynthesizer": null,
-      "fusionEngine": null
+      "fusionEngine": "cluster-composite",
+      "compositeViewCount": 4
     }
   },
   "world": {
@@ -58,10 +59,10 @@
       ]
     },
     "provenance": {
-      "tier": "existing-world",
+      "tier": "cluster-composite",
       "anchorGenerator": "sharp",
-      "reconstruction": "registered-existing",
-      "viewCount": 5
+      "reconstruction": "synthetic-cluster-composite",
+      "viewCount": 4
     }
   },
   "fallback": {

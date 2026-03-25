@@ -43,6 +43,7 @@ const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const MAX_RUNTIME_SPLATS = 300000;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const DEFAULT_CLUSTER_VIEW_LIMIT = 4;
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -277,6 +278,49 @@ const PLY_TYPE_SIZES = {
   float64: 8,
 };
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function rotateAroundY([x, y, z], angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return [
+    x * cos + z * sin,
+    y,
+    -x * sin + z * cos,
+  ];
+}
+
+function createClusterViewTransforms(count) {
+  const spread = count <= 1 ? 0 : Math.min(Math.PI / 2.8, 0.34 * (count - 1));
+  return Array.from({ length: count }, (_, index) => {
+    if (index === 0) {
+      return {
+        yaw: 0,
+        scale: 1,
+        offset: [0, 0, 0],
+      };
+    }
+
+    const normalized = count === 1 ? 0 : (index / (count - 1)) * 2 - 1;
+    const yaw = normalized * spread;
+    const sideRadius = 0.45 + Math.abs(normalized) * 0.18;
+    const depthOffset = 0.12 + Math.abs(normalized) * 0.14;
+    const lift = ((index % 2 === 0 ? 1 : -1) * 0.08) + Math.abs(normalized) * 0.05;
+
+    return {
+      yaw,
+      scale: 0.94 + (1 - Math.abs(normalized)) * 0.05,
+      offset: [
+        Math.sin(yaw) * sideRadius,
+        lift,
+        Math.cos(yaw) * depthOffset,
+      ],
+    };
+  });
+}
+
 function parseBinaryPlyHeader(buffer) {
   const endHeaderLf = buffer.indexOf(Buffer.from('end_header\n'));
   const endHeaderCrLf = buffer.indexOf(Buffer.from('end_header\r\n'));
@@ -312,7 +356,7 @@ function parseBinaryPlyHeader(buffer) {
         throw new Error('List properties are not supported in runtime PLY preview generation.');
       }
       const type = tokens[1];
-      currentElement.properties.push({ type, size: PLY_TYPE_SIZES[type] });
+      currentElement.properties.push({ name: tokens[2], type, size: PLY_TYPE_SIZES[type] });
     }
   }
 
@@ -344,6 +388,15 @@ function parseBinaryPlyHeader(buffer) {
     vertexCount: elements[vertexElementIndex].count,
     vertexOffset,
   };
+}
+
+function buildVertexPropertyOffsets(properties) {
+  let offset = 0;
+  return properties.reduce((accumulator, property) => {
+    accumulator[property.name] = offset;
+    offset += property.size;
+    return accumulator;
+  }, {});
 }
 
 function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX_RUNTIME_SPLATS) {
@@ -456,6 +509,204 @@ function prepareRuntimeAssets(worldDir, assets) {
   };
 }
 
+function runSharpPrediction(inputPhoto, outputDir, sceneIdLabel = 'memory-world') {
+  const sharpCommand = process.env.SHARP_CLI || (existsSync(LOCAL_SHARP_CLI) ? LOCAL_SHARP_CLI : 'sharp');
+  const sharpDevice = process.env.SHARP_DEVICE || 'cpu';
+  const checkpointPath = process.env.SHARP_CHECKPOINT || (existsSync(LOCAL_SHARP_CHECKPOINT) ? LOCAL_SHARP_CHECKPOINT : '');
+  const tempInputDir = join(tmpdir(), `jarowe-sharp-${sceneIdLabel}-${Date.now()}`);
+  const tempInputPath = join(tempInputDir, `source${extname(inputPhoto) || '.png'}`);
+  mkdirSync(tempInputDir, { recursive: true });
+  copyFileSync(inputPhoto, tempInputPath);
+
+  const checkpointArg = checkpointPath ? ` -c "${checkpointPath}"` : '';
+  const command = `"${sharpCommand}" predict -i "${tempInputDir}" -o "${outputDir}" --device ${sharpDevice} --no-render${checkpointArg}`;
+
+  console.log(`\n[SHARP] Running: ${command}`);
+  console.log('[SHARP] First run may download weights and take a while.\n');
+
+  const result = runShellCommand(command);
+  rmSync(tempInputDir, { recursive: true, force: true });
+
+  if (result.stdout?.trim()) console.log(result.stdout.trim());
+  if (result.stderr?.trim()) console.log(result.stderr.trim());
+
+  if (result.status !== 0) {
+    throw new Error(
+      [
+        '[SHARP] Generation failed.',
+        `Command: ${command}`,
+        result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+        'Install SHARP from Apple\'s repo, ensure the CLI exists, or set SHARP_CLI to the full command path.',
+      ].join('\n'),
+    );
+  }
+}
+
+function generateSharpDraftAssets(inputPhoto, outputDir, sceneIdLabel) {
+  runSharpPrediction(inputPhoto, outputDir, sceneIdLabel);
+  const assets = normalizeGeneratedWorldAssets(outputDir);
+  if (!assets.splat) {
+    throw new Error('[SHARP] No .ply or .spz file was produced in the world directory.');
+  }
+  return prepareRuntimeAssets(outputDir, assets);
+}
+
+function mergeClusterDraftPlys(inputs, outputPath) {
+  if (!inputs.length) {
+    throw new Error('[Expanded] No draft PLY inputs supplied for cluster composite.');
+  }
+
+  const buffers = inputs.map(input => {
+    const buffer = readFileSync(input.path);
+    const parsed = parseBinaryPlyHeader(buffer);
+    return {
+      ...input,
+      buffer,
+      parsed,
+    };
+  });
+
+  const anchor = buffers[0];
+  const vertexOffsets = buildVertexPropertyOffsets(
+    anchor.parsed.elements[anchor.parsed.vertexElementIndex].properties,
+  );
+  const xOffset = vertexOffsets.x;
+  const yOffset = vertexOffsets.y;
+  const zOffset = vertexOffsets.z;
+
+  if (xOffset == null || yOffset == null || zOffset == null) {
+    throw new Error('[Expanded] Cluster composite requires x/y/z properties in the draft PLY.');
+  }
+
+  const mergedVertexBuffers = [];
+  let totalVertexCount = 0;
+
+  for (const input of buffers) {
+    const { buffer, parsed, transform } = input;
+    if (parsed.vertexStride !== anchor.parsed.vertexStride) {
+      throw new Error('[Expanded] Draft PLY schemas do not match; cannot merge cluster views.');
+    }
+
+    const transformedVertices = Buffer.allocUnsafe(parsed.vertexCount * parsed.vertexStride);
+    const scale = transform?.scale ?? 1;
+    const offset = transform?.offset ?? [0, 0, 0];
+    const yaw = transform?.yaw ?? 0;
+
+    for (let index = 0; index < parsed.vertexCount; index += 1) {
+      const sourceStart = parsed.vertexOffset + index * parsed.vertexStride;
+      const destStart = index * parsed.vertexStride;
+      buffer.copy(transformedVertices, destStart, sourceStart, sourceStart + parsed.vertexStride);
+
+      const position = [
+        buffer.readFloatLE(sourceStart + xOffset) * scale,
+        buffer.readFloatLE(sourceStart + yOffset) * scale,
+        buffer.readFloatLE(sourceStart + zOffset) * scale,
+      ];
+      const rotated = rotateAroundY(position, yaw);
+
+      transformedVertices.writeFloatLE(rotated[0] + offset[0], destStart + xOffset);
+      transformedVertices.writeFloatLE(rotated[1] + offset[1], destStart + yOffset);
+      transformedVertices.writeFloatLE(rotated[2] + offset[2], destStart + zOffset);
+    }
+
+    mergedVertexBuffers.push(transformedVertices);
+    totalVertexCount += parsed.vertexCount;
+  }
+
+  const mergedHeader = anchor.parsed.headerText.replace(
+    /element vertex\s+\d+/,
+    `element vertex ${totalVertexCount}`,
+  );
+  const anchorRestOffset = anchor.parsed.vertexOffset + anchor.parsed.vertexCount * anchor.parsed.vertexStride;
+  const outputBuffer = Buffer.concat([
+    Buffer.from(mergedHeader, 'ascii'),
+    ...mergedVertexBuffers,
+    anchor.buffer.subarray(anchorRestOffset),
+  ]);
+
+  writeFileSync(outputPath, outputBuffer);
+  return totalVertexCount;
+}
+
+function resolveAnchorDraftPath(worldDir) {
+  if (existsSync(join(worldDir, 'scene.runtime.ply'))) {
+    return join(worldDir, 'scene.runtime.ply');
+  }
+  if (existsSync(join(worldDir, 'scene.ply'))) {
+    return join(worldDir, 'scene.ply');
+  }
+  return null;
+}
+
+async function buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle) {
+  const configuredMaxViews = Number.parseInt(
+    process.env.EXPANDED_CLUSTER_MAX_VIEWS || `${DEFAULT_CLUSTER_VIEW_LIMIT}`,
+    10,
+  );
+  const maxViews = clamp(Number.isFinite(configuredMaxViews) ? configuredMaxViews : DEFAULT_CLUSTER_VIEW_LIMIT, 2, 6);
+  const selectedViews = bundle.sourceViews.slice(0, maxViews);
+  const transforms = createClusterViewTransforms(selectedViews.length);
+  const tempWorldDirs = [];
+  const plyInputs = [];
+
+  try {
+    for (let index = 0; index < selectedViews.length; index += 1) {
+      const view = selectedViews[index];
+      const transform = transforms[index];
+      let plyPath = null;
+
+      if (index === 0) {
+        plyPath = resolveAnchorDraftPath(worldDir);
+      }
+
+      if (!plyPath) {
+        const tempWorldDir = join(tmpdir(), `jarowe-cluster-${options.sceneId}-${index}-${Date.now()}`);
+        mkdirSync(tempWorldDir, { recursive: true });
+        tempWorldDirs.push(tempWorldDir);
+        const assets = generateSharpDraftAssets(view.absolutePath, tempWorldDir, `${options.sceneId}-cluster-${index}`);
+        plyPath = join(tempWorldDir, assets.splat.replace(/^world\//, ''));
+      }
+
+      plyInputs.push({
+        path: plyPath,
+        transform,
+      });
+    }
+
+    const compositePath = join(worldDir, 'scene.ply');
+    const compositeVertexCount = mergeClusterDraftPlys(plyInputs, compositePath);
+    const compositeAssets = normalizeGeneratedWorldAssets(worldDir);
+
+    return {
+      ...compositeAssets,
+      splatCount: compositeVertexCount,
+      generationMode: 'multi-view-cluster',
+      expansion: {
+        strategy: bundle.strategy,
+        stage: 'cluster-composite',
+        bundle: bundle.manifestRelativePath,
+        sourceViewCount: bundle.sourceViews.length,
+        generatedViewCount: bundle.generatedViews.length,
+        totalViewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+        anchorGenerator: 'sharp',
+        viewSynthesizer: process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND ? 'external-command' : null,
+        fusionEngine: 'cluster-composite',
+        compositeViewCount: selectedViews.length,
+      },
+      provenance: {
+        tier: 'cluster-composite',
+        anchorGenerator: 'sharp',
+        reconstruction: 'synthetic-cluster-composite',
+        viewCount: selectedViews.length,
+      },
+    };
+  } finally {
+    for (const tempWorldDir of tempWorldDirs) {
+      rmSync(tempWorldDir, { recursive: true, force: true });
+    }
+  }
+}
+
 function detectExistingAssets(worldDir) {
   const normalized = normalizeGeneratedWorldAssets(worldDir);
   return normalized.splat ? normalized : null;
@@ -502,38 +753,7 @@ const GENERATORS = {
     description: 'Apple SHARP single-image Gaussian splat generation',
     requirements: 'Python 3.10+, CUDA GPU, SHARP CLI installed (`pip install "sharp[f3d]"`)',
     async run(inputPhoto, worldDir, options) {
-      const sharpCommand = process.env.SHARP_CLI || (existsSync(LOCAL_SHARP_CLI) ? LOCAL_SHARP_CLI : 'sharp');
-      const sharpDevice = process.env.SHARP_DEVICE || 'cpu';
-      const checkpointPath = process.env.SHARP_CHECKPOINT || (existsSync(LOCAL_SHARP_CHECKPOINT) ? LOCAL_SHARP_CHECKPOINT : '');
-      const tempInputDir = join(tmpdir(), `jarowe-sharp-${options.sceneId}-${Date.now()}`);
-      const tempInputPath = join(tempInputDir, `source${extname(inputPhoto) || '.png'}`);
-      mkdirSync(tempInputDir, { recursive: true });
-      copyFileSync(inputPhoto, tempInputPath);
-
-      const checkpointArg = checkpointPath ? ` -c "${checkpointPath}"` : '';
-      const command = `"${sharpCommand}" predict -i "${tempInputDir}" -o "${worldDir}" --device ${sharpDevice} --no-render${checkpointArg}`;
-
-      console.log(`\n[SHARP] Running: ${command}`);
-      console.log('[SHARP] First run may download weights and take a while.\n');
-
-      const result = runShellCommand(command);
-      rmSync(tempInputDir, { recursive: true, force: true });
-
-      if (result.stdout?.trim()) console.log(result.stdout.trim());
-      if (result.stderr?.trim()) console.log(result.stderr.trim());
-
-      if (result.status !== 0) {
-        throw new Error(
-          [
-            '[SHARP] Generation failed.',
-            `Command: ${command}`,
-            result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
-            'Install SHARP from Apple\'s repo, ensure the CLI exists, or set SHARP_CLI to the full command path.',
-          ].join('\n'),
-        );
-      }
-
-      const assets = normalizeGeneratedWorldAssets(worldDir);
+      const assets = generateSharpDraftAssets(inputPhoto, worldDir, options.sceneId);
       if (!assets.splat) {
         throw new Error('[SHARP] No .ply or .spz file was produced in the world directory.');
       }
@@ -647,6 +867,14 @@ const GENERATORS = {
               viewCount: bundle.sourceViews.length + bundle.generatedViews.length,
             },
           };
+        }
+
+        if (
+          bundle.strategy === 'cluster-fusion' &&
+          meta.world?.provenance?.tier !== 'cluster-composite' &&
+          bundle.sourceViews.length > 1
+        ) {
+          return await buildClusterCompositeWorld(inputPhoto, worldDir, options, bundle);
         }
 
         if (existingAssets?.splat || existingAssets?.mesh) {
