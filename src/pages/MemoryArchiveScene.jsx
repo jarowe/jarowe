@@ -19,10 +19,11 @@ import './MemoryArchiveScene.css';
 const BASE = import.meta.env.BASE_URL;
 const ARRIVAL_DURATION_MS = 1800;
 const CORRIDOR_DURATION_MS = 1800;
-const TRAVEL_THRESHOLD = 420;
-const TRAVEL_DECAY = 0.006;
-const WHEEL_DELTA_CAP = 420;
+const TRAVEL_THRESHOLD = 1100;
+const TRAVEL_DECAY = 0.0035;
+const WHEEL_DELTA_CAP = 180;
 const TRAVEL_SESSION_KEY = 'jarowe_archive_travel';
+const WHEEL_BLOCK_SELECTOR = 'a, button, input, textarea, [role="slider"], .global-player';
 
 function resolveAsset(path) {
   if (!path) return null;
@@ -99,7 +100,8 @@ export default function MemoryArchiveScene() {
   const [activeSceneId, setActiveSceneId] = useState(initialSceneId);
   const [tier, setTier] = useState(null);
   const [phase, setPhase] = useState('arrive');
-  const [travelCharge, setTravelCharge] = useState(0);
+  const [travelDepth, setTravelDepth] = useState(0);
+  const [threadCharge, setThreadCharge] = useState(0);
   const [corridorProgress, setCorridorProgress] = useState(0);
   const [pendingSceneId, setPendingSceneId] = useState(null);
   const [pendingDirection, setPendingDirection] = useState('next');
@@ -109,6 +111,7 @@ export default function MemoryArchiveScene() {
   const corridorTimerRef = useRef(null);
   const corridorStartRef = useRef(0);
   const pointerDecayRef = useRef(0);
+  const lastTravelInputRef = useRef(0);
 
   useEffect(() => {
     setTier(getGpuTier());
@@ -150,7 +153,7 @@ export default function MemoryArchiveScene() {
     window.clearTimeout(corridorTimerRef.current);
     setPendingSceneId(persistedTravel.targetSceneId);
     setPendingDirection(persistedTravel.direction || 'next');
-    setTravelCharge(1);
+    setThreadCharge(1);
     setCorridorProgress(elapsed / CORRIDOR_DURATION_MS);
     setPhase('corridor');
     corridorStartRef.current = performance.now() - elapsed;
@@ -172,7 +175,8 @@ export default function MemoryArchiveScene() {
 
     window.clearTimeout(corridorTimerRef.current);
     setPhase('arrive');
-    setTravelCharge(0);
+    setTravelDepth(0);
+    setThreadCharge(0);
     setCorridorProgress(0);
     setPendingSceneId(null);
     setSceneProgress(0);
@@ -191,7 +195,8 @@ export default function MemoryArchiveScene() {
     if (phase !== 'depart') return undefined;
 
     const decayTimer = window.setInterval(() => {
-      setTravelCharge((value) => {
+      if (Date.now() - lastTravelInputRef.current < 240) return;
+      setThreadCharge((value) => {
         const nextValue = Math.max(0, value - TRAVEL_DECAY);
         if (nextValue === 0) {
           setPendingSceneId(null);
@@ -256,7 +261,7 @@ export default function MemoryArchiveScene() {
     });
     setPendingSceneId(targetSceneId);
     setPendingDirection(direction);
-    setTravelCharge(1);
+    setThreadCharge(1);
     setCorridorProgress(0);
     setPhase('corridor');
     corridorTimerRef.current = window.setTimeout(() => {
@@ -267,29 +272,86 @@ export default function MemoryArchiveScene() {
   const handleTravelWheel = useCallback((event) => {
     if (phase === 'corridor') return;
     const target = event.target;
-    if (target instanceof HTMLElement && target.closest('a, button, input, textarea, [role="slider"]')) {
+    if (target instanceof HTMLElement && target.closest(WHEEL_BLOCK_SELECTOR)) {
       return;
     }
 
-    const direction = event.deltaY >= 0 ? 'next' : 'previous';
-    const targetSceneId = getPreferredNeighborSceneId(activeSceneId, direction);
-    if (!targetSceneId) return;
-
-    event.stopPropagation();
-    beginTravel(targetSceneId, direction);
-
     const normalizedDelta = Math.min(Math.abs(event.deltaY), WHEEL_DELTA_CAP) / TRAVEL_THRESHOLD;
-    setTravelCharge((value) => {
-      const seedValue = pendingSceneId && pendingDirection !== direction ? normalizedDelta * 0.85 : value;
-      const nextValue = Math.min(1, seedValue + normalizedDelta);
-      if (nextValue >= 1 && targetSceneId) {
+    if (normalizedDelta <= 0.001) return;
+    lastTravelInputRef.current = Date.now();
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (event.deltaY >= 0) {
+      if (threadCharge > 0 && pendingDirection === 'previous') {
+        setThreadCharge((value) => Math.max(0, value - normalizedDelta * 1.1));
+        return;
+      }
+
+      if (travelDepth < 0.995) {
+        setPendingDirection('next');
+        setPendingSceneId(nextSceneId);
+        setThreadCharge(0);
+        setPhase((current) => (current === 'arrive' ? 'explore' : current));
+        setTravelDepth((value) => Math.min(1, value + normalizedDelta));
+        return;
+      }
+
+      if (!nextSceneId) return;
+      beginTravel(nextSceneId, 'next');
+      setPendingDirection('next');
+      setPendingSceneId(nextSceneId);
+      setPhase('depart');
+      setThreadCharge((value) => {
+        const nextValue = Math.min(1, value + normalizedDelta * 0.95);
+        if (nextValue >= 1) {
+          window.setTimeout(() => {
+            startCorridorTravel(nextSceneId, 'next');
+          }, 0);
+        }
+        return nextValue;
+      });
+      return;
+    }
+
+    if (threadCharge > 0 && pendingDirection === 'next') {
+      setThreadCharge((value) => Math.max(0, value - normalizedDelta * 1.1));
+      return;
+    }
+
+    if (travelDepth > 0.04) {
+      setThreadCharge(0);
+      setPendingSceneId(null);
+      setPendingDirection('next');
+      setPhase('explore');
+      setTravelDepth((value) => Math.max(0, value - normalizedDelta * 1.2));
+      return;
+    }
+
+    if (!previousSceneId) return;
+    beginTravel(previousSceneId, 'previous');
+    setPendingDirection('previous');
+    setPendingSceneId(previousSceneId);
+    setPhase('depart');
+    setThreadCharge((value) => {
+      const nextValue = Math.min(1, value + normalizedDelta * 0.95);
+      if (nextValue >= 1) {
         window.setTimeout(() => {
-          startCorridorTravel(targetSceneId, direction);
+          startCorridorTravel(previousSceneId, 'previous');
         }, 0);
       }
       return nextValue;
     });
-  }, [activeSceneId, beginTravel, pendingDirection, pendingSceneId, phase, startCorridorTravel]);
+  }, [
+    beginTravel,
+    nextSceneId,
+    pendingDirection,
+    phase,
+    previousSceneId,
+    startCorridorTravel,
+    threadCharge,
+    travelDepth,
+  ]);
 
   const handleTravelClick = useCallback(() => {
     if (!nextScene || phase === 'corridor') return;
@@ -322,22 +384,36 @@ export default function MemoryArchiveScene() {
     return () => cancelAnimationFrame(pointerDecayRef.current);
   }, []);
 
+  useEffect(() => {
+    const handleWindowWheel = (event) => {
+      handleTravelWheel(event);
+    };
+
+    window.addEventListener('wheel', handleWindowWheel, { capture: true, passive: false });
+    return () => {
+      window.removeEventListener('wheel', handleWindowWheel, { capture: true });
+    };
+  }, [handleTravelWheel]);
+
   const nextThemes = nextScene?.archiveNode?.themes?.slice(0, 3) ?? [];
   const nextPreviewUrl = nextScene ? resolveAsset(nextScene.previewImage || nextScene.photoUrl) : null;
   const travelStatus = phase === 'corridor'
     ? `thread ${Math.round(corridorProgress * 100)}% formed`
     : phase === 'depart'
-      ? `drift ${(travelCharge * 100).toFixed(0)}% toward ${nextScene?.title ?? 'the next memory'}`
-      : travelCharge > 0.02
-        ? `filament ${(travelCharge * 100).toFixed(0)}% awake`
-        : sceneProgress > 0.01
-          ? `memory ${(sceneProgress * 100).toFixed(0)}% resolved`
-          : 'archive listening';
+      ? threadCharge < 0.58
+        ? `filament ${(threadCharge * 100).toFixed(0)}% awake`
+        : `drift ${(threadCharge * 100).toFixed(0)}% toward ${pendingDirection === 'previous' ? previousScene?.title ?? 'the previous memory' : nextScene?.title ?? 'the next memory'}`
+      : threadCharge > 0.02
+        ? `filament ${(threadCharge * 100).toFixed(0)}% awake`
+        : travelDepth > 0.02
+          ? `memory ${(travelDepth * 100).toFixed(0)}% traversed`
+          : sceneProgress > 0.01
+            ? `memory ${(sceneProgress * 100).toFixed(0)}% resolved`
+            : 'archive listening';
 
   return (
     <div
       className="memory-archive"
-      onWheelCapture={handleTravelWheel}
       onPointerMove={handleArchivePointerMove}
       onPointerLeave={handleArchivePointerLeave}
     >
@@ -356,7 +432,7 @@ export default function MemoryArchiveScene() {
               onRecessionComplete={() => undefined}
               onProgress={setSceneProgress}
               archiveMode
-              archiveTravelProgress={phase === 'corridor' ? 1 : travelCharge}
+              archiveTravelProgress={phase === 'corridor' ? 1 : travelDepth}
               archivePointer={pointerState}
               travelDirection={pendingDirection}
             />
@@ -409,7 +485,11 @@ export default function MemoryArchiveScene() {
             {phase === 'corridor'
               ? 'Crossing the thread'
               : nextScene
-                ? 'Scroll to drift deeper. Move your cursor to wake the hidden threads.'
+                ? threadCharge > 0.02
+                  ? 'Keep scrolling and the next filament will take hold.'
+                  : travelDepth < 0.92
+                    ? 'Scroll through the memory. Move your cursor to wake the hidden threads.'
+                    : 'You are inside the memory. Keep scrolling to open the next filament.'
                 : pendingDirection === 'previous'
                   ? 'Look back through the previous filament'
                   : 'No linked memories yet'}
@@ -417,7 +497,7 @@ export default function MemoryArchiveScene() {
           <div className="memory-archive__travel-destination">
             {nextScene ? (
               <>
-                <span>Next memory</span>
+                <span>Thread opens toward</span>
                 <MoveRight size={14} />
                 <strong>{nextScene.title}</strong>
               </>
@@ -436,7 +516,7 @@ export default function MemoryArchiveScene() {
         <div className="memory-archive__travel-meter">
           <motion.div
             className="memory-archive__travel-meter-fill"
-            animate={{ scaleX: phase === 'corridor' ? corridorProgress : travelCharge }}
+            animate={{ scaleX: phase === 'corridor' ? corridorProgress : (threadCharge > 0.02 ? threadCharge : travelDepth) }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           />
         </div>
@@ -465,14 +545,14 @@ export default function MemoryArchiveScene() {
               <button
                 type="button"
                 className="memory-archive__travel-button"
-                style={{ '--travel-progress': `${Math.round((phase === 'corridor' ? corridorProgress : travelCharge) * 360)}deg` }}
+                style={{ '--travel-progress': `${Math.round((phase === 'corridor' ? corridorProgress : threadCharge) * 360)}deg` }}
                 onClick={handleTravelClick}
               >
                 <span className="memory-archive__travel-button-inner">
                   <span className="memory-archive__travel-button-label">
-                    {phase === 'corridor' ? 'Crossing the thread' : 'Skip ahead'}
+                    {phase === 'corridor' ? 'Crossing the thread' : 'Skip'}
                   </span>
-                  <span className="memory-archive__travel-button-caption">secondary control</span>
+                  <span className="memory-archive__travel-button-caption">secondary</span>
                 </span>
               </button>
             </div>

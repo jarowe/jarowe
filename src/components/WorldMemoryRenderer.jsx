@@ -336,13 +336,13 @@ void main() {
 
   // Sine-wave drift on all axes — each particle has unique phase
   float t = uTime * aSpeed;
-  pos.x += sin(t + aPhase * 6.2831) * 0.3;
-  pos.y += cos(t * 0.7 + aPhase * 3.1416) * 0.25;
-  pos.z += sin(t * 0.5 + aPhase * 1.5708) * 0.15;
-  pos.z += uTravel * (1.55 + aScale * 0.55);
-  pos.y += sin(t * 1.6 + aPhase * 9.0) * uAudioLow * 0.55;
-  pos.x += cos(t * 1.3 + aPhase * 7.0) * uAudioMid * 0.42;
-  pos.z += sin(t * 2.2 + aPhase * 11.0) * uAudioHigh * 0.35;
+  pos.x += sin(t + aPhase * 6.2831) * 0.18;
+  pos.y += cos(t * 0.7 + aPhase * 3.1416) * 0.14;
+  pos.z += sin(t * 0.5 + aPhase * 1.5708) * 0.1;
+  pos.z += uTravel * (1.18 + aScale * 0.36);
+  pos.y += sin(t * 1.6 + aPhase * 9.0) * uAudioLow * 0.42;
+  pos.x += cos(t * 1.3 + aPhase * 7.0) * uAudioMid * 0.24;
+  pos.z += sin(t * 2.2 + aPhase * 11.0) * uAudioHigh * 0.26;
 
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
   vec4 clipPos = projectionMatrix * mvPos;
@@ -351,12 +351,12 @@ void main() {
   float cursorReveal = smoothstep(0.92, 0.0, cursorDist) * uMouseActivity;
 
   // Size attenuation — closer particles are larger
-  float sizeFactor = aScale * (120.0 / max(-mvPos.z, 0.8));
-  gl_PointSize = clamp(sizeFactor * (1.0 + uAudioHigh * 0.9 + cursorReveal * 1.1 + uTravel * 0.55), 0.5, 16.5);
+  float sizeFactor = aScale * (62.0 / max(-mvPos.z, 0.9));
+  gl_PointSize = clamp(sizeFactor * (0.95 + uAudioHigh * 0.4 + cursorReveal * 0.65 + uTravel * 0.3), 0.4, 8.4);
 
   // Depth-based alpha: farther = dimmer
   float dist = length(mvPos.xyz);
-  vAlpha = smoothstep(25.0, 2.0, dist) * (0.3 + aPhase * 0.5) * (1.0 + uAudioMid * 0.55 + cursorReveal * 1.2);
+  vAlpha = smoothstep(25.0, 2.4, dist) * (0.28 + aPhase * 0.38) * (1.0 + uAudioMid * 0.38 + cursorReveal * 0.82);
   vReveal = cursorReveal;
   vScale = aScale;
 
@@ -400,7 +400,7 @@ function DreamParticles({
     uMouseActivity: { value: 0 },
     uPointer: { value: new THREE.Vector2(0, 0) },
     uColor: { value: new THREE.Color(color) },
-    uOpacity: { value: 0.6 },
+    uOpacity: { value: 0.48 },
   });
 
   const { geometry, material } = useMemo(() => {
@@ -421,7 +421,7 @@ function DreamParticles({
 
       phases[i] = Math.random();
       speeds[i] = 0.1 + Math.random() * 0.25;
-      scales[i] = 1.0 + Math.random() * 2.5;
+      scales[i] = 0.48 + Math.random() * 1.15;
     }
 
     const geo = new THREE.BufferGeometry();
@@ -517,24 +517,29 @@ function ArchiveWorldController({
     const directionSign = direction === 'previous' ? -0.35 : 1;
     const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     const time = clock.getElapsedTime();
+    const spiralAngle = easedTravel * 1.18 * directionSign + time * 0.055;
+    const orbitRadius = 0.18 + easedTravel * 0.95;
+    const orbitOffset = rightVector.clone().multiplyScalar(Math.sin(spiralAngle) * orbitRadius);
+    orbitOffset.add(upVector.clone().multiplyScalar(Math.cos(spiralAngle * 0.82) * (0.08 + easedTravel * 0.28)));
     const basePosition = startVector.clone().add(
-      lookDirection.clone().multiplyScalar(cameraDistance * 1.28 * easedTravel * directionSign),
+      lookDirection.clone().multiplyScalar(cameraDistance * 1.72 * easedTravel * directionSign),
     );
-    const pointerOffset = rightVector.clone().multiplyScalar(pointer.x * (0.72 + easedTravel * 0.78));
-    pointerOffset.add(upVector.clone().multiplyScalar(pointer.y * (0.38 + pointer.activity * 0.35)));
+    basePosition.add(orbitOffset);
+    const pointerOffset = rightVector.clone().multiplyScalar(pointer.x * (0.54 + easedTravel * 0.82));
+    pointerOffset.add(upVector.clone().multiplyScalar(pointer.y * (0.28 + pointer.activity * 0.32)));
     basePosition.add(pointerOffset);
-    basePosition.y += Math.sin(time * 0.35) * 0.08 + audioBands.low * 0.24;
-    basePosition.z += audioBands.mid * 0.3 + Math.sin(time * 0.82 + easedTravel * 4.0) * 0.12;
+    basePosition.y += Math.sin(time * 0.35) * 0.06 + audioBands.low * 0.18;
+    basePosition.z += audioBands.mid * 0.22 + Math.sin(time * 0.82 + easedTravel * 4.0) * 0.08;
 
     camera.position.lerp(basePosition, 0.08);
 
     const lookTarget = targetVector.clone()
-      .add(rightVector.clone().multiplyScalar(pointer.x * 0.45))
-      .add(upVector.clone().multiplyScalar(pointer.y * 0.24))
-      .add(lookDirection.clone().multiplyScalar(easedTravel * 1.2));
+      .add(rightVector.clone().multiplyScalar(pointer.x * 0.34))
+      .add(upVector.clone().multiplyScalar(pointer.y * 0.18))
+      .add(lookDirection.clone().multiplyScalar(easedTravel * 1.34));
 
     camera.lookAt(lookTarget);
-    camera.fov = THREE.MathUtils.lerp(camera.fov, fov - easedTravel * 10 - audioBands.high * 4.5, 0.08);
+    camera.fov = THREE.MathUtils.lerp(camera.fov, fov - easedTravel * 12 - audioBands.high * 3.2, 0.08);
     camera.updateProjectionMatrix();
   });
 
@@ -556,9 +561,9 @@ function SynapseField({
     const linePositions = [];
 
     for (let index = 0; index < nodeCount; index += 1) {
-      positions[index * 3] = (Math.random() - 0.5) * 3.2;
-      positions[index * 3 + 1] = (Math.random() - 0.5) * 2.1;
-      positions[index * 3 + 2] = -Math.random() * 1.8;
+      positions[index * 3] = (Math.random() - 0.5) * 2.4;
+      positions[index * 3 + 1] = (Math.random() - 0.5) * 1.5;
+      positions[index * 3 + 2] = -Math.random() * 1.25;
     }
 
     for (let index = 0; index < nodeCount; index += 1) {
@@ -603,17 +608,17 @@ function SynapseField({
     if (groupRef.current) {
       groupRef.current.position.x = THREE.MathUtils.lerp(
         groupRef.current.position.x,
-        pointer.x * 2.6,
+        pointer.x * 1.85,
         0.14,
       );
       groupRef.current.position.y = THREE.MathUtils.lerp(
         groupRef.current.position.y,
-        pointer.y * 1.6,
+        pointer.y * 1.1,
         0.14,
       );
       groupRef.current.position.z = THREE.MathUtils.lerp(
         groupRef.current.position.z,
-        -2.4 - travelProgress * 1.6,
+        -2.1 - travelProgress * 1.25,
         0.08,
       );
     }
@@ -621,7 +626,7 @@ function SynapseField({
     if (lineRef.current) {
       lineRef.current.rotation.y = drift + pointer.x * 0.14;
       lineRef.current.rotation.x = pointer.y * 0.08;
-      lineRef.current.material.opacity = reveal * 0.34;
+      lineRef.current.material.opacity = reveal * 0.48;
       lineRef.current.material.color.setRGB(
         0.42 + audioBands.high * 0.22,
         0.62 + pointer.activity * 0.26,
@@ -631,8 +636,8 @@ function SynapseField({
 
     if (pointRef.current) {
       pointRef.current.rotation.y = -drift * 1.15;
-      pointRef.current.material.opacity = reveal * 0.95;
-      pointRef.current.material.size = 0.08 + reveal * 0.11 + audioBands.high * 0.08;
+      pointRef.current.material.opacity = reveal;
+      pointRef.current.material.size = 0.06 + reveal * 0.08 + audioBands.high * 0.05;
     }
   });
 
@@ -843,7 +848,7 @@ function WorldScene({
     [onProgress],
   );
 
-  const dreamCount = isFullTier ? 8000 : 4000;
+  const dreamCount = isFullTier ? 9000 : 4200;
 
   return (
     <>
@@ -860,7 +865,7 @@ function WorldScene({
       {/* Layer 2: Dream particles */}
       <DreamParticles
         count={dreamCount}
-        radius={isFullTier ? 18.0 : 12.0}
+        radius={isFullTier ? 12.5 : 8.5}
         color="#FFE4B5"
         travelProgress={archiveTravelProgress}
         pointer={archivePointer}
@@ -1115,8 +1120,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
 
           {/* Layer 2: Dream particles — luminous dust motes */}
           <DreamParticles
-            count={isFullTier ? 6000 : 3000}
-            radius={isFullTier ? 15.0 : 10.0}
+            count={isFullTier ? 9000 : 4200}
+            radius={isFullTier ? 12.5 : 8.5}
             color="#FFE4B5"
             travelProgress={archiveTravelProgress}
             pointer={archivePointer}
@@ -1175,7 +1180,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           </>
         )}
 
-        {splatLoaded && (
+        {splatLoaded && !archiveMode && (
           <div
             style={{
               position: 'absolute',
@@ -1193,7 +1198,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               pointerEvents: 'none',
             }}
           >
-            {archiveMode ? 'Scroll to drift deeper / Move cursor to wake threads' : 'Drag to orbit / Scroll to zoom'}
+            Drag to orbit / Scroll to zoom
           </div>
         )}
 

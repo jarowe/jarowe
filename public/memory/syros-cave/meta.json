@@ -34,16 +34,16 @@
   },
   "camera": {
     "startPosition": [
-      0,
-      0.35,
-      10.5
+      0.55,
+      0.2,
+      7.2
     ],
     "startTarget": [
       0,
       0,
       0
     ],
-    "fov": 55,
+    "fov": 52,
     "near": 0.1,
     "far": 80
   },
