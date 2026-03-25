@@ -177,6 +177,13 @@ export default function MemoryArchiveScene() {
   const nextScene = nextSceneId ? getSceneById(nextSceneId) : null;
   const previousScene = previousSceneId ? getSceneById(previousSceneId) : null;
   const narrationText = getNarrationForPhase(scene, phase);
+  const clusterId = scene.archiveNode?.cluster;
+  const nextSharesCluster = !!(nextScene && clusterId && nextScene.archiveNode?.cluster === clusterId);
+  const clusterMorphBlend = nextSharesCluster
+    ? phase === 'corridor'
+      ? Math.min(1, 0.55 + corridorProgress * 0.45)
+      : Math.min(1, Math.max(0, (travelDepth - 0.22) / 0.68) * 0.64 + threadCharge * 0.88)
+    : 0;
 
   const beginTravel = useCallback((targetSceneId, direction) => {
     if (!targetSceneId || phaseRef.current === 'corridor') return;
@@ -371,13 +378,19 @@ export default function MemoryArchiveScene() {
 
   const nextThemes = nextScene?.archiveNode?.themes?.slice(0, 3) ?? [];
   const travelStatus = phase === 'corridor'
-    ? `corridor ${Math.round(corridorProgress * 100)}% traversed`
+    ? nextSharesCluster
+      ? `memory turning ${Math.round(corridorProgress * 100)}%`
+      : `corridor ${Math.round(corridorProgress * 100)}% traversed`
     : phase === 'depart'
-      ? threadCharge < 0.58
-        ? `filament ${(threadCharge * 100).toFixed(0)}% awake`
-        : `drift ${(threadCharge * 100).toFixed(0)}% toward ${pendingDirection === 'previous' ? previousScene?.title ?? 'the previous memory' : nextScene?.title ?? 'the next memory'}`
+      ? nextSharesCluster
+        ? `memory turning ${Math.round(Math.max(threadCharge, clusterMorphBlend) * 100)}%`
+        : threadCharge < 0.58
+          ? `filament ${(threadCharge * 100).toFixed(0)}% awake`
+          : `drift ${(threadCharge * 100).toFixed(0)}% toward ${pendingDirection === 'previous' ? previousScene?.title ?? 'the previous memory' : nextScene?.title ?? 'the next memory'}`
       : threadCharge > 0.02
-        ? `filament ${(threadCharge * 100).toFixed(0)}% awake`
+        ? nextSharesCluster
+          ? `memory turning ${Math.round(Math.max(threadCharge, clusterMorphBlend) * 100)}%`
+          : `filament ${(threadCharge * 100).toFixed(0)}% awake`
         : travelDepth > 0.02
           ? `memory ${(travelDepth * 100).toFixed(0)}% traversed`
           : sceneProgress > 0.01
@@ -413,6 +426,8 @@ export default function MemoryArchiveScene() {
               archiveThreadCharge={threadCharge}
               archivePointer={pointerState}
               travelDirection={pendingDirection}
+              archiveNextScene={nextSharesCluster ? nextScene : null}
+              archiveClusterBlend={clusterMorphBlend}
               archiveEditorEnabled={archiveEditorEnabled}
             />
           </Suspense>
@@ -462,13 +477,21 @@ export default function MemoryArchiveScene() {
         <div className="memory-archive__travel-copy">
           <div className="memory-archive__travel-label">
             {phase === 'corridor'
-              ? 'Keep scrolling. The thread only opens as you move through it.'
+              ? nextSharesCluster
+                ? 'Keep scrolling. The memory is turning from one image-world into the next.'
+                : 'Keep scrolling. The thread only opens as you move through it.'
               : nextScene
-                ? threadCharge > 0.02
-                  ? 'Keep scrolling and the next filament will gather around you.'
-                  : travelDepth < 0.92
-                    ? 'Scroll through the memory. Move your cursor to wake the hidden threads.'
-                    : 'You are inside the memory. Keep scrolling to let the next filament take form.'
+                ? nextSharesCluster
+                  ? threadCharge > 0.02
+                    ? 'Keep scrolling and this chapter will turn inside itself.'
+                    : travelDepth < 0.92
+                      ? 'Scroll through the memory. The next image is already hiding in the same current.'
+                      : 'You are inside the memory. Keep scrolling and the next image-world will gather out of it.'
+                  : threadCharge > 0.02
+                    ? 'Keep scrolling and the next filament will gather around you.'
+                    : travelDepth < 0.92
+                      ? 'Scroll through the memory. Move your cursor to wake the hidden threads.'
+                      : 'You are inside the memory. Keep scrolling to let the next filament take form.'
                 : pendingDirection === 'previous'
                   ? 'Look back through the previous filament'
                   : 'No linked memories yet'}
@@ -476,7 +499,7 @@ export default function MemoryArchiveScene() {
           <div className="memory-archive__travel-destination">
             {nextScene ? (
               <>
-                <span>Thread opens toward</span>
+                <span>{nextSharesCluster ? 'Chapter turns toward' : 'Thread opens toward'}</span>
                 <MoveRight size={14} />
                 <strong>{nextScene.title}</strong>
               </>
@@ -504,7 +527,9 @@ export default function MemoryArchiveScene() {
           {nextScene && (
             <div className="memory-archive__travel-route">
               <div className="memory-archive__travel-meta">
-                <span className="memory-archive__travel-meta-label">Thread destination</span>
+                <span className="memory-archive__travel-meta-label">
+                  {nextSharesCluster ? 'Next image in this memory cluster' : 'Thread destination'}
+                </span>
                 <strong>{nextScene.title}</strong>
                 <span>{nextScene.location}</span>
                 {nextThemes.length > 0 && (
@@ -540,6 +565,7 @@ export default function MemoryArchiveScene() {
                 nextScene={nextScene}
                 progress={corridorProgress}
                 direction={pendingDirection}
+                variant={nextSharesCluster ? 'cluster' : 'thread'}
               />
             )}
             <div className="memory-archive__corridor-wash" />
@@ -549,7 +575,7 @@ export default function MemoryArchiveScene() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
             >
-              <span>Scroll to cross the archive thread</span>
+              <span>{nextSharesCluster ? 'Scroll to let the memory turn' : 'Scroll to cross the archive thread'}</span>
               <strong>{scene.title}</strong>
               <MoveRight size={16} />
               <strong>{nextScene?.title || 'the next memory'}</strong>

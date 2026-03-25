@@ -530,6 +530,11 @@ function ClusterMemoryFacets({
   images = [],
   pointer = { x: 0, y: 0, activity: 0 },
   travelProgress = 0,
+  blend = 1,
+  tint = '#f7f2e9',
+  orbitOffset = 0,
+  depthOffset = 0,
+  radiusMultiplier = 1,
 }) {
   const groupRef = useRef(null);
   const safeImages = useMemo(() => images.filter(Boolean).slice(0, 4), [images]);
@@ -572,18 +577,18 @@ function ClusterMemoryFacets({
     <group ref={groupRef}>
       {textures.map((texture, index) => {
         const normalized = textures.length === 1 ? 0.5 : index / (textures.length - 1);
-        const angle = (normalized - 0.5) * 1.15;
-        const radius = 3.2 + index * 0.38;
+        const angle = (normalized - 0.5) * 1.15 + orbitOffset;
+        const radius = (3.2 + index * 0.38) * radiusMultiplier;
         const y = (index % 2 === 0 ? 0.18 : -0.14) + index * 0.02;
         const pointerBias = 1 - Math.min(1, Math.abs((pointer.x + 1) * 0.5 - normalized) * 1.8);
-        const opacity = 0.05 + travelProgress * 0.07 + pointer.activity * 0.08 * pointerBias;
+        const opacity = (0.05 + travelProgress * 0.07 + pointer.activity * 0.08 * pointerBias) * blend;
         const scaleX = 2.2 + index * 0.18;
         const scaleY = 1.45 + index * 0.12;
 
         return (
           <mesh
             key={resolvedUrls[index]}
-            position={[Math.sin(angle) * radius, y, -Math.cos(angle) * radius]}
+            position={[Math.sin(angle) * radius, y, -Math.cos(angle) * radius + depthOffset]}
             rotation={[0.05 * (index % 2 === 0 ? 1 : -1), angle, 0]}
             scale={[scaleX, scaleY, 1]}
           >
@@ -592,7 +597,7 @@ function ClusterMemoryFacets({
               map={texture}
               transparent
               opacity={opacity}
-              color="#f7f2e9"
+              color={tint}
               depthWrite={false}
               blending={THREE.AdditiveBlending}
             />
@@ -1169,10 +1174,16 @@ function WorldScene({
   archivePointer = { x: 0, y: 0, activity: 0 },
   travelDirection = 'next',
   archiveTravelAnchors = null,
+  archiveNextScene = null,
+  archiveClusterBlend = 0,
 }) {
   const isFullTier = tier === 'full';
   const hasFlightPath = !!scene.flightPath;
   const hasRealWorld = !!splatUrl;
+  const nextClusterPreviewImages = useMemo(
+    () => archiveNextScene ? [archiveNextScene.previewImage ?? archiveNextScene.photoUrl].filter(Boolean) : [],
+    [archiveNextScene],
+  );
 
   const handleProgress = useCallback(
     (p) => {
@@ -1208,6 +1219,19 @@ function WorldScene({
         <SynapseField
           pointer={archivePointer}
           travelProgress={archiveTravelProgress}
+        />
+      )}
+
+      {archiveMode && archiveClusterBlend > 0.04 && nextClusterPreviewImages.length > 0 && (
+        <ClusterMemoryFacets
+          images={nextClusterPreviewImages}
+          pointer={archivePointer}
+          travelProgress={Math.min(1, archiveTravelProgress + archiveClusterBlend * 0.32)}
+          blend={archiveClusterBlend}
+          tint="#dff4ff"
+          orbitOffset={0.42}
+          depthOffset={-1.4 * archiveClusterBlend}
+          radiusMultiplier={0.84}
         />
       )}
 
@@ -1289,6 +1313,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     archivePointer = { x: 0, y: 0, activity: 0 },
     travelDirection = 'next',
     archiveEditorEnabled = false,
+    archiveNextScene = null,
+    archiveClusterBlend = 0,
   },
   ref,
 ) {
@@ -1413,6 +1439,10 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const clusterSourceImages = meta?.source?.generationMode === 'multi-view-cluster'
     ? (meta?.source?.postImages ?? []).slice(0, 4)
     : [];
+  const nextClusterPreviewImages = useMemo(
+    () => archiveNextScene ? [archiveNextScene.previewImage ?? archiveNextScene.photoUrl].filter(Boolean) : [],
+    [archiveNextScene],
+  );
   const defaultWorldTransform = useMemo(() => (
     normalizeWorldTransform(meta?.world?.transform) ?? {
       position: [0, 0, 0],
@@ -1563,6 +1593,20 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               images={clusterSourceImages}
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
+              blend={archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1}
+            />
+          )}
+
+          {archiveMode && archiveClusterBlend > 0.04 && nextClusterPreviewImages.length > 0 && (
+            <ClusterMemoryFacets
+              images={nextClusterPreviewImages}
+              pointer={archivePointer}
+              travelProgress={Math.min(1, archiveTravelProgress + archiveClusterBlend * 0.34)}
+              blend={archiveClusterBlend}
+              tint="#dff4ff"
+              orbitOffset={0.5}
+              depthOffset={-1.6 * archiveClusterBlend}
+              radiusMultiplier={0.82}
             />
           )}
 
@@ -1723,6 +1767,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           archivePointer={archivePointer}
           travelDirection={travelDirection}
           archiveTravelAnchors={effectiveTravelAnchors}
+          archiveNextScene={archiveNextScene}
+          archiveClusterBlend={archiveClusterBlend}
         />
       </Canvas>
 

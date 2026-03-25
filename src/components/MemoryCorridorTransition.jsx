@@ -179,24 +179,28 @@ void main() {
 }
 `;
 
-function CorridorCamera({ progress, direction = 'next' }) {
+function CorridorCamera({ progress, direction = 'next', variant = 'thread' }) {
   const { camera } = useThree();
   const sign = direction === 'previous' ? -1 : 1;
   const audioDataRef = useRef(new Uint8Array(128));
+  const isCluster = variant === 'cluster';
 
   useFrame(({ clock }) => {
     const eased = 1 - ((1 - progress) * (1 - progress));
     const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     const time = clock.getElapsedTime();
-    camera.position.x = Math.sin(eased * Math.PI * 1.56 + time * 0.18) * (0.36 + audioBands.mid * 0.34) * sign;
-    camera.position.y = 0.02 + Math.sin(eased * Math.PI * 1.95 + time * 0.12) * (0.16 + audioBands.low * 0.14);
-    camera.position.z = 8.6 - eased * 7.5;
+    camera.position.x = Math.sin(eased * Math.PI * 1.56 + time * 0.18)
+      * ((isCluster ? 0.24 : 0.36) + audioBands.mid * (isCluster ? 0.22 : 0.34))
+      * sign;
+    camera.position.y = 0.02 + Math.sin(eased * Math.PI * 1.95 + time * 0.12)
+      * ((isCluster ? 0.1 : 0.16) + audioBands.low * (isCluster ? 0.08 : 0.14));
+    camera.position.z = isCluster ? 7.4 - eased * 5.1 : 8.6 - eased * 7.5;
     camera.lookAt(
-      Math.sin(eased * Math.PI * 0.8 + time * 0.08) * 0.28 * sign,
-      Math.sin(eased * Math.PI + time * 0.11) * 0.12,
-      -11.2 * sign,
+      Math.sin(eased * Math.PI * 0.8 + time * 0.08) * (isCluster ? 0.18 : 0.28) * sign,
+      Math.sin(eased * Math.PI + time * 0.11) * (isCluster ? 0.07 : 0.12),
+      (isCluster ? -6.8 : -11.2) * sign,
     );
-    camera.rotation.z = Math.sin(time * 0.2 + eased * 2.2) * 0.018 * sign;
+    camera.rotation.z = Math.sin(time * 0.2 + eased * 2.2) * (isCluster ? 0.01 : 0.018) * sign;
   });
 
   return null;
@@ -321,12 +325,13 @@ function MemoryPreviewPlane({ scene, progress, position, rotationY = 0, mode = '
   );
 }
 
-function MemoryGhostShell({ scene, progress, direction = 'next', mode = 'current' }) {
+function MemoryGhostShell({ scene, progress, direction = 'next', mode = 'current', variant = 'thread' }) {
   const imageUrl = resolveAsset(scene?.previewImage || scene?.photoUrl);
   const texture = useLoader(TextureLoader, imageUrl || `${BASE}images/memory/placeholder-preview.jpg`);
   const groupRef = useRef(null);
   const layerRefs = useRef([]);
   const sign = direction === 'previous' ? -1 : 1;
+  const isCluster = variant === 'cluster';
   const tintA = new Color(getScenePalette(scene, mode === 'current' ? 'current' : 'next')[0]);
   const tintB = new Color(getScenePalette(scene, mode === 'current' ? 'current' : 'next')[1]);
 
@@ -345,19 +350,21 @@ function MemoryGhostShell({ scene, progress, direction = 'next', mode = 'current
     groupRef.current.position.x = Math.sin(time * 0.24 + (mode === 'current' ? 0 : 1.4)) * 0.22 * sign;
     groupRef.current.position.y = Math.cos(time * 0.18 + (mode === 'current' ? 0 : 1.2)) * 0.16;
     groupRef.current.position.z = mode === 'current'
-      ? 2.8 - progress * 2.4
-      : -7.8 + progress * 3.6;
+      ? (isCluster ? 1.8 - progress * 1.6 : 2.8 - progress * 2.4)
+      : (isCluster ? -5.4 + progress * 2.6 : -7.8 + progress * 3.6);
     groupRef.current.rotation.y = rotationYFromMode(mode, sign, drift);
 
     layerRefs.current.forEach((mesh, index) => {
       if (!mesh) return;
       const layerBias = index * 0.18;
-      mesh.position.z = (mode === 'current' ? index * -0.48 : index * 0.62) + layerBias;
+      mesh.position.z = (mode === 'current'
+        ? index * (isCluster ? -0.34 : -0.48)
+        : index * (isCluster ? 0.42 : 0.62)) + layerBias;
       mesh.position.x = (index - 1.5) * 0.12 * sign;
       mesh.position.y = Math.sin(time * 0.45 + index * 0.8) * 0.06;
       const scale = mode === 'current'
-        ? 1.65 + index * 0.08 - progress * 0.18
-        : 1.25 + index * 0.1 + progress * 0.2;
+        ? (isCluster ? 1.34 : 1.65) + index * 0.08 - progress * 0.18
+        : (isCluster ? 1.08 : 1.25) + index * 0.1 + progress * 0.2;
       mesh.scale.setScalar(scale);
       mesh.rotation.z = Math.sin(time * 0.2 + index * 0.6) * 0.06 * sign;
       mesh.material.opacity = reveal * (0.11 - index * 0.018);
@@ -578,7 +585,9 @@ export default function MemoryCorridorTransition({
   nextScene,
   progress,
   direction = 'next',
+  variant = 'thread',
 }) {
+  const isCluster = variant === 'cluster';
   return (
     <div className="memory-archive__corridor-canvas">
       <Canvas
@@ -596,7 +605,7 @@ export default function MemoryCorridorTransition({
         <pointLight position={[0, -1.2, -10]} intensity={1.1} color="#87c7ff" />
         <pointLight position={[0, 0.4, -4.4]} intensity={0.65} color="#ffe9bf" />
 
-        <CorridorCamera progress={progress} direction={direction} />
+        <CorridorCamera progress={progress} direction={direction} variant={variant} />
         <CorridorFog progress={progress} currentScene={currentScene} nextScene={nextScene} />
         <CorridorParticles
           currentScene={currentScene}
@@ -610,24 +619,26 @@ export default function MemoryCorridorTransition({
           progress={progress}
           direction={direction}
           mode="current"
+          variant={variant}
         />
         <MemoryGhostShell
           scene={nextScene}
           progress={progress}
           direction={direction}
           mode="next"
+          variant={variant}
         />
         <MemoryPreviewPlane
           scene={currentScene}
           progress={progress}
-          position={[-0.65, 0.08, 10.2]}
+          position={isCluster ? [-0.32, 0.05, 7.4] : [-0.65, 0.08, 10.2]}
           rotationY={-0.08}
           mode="current"
         />
         <MemoryPreviewPlane
           scene={nextScene}
           progress={progress}
-          position={[0.4, 0.04, -14.2]}
+          position={isCluster ? [0.26, 0.03, -8.6] : [0.4, 0.04, -14.2]}
           rotationY={Math.PI}
           mode="next"
         />
