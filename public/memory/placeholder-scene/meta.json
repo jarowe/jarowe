@@ -1,0 +1,83 @@
+{
+  "id": "placeholder-scene",
+  "title": "A Place That Matters",
+  "subtitle": "Memory Lane",
+  "description": "A threshold memory held in motion and belonging, used as a connective place in the archive where one important world gives way to the next.",
+  "source": {
+    "type": "single-image",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": null,
+    "generator": "sharp",
+    "generated": "2026-03-25"
+  },
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "fallback": {
+    "type": "legacy-splat",
+    "splat": "data/memory-scene.splat"
+  },
+  "camera": {
+    "startPosition": [
+      0.35,
+      0.18,
+      7.2
+    ],
+    "startTarget": [
+      0,
+      0,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 90
+  },
+  "narrative": [
+    {
+      "threshold": 0.2,
+      "text": "Some places hold more than what you see."
+    },
+    {
+      "threshold": 0.5,
+      "text": "They hold the feeling of being exactly where you belong."
+    },
+    {
+      "threshold": 0.82,
+      "text": "This is one of those places."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "syros-cave",
+    "previous": null,
+    "anchors": []
+  }
+}

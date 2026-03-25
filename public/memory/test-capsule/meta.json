@@ -1,0 +1,85 @@
+{
+  "id": "test-capsule",
+  "title": "Test Memory",
+  "subtitle": "Development",
+  "description": "A development memory world used to prove the archive runtime, generation pipeline, and transition grammar before wider ingestion.",
+  "source": {
+    "type": "single-image",
+    "photo": "photo.png",
+    "depth": "depth.png",
+    "mask": null,
+    "generator": "sharp",
+    "generated": "2026-03-25"
+  },
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "fallback": {
+    "type": "depth-particles",
+    "photo": "photo.png",
+    "depth": "depth.png",
+    "particleCount": 180000
+  },
+  "camera": {
+    "startPosition": [
+      0,
+      0.5,
+      5
+    ],
+    "startTarget": [
+      0,
+      0,
+      0
+    ],
+    "fov": 50,
+    "near": 0.1,
+    "far": 80
+  },
+  "narrative": [
+    {
+      "threshold": 0.2,
+      "text": "The light here is different. It moves like it remembers something too."
+    },
+    {
+      "threshold": 0.5,
+      "text": "Everything slowed down. The boys running ahead, Maria beside me. We were exactly where we were supposed to be."
+    },
+    {
+      "threshold": 0.82,
+      "text": "You spend your whole life building toward something. And then one afternoon, you realize you already have it."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "syros-cave",
+    "previous": null,
+    "anchors": []
+  }
+}

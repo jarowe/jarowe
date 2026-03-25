@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, MoveRight, Sparkles, Wind } from 'lucide-react';
 
@@ -18,7 +18,7 @@ import './MemoryArchiveScene.css';
 
 const BASE = import.meta.env.BASE_URL;
 const ARRIVAL_DURATION_MS = 1800;
-const TRAVEL_THRESHOLD = 1100;
+const TRAVEL_THRESHOLD = 2400;
 const TRAVEL_DECAY = 0.0035;
 const WHEEL_DELTA_CAP = 180;
 const DEPART_CHARGE_RATE = 0.72;
@@ -65,8 +65,13 @@ function ArchiveFallback({ scene }) {
 
 export default function MemoryArchiveScene() {
   const { sceneId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const audio = useAudio();
+  const archiveEditorEnabled = useMemo(
+    () => new URLSearchParams(location.search).get('edit') === '1',
+    [location.search],
+  );
 
   const initialSceneId = useMemo(() => {
     if (sceneId && isArchiveSceneId(sceneId)) return sceneId;
@@ -195,8 +200,8 @@ export default function MemoryArchiveScene() {
     travelDepthRef.current = 0;
     pendingSceneIdRef.current = null;
     pendingDirectionRef.current = 'next';
-    navigate(`/archive/${targetSceneId}`);
-  }, [navigate]);
+    navigate(`/archive/${targetSceneId}${location.search}`);
+  }, [location.search, navigate]);
 
   const enterCorridor = useCallback((targetSceneId, direction, initialProgress = 0) => {
     if (!targetSceneId) return;
@@ -403,8 +408,12 @@ export default function MemoryArchiveScene() {
               archiveTravelProgress={phase === 'corridor'
                 ? Math.min(1, 0.74 + corridorProgress * 0.26)
                 : Math.min(1, travelDepth + threadCharge * 0.18)}
+              archivePhase={phase}
+              archiveTravelDepth={travelDepth}
+              archiveThreadCharge={threadCharge}
               archivePointer={pointerState}
               travelDirection={pendingDirection}
+              archiveEditorEnabled={archiveEditorEnabled}
             />
           </Suspense>
         )}

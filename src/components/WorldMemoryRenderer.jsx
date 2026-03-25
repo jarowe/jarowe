@@ -39,6 +39,7 @@ import FlightCamera from './particleMemory/FlightCamera';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
 const BASE = import.meta.env.BASE_URL;
+const MEMORY_WORLD_EDITOR_VERSION = 5;
 
 function resolveAsset(path) {
   if (!path) return null;
@@ -112,6 +113,45 @@ function normalizeWorldTransform(transform) {
     ? (transform.rotation.length === 4 ? transform.rotation : [0, 0, 0, 1])
     : [0, 0, 0, 1];
   return { position, scale, rotation };
+}
+
+function quaternionToEulerDegrees(rotation = [0, 0, 0, 1]) {
+  const quaternion = new THREE.Quaternion(
+    rotation[0] ?? 0,
+    rotation[1] ?? 0,
+    rotation[2] ?? 0,
+    rotation[3] ?? 1,
+  );
+  const euler = new THREE.Euler().setFromQuaternion(quaternion, 'XYZ');
+  return [
+    THREE.MathUtils.radToDeg(euler.x),
+    THREE.MathUtils.radToDeg(euler.y),
+    THREE.MathUtils.radToDeg(euler.z),
+  ];
+}
+
+function eulerDegreesToQuaternion(rotation = [0, 0, 0]) {
+  const euler = new THREE.Euler(
+    THREE.MathUtils.degToRad(rotation[0] ?? 0),
+    THREE.MathUtils.degToRad(rotation[1] ?? 0),
+    THREE.MathUtils.degToRad(rotation[2] ?? 0),
+    'XYZ',
+  );
+  const quaternion = new THREE.Quaternion().setFromEuler(euler);
+  return [quaternion.x, quaternion.y, quaternion.z, quaternion.w];
+}
+
+function cloneVec3(value, fallback = [0, 0, 0]) {
+  if (Array.isArray(value) && value.length === 3) {
+    return [...value];
+  }
+  if (value && typeof value === 'object') {
+    const x = Number.isFinite(value.x) ? value.x : fallback[0];
+    const y = Number.isFinite(value.y) ? value.y : fallback[1];
+    const z = Number.isFinite(value.z) ? value.z : fallback[2];
+    return [x, y, z];
+  }
+  return [...fallback];
 }
 
 function getAlphaRemovalThreshold(splatUrl) {
@@ -489,16 +529,26 @@ function DreamParticles({
 function ArchiveWorldController({
   target = [0, 0, 0],
   startPosition = [0, 0, 5],
+  focusAnchor = [0, 0, 0],
+  departAnchor = [0, 0, -1.8],
   fov = 50,
-  travelProgress = 0,
+  phase = 'explore',
+  travelDepth = 0,
+  threadCharge = 0,
   pointer = { x: 0, y: 0, activity: 0 },
   direction = 'next',
 }) {
   const { camera } = useThree();
   const targetVector = useMemo(() => new THREE.Vector3(...target), [target]);
   const startVector = useMemo(() => new THREE.Vector3(...startPosition), [startPosition]);
+  const focusVector = useMemo(() => new THREE.Vector3(...focusAnchor), [focusAnchor]);
+  const departVector = useMemo(() => new THREE.Vector3(...departAnchor), [departAnchor]);
   const lookDirection = useMemo(
     () => targetVector.clone().sub(startVector).normalize(),
+    [startVector, targetVector],
+  );
+  const approachVector = useMemo(
+    () => startVector.clone().sub(targetVector).normalize(),
     [startVector, targetVector],
   );
   const upVector = useMemo(() => new THREE.Vector3(0, 1, 0), []);
@@ -513,33 +563,57 @@ function ArchiveWorldController({
   const audioDataRef = useRef(new Uint8Array(128));
 
   useFrame(({ clock }) => {
-    const easedTravel = THREE.MathUtils.smoothstep(travelProgress, 0, 1);
+    const easedDepth = THREE.MathUtils.smoothstep(travelDepth, 0, 1);
+    const easedThread = THREE.MathUtils.smoothstep(threadCharge, 0, 1);
+    const activeThread = phase === 'depart' || phase === 'corridor' ? easedThread : 0;
     const directionSign = direction === 'previous' ? -0.35 : 1;
     const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     const time = clock.getElapsedTime();
-    const spiralAngle = easedTravel * 1.18 * directionSign + time * 0.055;
-    const orbitRadius = 0.18 + easedTravel * 0.95;
+    const spiralAngle = (easedDepth * 1.18 + activeThread * 0.64) * directionSign + time * 0.08;
+    const orbitRadius = 0.05 + easedDepth * 0.42 + activeThread * 0.18;
     const orbitOffset = rightVector.clone().multiplyScalar(Math.sin(spiralAngle) * orbitRadius);
-    orbitOffset.add(upVector.clone().multiplyScalar(Math.cos(spiralAngle * 0.82) * (0.08 + easedTravel * 0.28)));
-    const basePosition = startVector.clone().add(
-      lookDirection.clone().multiplyScalar(cameraDistance * 1.72 * easedTravel * directionSign),
+    orbitOffset.add(
+      upVector.clone().multiplyScalar(
+        Math.cos(spiralAngle * 0.82) * (0.05 + easedDepth * 0.12 + activeThread * 0.08),
+      ),
     );
+
+    const focusPosition = startVector.clone().lerp(
+      focusVector.clone().add(approachVector.clone().multiplyScalar(Math.max(cameraDistance * 0.18, 1.15))),
+      easedDepth,
+    );
+    const departurePosition = focusPosition.clone().lerp(
+      departVector.clone()
+        .add(approachVector.clone().multiplyScalar(Math.max(cameraDistance * 0.1, 0.72)))
+        .add(rightVector.clone().multiplyScalar(direction === 'previous' ? -0.28 : 0.28)),
+      activeThread,
+    );
+    const basePosition = departurePosition.clone();
     basePosition.add(orbitOffset);
-    const pointerOffset = rightVector.clone().multiplyScalar(pointer.x * (0.54 + easedTravel * 0.82));
-    pointerOffset.add(upVector.clone().multiplyScalar(pointer.y * (0.28 + pointer.activity * 0.32)));
+    const pointerOffset = rightVector.clone().multiplyScalar(
+      pointer.x * (0.14 + easedDepth * 0.28 + activeThread * 0.1),
+    );
+    pointerOffset.add(upVector.clone().multiplyScalar(pointer.y * (0.08 + pointer.activity * 0.18)));
     basePosition.add(pointerOffset);
-    basePosition.y += Math.sin(time * 0.35) * 0.06 + audioBands.low * 0.18;
-    basePosition.z += audioBands.mid * 0.22 + Math.sin(time * 0.82 + easedTravel * 4.0) * 0.08;
+    basePosition.y += Math.sin(time * 0.35 + easedDepth * 2.1) * (0.03 + easedDepth * 0.04) + audioBands.low * 0.1;
+    basePosition.add(lookDirection.clone().multiplyScalar(audioBands.mid * 0.06 + Math.sin(time * 0.82 + easedDepth * 4.4) * 0.04));
 
-    camera.position.lerp(basePosition, 0.08);
+    camera.position.lerp(basePosition, phase === 'depart' ? 0.09 : 0.07);
 
-    const lookTarget = targetVector.clone()
-      .add(rightVector.clone().multiplyScalar(pointer.x * 0.34))
-      .add(upVector.clone().multiplyScalar(pointer.y * 0.18))
-      .add(lookDirection.clone().multiplyScalar(easedTravel * 1.34));
+    const lookBase = targetVector.clone()
+      .lerp(focusVector, Math.min(1, easedDepth * 0.72))
+      .lerp(departVector, activeThread * 0.42);
+    const lookTarget = lookBase
+      .add(rightVector.clone().multiplyScalar(pointer.x * (0.1 + easedDepth * 0.16)))
+      .add(upVector.clone().multiplyScalar(pointer.y * 0.12))
+      .add(lookDirection.clone().multiplyScalar(easedDepth * 0.14 + activeThread * 0.32));
 
     camera.lookAt(lookTarget);
-    camera.fov = THREE.MathUtils.lerp(camera.fov, fov - easedTravel * 12 - audioBands.high * 3.2, 0.08);
+    camera.fov = THREE.MathUtils.lerp(
+      camera.fov,
+      fov - easedDepth * 8.5 - activeThread * 3.2 - audioBands.high * 1.6,
+      0.08,
+    );
     camera.updateProjectionMatrix();
   });
 
@@ -817,6 +891,184 @@ function WorldExploreControls({ target = [0, 0, 0], startPosition = [0, 0, 5] })
   );
 }
 
+function ArchiveEditorPanel({
+  sceneId,
+  value,
+  onChange,
+  onReset,
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const updateVec3 = useCallback((field, index, nextValue) => {
+    const parsed = Number.parseFloat(nextValue);
+    onChange((current) => {
+      const next = { ...current, [field]: [...current[field]] };
+      next[field][index] = Number.isFinite(parsed) ? parsed : 0;
+      return next;
+    });
+  }, [onChange]);
+
+  const updateScalar = useCallback((field, nextValue) => {
+    const parsed = Number.parseFloat(nextValue);
+    onChange((current) => ({
+      ...current,
+      [field]: Number.isFinite(parsed) ? parsed : 0,
+    }));
+  }, [onChange]);
+
+  const exportJson = useMemo(() => ({
+    version: MEMORY_WORLD_EDITOR_VERSION,
+    camera: {
+      startPosition: value.cameraPosition,
+      startTarget: value.cameraTarget,
+      fov: value.fov,
+    },
+    world: {
+      transform: {
+        position: value.worldPosition,
+        scale: value.worldScale,
+        rotation: eulerDegreesToQuaternion(value.worldRotation),
+      },
+    },
+    archiveNode: {
+      travelAnchors: {
+        focus: value.focusAnchor,
+        depart: value.departAnchor,
+      },
+    },
+  }), [value]);
+
+  const copyJson = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(exportJson, null, 2));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  }, [exportJson]);
+
+  const fieldStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: '0.3rem',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    minWidth: 0,
+    padding: '0.36rem 0.42rem',
+    borderRadius: '0.55rem',
+    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'rgba(9, 10, 16, 0.72)',
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: '0.72rem',
+  };
+
+  const renderVec3 = (label, field) => (
+    <label style={{ display: 'grid', gap: '0.28rem' }}>
+      <span style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.56)' }}>
+        {label}
+      </span>
+      <div style={fieldStyle}>
+        {value[field].map((entry, index) => (
+          <input
+            // eslint-disable-next-line react/no-array-index-key
+            key={`${field}-${index}`}
+            type="number"
+            step="0.01"
+            value={Number(entry).toFixed(2)}
+            onChange={(event) => updateVec3(field, index, event.target.value)}
+            style={inputStyle}
+          />
+        ))}
+      </div>
+    </label>
+  );
+
+  return (
+    <div
+      className="memory-world-editor"
+      style={{
+        position: 'absolute',
+        top: '5.3rem',
+        right: '1rem',
+        zIndex: 32,
+        width: 'min(24rem, calc(100vw - 2rem))',
+        display: 'grid',
+        gap: '0.55rem',
+        padding: '0.78rem',
+        borderRadius: '1rem',
+        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(7, 8, 14, 0.78)',
+        backdropFilter: 'blur(18px)',
+        boxShadow: '0 18px 54px rgba(0,0,0,0.24)',
+        color: '#f7f3ea',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gap: '0.12rem' }}>
+          <strong style={{ fontSize: '0.88rem', letterSpacing: '0.02em' }}>Memory World Editor</strong>
+          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.64)' }}>{sceneId}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.42rem' }}>
+          <button
+            type="button"
+            onClick={copyJson}
+            style={{
+              padding: '0.42rem 0.65rem',
+              borderRadius: '999px',
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'rgba(255,255,255,0.06)',
+              color: 'rgba(255,255,255,0.88)',
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+            }}
+          >
+            {copied ? 'Copied' : 'Copy JSON'}
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            style={{
+              padding: '0.42rem 0.65rem',
+              borderRadius: '999px',
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'rgba(255,255,255,0.74)',
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {renderVec3('Camera Position', 'cameraPosition')}
+      {renderVec3('Camera Target', 'cameraTarget')}
+      {renderVec3('World Position', 'worldPosition')}
+      {renderVec3('World Scale', 'worldScale')}
+      {renderVec3('World Rotation', 'worldRotation')}
+      {renderVec3('Focus Anchor', 'focusAnchor')}
+      {renderVec3('Depart Anchor', 'departAnchor')}
+
+      <label style={{ display: 'grid', gap: '0.28rem' }}>
+        <span style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.56)' }}>
+          FOV
+        </span>
+        <input
+          type="number"
+          step="0.5"
+          value={Number(value.fov).toFixed(1)}
+          onChange={(event) => updateScalar('fov', event.target.value)}
+          style={inputStyle}
+        />
+      </label>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // WorldScene — inner R3F component that composes all layers
 // ---------------------------------------------------------------------------
@@ -834,8 +1086,12 @@ function WorldScene({
   enablePostProcessing = true,
   archiveMode = false,
   archiveTravelProgress = 0,
+  archivePhase = 'explore',
+  archiveTravelDepth = 0,
+  archiveThreadCharge = 0,
   archivePointer = { x: 0, y: 0, activity: 0 },
   travelDirection = 'next',
+  archiveTravelAnchors = null,
 }) {
   const isFullTier = tier === 'full';
   const hasFlightPath = !!scene.flightPath;
@@ -889,8 +1145,12 @@ function WorldScene({
         <ArchiveWorldController
           target={cameraTarget}
           startPosition={cameraPosition}
+          focusAnchor={archiveTravelAnchors?.focus ?? cameraTarget}
+          departAnchor={archiveTravelAnchors?.depart ?? cameraTarget}
           fov={scene.flightPath?.fovRange?.[0] ?? 50}
-          travelProgress={archiveTravelProgress}
+          phase={archivePhase}
+          travelDepth={archiveTravelDepth}
+          threadCharge={archiveThreadCharge}
           pointer={archivePointer}
           direction={travelDirection}
         />
@@ -946,8 +1206,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     enablePostProcessing = true,
     archiveMode = false,
     archiveTravelProgress = 0,
+    archivePhase = 'explore',
+    archiveTravelDepth = 0,
+    archiveThreadCharge = 0,
     archivePointer = { x: 0, y: 0, activity: 0 },
     travelDirection = 'next',
+    archiveEditorEnabled = false,
   },
   ref,
 ) {
@@ -955,6 +1219,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const [splatError, setSplatError] = useState(null);
   const [meta, setMeta] = useState(null);
   const [metaLoaded, setMetaLoaded] = useState(false);
+  const [editorState, setEditorState] = useState(null);
   const flightCameraRef = useRef(null);
 
   const isFullTier = tier === 'full';
@@ -1054,20 +1319,115 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const dpr = isFullTier ? [1, 2] : [1, 1];
 
   // Camera defaults from meta.json or scene config
-  const camPos = meta?.camera?.startPosition ?? [
+  const camPos = useMemo(() => meta?.camera?.startPosition ?? [
     scene.cameraPosition?.x ?? 0,
     scene.cameraPosition?.y ?? 0.5,
     scene.cameraPosition?.z ?? 5,
-  ];
-  const camTarget = meta?.camera?.startTarget ?? [
+  ], [meta?.camera?.startPosition, scene.cameraPosition?.x, scene.cameraPosition?.y, scene.cameraPosition?.z]);
+  const camTarget = useMemo(() => meta?.camera?.startTarget ?? [
     scene.cameraTarget?.x ?? 0,
     scene.cameraTarget?.y ?? 0,
     scene.cameraTarget?.z ?? 0,
-  ];
+  ], [meta?.camera?.startTarget, scene.cameraTarget?.x, scene.cameraTarget?.y, scene.cameraTarget?.z]);
   const camFov = meta?.camera?.fov ?? scene.flightPath?.fovRange?.[0] ?? 50;
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
   const previewUrl = resolveAsset(scene.previewImage ?? scene.photoUrl);
+  const defaultWorldTransform = useMemo(() => (
+    normalizeWorldTransform(meta?.world?.transform) ?? {
+      position: [0, 0, 0],
+      scale: [1, 1, 1],
+      rotation: [0, 0, 0, 1],
+    }
+  ), [meta?.world?.transform]);
+  const baseTravelAnchors = useMemo(() => ({
+    focus: cloneVec3(scene.archiveNode?.travelAnchors?.focus, camTarget),
+    depart: cloneVec3(scene.archiveNode?.travelAnchors?.depart, [camTarget[0], camTarget[1], camTarget[2] - 1.8]),
+  }), [camTarget, scene.archiveNode?.travelAnchors?.depart, scene.archiveNode?.travelAnchors?.focus]);
+
+  useEffect(() => {
+    if (!archiveMode || !metaLoaded) return;
+
+    const storageKey = `memory-world-editor:${scene.id}`;
+    const parsed = (() => {
+      try {
+        return JSON.parse(window.localStorage.getItem(storageKey) || 'null');
+      } catch {
+        return null;
+      }
+    })();
+
+    const isCurrentEditorState = parsed?.version === MEMORY_WORLD_EDITOR_VERSION;
+
+    setEditorState({
+      cameraPosition: cloneVec3(
+        isCurrentEditorState ? parsed?.cameraPosition : null,
+        camPos,
+      ),
+      cameraTarget: cloneVec3(
+        isCurrentEditorState ? parsed?.cameraTarget : null,
+        camTarget,
+      ),
+      fov: isCurrentEditorState && typeof parsed?.fov === 'number' ? parsed.fov : camFov,
+      worldPosition: cloneVec3(
+        isCurrentEditorState ? parsed?.worldPosition : null,
+        defaultWorldTransform.position,
+      ),
+      worldScale: cloneVec3(
+        isCurrentEditorState ? parsed?.worldScale : null,
+        defaultWorldTransform.scale,
+      ),
+      worldRotation: cloneVec3(
+        isCurrentEditorState ? parsed?.worldRotation : null,
+        quaternionToEulerDegrees(defaultWorldTransform.rotation),
+      ),
+      focusAnchor: cloneVec3(
+        isCurrentEditorState ? parsed?.focusAnchor : null,
+        baseTravelAnchors.focus,
+      ),
+      departAnchor: cloneVec3(
+        isCurrentEditorState ? parsed?.departAnchor : null,
+        baseTravelAnchors.depart,
+      ),
+    });
+  }, [
+    archiveMode,
+    baseTravelAnchors.depart,
+    baseTravelAnchors.focus,
+    camFov,
+    camPos,
+    camTarget,
+    defaultWorldTransform.position,
+    defaultWorldTransform.rotation,
+    defaultWorldTransform.scale,
+    metaLoaded,
+    scene.id,
+  ]);
+
+  useEffect(() => {
+    if (!archiveMode || !archiveEditorEnabled || !editorState) return;
+    const storageKey = `memory-world-editor:${scene.id}`;
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        ...editorState,
+        version: MEMORY_WORLD_EDITOR_VERSION,
+      }),
+    );
+  }, [archiveEditorEnabled, archiveMode, editorState, scene.id]);
+
+  const effectiveCamPos = editorState?.cameraPosition ?? camPos;
+  const effectiveCamTarget = editorState?.cameraTarget ?? camTarget;
+  const effectiveCamFov = editorState?.fov ?? camFov;
+  const effectiveWorldTransform = editorState ? {
+    position: cloneVec3(editorState.worldPosition, defaultWorldTransform.position),
+    scale: cloneVec3(editorState.worldScale, defaultWorldTransform.scale),
+    rotation: eulerDegreesToQuaternion(editorState.worldRotation),
+  } : defaultWorldTransform;
+  const effectiveTravelAnchors = editorState ? {
+    focus: cloneVec3(editorState.focusAnchor, baseTravelAnchors.focus),
+    depart: cloneVec3(editorState.departAnchor, baseTravelAnchors.depart),
+  } : baseTravelAnchors;
 
   // Show loading until meta is resolved
   if (!metaLoaded) {
@@ -1096,8 +1456,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
         <Canvas
           dpr={isFullTier ? [1, 2] : [1, 1]}
           camera={{
-            position: camPos,
-            fov: camFov,
+            position: effectiveCamPos,
+            fov: effectiveCamFov,
             near: camNear,
             far: camFar,
           }}
@@ -1113,7 +1473,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {/* Layer 1: Gaussian splat world via DropInViewer */}
           <SplatWorld
             splatUrl={splatUrl}
-            transform={normalizeWorldTransform(meta?.world?.transform)}
+            transform={effectiveWorldTransform}
             onLoaded={handleSplatLoaded}
             onError={handleSplatError}
           />
@@ -1143,17 +1503,21 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {/* Layer 4: Camera controls */}
           {archiveMode ? (
             <ArchiveWorldController
-              target={camTarget}
-              startPosition={camPos}
-              fov={camFov}
-              travelProgress={archiveTravelProgress}
+              target={effectiveCamTarget}
+              startPosition={effectiveCamPos}
+              focusAnchor={effectiveTravelAnchors.focus}
+              departAnchor={effectiveTravelAnchors.depart}
+              fov={effectiveCamFov}
+              phase={archivePhase}
+              travelDepth={archiveTravelDepth}
+              threadCharge={archiveThreadCharge}
               pointer={archivePointer}
               direction={travelDirection}
             />
           ) : (
             <WorldExploreControls
-              target={camTarget}
-              startPosition={camPos}
+              target={effectiveCamTarget}
+              startPosition={effectiveCamPos}
             />
           )}
 
@@ -1202,6 +1566,28 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           </div>
         )}
 
+        {archiveMode && archiveEditorEnabled && editorState && (
+          <ArchiveEditorPanel
+            sceneId={scene.id}
+            value={editorState}
+            onChange={setEditorState}
+            onReset={() => {
+              const storageKey = `memory-world-editor:${scene.id}`;
+              window.localStorage.removeItem(storageKey);
+              setEditorState({
+                cameraPosition: cloneVec3(camPos),
+                cameraTarget: cloneVec3(camTarget),
+                fov: camFov,
+                worldPosition: cloneVec3(defaultWorldTransform.position),
+                worldScale: cloneVec3(defaultWorldTransform.scale),
+                worldRotation: quaternionToEulerDegrees(defaultWorldTransform.rotation),
+                focusAnchor: cloneVec3(baseTravelAnchors.focus),
+                departAnchor: cloneVec3(baseTravelAnchors.depart),
+              });
+            }}
+          />
+        )}
+
         <div className="capsule-vignette" />
       </div>
     );
@@ -1215,8 +1601,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
       <Canvas
         dpr={dpr}
         camera={{
-          position: camPos,
-          fov: camFov,
+          position: effectiveCamPos,
+          fov: effectiveCamFov,
           near: camNear,
           far: camFar,
         }}
@@ -1237,14 +1623,18 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           onProgress={handleProgress}
           onSplatLoaded={handleSplatLoaded}
           onSplatError={handleSplatError}
-          cameraTarget={camTarget}
-          cameraPosition={camPos}
-          worldTransform={normalizeWorldTransform(meta?.world?.transform)}
+          cameraTarget={effectiveCamTarget}
+          cameraPosition={effectiveCamPos}
+          worldTransform={effectiveWorldTransform}
           enablePostProcessing={enablePostProcessing}
           archiveMode={archiveMode}
           archiveTravelProgress={archiveTravelProgress}
+          archivePhase={archivePhase}
+          archiveTravelDepth={archiveTravelDepth}
+          archiveThreadCharge={archiveThreadCharge}
           archivePointer={archivePointer}
           travelDirection={travelDirection}
+          archiveTravelAnchors={effectiveTravelAnchors}
         />
       </Canvas>
 
@@ -1258,6 +1648,28 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
 
       {/* Simplified tier: CSS vignette overlay */}
       {!isFullTier && <div className="capsule-vignette" />}
+
+      {archiveMode && archiveEditorEnabled && editorState && (
+        <ArchiveEditorPanel
+          sceneId={scene.id}
+          value={editorState}
+          onChange={setEditorState}
+          onReset={() => {
+            const storageKey = `memory-world-editor:${scene.id}`;
+            window.localStorage.removeItem(storageKey);
+            setEditorState({
+              cameraPosition: cloneVec3(camPos),
+              cameraTarget: cloneVec3(camTarget),
+              fov: camFov,
+              worldPosition: cloneVec3(defaultWorldTransform.position),
+              worldScale: cloneVec3(defaultWorldTransform.scale),
+              worldRotation: quaternionToEulerDegrees(defaultWorldTransform.rotation),
+              focusAnchor: cloneVec3(baseTravelAnchors.focus),
+              departAnchor: cloneVec3(baseTravelAnchors.depart),
+            });
+          }}
+        />
+      )}
     </div>
   );
 });

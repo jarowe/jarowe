@@ -1,0 +1,90 @@
+{
+  "id": "naxos-rock",
+  "title": "Live A Little",
+  "subtitle": "Naxos, Greece — May 2024",
+  "description": "Jace on a perfectly placed rock in Naxos, suspended inside the stillness that later became his poem Live a Little.",
+  "source": {
+    "type": "instagram-carousel",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": null,
+    "generator": "sharp",
+    "generated": "2026-03-25",
+    "postDate": "May 08, 2024 6:52 am",
+    "postImages": [
+      "/images/Instagram/media/posts/202405/18011396732371399.jpg",
+      "/images/Instagram/media/posts/202405/18033946798786712.jpg",
+      "/images/Instagram/media/posts/202405/17917063217823264.jpg",
+      "/images/Instagram/media/posts/202405/18122780437357613.jpg"
+    ]
+  },
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "fallback": {
+    "type": "photo-preview",
+    "photo": "photo.jpg"
+  },
+  "camera": {
+    "startPosition": [
+      0.45,
+      0.16,
+      7.1
+    ],
+    "startTarget": [
+      0,
+      0.04,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 80
+  },
+  "narrative": [
+    {
+      "threshold": 0.18,
+      "text": "A boy sits on a perfectly placed rock in a perfectly placed world."
+    },
+    {
+      "threshold": 0.48,
+      "text": "The sea keeps moving. He stays still long enough for the whole shore to sound like a thought."
+    },
+    {
+      "threshold": 0.8,
+      "text": "Sometimes a life changes because someone finally decides to live a little."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "naxos-laugh",
+    "previous": "syros-cave",
+    "anchors": []
+  }
+}

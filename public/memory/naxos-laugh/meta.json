@@ -1,0 +1,90 @@
+{
+  "id": "naxos-laugh",
+  "title": "Before The Days Go By",
+  "subtitle": "Naxos, Greece — May 2024",
+  "description": "A closer turn back into the light: Jace laughing on the rocks in Naxos, the joy inside the poem revealed as a living world.",
+  "source": {
+    "type": "instagram-carousel",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": null,
+    "generator": "sharp",
+    "generated": "2026-03-25",
+    "postDate": "May 08, 2024 6:52 am",
+    "postImages": [
+      "/images/Instagram/media/posts/202405/18011396732371399.jpg",
+      "/images/Instagram/media/posts/202405/18033946798786712.jpg",
+      "/images/Instagram/media/posts/202405/17917063217823264.jpg",
+      "/images/Instagram/media/posts/202405/18122780437357613.jpg"
+    ]
+  },
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "fallback": {
+    "type": "photo-preview",
+    "photo": "photo.jpg"
+  },
+  "camera": {
+    "startPosition": [
+      0.28,
+      0.1,
+      6.4
+    ],
+    "startTarget": [
+      0,
+      0.02,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 80
+  },
+  "narrative": [
+    {
+      "threshold": 0.16,
+      "text": "Then he turns, laughing, as if the answer had already been there in the light."
+    },
+    {
+      "threshold": 0.46,
+      "text": "Years do pass. Joy is what keeps them from disappearing without a trace."
+    },
+    {
+      "threshold": 0.8,
+      "text": "Every time I come back here, I hear the poem again from inside the moment that made it."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "placeholder-scene",
+    "previous": "naxos-rock",
+    "anchors": []
+  }
+}
