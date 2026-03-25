@@ -302,27 +302,28 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, rgba(110, 151, 255, 0.18), transparent 32%),
-    radial-gradient(circle at 52% 48%, rgba(255, 226, 170, 0.14), transparent 43%),
-    linear-gradient(180deg, rgba(2, 2, 8, 0.1), rgba(2, 2, 10, 0.58));
-  backdrop-filter: blur(3px);
+    radial-gradient(circle at center, rgba(110, 151, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 52% 48%, rgba(255, 226, 170, 0.2), transparent 40%),
+    linear-gradient(180deg, rgba(2, 2, 8, 0.14), rgba(2, 2, 10, 0.7));
+  backdrop-filter: blur(4px);
 }
 
 .memory-archive__corridor-copy {
   position: absolute;
   left: 50%;
-  top: 12%;
+  top: 10%;
   transform: translate(-50%, -50%);
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 1rem 1.25rem;
+  padding: 0.8rem 1.1rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(8, 8, 16, 0.72);
-  backdrop-filter: blur(16px);
-  font-size: 0.94rem;
-  color: #fff;
+  background: rgba(8, 8, 16, 0.56);
+  backdrop-filter: blur(18px);
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: 0.03em;
 }
 
 .memory-archive__travel-destination-card {
@@ -384,6 +385,20 @@
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.62rem;
   letter-spacing: 0.03em;
+}
+
+.memory-archive--corridor .memory-archive__chrome,
+.memory-archive--corridor .memory-archive__monologue {
+  opacity: 0.42;
+  filter: blur(2px);
+  transition: opacity 0.24s ease, filter 0.24s ease;
+}
+
+.memory-archive--corridor .memory-archive__travel {
+  opacity: 0.22;
+  transform: translate(-50%, 1.4rem) scale(0.97);
+  filter: blur(3px);
+  transition: opacity 0.28s ease, transform 0.28s ease, filter 0.28s ease;
 }
 
 @media (max-width: 880px) {

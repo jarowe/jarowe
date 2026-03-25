@@ -18,7 +18,7 @@ import './MemoryArchiveScene.css';
 
 const BASE = import.meta.env.BASE_URL;
 const ARRIVAL_DURATION_MS = 1800;
-const CORRIDOR_DURATION_MS = 1800;
+const CORRIDOR_DURATION_MS = 3000;
 const TRAVEL_THRESHOLD = 1100;
 const TRAVEL_DECAY = 0.0035;
 const WHEEL_DELTA_CAP = 180;
@@ -413,7 +413,7 @@ export default function MemoryArchiveScene() {
 
   return (
     <div
-      className="memory-archive"
+      className={`memory-archive ${phase === 'corridor' ? 'memory-archive--corridor' : ''}`}
       onPointerMove={handleArchivePointerMove}
       onPointerLeave={handleArchivePointerLeave}
     >

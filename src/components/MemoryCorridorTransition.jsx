@@ -35,7 +35,7 @@ function getScenePalette(scene, role = 'current') {
 }
 
 function createParticleAttributes(currentScene, nextScene, direction = 'next') {
-  const count = 2400;
+  const count = 5200;
   const startPalette = getScenePalette(currentScene, 'current');
   const endPalette = getScenePalette(nextScene, 'next');
   const startColors = startPalette.map(colorToArray);
@@ -54,19 +54,19 @@ function createParticleAttributes(currentScene, nextScene, direction = 'next') {
   for (let i = 0; i < count; i += 1) {
     const t = i / count;
     const band = i % 3;
-    const radius = 0.7 + Math.pow(Math.random(), 0.35) * 4.4;
+    const radius = 0.45 + Math.pow(Math.random(), 0.32) * 5.6;
     const theta = Math.random() * Math.PI * 2;
-    const heightBias = (Math.random() - 0.5) * 3.6;
-    const driftBias = band === 0 ? -1.25 : band === 1 ? 0 : 1.25;
-    const startZ = 3.5 + Math.random() * 1.5;
-    const endZ = -9.5 - Math.random() * 3.5;
+    const heightBias = (Math.random() - 0.5) * 4.8;
+    const driftBias = band === 0 ? -1.35 : band === 1 ? 0 : 1.35;
+    const startZ = 4.8 + Math.random() * 2.4;
+    const endZ = -11.5 - Math.random() * 5.2;
 
-    start[i * 3] = Math.cos(theta) * radius * 0.9 + driftBias * 0.24;
-    start[i * 3 + 1] = Math.sin(theta * 1.7) * radius * 0.4 + heightBias;
+    start[i * 3] = Math.cos(theta) * radius * 1.12 + driftBias * 0.28;
+    start[i * 3 + 1] = Math.sin(theta * 1.7) * radius * 0.48 + heightBias;
     start[i * 3 + 2] = startZ * directionSign;
 
-    end[i * 3] = (Math.cos(theta * 0.55 + 0.75) * radius * 0.4 + driftBias * 0.08) * directionSign;
-    end[i * 3 + 1] = Math.sin(theta * 0.35 + 1.4) * radius * 0.28 + heightBias * 0.3;
+    end[i * 3] = (Math.cos(theta * 0.55 + 0.75) * radius * 0.26 + driftBias * 0.06) * directionSign;
+    end[i * 3 + 1] = Math.sin(theta * 0.35 + 1.4) * radius * 0.2 + heightBias * 0.22;
     end[i * 3 + 2] = endZ * directionSign;
 
     const startColor = startColors[Math.floor(Math.random() * startColors.length)];
@@ -104,19 +104,19 @@ void main() {
   vec3 pos = mix(aStart, aEnd, p);
 
   float swirl = uTime * (0.45 + aSpeed) + aPhase;
-  float corridorPull = sin(swirl + pos.z * 0.55) * (1.0 - p) * 0.9;
-  pos.x += cos(swirl * 1.3) * 0.28 + corridorPull * 0.18;
-  pos.y += sin(swirl * 0.8) * 0.18 + cos(swirl * 0.6 + pos.z) * 0.1;
-  pos.z += sin(swirl * 0.5) * 0.12;
+  float corridorPull = sin(swirl + pos.z * 0.55) * (1.0 - p) * 1.35;
+  pos.x += cos(swirl * 1.3) * 0.38 + corridorPull * 0.28;
+  pos.y += sin(swirl * 0.8) * 0.26 + cos(swirl * 0.6 + pos.z) * 0.16;
+  pos.z += sin(swirl * 0.5) * 0.18;
 
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
   float depth = max(-mvPos.z, 0.01);
-  gl_PointSize = clamp((aScale * 42.0) / depth, 1.2, 16.0);
+  gl_PointSize = clamp((aScale * 58.0) / depth, 1.0, 19.0);
   gl_Position = projectionMatrix * mvPos;
 
   vColor = mix(aColorA, aColorB, smoothstep(0.15, 0.92, p));
   float travelFade = smoothstep(0.0, 0.1, p) * (1.0 - smoothstep(0.96, 1.0, p));
-  vAlpha = (0.42 + aScale * 0.12) * max(0.32, travelFade);
+  vAlpha = (0.38 + aScale * 0.16) * max(0.3, travelFade);
 }
 `;
 
@@ -141,10 +141,10 @@ function CorridorCamera({ progress, direction = 'next' }) {
 
   useFrame(() => {
     const eased = 1 - ((1 - progress) * (1 - progress));
-    camera.position.x = Math.sin(eased * Math.PI * 1.1) * 0.18 * sign;
-    camera.position.y = 0.04 + Math.sin(eased * Math.PI * 1.8) * 0.08;
-    camera.position.z = 7.2 - eased * 6.0;
-    camera.lookAt(0, 0, -9.5 * sign);
+    camera.position.x = Math.sin(eased * Math.PI * 1.4) * 0.42 * sign;
+    camera.position.y = 0.08 + Math.sin(eased * Math.PI * 1.85) * 0.22;
+    camera.position.z = 8.4 - eased * 7.2;
+    camera.lookAt(Math.sin(eased * Math.PI * 0.8) * 0.32 * sign, Math.sin(eased * Math.PI) * 0.08, -10.8 * sign);
   });
 
   return null;
@@ -227,6 +227,172 @@ function MemoryPreviewPlane({ scene, progress, position, rotationY = 0, mode = '
   );
 }
 
+function MemoryGhostShell({ scene, progress, direction = 'next', mode = 'current' }) {
+  const imageUrl = resolveAsset(scene?.previewImage || scene?.photoUrl);
+  const texture = useLoader(TextureLoader, imageUrl || `${BASE}images/memory/placeholder-preview.jpg`);
+  const groupRef = useRef(null);
+  const layerRefs = useRef([]);
+  const sign = direction === 'previous' ? -1 : 1;
+  const tintA = new Color(getScenePalette(scene, mode === 'current' ? 'current' : 'next')[0]);
+  const tintB = new Color(getScenePalette(scene, mode === 'current' ? 'current' : 'next')[1]);
+
+  useEffect(() => {
+    if (texture) texture.colorSpace = THREE.SRGBColorSpace;
+  }, [texture]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    const time = clock.getElapsedTime();
+    const reveal = mode === 'current'
+      ? 1 - THREE.MathUtils.smoothstep(progress, 0.08, 0.68)
+      : THREE.MathUtils.smoothstep(progress, 0.28, 0.9);
+    const drift = mode === 'current' ? progress * 0.8 : (1 - progress) * 0.55;
+
+    groupRef.current.position.x = Math.sin(time * 0.24 + (mode === 'current' ? 0 : 1.4)) * 0.22 * sign;
+    groupRef.current.position.y = Math.cos(time * 0.18 + (mode === 'current' ? 0 : 1.2)) * 0.16;
+    groupRef.current.position.z = mode === 'current'
+      ? 2.8 - progress * 2.4
+      : -7.8 + progress * 3.6;
+    groupRef.current.rotation.y = rotationYFromMode(mode, sign, drift);
+
+    layerRefs.current.forEach((mesh, index) => {
+      if (!mesh) return;
+      const layerBias = index * 0.18;
+      mesh.position.z = (mode === 'current' ? index * -0.48 : index * 0.62) + layerBias;
+      mesh.position.x = (index - 1.5) * 0.12 * sign;
+      mesh.position.y = Math.sin(time * 0.45 + index * 0.8) * 0.06;
+      const scale = mode === 'current'
+        ? 1.65 + index * 0.08 - progress * 0.18
+        : 1.25 + index * 0.1 + progress * 0.2;
+      mesh.scale.setScalar(scale);
+      mesh.rotation.z = Math.sin(time * 0.2 + index * 0.6) * 0.06 * sign;
+      mesh.material.opacity = reveal * (0.11 - index * 0.018);
+      mesh.material.color.copy(tintA).lerp(tintB, 0.28 + index * 0.14);
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {[0, 1, 2, 3].map((index) => (
+        <mesh
+          // eslint-disable-next-line react/no-array-index-key
+          key={index}
+          ref={(node) => {
+            layerRefs.current[index] = node;
+          }}
+        >
+          <planeGeometry args={[12.8, 7.2]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent
+            opacity={0}
+            toneMapped={false}
+            depthWrite={false}
+            blending={AdditiveBlending}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function rotationYFromMode(mode, sign, drift) {
+  if (mode === 'current') return -0.08 * sign - drift * 0.08;
+  return Math.PI + 0.16 * sign + drift * 0.06;
+}
+
+function SynapsePulseBursts({ progress, direction = 'next', currentScene, nextScene }) {
+  const pointsRef = useRef(null);
+  const lineRef = useRef(null);
+  const sign = direction === 'previous' ? -1 : 1;
+
+  const { pointGeometry, lineGeometry } = useMemo(() => {
+    const nodeCount = 120;
+    const positions = new Float32Array(nodeCount * 3);
+    const phases = new Float32Array(nodeCount);
+    const linePositions = [];
+
+    for (let index = 0; index < nodeCount; index += 1) {
+      const ring = index % 12;
+      const spiral = Math.floor(index / 12);
+      const angle = (ring / 12) * Math.PI * 2 + spiral * 0.38;
+      const radius = 0.55 + spiral * 0.16;
+      positions[index * 3] = Math.cos(angle) * radius;
+      positions[index * 3 + 1] = Math.sin(angle * 1.2) * 0.42 + (spiral - 4.5) * 0.11;
+      positions[index * 3 + 2] = -spiral * 0.65;
+      phases[index] = Math.random() * Math.PI * 2;
+
+      if (index > 0) {
+        linePositions.push(
+          positions[(index - 1) * 3],
+          positions[(index - 1) * 3 + 1],
+          positions[(index - 1) * 3 + 2],
+          positions[index * 3],
+          positions[index * 3 + 1],
+          positions[index * 3 + 2],
+        );
+      }
+    }
+
+    const pointGeo = new THREE.BufferGeometry();
+    pointGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    pointGeo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+
+    return { pointGeometry: pointGeo, lineGeometry: lineGeo };
+  }, []);
+
+  useEffect(() => () => {
+    pointGeometry.dispose();
+    lineGeometry.dispose();
+  }, [pointGeometry, lineGeometry]);
+
+  useFrame(({ clock }) => {
+    const pulse = THREE.MathUtils.smoothstep(progress, 0.14, 0.88);
+    const color = new Color(getScenePalette(currentScene, 'current')[1]).lerp(
+      new Color(getScenePalette(nextScene, 'next')[0]),
+      THREE.MathUtils.smoothstep(progress, 0.35, 0.95),
+    );
+
+    if (pointsRef.current) {
+      pointsRef.current.position.z = -1.8 - progress * 3.4;
+      pointsRef.current.position.x = Math.sin(clock.getElapsedTime() * 0.4) * 0.3 * sign;
+      pointsRef.current.rotation.z = clock.getElapsedTime() * 0.08 * sign;
+      pointsRef.current.material.opacity = pulse * 0.72;
+      pointsRef.current.material.color.copy(color);
+    }
+
+    if (lineRef.current && pointsRef.current) {
+      lineRef.current.position.copy(pointsRef.current.position);
+      lineRef.current.rotation.copy(pointsRef.current.rotation);
+      lineRef.current.material.opacity = pulse * 0.16;
+      lineRef.current.material.color.copy(color);
+    }
+  });
+
+  return (
+    <group>
+      <lineSegments ref={lineRef} geometry={lineGeometry}>
+        <lineBasicMaterial transparent opacity={0} toneMapped={false} />
+      </lineSegments>
+      <points ref={pointsRef} geometry={pointGeometry}>
+        <pointsMaterial
+          transparent
+          opacity={0}
+          color="#ffffff"
+          size={0.08}
+          sizeAttenuation
+          depthWrite={false}
+          blending={AdditiveBlending}
+          toneMapped={false}
+        />
+      </points>
+    </group>
+  );
+}
+
 function PlexusThreads({ progress, currentScene, nextScene, direction = 'next' }) {
   const currentPalette = getScenePalette(currentScene, 'current');
   const nextPalette = getScenePalette(nextScene, 'next');
@@ -305,7 +471,7 @@ function CorridorFog({ progress, currentScene, nextScene }) {
 
   return (
     <mesh ref={meshRef} position={[0, 0, -2.5]}>
-      <planeGeometry args={[32, 20]} />
+      <planeGeometry args={[40, 24]} />
       <meshBasicMaterial transparent opacity={0.2} color="#09121d" />
     </mesh>
   );
@@ -329,12 +495,25 @@ export default function MemoryCorridorTransition({
       >
         <color attach="background" args={['#020207']} />
         <fog attach="fog" args={['#020207', 10, 26]} />
-        <ambientLight intensity={0.16} />
-        <pointLight position={[0, 2, 2]} intensity={1.25} color="#f2d8b1" />
-        <pointLight position={[0, -1.2, -10]} intensity={0.9} color="#87c7ff" />
+        <ambientLight intensity={0.22} />
+        <pointLight position={[0, 2.4, 2]} intensity={1.5} color="#f2d8b1" />
+        <pointLight position={[0, -1.2, -10]} intensity={1.1} color="#87c7ff" />
+        <pointLight position={[0, 0.4, -4.4]} intensity={0.65} color="#ffe9bf" />
 
         <CorridorCamera progress={progress} direction={direction} />
         <CorridorFog progress={progress} currentScene={currentScene} nextScene={nextScene} />
+        <MemoryGhostShell
+          scene={currentScene}
+          progress={progress}
+          direction={direction}
+          mode="current"
+        />
+        <MemoryGhostShell
+          scene={nextScene}
+          progress={progress}
+          direction={direction}
+          mode="next"
+        />
         <MemoryPreviewPlane
           scene={currentScene}
           progress={progress}
@@ -350,6 +529,12 @@ export default function MemoryCorridorTransition({
           mode="next"
         />
         <PlexusThreads
+          progress={progress}
+          currentScene={currentScene}
+          nextScene={nextScene}
+          direction={direction}
+        />
+        <SynapsePulseBursts
           progress={progress}
           currentScene={currentScene}
           nextScene={nextScene}
