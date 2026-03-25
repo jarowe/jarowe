@@ -42,13 +42,15 @@ const TODAY = new Date().toISOString().split('T')[0];
 const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const MAX_RUNTIME_SPLATS = 300000;
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 function parseArgs() {
   const args = process.argv.slice(2);
   const sceneId = args.find(arg => !arg.startsWith('--'));
   const generatorIndex = args.indexOf('--generator');
   const generator = generatorIndex !== -1 ? args[generatorIndex + 1] : 'sharp';
-  return { sceneId, generator };
+  const force = args.includes('--force');
+  return { sceneId, generator, force };
 }
 
 function readMeta(sceneDir) {
@@ -65,6 +67,195 @@ function writeMeta(metaPath, meta) {
 
 function toWorldRelative(filename) {
   return filename ? `world/${filename}` : null;
+}
+
+function toPosixPath(filePath) {
+  return filePath.replaceAll('\\', '/');
+}
+
+function isImageFile(filename) {
+  return IMAGE_EXTENSIONS.has(extname(filename).toLowerCase());
+}
+
+function resolveSceneAssetPath(sceneDir, assetPath) {
+  if (!assetPath) return null;
+  if (assetPath.startsWith('/')) {
+    return join(ROOT, 'public', ...assetPath.slice(1).split('/'));
+  }
+  return join(sceneDir, ...assetPath.replaceAll('\\', '/').split('/'));
+}
+
+function collectDirectoryImages(dirPath) {
+  if (!existsSync(dirPath)) return [];
+  return readdirSync(dirPath, { withFileTypes: true })
+    .filter(entry => entry.isFile() && isImageFile(entry.name))
+    .map(entry => join(dirPath, entry.name));
+}
+
+function collectSourceViews(sceneDir, meta) {
+  const views = [];
+  const seen = new Set();
+
+  const addView = (role, sourcePath, kind = 'source') => {
+    if (!sourcePath || !existsSync(sourcePath)) return;
+    const normalized = resolve(sourcePath);
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    views.push({
+      role,
+      kind,
+      absolutePath: normalized,
+      ext: extname(normalized) || '.png',
+      relativePath: toPosixPath(normalized.replace(`${ROOT}\\`, '').replace(`${ROOT}/`, '')),
+    });
+  };
+
+  addView('primary', resolveSceneAssetPath(sceneDir, meta.source?.photo));
+
+  for (const postImage of meta.source?.postImages ?? []) {
+    addView('cluster-source', resolveSceneAssetPath(sceneDir, postImage));
+  }
+
+  const localViewDirs = [
+    join(sceneDir, 'views'),
+    join(sceneDir, 'views', 'seed'),
+    join(sceneDir, 'views', 'generated'),
+  ];
+
+  for (const dirPath of localViewDirs) {
+    for (const filePath of collectDirectoryImages(dirPath)) {
+      addView('supplemental', filePath, dirPath.endsWith('generated') ? 'generated' : 'supplemental');
+    }
+  }
+
+  return views;
+}
+
+function writeExpandedBundleManifest(worldDir, meta, manifest) {
+  const bundleManifestPath = join(worldDir, 'view-bundle.json');
+  writeFileSync(bundleManifestPath, JSON.stringify({
+    sceneId: meta.id,
+    strategy: manifest.strategy,
+    createdAt: TODAY,
+    sourceViewCount: manifest.sourceViewCount,
+    generatedViewCount: manifest.generatedViewCount,
+    totalViewCount: manifest.totalViewCount,
+    anchorSource: manifest.anchorSource,
+    views: manifest.views,
+  }, null, 2) + '\n', 'utf8');
+  return toWorldRelative('view-bundle.json');
+}
+
+function expandCommandTemplate(template, variables) {
+  let command = template;
+  for (const [key, value] of Object.entries(variables)) {
+    command = command.replaceAll(`{${key}}`, value ?? '');
+  }
+  return command;
+}
+
+function buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta) {
+  const bundleRoot = join(tmpdir(), `jarowe-expanded-${sceneId}-${Date.now()}`);
+  const sourceDir = join(bundleRoot, 'source');
+  const generatedDir = join(bundleRoot, 'generated');
+  mkdirSync(sourceDir, { recursive: true });
+  mkdirSync(generatedDir, { recursive: true });
+
+  const sourceViews = collectSourceViews(sceneDir, meta);
+  const stagedViews = sourceViews.map((view, index) => {
+    const filename = `${String(index).padStart(3, '0')}-${view.role}${view.ext}`;
+    const stagedPath = join(sourceDir, filename);
+    copyFileSync(view.absolutePath, stagedPath);
+    return {
+      ...view,
+      stagedFilename: filename,
+      stagedPath,
+    };
+  });
+
+  const primaryView = stagedViews.find(view => view.role === 'primary') ?? stagedViews[0] ?? null;
+  const bundleVariables = {
+    sceneId,
+    sceneDir,
+    worldDir,
+    bundleDir: bundleRoot,
+    sourceDir,
+    generatedDir,
+    primary: primaryView?.stagedPath ?? '',
+    primarySource: primaryView?.absolutePath ?? '',
+  };
+
+  const viewCommand = process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND || '';
+  if (viewCommand) {
+    const command = expandCommandTemplate(viewCommand, bundleVariables);
+    console.log(`\n[Expanded] Synthesizing complementary views: ${command}\n`);
+    const result = runShellCommand(command);
+    if (result.stdout?.trim()) console.log(result.stdout.trim());
+    if (result.stderr?.trim()) console.log(result.stderr.trim());
+    if (result.status !== 0) {
+      rmSync(bundleRoot, { recursive: true, force: true });
+      throw new Error(
+        [
+          '[Expanded] View synthesis command failed.',
+          `Command: ${command}`,
+          result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+        ].join('\n'),
+      );
+    }
+  }
+
+  const generatedViews = collectDirectoryImages(generatedDir).map((filePath, index) => ({
+    role: 'synthetic-view',
+    kind: 'generated',
+    absolutePath: filePath,
+    ext: extname(filePath) || '.png',
+    relativePath: toPosixPath(filePath),
+    stagedFilename: `generated-${String(index).padStart(3, '0')}${extname(filePath) || '.png'}`,
+    stagedPath: filePath,
+  }));
+
+  const strategy = meta.source?.postImages?.length ? 'cluster-fusion' : 'synthetic-multiview-fusion';
+  const manifestRelativePath = writeExpandedBundleManifest(worldDir, meta, {
+    strategy,
+    sourceViewCount: stagedViews.filter(view => view.kind !== 'generated').length,
+    generatedViewCount: generatedViews.length,
+    totalViewCount: stagedViews.length + generatedViews.length,
+    anchorSource: meta.source?.photo,
+    views: [...stagedViews, ...generatedViews].map(view => ({
+      role: view.role,
+      kind: view.kind,
+      relativePath: view.relativePath,
+      stagedFilename: view.stagedFilename,
+    })),
+  });
+
+  return {
+    bundleRoot,
+    sourceDir,
+    generatedDir,
+    primaryView,
+    sourceViews: stagedViews,
+    generatedViews,
+    manifestRelativePath,
+    strategy,
+  };
+}
+
+function cleanWorldAssets(worldDir) {
+  const candidates = [
+    'scene.ply',
+    'scene.runtime.ply',
+    'scene.spz',
+    'scene.glb',
+    'collider.glb',
+    'bounds.json',
+  ];
+  for (const filename of candidates) {
+    const filePath = join(worldDir, filename);
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  }
 }
 
 const PLY_TYPE_SIZES = {
@@ -273,6 +464,15 @@ function detectExistingAssets(worldDir) {
 function updateMetaWithAssets(meta, assets) {
   meta.source.generator = assets.generator || meta.source.generator || 'external';
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
+  if (assets.generationMode) {
+    meta.source.generationMode = assets.generationMode;
+  }
+  if (assets.expansion) {
+    meta.source.expansion = {
+      ...(meta.source.expansion ?? {}),
+      ...assets.expansion,
+    };
+  }
   meta.world = {
     splat: assets.splat,
     sourceSplat: assets.sourceSplat ?? null,
@@ -283,6 +483,7 @@ function updateMetaWithAssets(meta, assets) {
     sourceSplatCount: assets.sourceSplatCount ?? null,
     bounds: assets.bounds ?? null,
     transform: assets.transform ?? meta.world?.transform ?? null,
+    provenance: assets.provenance ?? meta.world?.provenance ?? null,
   };
 }
 
@@ -384,6 +585,123 @@ const GENERATORS = {
     },
   },
 
+  expanded: {
+    name: 'Expanded',
+    description: 'Single-image anchor + synthetic/multi-view bundle + fused world registration',
+    requirements: 'Optional external view synthesis and reconstruction commands; falls back to SHARP anchor draft',
+    async run(inputPhoto, worldDir, options) {
+      const { meta, sceneDir, sceneId, existingAssets } = options;
+      const bundle = buildExpandedViewBundle(sceneDir, worldDir, sceneId, meta);
+      const fuseCommandTemplate = process.env.EXPANDED_FUSE_COMMAND || process.env.FUSED_WORLD_COMMAND || process.env.GSPLAT_COMMAND || '';
+
+      try {
+        if (fuseCommandTemplate) {
+          const command = expandCommandTemplate(fuseCommandTemplate, {
+            sceneId,
+            sceneDir,
+            worldDir,
+            bundleDir: bundle.bundleRoot,
+            sourceDir: bundle.sourceDir,
+            generatedDir: bundle.generatedDir,
+            primary: bundle.primaryView?.stagedPath ?? inputPhoto,
+            bundleJson: join(worldDir, 'view-bundle.json'),
+          });
+
+          console.log(`\n[Expanded] Reconstructing fused world: ${command}\n`);
+          const result = runShellCommand(command);
+          if (result.stdout?.trim()) console.log(result.stdout.trim());
+          if (result.stderr?.trim()) console.log(result.stderr.trim());
+          if (result.status !== 0) {
+            throw new Error(
+              [
+                '[Expanded] Fusion command failed.',
+                `Command: ${command}`,
+                result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+              ].join('\n'),
+            );
+          }
+
+          const fusedAssets = normalizeGeneratedWorldAssets(worldDir);
+          if (!fusedAssets.splat && !fusedAssets.mesh) {
+            throw new Error('[Expanded] Fusion command completed but no world assets were produced.');
+          }
+
+          return {
+            ...fusedAssets,
+            generationMode: bundle.strategy === 'cluster-fusion' ? 'multi-view-cluster' : 'single-image-expanded',
+            expansion: {
+              strategy: bundle.strategy,
+              stage: 'world-fused',
+              bundle: bundle.manifestRelativePath,
+              sourceViewCount: bundle.sourceViews.length,
+              generatedViewCount: bundle.generatedViews.length,
+              totalViewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+              anchorGenerator: 'sharp',
+              viewSynthesizer: process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND ? 'external-command' : null,
+              fusionEngine: 'external-command',
+            },
+            provenance: {
+              tier: bundle.strategy === 'cluster-fusion' ? 'cluster-fused' : 'expanded-fused',
+              anchorGenerator: 'sharp',
+              reconstruction: 'external-fuse',
+              viewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+            },
+          };
+        }
+
+        if (existingAssets?.splat || existingAssets?.mesh) {
+          return {
+            ...existingAssets,
+            generationMode: bundle.strategy === 'cluster-fusion' ? 'multi-view-cluster' : 'single-image-expanded',
+            expansion: {
+              strategy: bundle.strategy,
+              stage: 'bundle-prepared',
+              bundle: bundle.manifestRelativePath,
+              sourceViewCount: bundle.sourceViews.length,
+              generatedViewCount: bundle.generatedViews.length,
+              totalViewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+              anchorGenerator: meta.source?.generator || 'sharp',
+              viewSynthesizer: process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND ? 'external-command' : null,
+              fusionEngine: null,
+            },
+            provenance: {
+              ...(meta.world?.provenance ?? {}),
+              tier: existingAssets.sourceSplat ? 'anchor-draft' : 'existing-world',
+              anchorGenerator: meta.source?.generator || 'sharp',
+              reconstruction: 'registered-existing',
+              viewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+            },
+          };
+        }
+
+        const anchorAssets = await GENERATORS.sharp.run(inputPhoto, worldDir, options);
+        return {
+          ...anchorAssets,
+          generationMode: bundle.strategy === 'cluster-fusion' ? 'multi-view-cluster' : 'single-image-expanded',
+          expansion: {
+            strategy: bundle.strategy,
+            stage: 'anchor-draft',
+            bundle: bundle.manifestRelativePath,
+            sourceViewCount: bundle.sourceViews.length,
+            generatedViewCount: bundle.generatedViews.length,
+            totalViewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+            anchorGenerator: 'sharp',
+            viewSynthesizer: process.env.EXPANDED_VIEW_COMMAND || process.env.MULTIVIEW_COMMAND ? 'external-command' : null,
+            fusionEngine: null,
+          },
+          provenance: {
+            tier: 'anchor-draft',
+            anchorGenerator: 'sharp',
+            reconstruction: 'single-image-anchor',
+            viewCount: bundle.sourceViews.length + bundle.generatedViews.length,
+          },
+        };
+      } finally {
+        rmSync(bundle.bundleRoot, { recursive: true, force: true });
+      }
+    },
+  },
+
   marble: {
     name: 'Marble',
     description: 'World Labs Marble export registration',
@@ -400,10 +718,10 @@ const GENERATORS = {
 };
 
 async function main() {
-  const { sceneId, generator: generatorKey } = parseArgs();
+  const { sceneId, generator: generatorKey, force } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|trellis|marble]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|trellis|marble] [--force]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);
@@ -437,16 +755,27 @@ async function main() {
   console.log(`World dir: ${worldDir}`);
 
   const existingAssets = detectExistingAssets(worldDir);
-  if (existingAssets?.splat || existingAssets?.mesh) {
+  if (force) {
+    cleanWorldAssets(worldDir);
+  }
+  const currentAssets = force ? null : existingAssets;
+
+  if ((currentAssets?.splat || currentAssets?.mesh) && generatorKey !== 'expanded') {
     console.log('\nExisting world assets detected. Registering them in meta.json...');
-    const runtimeAssets = prepareRuntimeAssets(worldDir, existingAssets);
+    const runtimeAssets = prepareRuntimeAssets(worldDir, currentAssets);
     updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
     writeMeta(metaPath, meta);
     console.log(JSON.stringify(meta.world, null, 2));
     return;
   }
 
-  const generatedAssets = await generator.run(photoPath, worldDir, { sceneId, meta });
+  const generatedAssets = await generator.run(photoPath, worldDir, {
+    sceneId,
+    meta,
+    sceneDir,
+    existingAssets: currentAssets,
+    force,
+  });
   const runtimeAssets = prepareRuntimeAssets(worldDir, generatedAssets);
   updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
   writeMeta(metaPath, meta);

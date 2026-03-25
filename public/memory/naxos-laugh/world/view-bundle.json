@@ -1,0 +1,41 @@
+{
+  "sceneId": "naxos-laugh",
+  "strategy": "cluster-fusion",
+  "createdAt": "2026-03-25",
+  "sourceViewCount": 5,
+  "generatedViewCount": 0,
+  "totalViewCount": 5,
+  "anchorSource": "photo.jpg",
+  "views": [
+    {
+      "role": "primary",
+      "kind": "source",
+      "relativePath": "public/memory/naxos-laugh/photo.jpg",
+      "stagedFilename": "000-primary.jpg"
+    },
+    {
+      "role": "cluster-source",
+      "kind": "source",
+      "relativePath": "public/images/Instagram/media/posts/202405/18011396732371399.jpg",
+      "stagedFilename": "001-cluster-source.jpg"
+    },
+    {
+      "role": "cluster-source",
+      "kind": "source",
+      "relativePath": "public/images/Instagram/media/posts/202405/18033946798786712.jpg",
+      "stagedFilename": "002-cluster-source.jpg"
+    },
+    {
+      "role": "cluster-source",
+      "kind": "source",
+      "relativePath": "public/images/Instagram/media/posts/202405/17917063217823264.jpg",
+      "stagedFilename": "003-cluster-source.jpg"
+    },
+    {
+      "role": "cluster-source",
+      "kind": "source",
+      "relativePath": "public/images/Instagram/media/posts/202405/18122780437357613.jpg",
+      "stagedFilename": "004-cluster-source.jpg"
+    }
+  ]
+}

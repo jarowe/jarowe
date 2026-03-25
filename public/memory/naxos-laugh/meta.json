@@ -8,7 +8,7 @@
     "photo": "photo.jpg",
     "depth": null,
     "mask": null,
-    "generator": "sharp",
+    "generator": "expanded",
     "generated": "2026-03-25",
     "postDate": "May 08, 2024 6:52 am",
     "postImages": [
@@ -16,7 +16,19 @@
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
       "/images/Instagram/media/posts/202405/17917063217823264.jpg",
       "/images/Instagram/media/posts/202405/18122780437357613.jpg"
-    ]
+    ],
+    "generationMode": "multi-view-cluster",
+    "expansion": {
+      "strategy": "cluster-fusion",
+      "stage": "bundle-prepared",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 5,
+      "generatedViewCount": 0,
+      "totalViewCount": 5,
+      "anchorGenerator": "sharp",
+      "viewSynthesizer": null,
+      "fusionEngine": null
+    }
   },
   "world": {
     "splat": "world/scene.runtime.ply",
@@ -44,6 +56,12 @@
         0,
         0
       ]
+    },
+    "provenance": {
+      "tier": "existing-world",
+      "anchorGenerator": "sharp",
+      "reconstruction": "registered-existing",
+      "viewCount": 5
     }
   },
   "fallback": {

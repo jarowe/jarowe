@@ -8,8 +8,20 @@
     "photo": "photo.webp",
     "depth": "depth.png",
     "mask": "mask.png",
-    "generator": "sharp",
-    "generated": "2026-03-24"
+    "generator": "expanded",
+    "generated": "2026-03-25",
+    "generationMode": "single-image-expanded",
+    "expansion": {
+      "strategy": "synthetic-multiview-fusion",
+      "stage": "bundle-prepared",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "sharp",
+      "viewSynthesizer": null,
+      "fusionEngine": null
+    }
   },
   "world": {
     "splat": "world/scene.runtime.ply",
@@ -21,9 +33,28 @@
     "sourceSplatCount": 1179648,
     "bounds": null,
     "transform": {
-      "position": [0, 0, 0],
-      "scale": [1, 1, 1],
-      "rotation": [1, 0, 0, 0]
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "provenance": {
+      "tier": "existing-world",
+      "anchorGenerator": "sharp",
+      "reconstruction": "registered-existing",
+      "viewCount": 1
     }
   },
   "fallback": {

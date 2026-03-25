@@ -23,7 +23,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import {
   EffectComposer,
   Bloom,
@@ -524,6 +524,83 @@ function DreamParticles({
   }, [geometry, material]);
 
   return <points ref={meshRef} geometry={geometry} material={material} />;
+}
+
+function ClusterMemoryFacets({
+  images = [],
+  pointer = { x: 0, y: 0, activity: 0 },
+  travelProgress = 0,
+}) {
+  const groupRef = useRef(null);
+  const safeImages = useMemo(() => images.filter(Boolean).slice(0, 4), [images]);
+  const resolvedUrls = useMemo(
+    () => safeImages.map(image => resolveAsset(image)),
+    [safeImages],
+  );
+  const textures = useLoader(THREE.TextureLoader, resolvedUrls);
+
+  useEffect(() => {
+    textures.forEach(texture => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+    });
+  }, [textures]);
+
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+    const targetRotationY = travelProgress * 0.42 + pointer.x * 0.18;
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(
+      groupRef.current.rotation.y,
+      targetRotationY,
+      1 - Math.exp(-delta * 2.4),
+    );
+    groupRef.current.rotation.x = THREE.MathUtils.lerp(
+      groupRef.current.rotation.x,
+      pointer.y * 0.06,
+      1 - Math.exp(-delta * 2.2),
+    );
+    groupRef.current.position.y = THREE.MathUtils.lerp(
+      groupRef.current.position.y,
+      Math.sin(state.clock.elapsedTime * 0.35) * 0.08 + pointer.y * 0.12,
+      1 - Math.exp(-delta * 2.0),
+    );
+  });
+
+  if (!textures.length) return null;
+
+  return (
+    <group ref={groupRef}>
+      {textures.map((texture, index) => {
+        const normalized = textures.length === 1 ? 0.5 : index / (textures.length - 1);
+        const angle = (normalized - 0.5) * 1.15;
+        const radius = 3.2 + index * 0.38;
+        const y = (index % 2 === 0 ? 0.18 : -0.14) + index * 0.02;
+        const pointerBias = 1 - Math.min(1, Math.abs((pointer.x + 1) * 0.5 - normalized) * 1.8);
+        const opacity = 0.05 + travelProgress * 0.07 + pointer.activity * 0.08 * pointerBias;
+        const scaleX = 2.2 + index * 0.18;
+        const scaleY = 1.45 + index * 0.12;
+
+        return (
+          <mesh
+            key={resolvedUrls[index]}
+            position={[Math.sin(angle) * radius, y, -Math.cos(angle) * radius]}
+            rotation={[0.05 * (index % 2 === 0 ? 1 : -1), angle, 0]}
+            scale={[scaleX, scaleY, 1]}
+          >
+            <planeGeometry args={[1, 1]} />
+            <meshBasicMaterial
+              map={texture}
+              transparent
+              opacity={opacity}
+              color="#f7f2e9"
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
 }
 
 function ArchiveWorldController({
@@ -1333,6 +1410,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
   const previewUrl = resolveAsset(scene.previewImage ?? scene.photoUrl);
+  const clusterSourceImages = meta?.source?.generationMode === 'multi-view-cluster'
+    ? (meta?.source?.postImages ?? []).slice(0, 4)
+    : [];
   const defaultWorldTransform = useMemo(() => (
     normalizeWorldTransform(meta?.world?.transform) ?? {
       position: [0, 0, 0],
@@ -1477,6 +1557,14 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             onLoaded={handleSplatLoaded}
             onError={handleSplatError}
           />
+
+          {clusterSourceImages.length > 1 && (
+            <ClusterMemoryFacets
+              images={clusterSourceImages}
+              pointer={archivePointer}
+              travelProgress={archiveTravelProgress}
+            />
+          )}
 
           {/* Layer 2: Dream particles — luminous dust motes */}
           <DreamParticles
