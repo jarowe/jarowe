@@ -43,17 +43,80 @@ const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const LOCAL_DEPTH_VIEW_SCRIPT = join(ROOT, 'pipeline', 'synthesize_depth_views.py');
 const LOCAL_WORLD_MODEL_WRAPPER = join(ROOT, 'pipeline', 'run_single_image_world_backend.py');
-const MAX_RUNTIME_SPLATS = 300000;
+const DEFAULT_MAX_RUNTIME_SPLATS = 300000;
+const MAX_RUNTIME_SPLATS = Number.parseInt(process.env.MAX_RUNTIME_SPLATS ?? '', 10) || DEFAULT_MAX_RUNTIME_SPLATS;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const DEFAULT_CLUSTER_VIEW_LIMIT = 4;
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const sceneId = args.find(arg => !arg.startsWith('--'));
-  const generatorIndex = args.indexOf('--generator');
-  const generator = generatorIndex !== -1 ? args[generatorIndex + 1] : 'sharp';
-  const force = args.includes('--force');
-  return { sceneId, generator, force };
+  let sceneId = null;
+  let generator = 'sharp';
+  let resolution = null;
+  let prompt = null;
+  let force = false;
+  let useSharp = null;
+  let inpaintBg = null;
+  let lowVram = null;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '--generator') {
+      generator = args[index + 1] ?? generator;
+      index += 1;
+      continue;
+    }
+    if (arg === '--resolution') {
+      resolution = Number.parseInt(args[index + 1] ?? '', 10);
+      index += 1;
+      continue;
+    }
+    if (arg === '--prompt') {
+      prompt = args[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (arg === '--force') {
+      force = true;
+      continue;
+    }
+    if (arg === '--use-sharp') {
+      useSharp = true;
+      continue;
+    }
+    if (arg === '--no-sharp') {
+      useSharp = false;
+      continue;
+    }
+    if (arg === '--inpaint-bg') {
+      inpaintBg = true;
+      continue;
+    }
+    if (arg === '--no-inpaint-bg') {
+      inpaintBg = false;
+      continue;
+    }
+    if (arg === '--low-vram') {
+      lowVram = true;
+      continue;
+    }
+    if (!arg.startsWith('--') && !sceneId) {
+      sceneId = arg;
+    }
+  }
+
+  return {
+    sceneId,
+    generator,
+    force,
+    worldModelOptions: {
+      resolution: Number.isFinite(resolution) ? resolution : null,
+      prompt,
+      useSharp,
+      inpaintBg,
+      lowVram,
+    },
+  };
 }
 
 function readMeta(sceneDir) {
@@ -88,6 +151,10 @@ function toWslPath(filePath) {
 
 function shellQuoteBash(value) {
   return `'${String(value).replaceAll("'", `'\"'\"'`)}'`;
+}
+
+function shellQuoteWin(value) {
+  return `"${String(value).replaceAll('"', '\\"')}"`;
 }
 
 function isImageFile(filename) {
@@ -332,6 +399,23 @@ function refreshExpandedBundleManifest(worldDir, meta, bundle, strategy) {
   };
 }
 
+function buildWorldModelPrompt(meta) {
+  const explicitPrompt = meta?.source?.worldModelPrompt?.trim();
+  if (explicitPrompt) {
+    return explicitPrompt;
+  }
+
+  const title = meta?.title?.trim();
+  const subtitle = meta?.subtitle?.trim();
+  const description = meta?.description?.trim();
+  const parts = [title, subtitle, description].filter(Boolean);
+  if (!parts.length) return '';
+  return [
+    parts.join('. '),
+    'realistic 360 explorable scene, preserve the photo composition, complete hidden geometry, natural stone, turquoise water, cinematic depth',
+  ].join(' ');
+}
+
 function cleanWorldAssets(worldDir) {
   const candidates = [
     'scene.ply',
@@ -489,6 +573,32 @@ function buildVertexPropertyOffsets(properties) {
   }, {});
 }
 
+function greatestCommonDivisor(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y !== 0) {
+    const temp = y;
+    y = x % y;
+    x = temp;
+  }
+  return x;
+}
+
+function chooseCoprimePermutationStep(vertexCount) {
+  if (vertexCount <= 1) return 1;
+
+  let step = Math.max(1, Math.floor(vertexCount * 0.61803398875));
+  if (step >= vertexCount) {
+    step = vertexCount - 1;
+  }
+
+  while (step > 1 && greatestCommonDivisor(step, vertexCount) !== 1) {
+    step -= 1;
+  }
+
+  return step > 0 ? step : 1;
+}
+
 function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX_RUNTIME_SPLATS) {
   const sourceBuffer = readFileSync(sourcePath);
   const {
@@ -503,14 +613,15 @@ function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX
     return vertexCount;
   }
 
-  const stride = Math.max(1, Math.ceil(vertexCount / targetVertexCount));
-  const previewCount = Math.ceil(vertexCount / stride);
+  const previewCount = Math.min(targetVertexCount, vertexCount);
   const vertexBlockLength = vertexCount * vertexStride;
   const restOffset = vertexOffset + vertexBlockLength;
   const previewVertices = Buffer.allocUnsafe(previewCount * vertexStride);
+  const permutationStep = chooseCoprimePermutationStep(vertexCount);
 
   let destOffset = 0;
-  for (let index = 0; index < vertexCount; index += stride) {
+  for (let sampleIndex = 0; sampleIndex < previewCount; sampleIndex += 1) {
+    const index = (sampleIndex * permutationStep) % vertexCount;
     const sourceStart = vertexOffset + index * vertexStride;
     sourceBuffer.copy(previewVertices, destOffset, sourceStart, sourceStart + vertexStride);
     destOffset += vertexStride;
@@ -808,7 +919,8 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
 }
 
 async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
-  const { meta, sceneDir, sceneId } = options;
+  const { meta, sceneDir, sceneId, worldModelOptions = {} } = options;
+  const synthesizedPrompt = buildWorldModelPrompt(meta);
   const templateVariables = {
     input: inputPhoto,
     output: worldDir,
@@ -816,6 +928,11 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
     sceneDir,
     worldDir,
     primary: inputPhoto,
+    prompt: worldModelOptions.prompt || synthesizedPrompt,
+    resolution: worldModelOptions.resolution,
+    useSharp: worldModelOptions.useSharp,
+    inpaintBg: worldModelOptions.inpaintBg,
+    lowVram: worldModelOptions.lowVram,
   };
   const worldModelCommand =
     process.env.SINGLE_IMAGE_WORLD_COMMAND ||
@@ -851,6 +968,11 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       generatedDir: bundle.generatedDir,
       primary: bundle.primaryView?.stagedPath ?? inputPhoto,
       bundleJson: join(worldDir, 'view-bundle.json'),
+      prompt: worldModelOptions.prompt || synthesizedPrompt,
+      resolution: worldModelOptions.resolution,
+      useSharp: worldModelOptions.useSharp,
+      inpaintBg: worldModelOptions.inpaintBg,
+      lowVram: worldModelOptions.lowVram,
     };
     const command = worldModelCommand.includes('{')
       ? expandCommandTemplate(worldModelCommand, commandVariables)
@@ -978,22 +1100,49 @@ function getDefaultWorldModelWslPython() {
   return process.env.WORLD_MODEL_WSL_PYTHON || 'python';
 }
 
+function buildWorldModelArgumentList(variables = {}) {
+  const args = [
+    ['--backend', variables.backend],
+    ['--input', variables.primary ?? variables.input ?? ''],
+    ['--output', variables.worldDir ?? variables.output ?? ''],
+    ['--generated-views', variables.generatedDir ?? ''],
+    ['--scene-id', variables.sceneId ?? ''],
+  ];
+
+  if (variables.prompt) args.push(['--prompt', variables.prompt]);
+  if (Number.isFinite(variables.resolution)) args.push(['--resolution', `${variables.resolution}`]);
+  if (variables.useSharp === true) args.push(['--use-sharp', null]);
+  if (variables.useSharp === false) args.push(['--no-sharp', null]);
+  if (variables.inpaintBg === true) args.push(['--inpaint-bg', null]);
+  if (variables.inpaintBg === false) args.push(['--no-inpaint-bg', null]);
+  if (variables.lowVram === true) args.push(['--low-vram', null]);
+
+  return args;
+}
+
 function buildDefaultWorldModelWslCommand(backend, variables = {}) {
   const wrapperPath = toWslPath(LOCAL_WORLD_MODEL_WRAPPER);
   const worldgenRoot = toWslPath(
     process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen'),
   );
+  const worldModelArgs = buildWorldModelArgumentList({
+    ...variables,
+    backend,
+    input: toWslPath(variables.input ?? ''),
+    primary: toWslPath(variables.primary ?? ''),
+    output: toWslPath(variables.output ?? ''),
+    worldDir: toWslPath(variables.worldDir ?? ''),
+    generatedDir: toWslPath(variables.generatedDir ?? ''),
+  })
+    .map(([flag, value]) => value == null ? flag : `${flag} ${shellQuoteBash(value)}`)
+    .join(' ');
   const bashCommand = [
     `source ${getDefaultWorldModelWslVenv()}/bin/activate`,
     `export WORLDGEN_ROOT=${shellQuoteBash(worldgenRoot)}`,
     [
       getDefaultWorldModelWslPython(),
       shellQuoteBash(wrapperPath),
-      `--backend ${shellQuoteBash(backend)}`,
-      `--input ${shellQuoteBash(toWslPath(variables.primary ?? variables.input ?? ''))}`,
-      `--output ${shellQuoteBash(toWslPath(variables.worldDir ?? variables.output ?? ''))}`,
-      `--generated-views ${shellQuoteBash(toWslPath(variables.generatedDir ?? ''))}`,
-      `--scene-id ${shellQuoteBash(variables.sceneId ?? '')}`,
+      worldModelArgs,
     ].join(' '),
   ].join(' && ');
 
@@ -1010,14 +1159,17 @@ function buildDefaultWorldModelCommand(variables = {}) {
     return buildDefaultWorldModelWslCommand(backend, variables);
   }
 
+  const worldModelArgs = buildWorldModelArgumentList({
+    ...variables,
+    backend,
+  })
+    .map(([flag, value]) => value == null ? flag : `${flag} ${shellQuoteWin(value)}`)
+    .join(' ');
+
   return [
     getDefaultWorldModelPython(),
     `"${LOCAL_WORLD_MODEL_WRAPPER}"`,
-    `--backend "${backend}"`,
-    `--input "{primary}"`,
-    `--output "{worldDir}"`,
-    `--generated-views "{generatedDir}"`,
-    `--scene-id "{sceneId}"`,
+    worldModelArgs,
   ].join(' ');
 }
 
@@ -1239,10 +1391,10 @@ const GENERATORS = {
 };
 
 async function main() {
-  const { sceneId, generator: generatorKey, force } = parseArgs();
+  const { sceneId, generator: generatorKey, force, worldModelOptions } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--low-vram]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);
@@ -1296,6 +1448,7 @@ async function main() {
     sceneDir,
     existingAssets: currentAssets,
     force,
+    worldModelOptions,
   });
   const runtimeAssets = prepareRuntimeAssets(worldDir, generatedAssets);
   updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });

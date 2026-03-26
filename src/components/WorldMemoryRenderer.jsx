@@ -24,6 +24,7 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
+import { useLocation } from 'react-router-dom';
 import {
   EffectComposer,
   Bloom,
@@ -1318,6 +1319,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   },
   ref,
 ) {
+  const location = useLocation();
   const [splatLoaded, setSplatLoaded] = useState(false);
   const [splatError, setSplatError] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -1538,6 +1540,10 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     focus: cloneVec3(editorState.focusAnchor, baseTravelAnchors.focus),
     depart: cloneVec3(editorState.departAnchor, baseTravelAnchors.depart),
   } : baseTravelAnchors;
+  const rawWorldMode = useMemo(
+    () => new URLSearchParams(location.search).get('raw') === '1',
+    [location.search],
+  );
 
   // Show loading until meta is resolved
   if (!metaLoaded) {
@@ -1588,7 +1594,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             onError={handleSplatError}
           />
 
-          {clusterSourceImages.length > 1 && (
+          {!rawWorldMode && clusterSourceImages.length > 1 && (
             <ClusterMemoryFacets
               images={clusterSourceImages}
               pointer={archivePointer}
@@ -1597,7 +1603,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             />
           )}
 
-          {archiveMode && archiveClusterBlend > 0.04 && nextClusterPreviewImages.length > 0 && (
+          {!rawWorldMode && archiveMode && archiveClusterBlend > 0.04 && nextClusterPreviewImages.length > 0 && (
             <ClusterMemoryFacets
               images={nextClusterPreviewImages}
               pointer={archivePointer}
@@ -1611,15 +1617,17 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           )}
 
           {/* Layer 2: Dream particles — luminous dust motes */}
-          <DreamParticles
-            count={isFullTier ? 9000 : 4200}
-            radius={isFullTier ? 12.5 : 8.5}
-            color="#FFE4B5"
-            travelProgress={archiveTravelProgress}
-            pointer={archivePointer}
-          />
+          {!rawWorldMode && (
+            <DreamParticles
+              count={isFullTier ? 9000 : 4200}
+              radius={isFullTier ? 12.5 : 8.5}
+              color="#FFE4B5"
+              travelProgress={archiveTravelProgress}
+              pointer={archivePointer}
+            />
+          )}
 
-          {archiveMode && (
+          {!rawWorldMode && archiveMode && (
             <SynapseField
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
@@ -1627,10 +1635,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           )}
 
           {/* Layer 3: Atmosphere fog */}
-          <WorldAtmosphere
-            fogColor="#0a0a12"
-            radius={isFullTier ? 30.0 : 20.0}
-          />
+          {!rawWorldMode && (
+            <WorldAtmosphere
+              fogColor="#0a0a12"
+              radius={isFullTier ? 30.0 : 20.0}
+            />
+          )}
 
           {/* Layer 4: Camera controls */}
           {archiveMode ? (
@@ -1654,7 +1664,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           )}
 
           {/* Layer 5: Post-processing (full tier) */}
-          {isFullTier && enablePostProcessing && <WorldPostProcessing />}
+          {isFullTier && enablePostProcessing && !rawWorldMode && <WorldPostProcessing />}
         </Canvas>
 
         {!splatLoaded && (
@@ -1720,7 +1730,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           />
         )}
 
-        <div className="capsule-vignette" />
+        {!rawWorldMode && <div className="capsule-vignette" />}
       </div>
     );
   }

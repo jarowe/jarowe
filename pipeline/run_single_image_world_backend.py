@@ -34,7 +34,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resolution", type=int, default=int(os.environ.get("WORLD_MODEL_RESOLUTION", "1600")))
     parser.add_argument("--low-vram", action="store_true")
     parser.add_argument("--use-sharp", action="store_true", default=os.environ.get("WORLDGEN_USE_SHARP", "1") != "0")
+    parser.add_argument("--no-sharp", action="store_true")
     parser.add_argument("--inpaint-bg", action="store_true", default=os.environ.get("WORLDGEN_INPAINT_BG", "0") == "1")
+    parser.add_argument("--no-inpaint-bg", action="store_true")
     return parser.parse_args()
 
 
@@ -86,17 +88,20 @@ def run_worldgen(args: argparse.Namespace) -> int:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     low_vram = args.low_vram or None
 
+    use_sharp = bool(args.use_sharp and not args.no_sharp)
+    inpaint_bg = bool(args.inpaint_bg and not args.no_inpaint_bg)
+
     world = WorldGen(
         mode="i2s",
         device=device,
-        use_sharp=bool(args.use_sharp),
-        inpaint_bg=bool(args.inpaint_bg),
+        use_sharp=use_sharp,
+        inpaint_bg=inpaint_bg,
         resolution=args.resolution,
         low_vram=low_vram,
     )
     # WorldGen's current upstream sharp path imports this helper in __init__
     # but doesn't retain it for later use inside _generate_world.
-    if bool(args.use_sharp) and not hasattr(world, "predict_equirectangular"):
+    if use_sharp and not hasattr(world, "predict_equirectangular"):
         world.predict_equirectangular = predict_equirectangular
 
     image = Image.open(image_path).convert("RGB")
@@ -109,8 +114,9 @@ def run_worldgen(args: argparse.Namespace) -> int:
         f"input={image_path}\n"
         f"output={output_path}\n"
         f"resolution={args.resolution}\n"
-        f"use_sharp={bool(args.use_sharp)}\n"
-        f"inpaint_bg={bool(args.inpaint_bg)}"
+        f"use_sharp={use_sharp}\n"
+        f"inpaint_bg={inpaint_bg}\n"
+        f"prompt={args.prompt}"
     )
     return 0
 

@@ -11,6 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "generationMode": "single-image-world-model",
+    "worldModelPrompt": "A hidden sea cave on the coast of Syros, Greece. Inside a rocky cave opening framing vivid turquoise sea water, fully explorable 360 real-world scene, preserve the original photo composition, complete the surrounding cave interior and occluded geometry, natural limestone textures, cinematic depth and atmospheric light.",
     "expansion": {
       "strategy": "learned-scene-expansion",
       "stage": "world-model-fused",
@@ -30,8 +31,8 @@
     "mesh": null,
     "collider": null,
     "format": "ply",
-    "splatCount": 294912,
-    "sourceSplatCount": 16515072,
+    "splatCount": 600000,
+    "sourceSplatCount": 2233577,
     "bounds": null,
     "transform": {
       "position": [
