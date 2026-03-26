@@ -533,7 +533,8 @@ function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX
 
 function parsePlyVertexCount(plyPath) {
   try {
-    const header = readFileSync(plyPath, 'utf8').slice(0, 8192);
+    const fileBuffer = readFileSync(plyPath);
+    const header = fileBuffer.subarray(0, 8192).toString('ascii');
     const match = header.match(/element vertex\s+(\d+)/);
     return match ? Number.parseInt(match[1], 10) : null;
   } catch {

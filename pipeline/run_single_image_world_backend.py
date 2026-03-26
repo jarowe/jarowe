@@ -61,6 +61,7 @@ def run_worldgen(args: argparse.Namespace) -> int:
         from PIL import Image
         import torch
         from worldgen import WorldGen
+        from worldgen.pano_sharp import predict_equirectangular
     except Exception as exc:  # pragma: no cover - dependency discovery path
         print(
             "[worldgen] Failed to import WorldGen dependencies.\n"
@@ -93,6 +94,10 @@ def run_worldgen(args: argparse.Namespace) -> int:
         resolution=args.resolution,
         low_vram=low_vram,
     )
+    # WorldGen's current upstream sharp path imports this helper in __init__
+    # but doesn't retain it for later use inside _generate_world.
+    if bool(args.use_sharp) and not hasattr(world, "predict_equirectangular"):
+        world.predict_equirectangular = predict_equirectangular
 
     image = Image.open(image_path).convert("RGB")
     splat = world.generate_world(prompt=args.prompt or "", image=image, return_mesh=False)
