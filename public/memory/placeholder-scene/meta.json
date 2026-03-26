@@ -7,7 +7,7 @@
     "type": "single-image",
     "photo": "photo.jpg",
     "depth": null,
-    "mask": null,
+    "mask": "mask.png",
     "generator": "world-model",
     "generated": "2026-03-26",
     "generationMode": "single-image-world-model",

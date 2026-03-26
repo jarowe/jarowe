@@ -43,7 +43,9 @@ public/images/Facebook/
 
 # SHARP / ML generation pipeline (local only)
 .venv-sharp/
+.venv-image-tools/
 .models/
+pipeline/__pycache__/
 
 # Generated world assets (too large for git, regenerate with pipeline/)
 public/memory/*/world/*.ply
