@@ -547,6 +547,8 @@ function ClusterMemoryFacets({
   presentation = 'ambient',
 }) {
   const groupRef = useRef(null);
+  const isChapter = presentation === 'chapter';
+  const isAnchor = presentation === 'anchor';
   const safeImages = useMemo(() => images.filter(Boolean).slice(0, 4), [images]);
   const primaryUrl = useMemo(
     () => (primaryImage ? resolveAsset(primaryImage) : null),
@@ -650,16 +652,45 @@ function ClusterMemoryFacets({
             ((b - avgBorder.b) ** 2),
           );
           const lumaDistance = Math.abs(luma - avgBorder.luma);
-          const borderRejection = smoothstep(0.12, 0.4, colorDistance + lumaDistance * 0.92 + saturation * 0.22);
+          const subjectSignal = colorDistance
+            + lumaDistance * (isChapter ? 1.08 : 0.92)
+            + saturation * (isChapter ? 0.34 : 0.22);
+          const borderRejection = smoothstep(
+            isChapter ? 0.16 : 0.12,
+            isChapter ? 0.48 : 0.4,
+            subjectSignal,
+          );
           const edgeMask =
-            smoothstep(0, 0.16, u) *
-            smoothstep(0, 0.16, 1 - u) *
-            smoothstep(0, 0.16, v) *
-            smoothstep(0, 0.16, 1 - v);
+            smoothstep(0, isChapter ? 0.1 : 0.16, u) *
+            smoothstep(0, isChapter ? 0.1 : 0.16, 1 - u) *
+            smoothstep(0, isChapter ? 0.08 : 0.16, v) *
+            smoothstep(0, isChapter ? 0.08 : 0.16, 1 - v);
           const dx = (u - 0.5) / 0.48;
           const dy = (v - 0.52) / 0.56;
           const radial = 1 - smoothstep(0.78, 1.08, Math.sqrt(dx * dx + dy * dy));
-          const silhouette = THREE.MathUtils.clamp(borderRejection * 1.08 + radial * 0.14 - 0.06, 0, 1);
+          let silhouette = THREE.MathUtils.clamp(borderRejection * 1.08 + radial * 0.14 - 0.06, 0, 1);
+          if (isChapter) {
+            const portraitDx = (u - 0.48) / 0.26;
+            const portraitDy = (v - 0.44) / 0.42;
+            const portraitOval = 1 - smoothstep(
+              0.72,
+              1.02,
+              Math.sqrt(portraitDx * portraitDx + portraitDy * portraitDy),
+            );
+            const shoulderDx = (u - 0.46) / 0.34;
+            const shoulderDy = (v - 0.74) / 0.24;
+            const shoulderOval = 1 - smoothstep(
+              0.76,
+              1.08,
+              Math.sqrt(shoulderDx * shoulderDx + shoulderDy * shoulderDy),
+            );
+            const portraitSupport = Math.max(portraitOval, shoulderOval * 0.88);
+            silhouette = THREE.MathUtils.clamp(
+              borderRejection * 0.92 + portraitSupport * 0.44 - 0.12,
+              0,
+              1,
+            );
+          }
           const alpha = Math.round(255 * THREE.MathUtils.clamp(edgeMask * silhouette, 0, 1));
           alphaData.data[index] = alpha;
           alphaData.data[index + 1] = alpha;
@@ -667,9 +698,20 @@ function ClusterMemoryFacets({
           alphaData.data[index + 3] = 255;
         }
       }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.putImageData(alphaData, 0, 0);
+      const alphaCanvas = document.createElement('canvas');
+      alphaCanvas.width = canvas.width;
+      alphaCanvas.height = canvas.height;
+      const alphaCtx = alphaCanvas.getContext('2d');
+      if (alphaCtx) {
+        alphaCtx.putImageData(alphaData, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.filter = isChapter ? 'blur(6px)' : 'blur(3px)';
+        ctx.drawImage(alphaCanvas, 0, 0);
+        ctx.filter = 'none';
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.putImageData(alphaData, 0, 0);
+      }
     } else {
       const imageData = ctx.createImageData(canvas.width, canvas.height);
       const feather = 0.18;
@@ -699,7 +741,7 @@ function ClusterMemoryFacets({
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
     return texture;
-  }, [primaryCrop, primaryTexture]);
+  }, [isChapter, primaryCrop, primaryTexture]);
   const croppedPrimaryTexture = useMemo(() => {
     if (!primaryTexture) return null;
     if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return primaryTexture;
@@ -762,8 +804,6 @@ function ClusterMemoryFacets({
 
   if (!croppedPrimaryTexture && !supportTextures.length) return null;
 
-  const isChapter = presentation === 'chapter';
-  const isAnchor = presentation === 'anchor';
   const primaryHeight = isChapter
     ? 3.2 * radiusMultiplier
     : isAnchor
@@ -783,9 +823,9 @@ function ClusterMemoryFacets({
     ? [pointer.y * 0.02, pointer.x * -0.08 + orbitOffset * 0.15, pointer.x * -0.015]
     : isAnchor
       ? [pointer.y * 0.035, pointer.x * -0.1 + orbitOffset * 0.2, pointer.x * -0.02]
-    : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
+      : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
   const primaryOpacity = isChapter
-    ? (0.5 + pointer.activity * 0.16 + travelProgress * 0.08) * blend
+    ? (0.12 + pointer.activity * 0.14 + travelProgress * 0.05) * blend
     : isAnchor
       ? (0.4 + pointer.activity * 0.14 + travelProgress * 0.08) * blend
       : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
@@ -795,7 +835,7 @@ function ClusterMemoryFacets({
     <group ref={groupRef}>
       {croppedPrimaryTexture && (
         <group>
-          {(isChapter || isAnchor) && (
+          {isAnchor && (
             <mesh
               renderOrder={36}
               position={[primaryPosition[0], primaryPosition[1], primaryPosition[2] - 0.02]}
@@ -805,7 +845,8 @@ function ClusterMemoryFacets({
               <planeGeometry args={[1, 1]} />
               <meshBasicMaterial
                 transparent
-                opacity={(isChapter ? 0.22 : 0.14) * blend}
+                alphaMap={primaryAlphaTexture}
+                opacity={(isChapter ? 0.06 : 0.12) * blend}
                 color="#050608"
                 depthWrite={false}
                 depthTest={false}
@@ -843,7 +884,7 @@ function ClusterMemoryFacets({
                 map={croppedPrimaryTexture}
                 alphaMap={primaryAlphaTexture}
                 transparent
-                opacity={((isChapter ? 0.09 : 0.05) + pointer.activity * 0.06) * blend}
+                opacity={((isChapter ? 0.018 : 0.05) + pointer.activity * (isChapter ? 0.025 : 0.05)) * blend}
                 color={tint}
                 depthWrite={false}
                 depthTest={false}
@@ -1176,14 +1217,29 @@ function WorldAtmosphere({ fogColor = '#0a0a12', radius = 30.0 }) {
 // ---------------------------------------------------------------------------
 // WorldPostProcessing — Bloom + DOF + Vignette
 // ---------------------------------------------------------------------------
-function WorldPostProcessing({ archiveMode = false, chapterMode = false }) {
-  const dofFocusDistance = chapterMode ? 0.012 : 0.02;
-  const dofFocalLength = chapterMode ? 0.02 : 0.04;
-  const dofBokehScale = archiveMode ? (chapterMode ? 0.7 : 1.0) : 1.5;
+function WorldPostProcessing({
+  archiveMode = false,
+  chapterMode = false,
+  standaloneWorld = false,
+}) {
+  const dofFocusDistance = chapterMode
+    ? 0.012
+    : standaloneWorld
+      ? 0.01
+      : 0.02;
+  const dofFocalLength = chapterMode
+    ? 0.02
+    : standaloneWorld
+      ? 0.018
+      : 0.04;
+  const dofBokehScale = archiveMode
+    ? (chapterMode ? 0.7 : standaloneWorld ? 0.42 : 1.0)
+    : 1.5;
+  const bloomIntensity = standaloneWorld && archiveMode ? 0.22 : 0.35;
   return (
     <EffectComposer disableNormalPass frameBufferType={HalfFloatType}>
       <Bloom
-        intensity={0.35}
+        intensity={bloomIntensity}
         luminanceThreshold={0.6}
         luminanceSmoothing={0.4}
         radius={0.35}
@@ -1660,13 +1716,26 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     () => new URLSearchParams(location.search).get('full') === '1',
     [location.search],
   );
+  const previewMode = useMemo(
+    () => new URLSearchParams(location.search).get('preview') === '1',
+    [location.search],
+  );
 
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
     const sharedSceneId = meta?.world?.sharedSceneId ?? scene.id;
     const defaultSharedAsset = fullSourceMode ? 'world/scene.ply' : 'world/scene.runtime.ply';
+    const presentationMode = meta?.world?.presentationMode
+      ?? (meta?.world?.sharedSceneId ? 'chapter' : 'anchor');
+    const preferSourceForAnchor =
+      !previewMode
+      && !rawWorldMode
+      && archiveMode
+      && isFullTier
+      && (presentationMode === 'anchor' || presentationMode === 'chapter')
+      && meta?.world?.provenance?.tier === 'world-model-fused';
     const preferredWorldAsset =
-      (fullSourceMode && meta?.world?.sourceSplat)
+      ((fullSourceMode || preferSourceForAnchor) && meta?.world?.sourceSplat)
       || meta?.world?.splat
       || (meta?.world?.sharedSceneId ? defaultSharedAsset : null);
     if (preferredWorldAsset) {
@@ -1675,7 +1744,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
       return resolveMemoryWorldPath(sharedSceneId, preferredWorldAsset);
     }
     return scene.splatUrl || null;
-  }, [fullSourceMode, meta, scene.id, scene.splatUrl]);
+  }, [archiveMode, fullSourceMode, isFullTier, meta, previewMode, rawWorldMode, scene.id, scene.splatUrl]);
 
   // If no splat is available after meta loads, signal that we should fall back.
   // The parent (CapsuleShell) handles actual fallback; we just render what we can.
@@ -1736,13 +1805,40 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
   const previewUrl = resolveAsset(scene.previewImage ?? scene.photoUrl);
+  const presentationMode = meta?.world?.presentationMode
+    ?? (meta?.world?.sharedSceneId ? 'chapter' : 'anchor');
+  const chapterPresentation = presentationMode === 'chapter' || Boolean(meta?.world?.sharedSceneId);
+  const standaloneAnchorWorld = presentationMode === 'anchor'
+    && !meta?.world?.sharedSceneId
+    && meta?.world?.provenance?.tier === 'world-model-fused';
   const clusterPrimaryImage = meta?.source?.postImages?.length
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
-  const clusterPrimaryCrop = meta?.artDirection?.subjectCrop ?? null;
-  const clusterSourceImages = meta?.world?.sharedSceneId
-    ? []
+  const clusterPrimaryCrop = standaloneAnchorWorld
+    ? null
+    : (meta?.artDirection?.subjectCrop ?? null);
+  const clusterSourceImages = chapterPresentation
+    ? [clusterPrimaryImage].filter(Boolean)
     : (meta?.source?.postImages ?? []).slice(0, 4);
+  const revealStandaloneFacets = archivePointer.activity > 0.42 || archiveTravelProgress > 0.44;
+  const anchorFacetPresentation = standaloneAnchorWorld ? 'ambient' : (chapterPresentation ? 'chapter' : 'anchor');
+  const anchorFacetBlend = standaloneAnchorWorld
+    ? (
+      (revealStandaloneFacets ? 0.04 : 0)
+      + Math.max(0, archivePointer.activity - 0.28) * 0.18
+      + Math.max(0, archiveTravelProgress - 0.3) * 0.16
+    )
+    : (archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1);
+  const dreamParticleCount = standaloneAnchorWorld
+    ? (isFullTier ? 9000 : 4200)
+    : chapterPresentation
+      ? (isFullTier ? 12000 : 5600)
+      : (isFullTier ? 16000 : 7200);
+  const dreamParticleRadius = standaloneAnchorWorld
+    ? (isFullTier ? 8.4 : 5.8)
+    : chapterPresentation
+      ? (isFullTier ? 9.1 : 6.2)
+      : (isFullTier ? 10.5 : 7.0);
   const nextClusterPreviewImages = useMemo(
     () => archiveNextScene ? [archiveNextScene.previewImage ?? archiveNextScene.photoUrl].filter(Boolean) : [],
     [archiveNextScene],
@@ -1892,19 +1988,19 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             onError={handleSplatError}
           />
 
-          {!rawWorldMode && clusterSourceImages.length > 1 && (
+          {!rawWorldMode && clusterSourceImages.length > 1 && (!standaloneAnchorWorld || revealStandaloneFacets) && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
               primaryCrop={clusterPrimaryCrop}
               images={clusterSourceImages}
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
-              blend={archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1}
-              presentation="anchor"
+              blend={anchorFacetBlend}
+              presentation={anchorFacetPresentation}
             />
           )}
 
-          {!rawWorldMode && meta?.world?.sharedSceneId && clusterPrimaryImage && (
+          {!rawWorldMode && chapterPresentation && clusterPrimaryImage && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
               primaryCrop={clusterPrimaryCrop}
@@ -1919,7 +2015,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             />
           )}
 
-          {!rawWorldMode && archiveMode && archiveClusterBlend > 0.04 && nextClusterPreviewImages.length > 0 && (
+          {!rawWorldMode && archiveMode && archiveClusterBlend > (standaloneAnchorWorld ? 0.16 : 0.04) && nextClusterPreviewImages.length > 0 && (
             <ClusterMemoryFacets
               images={nextClusterPreviewImages}
               pointer={archivePointer}
@@ -1935,8 +2031,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {/* Layer 2: Dream particles — luminous dust motes */}
           {!rawWorldMode && (
             <DreamParticles
-              count={isFullTier ? 16000 : 7200}
-              radius={isFullTier ? 10.5 : 7.0}
+              count={dreamParticleCount}
+              radius={dreamParticleRadius}
               color="#FFE4B5"
               travelProgress={archiveTravelProgress}
               pointer={archivePointer}
@@ -1983,7 +2079,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {isFullTier && enablePostProcessing && !rawWorldMode && (
             <WorldPostProcessing
               archiveMode={archiveMode}
-              chapterMode={Boolean(meta?.world?.sharedSceneId)}
+              chapterMode={chapterPresentation}
+              standaloneWorld={standaloneAnchorWorld}
             />
           )}
         </Canvas>

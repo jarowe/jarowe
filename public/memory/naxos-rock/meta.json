@@ -11,7 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
-    "worldModelPrompt": "Wide Mediterranean shoreline memory in Naxos, Greece at golden hour. Preserve the original seated boy on the foreground rock in a bright blue hoodie as the clear focal human anchor. Reconstruct the surrounding granite rock field, shallow tide pool, ocean horizon, islands, and sky as a cohesive fully explorable 360 coastal world. Keep the seated boy readable and intact, preserve ground continuity around him, avoid floating fragments or detached blocks, and complete the unseen environment with believable rock formations, sand, tide pools, and Aegean light.",
+    "worldModelPrompt": "Golden-hour Naxos shoreline memory, seated boy in bright blue hoodie on a foreground rock, preserve him as the clear subject, full 360 coastal world, continuous sand, granite rocks, tide pools, distant islands, sea horizon, warm Mediterranean light, no floating fragments.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -35,11 +35,12 @@
   "world": {
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
+    "presentationMode": "anchor",
     "mesh": null,
     "collider": null,
     "format": "ply",
     "splatCount": 850000,
-    "sourceSplatCount": 16515072,
+    "sourceSplatCount": 2097152,
     "bounds": null,
     "transform": {
       "position": [

@@ -11,7 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
-    "worldModelPrompt": "Laughing boy on sunlit Naxos rocks near the sea, warm Mediterranean shoreline, bright blue shirt, pale stone textures, sparkling water, fully explorable 360 seaside memory world. Preserve the original framing and the laughing boy as the main subject, complete the surrounding coastline, sky, and depth with natural cinematic light.",
+    "worldModelPrompt": "Golden-hour Naxos shoreline memory, laughing boy in a bright blue shirt on pale coastal rocks, preserve him clearly, surround him with continuous beach stone, tide pools, sea horizon, distant islands, and warm Mediterranean sky, no voids or floating fragments.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -33,14 +33,14 @@
     }
   },
   "world": {
-    "sharedSceneId": "naxos-rock",
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
+    "presentationMode": "chapter",
     "mesh": null,
     "collider": null,
     "format": "ply",
     "splatCount": 650000,
-    "sourceSplatCount": 2451724,
+    "sourceSplatCount": 2097152,
     "bounds": null,
     "transform": {
       "position": [
@@ -61,11 +61,10 @@
       ]
     },
     "provenance": {
-      "tier": "cluster-shared-world",
+      "tier": "world-model-fused",
       "anchorGenerator": "source-photo",
-      "reconstruction": "shared-cluster-world",
-      "viewCount": 1,
-      "sharedFrom": "naxos-rock"
+      "reconstruction": "single-image-world-model",
+      "viewCount": 1
     }
   },
   "fallback": {
