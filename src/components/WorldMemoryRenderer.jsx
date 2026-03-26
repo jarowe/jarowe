@@ -392,12 +392,12 @@ void main() {
   float cursorReveal = smoothstep(0.92, 0.0, cursorDist) * uMouseActivity;
 
   // Size attenuation — closer particles are larger
-  float sizeFactor = aScale * (62.0 / max(-mvPos.z, 0.9));
-  gl_PointSize = clamp(sizeFactor * (0.95 + uAudioHigh * 0.4 + cursorReveal * 0.65 + uTravel * 0.3), 0.4, 8.4);
+  float sizeFactor = aScale * (44.0 / max(-mvPos.z, 0.9));
+  gl_PointSize = clamp(sizeFactor * (0.9 + uAudioHigh * 0.35 + cursorReveal * 0.55 + uTravel * 0.18), 0.3, 4.6);
 
   // Depth-based alpha: farther = dimmer
   float dist = length(mvPos.xyz);
-  vAlpha = smoothstep(25.0, 2.4, dist) * (0.28 + aPhase * 0.38) * (1.0 + uAudioMid * 0.38 + cursorReveal * 0.82);
+  vAlpha = smoothstep(22.0, 1.8, dist) * (0.34 + aPhase * 0.42) * (1.0 + uAudioMid * 0.42 + cursorReveal * 0.88);
   vReveal = cursorReveal;
   vScale = aScale;
 
@@ -424,8 +424,8 @@ void main() {
 `;
 
 function DreamParticles({
-  count = 8000,
-  radius = 15.0,
+  count = 12000,
+  radius = 11.0,
   color = '#FFE4B5',
   travelProgress = 0,
   pointer = { x: 0, y: 0, activity: 0 },
@@ -441,7 +441,7 @@ function DreamParticles({
     uMouseActivity: { value: 0 },
     uPointer: { value: new THREE.Vector2(0, 0) },
     uColor: { value: new THREE.Color(color) },
-    uOpacity: { value: 0.48 },
+    uOpacity: { value: 0.58 },
   });
 
   const { geometry, material } = useMemo(() => {
@@ -462,7 +462,7 @@ function DreamParticles({
 
       phases[i] = Math.random();
       speeds[i] = 0.1 + Math.random() * 0.25;
-      scales[i] = 0.48 + Math.random() * 1.15;
+      scales[i] = 0.24 + Math.random() * 0.58;
     }
 
     const geo = new THREE.BufferGeometry();
@@ -477,6 +477,7 @@ function DreamParticles({
       fragmentShader: DREAM_FRAG,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     });
 
@@ -1369,15 +1370,25 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     return () => { cancelled = true; };
   }, [scene.id]);
 
+  const rawWorldMode = useMemo(
+    () => new URLSearchParams(location.search).get('raw') === '1',
+    [location.search],
+  );
+  const fullSourceMode = useMemo(
+    () => new URLSearchParams(location.search).get('full') === '1',
+    [location.search],
+  );
+
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
-    if (meta?.world?.splat) {
+    const preferredWorldAsset = (fullSourceMode && meta?.world?.sourceSplat) || meta?.world?.splat;
+    if (preferredWorldAsset) {
       // meta.json splat paths are relative to the memory directory.
       // Support both the current world/scene.ply contract and legacy scene.ply values.
-      return resolveMemoryWorldPath(scene.id, meta.world.splat);
+      return resolveMemoryWorldPath(scene.id, preferredWorldAsset);
     }
     return scene.splatUrl || null;
-  }, [meta, scene.id, scene.splatUrl]);
+  }, [fullSourceMode, meta, scene.id, scene.splatUrl]);
 
   // If no splat is available after meta loads, signal that we should fall back.
   // The parent (CapsuleShell) handles actual fallback; we just render what we can.
@@ -1540,10 +1551,6 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     focus: cloneVec3(editorState.focusAnchor, baseTravelAnchors.focus),
     depart: cloneVec3(editorState.departAnchor, baseTravelAnchors.depart),
   } : baseTravelAnchors;
-  const rawWorldMode = useMemo(
-    () => new URLSearchParams(location.search).get('raw') === '1',
-    [location.search],
-  );
 
   // Show loading until meta is resolved
   if (!metaLoaded) {
@@ -1619,8 +1626,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {/* Layer 2: Dream particles — luminous dust motes */}
           {!rawWorldMode && (
             <DreamParticles
-              count={isFullTier ? 9000 : 4200}
-              radius={isFullTier ? 12.5 : 8.5}
+              count={isFullTier ? 16000 : 7200}
+              radius={isFullTier ? 10.5 : 7.0}
               color="#FFE4B5"
               travelProgress={archiveTravelProgress}
               pointer={archivePointer}

@@ -176,7 +176,10 @@ function collectDirectoryImages(dirPath) {
     .map(entry => join(dirPath, entry.name));
 }
 
-function collectSourceViews(sceneDir, meta) {
+function collectSourceViews(sceneDir, meta, options = {}) {
+  const {
+    includePostImages = true,
+  } = options;
   const views = [];
   const seen = new Set();
 
@@ -196,8 +199,10 @@ function collectSourceViews(sceneDir, meta) {
 
   addView('primary', resolveSceneAssetPath(sceneDir, meta.source?.photo));
 
-  for (const postImage of meta.source?.postImages ?? []) {
-    addView('cluster-source', resolveSceneAssetPath(sceneDir, postImage));
+  if (includePostImages) {
+    for (const postImage of meta.source?.postImages ?? []) {
+      addView('cluster-source', resolveSceneAssetPath(sceneDir, postImage));
+    }
   }
 
   const localViewDirs = [
@@ -246,6 +251,7 @@ function buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, o
   const {
     allowExternalViewCommand = true,
     allowLocalDepthSynthesis = true,
+    includePostImages = true,
   } = options;
   const bundleRoot = join(tmpdir(), `jarowe-expanded-${sceneId}-${Date.now()}`);
   const sourceDir = join(bundleRoot, 'source');
@@ -253,7 +259,7 @@ function buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, o
   mkdirSync(sourceDir, { recursive: true });
   mkdirSync(generatedDir, { recursive: true });
 
-  const sourceViews = collectSourceViews(sceneDir, meta);
+  const sourceViews = collectSourceViews(sceneDir, meta, { includePostImages });
   const stagedViews = sourceViews.map((view, index) => {
     const filename = `${String(index).padStart(3, '0')}-${view.role}${view.ext}`;
     const stagedPath = join(sourceDir, filename);
@@ -599,10 +605,131 @@ function chooseCoprimePermutationStep(vertexCount) {
   return step > 0 ? step : 1;
 }
 
+function sigmoid(value) {
+  return 1 / (1 + Math.exp(-value));
+}
+
+function readVertexImportance(buffer, baseOffset, offsets) {
+  const opacityOffset = offsets.opacity;
+  const scale0Offset = offsets.scale_0;
+  const scale1Offset = offsets.scale_1;
+  const scale2Offset = offsets.scale_2;
+
+  const opacity = opacityOffset == null
+    ? 0.5
+    : sigmoid(buffer.readFloatLE(baseOffset + opacityOffset));
+
+  if (scale0Offset == null || scale1Offset == null || scale2Offset == null) {
+    return opacity;
+  }
+
+  const maxScale = Math.max(
+    buffer.readFloatLE(baseOffset + scale0Offset),
+    buffer.readFloatLE(baseOffset + scale1Offset),
+    buffer.readFloatLE(baseOffset + scale2Offset),
+  );
+  const gaussianRadius = Math.exp(maxScale);
+  const normalizedRadius = clamp((gaussianRadius - 0.006) / 0.18, 0, 1);
+
+  return opacity * 0.8 + normalizedRadius * 0.2;
+}
+
+function siftHeapUp(scores, indices, position) {
+  let child = position;
+  while (child > 0) {
+    const parent = Math.floor((child - 1) / 2);
+    if (scores[parent] <= scores[child]) break;
+    [scores[parent], scores[child]] = [scores[child], scores[parent]];
+    [indices[parent], indices[child]] = [indices[child], indices[parent]];
+    child = parent;
+  }
+}
+
+function siftHeapDown(scores, indices, size, position) {
+  let parent = position;
+  while (true) {
+    const left = parent * 2 + 1;
+    const right = left + 1;
+    let smallest = parent;
+
+    if (left < size && scores[left] < scores[smallest]) {
+      smallest = left;
+    }
+    if (right < size && scores[right] < scores[smallest]) {
+      smallest = right;
+    }
+    if (smallest === parent) break;
+    [scores[parent], scores[smallest]] = [scores[smallest], scores[parent]];
+    [indices[parent], indices[smallest]] = [indices[smallest], indices[parent]];
+    parent = smallest;
+  }
+}
+
+function selectImportanceAnchors(sourceBuffer, vertexOffset, vertexStride, vertexCount, topCount, propertyOffsets) {
+  if (!topCount) return [];
+
+  const heapScores = new Float32Array(topCount);
+  const heapIndices = new Uint32Array(topCount);
+  let heapSize = 0;
+
+  for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 1) {
+    const baseOffset = vertexOffset + vertexIndex * vertexStride;
+    const score = readVertexImportance(sourceBuffer, baseOffset, propertyOffsets);
+
+    if (heapSize < topCount) {
+      heapScores[heapSize] = score;
+      heapIndices[heapSize] = vertexIndex;
+      siftHeapUp(heapScores, heapIndices, heapSize);
+      heapSize += 1;
+      continue;
+    }
+
+    if (score <= heapScores[0]) continue;
+    heapScores[0] = score;
+    heapIndices[0] = vertexIndex;
+    siftHeapDown(heapScores, heapIndices, heapSize, 0);
+  }
+
+  return Array.from(heapIndices.subarray(0, heapSize)).sort((a, b) => a - b);
+}
+
+function fillStratifiedIndices(selectedIndices, selectionMask, startOffset, count, vertexCount) {
+  if (count <= 0 || vertexCount <= 0) {
+    return startOffset;
+  }
+
+  let writeOffset = startOffset;
+  for (let sampleIndex = 0; sampleIndex < count; sampleIndex += 1) {
+    const start = Math.floor((sampleIndex * vertexCount) / count);
+    const end = Math.max(start + 1, Math.floor(((sampleIndex + 1) * vertexCount) / count));
+    const span = Math.max(1, end - start);
+    const jitter = ((sampleIndex * 2654435761) >>> 0) % span;
+    let candidate = start + jitter;
+    let attempts = 0;
+
+    while (selectionMask[candidate] && attempts < span) {
+      candidate = start + ((candidate - start + 1) % span);
+      attempts += 1;
+    }
+
+    if (selectionMask[candidate]) {
+      continue;
+    }
+
+    selectionMask[candidate] = 1;
+    selectedIndices[writeOffset] = candidate;
+    writeOffset += 1;
+  }
+
+  return writeOffset;
+}
+
 function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX_RUNTIME_SPLATS) {
   const sourceBuffer = readFileSync(sourcePath);
   const {
     headerText,
+    elements,
+    vertexElementIndex,
     vertexStride,
     vertexCount,
     vertexOffset,
@@ -617,11 +744,52 @@ function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX
   const vertexBlockLength = vertexCount * vertexStride;
   const restOffset = vertexOffset + vertexBlockLength;
   const previewVertices = Buffer.allocUnsafe(previewCount * vertexStride);
-  const permutationStep = chooseCoprimePermutationStep(vertexCount);
+  const propertyOffsets = buildVertexPropertyOffsets(elements[vertexElementIndex].properties);
+  const importanceCount = Math.min(
+    previewCount,
+    Math.max(24000, Math.floor(previewCount * 0.28)),
+  );
+  const selectedMask = new Uint8Array(vertexCount);
+  const selectedIndices = new Uint32Array(previewCount);
+  const importanceIndices = selectImportanceAnchors(
+    sourceBuffer,
+    vertexOffset,
+    vertexStride,
+    vertexCount,
+    importanceCount,
+    propertyOffsets,
+  );
 
+  let selectedCount = 0;
+  for (const index of importanceIndices) {
+    if (selectedMask[index]) continue;
+    selectedMask[index] = 1;
+    selectedIndices[selectedCount] = index;
+    selectedCount += 1;
+  }
+
+  selectedCount = fillStratifiedIndices(
+    selectedIndices,
+    selectedMask,
+    selectedCount,
+    previewCount - selectedCount,
+    vertexCount,
+  );
+
+  if (selectedCount < previewCount) {
+    const permutationStep = chooseCoprimePermutationStep(vertexCount);
+    for (let sampleIndex = 0; sampleIndex < vertexCount && selectedCount < previewCount; sampleIndex += 1) {
+      const index = (sampleIndex * permutationStep) % vertexCount;
+      if (selectedMask[index]) continue;
+      selectedMask[index] = 1;
+      selectedIndices[selectedCount] = index;
+      selectedCount += 1;
+    }
+  }
+
+  const sortedSelection = Array.from(selectedIndices.subarray(0, selectedCount)).sort((a, b) => a - b);
   let destOffset = 0;
-  for (let sampleIndex = 0; sampleIndex < previewCount; sampleIndex += 1) {
-    const index = (sampleIndex * permutationStep) % vertexCount;
+  for (const index of sortedSelection) {
     const sourceStart = vertexOffset + index * vertexStride;
     sourceBuffer.copy(previewVertices, destOffset, sourceStart, sourceStart + vertexStride);
     destOffset += vertexStride;
@@ -629,7 +797,7 @@ function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX
 
   const previewHeader = headerText.replace(
     /element vertex\s+\d+/,
-    `element vertex ${previewCount}`,
+    `element vertex ${selectedCount}`,
   );
 
   const outputBuffer = Buffer.concat([
@@ -639,7 +807,7 @@ function createRuntimePreviewPly(sourcePath, outputPath, targetVertexCount = MAX
   ]);
 
   writeFileSync(outputPath, outputBuffer);
-  return previewCount;
+  return selectedCount;
 }
 
 function parsePlyVertexCount(plyPath) {
@@ -687,20 +855,43 @@ function normalizeGeneratedWorldAssets(worldDir) {
   };
 }
 
-function prepareRuntimeAssets(worldDir, assets) {
+function resolveRuntimePreviewTarget(meta, assets) {
+  const envTarget = Number.parseInt(process.env.MAX_RUNTIME_SPLATS ?? '', 10);
+  if (Number.isFinite(envTarget) && envTarget > 0) {
+    return envTarget;
+  }
+
+  const metaRuntimeTarget = meta?.world?.splat?.endsWith('scene.runtime.ply')
+    ? meta?.world?.splatCount
+    : null;
+  if (Number.isFinite(metaRuntimeTarget) && metaRuntimeTarget > 0) {
+    return metaRuntimeTarget;
+  }
+
+  const assetRuntimeTarget = assets?.splat?.endsWith('scene.runtime.ply')
+    ? assets?.splatCount
+    : null;
+  if (Number.isFinite(assetRuntimeTarget) && assetRuntimeTarget > 0) {
+    return assetRuntimeTarget;
+  }
+
+  return MAX_RUNTIME_SPLATS;
+}
+
+function prepareRuntimeAssets(worldDir, assets, targetVertexCount = MAX_RUNTIME_SPLATS) {
   if (assets.format !== 'ply' || !assets.splat) {
     return assets;
   }
 
   const sourceFile = join(worldDir, assets.splat.replace(/^world\//, ''));
   const sourceCount = assets.splatCount ?? parsePlyVertexCount(sourceFile);
-  if (!sourceCount || sourceCount <= MAX_RUNTIME_SPLATS) {
+  if (!sourceCount || !targetVertexCount || sourceCount <= targetVertexCount) {
     return assets;
   }
 
   const runtimeFilename = 'scene.runtime.ply';
   const runtimePath = join(worldDir, runtimeFilename);
-  const runtimeCount = createRuntimePreviewPly(sourceFile, runtimePath, MAX_RUNTIME_SPLATS);
+  const runtimeCount = createRuntimePreviewPly(sourceFile, runtimePath, targetVertexCount);
 
   return {
     ...assets,
@@ -954,6 +1145,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   const bundle = buildExpandedViewBundleWithOptions(sceneDir, worldDir, sceneId, meta, {
     allowExternalViewCommand: false,
     allowLocalDepthSynthesis: false,
+    includePostImages: false,
   });
 
   try {
@@ -1435,8 +1627,19 @@ async function main() {
 
   if ((currentAssets?.splat || currentAssets?.mesh) && !['expanded', 'world-model'].includes(generatorKey)) {
     console.log('\nExisting world assets detected. Registering them in meta.json...');
-    const runtimeAssets = prepareRuntimeAssets(worldDir, currentAssets);
-    updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
+    const runtimeAssets = prepareRuntimeAssets(
+      worldDir,
+      currentAssets,
+      resolveRuntimePreviewTarget(meta, currentAssets),
+    );
+    updateMetaWithAssets(meta, {
+      ...runtimeAssets,
+      generator: meta.source.generator || generatorKey,
+      generated: TODAY,
+      generationMode: meta.source.generationMode,
+      expansion: meta.source.expansion,
+      provenance: meta.world?.provenance ?? runtimeAssets.provenance,
+    });
     writeMeta(metaPath, meta);
     console.log(JSON.stringify(meta.world, null, 2));
     return;
@@ -1450,7 +1653,11 @@ async function main() {
     force,
     worldModelOptions,
   });
-  const runtimeAssets = prepareRuntimeAssets(worldDir, generatedAssets);
+  const runtimeAssets = prepareRuntimeAssets(
+    worldDir,
+    generatedAssets,
+    resolveRuntimePreviewTarget(meta, generatedAssets),
+  );
   updateMetaWithAssets(meta, { ...runtimeAssets, generator: generatorKey, generated: TODAY });
   writeMeta(metaPath, meta);
 

@@ -8,27 +8,28 @@
     "photo": "photo.jpg",
     "depth": null,
     "mask": null,
-    "generator": "expanded",
-    "generated": "2026-03-25",
+    "generator": "world-model",
+    "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
+    "worldModelPrompt": "Boy seated on a rock inside a sunlit Naxos shoreline cove, bright blue shirt, pale stone coast, Aegean water, fully explorable 360 Mediterranean seaside scene. Preserve the original photo composition and the seated boy as the focal anchor, complete the surrounding rocks, waterline, sky, and shore geometry with natural cinematic depth.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
       "/images/Instagram/media/posts/202405/17917063217823264.jpg",
       "/images/Instagram/media/posts/202405/18122780437357613.jpg"
     ],
-    "generationMode": "multi-view-cluster",
+    "generationMode": "single-image-world-model",
     "expansion": {
-      "strategy": "cluster-fusion",
-      "stage": "cluster-composite",
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
       "bundle": "world/view-bundle.json",
-      "sourceViewCount": 5,
+      "sourceViewCount": 1,
       "generatedViewCount": 0,
-      "totalViewCount": 5,
-      "anchorGenerator": "sharp",
-      "viewSynthesizer": null,
-      "fusionEngine": "cluster-composite",
-      "compositeViewCount": 4
+      "totalViewCount": 1,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model",
+      "compositeViewCount": 1
     }
   },
   "world": {
@@ -37,8 +38,8 @@
     "mesh": null,
     "collider": null,
     "format": "ply",
-    "splatCount": 294912,
-    "sourceSplatCount": 1179648,
+    "splatCount": 650000,
+    "sourceSplatCount": 2480602,
     "bounds": null,
     "transform": {
       "position": [
@@ -59,10 +60,10 @@
       ]
     },
     "provenance": {
-      "tier": "cluster-composite",
-      "anchorGenerator": "sharp",
-      "reconstruction": "synthetic-cluster-composite",
-      "viewCount": 4
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 1
     }
   },
   "fallback": {
