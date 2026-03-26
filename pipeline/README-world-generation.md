@@ -80,6 +80,12 @@ Use this when you want the actual Marble-like path from a single image: one sour
 The pipeline does not hardcode one model. Instead it shells out to a working backend that you configure through environment variables. That keeps the repo neutral while allowing you to swap between candidates like WorldGen, VistaDream, or a future ComfyUI workflow.
 
 ```bash
+# Easiest local path: use the bundled backend wrapper with WorldGen
+set WORLD_MODEL_BACKEND=worldgen
+set WORLD_MODEL_PYTHON=py -3.12
+set WORLDGEN_ROOT=C:\dev\jarowe\_experiments\WorldGen
+
+# Or provide a fully custom command yourself
 # Required: point to a working single-image world generator
 set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --output "{worldDir}" --views "{generatedDir}"
 
@@ -107,6 +113,28 @@ The command is expected to produce at least one of:
 - `collider.glb`
 
 in the target world directory.
+
+### First Concrete Backend: WorldGen
+
+`WorldGen` is the first concrete backend wired into this repo because it is explicitly aimed at single-image image-to-scene generation with `360° free exploration`.
+
+Official source:
+- [WorldGen repo](https://github.com/ZiYang-xie/WorldGen)
+
+The local wrapper is:
+
+```bash
+py -3.12 pipeline/run_single_image_world_backend.py --backend worldgen --input "{primary}" --output "{worldDir}"
+```
+
+The wrapper:
+- resolves the local WorldGen checkout under `_experiments/WorldGen` by default
+- imports `worldgen.WorldGen` directly through the Python API
+- writes `scene.ply` into the target `world/` directory
+
+Important:
+- this still requires a proper Python environment with WorldGen and its dependencies installed
+- WorldGen itself currently depends on gated FLUX weights and a Linux-oriented dependency stack in practice, so wiring the backend is the first step, not the full install
 
 ### TRELLIS
 

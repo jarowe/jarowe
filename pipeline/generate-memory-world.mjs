@@ -42,6 +42,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const LOCAL_DEPTH_VIEW_SCRIPT = join(ROOT, 'pipeline', 'synthesize_depth_views.py');
+const LOCAL_WORLD_MODEL_WRAPPER = join(ROOT, 'pipeline', 'run_single_image_world_backend.py');
 const MAX_RUNTIME_SPLATS = 300000;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const DEFAULT_CLUSTER_VIEW_LIMIT = 4;
@@ -793,12 +794,16 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
 
 async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   const { meta, sceneDir, sceneId } = options;
-  const worldModelCommand = process.env.SINGLE_IMAGE_WORLD_COMMAND || process.env.WORLD_MODEL_COMMAND || '';
+  const worldModelCommand =
+    process.env.SINGLE_IMAGE_WORLD_COMMAND ||
+    process.env.WORLD_MODEL_COMMAND ||
+    buildDefaultWorldModelCommand();
   if (!worldModelCommand) {
     throw new Error(
       [
         '[World Model] No command configured.',
-        'Set SINGLE_IMAGE_WORLD_COMMAND or WORLD_MODEL_COMMAND to a working single-image world generator.',
+        'Set SINGLE_IMAGE_WORLD_COMMAND or WORLD_MODEL_COMMAND to a working single-image world generator,',
+        'or set WORLD_MODEL_BACKEND=worldgen to use the local backend wrapper.',
         'Supported placeholders:',
         '  {input} {primary} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
       ].join('\n'),
@@ -921,6 +926,30 @@ function runShellCommand(command, cwd = ROOT) {
   });
 }
 
+function getDefaultWorldModelPython() {
+  if (process.env.WORLD_MODEL_PYTHON) {
+    return process.env.WORLD_MODEL_PYTHON;
+  }
+  return process.platform === 'win32' ? 'py -3.12' : 'python3';
+}
+
+function buildDefaultWorldModelCommand() {
+  const backend = process.env.WORLD_MODEL_BACKEND || '';
+  if (!backend || !existsSync(LOCAL_WORLD_MODEL_WRAPPER)) {
+    return '';
+  }
+
+  return [
+    getDefaultWorldModelPython(),
+    `"${LOCAL_WORLD_MODEL_WRAPPER}"`,
+    `--backend "${backend}"`,
+    `--input "{primary}"`,
+    `--output "{worldDir}"`,
+    `--generated-views "{generatedDir}"`,
+    `--scene-id "{sceneId}"`,
+  ].join(' ');
+}
+
 const GENERATORS = {
   sharp: {
     name: 'SHARP',
@@ -995,7 +1024,11 @@ const GENERATORS = {
     async run(inputPhoto, worldDir, options) {
       const { meta, sceneDir, sceneId, existingAssets } = options;
       const wantsWorldModel = !meta.source?.postImages?.length &&
-        Boolean(process.env.SINGLE_IMAGE_WORLD_COMMAND || process.env.WORLD_MODEL_COMMAND);
+        Boolean(
+          process.env.SINGLE_IMAGE_WORLD_COMMAND ||
+          process.env.WORLD_MODEL_COMMAND ||
+          process.env.WORLD_MODEL_BACKEND,
+        );
       if (wantsWorldModel) {
         return runSingleImageWorldModel(inputPhoto, worldDir, options);
       }
