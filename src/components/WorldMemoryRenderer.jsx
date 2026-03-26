@@ -57,6 +57,13 @@ function resolveMemoryWorldPath(sceneId, assetPath) {
   return `memory/${sceneId}/${normalized}`;
 }
 
+function resolveMemoryAssetPath(sceneId, assetPath) {
+  if (!assetPath) return null;
+  if (assetPath.startsWith('http')) return assetPath;
+  if (assetPath.startsWith('/')) return assetPath.slice(1);
+  return `memory/${sceneId}/${assetPath}`;
+}
+
 function smoothstep(edge0, edge1, value) {
   const t = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
@@ -535,6 +542,7 @@ function DreamParticles({
 
 function ClusterMemoryFacets({
   primaryImage = null,
+  primaryAlphaImage = null,
   images = [],
   primaryCrop = null,
   pointer = { x: 0, y: 0, activity: 0 },
@@ -554,6 +562,10 @@ function ClusterMemoryFacets({
     () => (primaryImage ? resolveAsset(primaryImage) : null),
     [primaryImage],
   );
+  const primaryAlphaUrl = useMemo(
+    () => (primaryAlphaImage ? resolveAsset(primaryAlphaImage) : null),
+    [primaryAlphaImage],
+  );
   const resolvedUrls = useMemo(() => {
     const urls = safeImages.map(image => resolveAsset(image));
     return primaryUrl ? urls.filter(url => url !== primaryUrl) : urls;
@@ -564,7 +576,12 @@ function ClusterMemoryFacets({
     primaryUrl ? [primaryUrl] : [],
   );
   const primaryTexture = primaryTextures[0] ?? null;
-  const primaryAlphaTexture = useMemo(() => {
+  const externalPrimaryAlphaTextures = useLoader(
+    THREE.TextureLoader,
+    primaryAlphaUrl ? [primaryAlphaUrl] : [],
+  );
+  const externalPrimaryAlphaTexture = externalPrimaryAlphaTextures[0] ?? null;
+  const generatedPrimaryAlphaTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -742,6 +759,7 @@ function ClusterMemoryFacets({
     texture.needsUpdate = true;
     return texture;
   }, [isChapter, primaryCrop, primaryTexture]);
+  const primaryAlphaTexture = externalPrimaryAlphaTexture ?? generatedPrimaryAlphaTexture;
   const croppedPrimaryTexture = useMemo(() => {
     if (!primaryTexture) return null;
     if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return primaryTexture;
@@ -771,16 +789,19 @@ function ClusterMemoryFacets({
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
     });
+    if (externalPrimaryAlphaTexture) {
+      externalPrimaryAlphaTexture.needsUpdate = true;
+    }
     return () => {
       if (croppedPrimaryTexture && croppedPrimaryTexture !== primaryTexture) {
         croppedPrimaryTexture.dispose();
       }
     };
-  }, [croppedPrimaryTexture, primaryTexture, supportTextures]);
+  }, [croppedPrimaryTexture, externalPrimaryAlphaTexture, primaryTexture, supportTextures]);
 
   useEffect(() => () => {
-    primaryAlphaTexture?.dispose?.();
-  }, [primaryAlphaTexture]);
+    generatedPrimaryAlphaTexture?.dispose?.();
+  }, [generatedPrimaryAlphaTexture]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -825,7 +846,7 @@ function ClusterMemoryFacets({
       ? [pointer.y * 0.035, pointer.x * -0.1 + orbitOffset * 0.2, pointer.x * -0.02]
       : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
   const primaryOpacity = isChapter
-    ? (0.12 + pointer.activity * 0.14 + travelProgress * 0.05) * blend
+    ? (0.2 + pointer.activity * 0.18 + travelProgress * 0.08) * blend
     : isAnchor
       ? (0.4 + pointer.activity * 0.14 + travelProgress * 0.08) * blend
       : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
@@ -884,7 +905,7 @@ function ClusterMemoryFacets({
                 map={croppedPrimaryTexture}
                 alphaMap={primaryAlphaTexture}
                 transparent
-                opacity={((isChapter ? 0.018 : 0.05) + pointer.activity * (isChapter ? 0.025 : 0.05)) * blend}
+                opacity={((isChapter ? 0.032 : 0.05) + pointer.activity * (isChapter ? 0.04 : 0.05)) * blend}
                 color={tint}
                 depthWrite={false}
                 depthTest={false}
@@ -1811,9 +1832,15 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const standaloneAnchorWorld = presentationMode === 'anchor'
     && !meta?.world?.sharedSceneId
     && meta?.world?.provenance?.tier === 'world-model-fused';
-  const clusterPrimaryImage = meta?.source?.postImages?.length
+  const clusterPrimaryImage = (standaloneAnchorWorld || chapterPresentation || meta?.source?.postImages?.length)
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
+  const clusterPrimaryMask = useMemo(
+    () => resolveMemoryAssetPath(scene.id, meta?.source?.mask)
+      ?? scene.samMaskUrl
+      ?? null,
+    [meta?.source?.mask, scene.id, scene.samMaskUrl],
+  );
   const clusterPrimaryCrop = meta?.artDirection?.subjectCrop ?? null;
   const clusterSourceImages = standaloneAnchorWorld
     ? [clusterPrimaryImage].filter(Boolean)
@@ -1821,13 +1848,16 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     ? [clusterPrimaryImage].filter(Boolean)
     : (meta?.source?.postImages ?? []).slice(0, 4);
   const revealStandaloneFacets = archivePointer.activity > 0.42 || archiveTravelProgress > 0.44;
-  const anchorFacetPresentation = standaloneAnchorWorld ? 'ambient' : (chapterPresentation ? 'chapter' : 'anchor');
+  const maskedSubjectAnchor = standaloneAnchorWorld && Boolean(clusterPrimaryMask);
+  const anchorFacetPresentation = standaloneAnchorWorld
+    ? (maskedSubjectAnchor ? 'anchor' : 'ambient')
+    : (chapterPresentation ? 'chapter' : 'anchor');
   const anchorFacetBlend = standaloneAnchorWorld
     ? (
-      0.22
-      + Math.max(0, archivePointer.activity - 0.18) * 0.22
-      + Math.max(0, archiveTravelProgress - 0.24) * 0.18
-      + (revealStandaloneFacets ? 0.06 : 0)
+      (maskedSubjectAnchor ? 0.3 : 0.22)
+      + Math.max(0, archivePointer.activity - 0.18) * (maskedSubjectAnchor ? 0.28 : 0.22)
+      + Math.max(0, archiveTravelProgress - 0.24) * (maskedSubjectAnchor ? 0.22 : 0.18)
+      + (revealStandaloneFacets ? (maskedSubjectAnchor ? 0.1 : 0.06) : 0)
     )
     : (archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1);
   const dreamParticleCount = standaloneAnchorWorld
@@ -1998,6 +2028,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
+              primaryAlphaImage={clusterPrimaryMask}
               primaryCrop={clusterPrimaryCrop}
               images={clusterSourceImages}
               pointer={archivePointer}
