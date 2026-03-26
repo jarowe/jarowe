@@ -40,7 +40,7 @@ import FlightCamera from './particleMemory/FlightCamera';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
 const BASE = import.meta.env.BASE_URL;
-const MEMORY_WORLD_EDITOR_VERSION = 5;
+const MEMORY_WORLD_EDITOR_VERSION = 6;
 
 function resolveAsset(path) {
   if (!path) return null;
@@ -163,6 +163,20 @@ function cloneVec3(value, fallback = [0, 0, 0]) {
     const y = Number.isFinite(value.y) ? value.y : fallback[1];
     const z = Number.isFinite(value.z) ? value.z : fallback[2];
     return [x, y, z];
+  }
+  return [...fallback];
+}
+
+function cloneVec4(value, fallback = [0, 0, 1, 1]) {
+  if (Array.isArray(value) && value.length === 4) {
+    return [...value];
+  }
+  if (value && typeof value === 'object') {
+    const x = Number.isFinite(value.x) ? value.x : fallback[0];
+    const y = Number.isFinite(value.y) ? value.y : fallback[1];
+    const z = Number.isFinite(value.z) ? value.z : fallback[2];
+    const w = Number.isFinite(value.w) ? value.w : fallback[3];
+    return [x, y, z, w];
   }
   return [...fallback];
 }
@@ -1379,6 +1393,9 @@ function ArchiveEditorPanel({
         depart: value.departAnchor,
       },
     },
+    artDirection: value.subjectCrop ? {
+      subjectCrop: value.subjectCrop,
+    } : undefined,
   }), [value]);
 
   const copyJson = useCallback(async () => {
@@ -1414,6 +1431,27 @@ function ArchiveEditorPanel({
         {label}
       </span>
       <div style={fieldStyle}>
+        {value[field].map((entry, index) => (
+          <input
+            // eslint-disable-next-line react/no-array-index-key
+            key={`${field}-${index}`}
+            type="number"
+            step="0.01"
+            value={Number(entry).toFixed(2)}
+            onChange={(event) => updateVec3(field, index, event.target.value)}
+            style={inputStyle}
+          />
+        ))}
+      </div>
+    </label>
+  );
+
+  const renderVec4 = (label, field) => (
+    <label style={{ display: 'grid', gap: '0.28rem' }}>
+      <span style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.56)' }}>
+        {label}
+      </span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.3rem' }}>
         {value[field].map((entry, index) => (
           <input
             // eslint-disable-next-line react/no-array-index-key
@@ -1495,6 +1533,7 @@ function ArchiveEditorPanel({
       {renderVec3('World Rotation', 'worldRotation')}
       {renderVec3('Focus Anchor', 'focusAnchor')}
       {renderVec3('Depart Anchor', 'departAnchor')}
+      {renderVec4('Subject Crop', 'subjectCrop')}
 
       <label style={{ display: 'grid', gap: '0.28rem' }}>
         <span style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.56)' }}>
@@ -1841,7 +1880,11 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
       ?? null,
     [meta?.source?.mask, scene.id, scene.samMaskUrl],
   );
-  const clusterPrimaryCrop = meta?.artDirection?.subjectCrop ?? null;
+  const defaultSubjectCrop = useMemo(
+    () => cloneVec4(meta?.artDirection?.subjectCrop, [0, 0, 1, 1]),
+    [meta?.artDirection?.subjectCrop],
+  );
+  const clusterPrimaryCrop = editorState?.subjectCrop ?? defaultSubjectCrop;
   const clusterSourceImages = standaloneAnchorWorld
     ? [clusterPrimaryImage].filter(Boolean)
     : chapterPresentation
@@ -1930,6 +1973,10 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
         isCurrentEditorState ? parsed?.departAnchor : null,
         baseTravelAnchors.depart,
       ),
+      subjectCrop: cloneVec4(
+        isCurrentEditorState ? parsed?.subjectCrop : null,
+        defaultSubjectCrop,
+      ),
     });
   }, [
     archiveMode,
@@ -1941,6 +1988,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     defaultWorldTransform.position,
     defaultWorldTransform.rotation,
     defaultWorldTransform.scale,
+    defaultSubjectCrop,
     metaLoaded,
     scene.id,
   ]);
@@ -2181,6 +2229,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
                 worldRotation: quaternionToEulerDegrees(defaultWorldTransform.rotation),
                 focusAnchor: cloneVec3(baseTravelAnchors.focus),
                 departAnchor: cloneVec3(baseTravelAnchors.depart),
+                subjectCrop: cloneVec4(defaultSubjectCrop),
               });
             }}
           />
@@ -2266,6 +2315,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               worldRotation: quaternionToEulerDegrees(defaultWorldTransform.rotation),
               focusAnchor: cloneVec3(baseTravelAnchors.focus),
               departAnchor: cloneVec3(baseTravelAnchors.depart),
+              subjectCrop: cloneVec4(defaultSubjectCrop),
             });
           }}
         />
