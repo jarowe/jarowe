@@ -76,6 +76,20 @@ function toPosixPath(filePath) {
   return filePath.replaceAll('\\', '/');
 }
 
+function toWslPath(filePath) {
+  if (!filePath) return '';
+  const normalized = resolve(filePath).replaceAll('\\', '/');
+  const driveMatch = normalized.match(/^([A-Za-z]):\/(.*)$/);
+  if (!driveMatch) {
+    return normalized;
+  }
+  return `/mnt/${driveMatch[1].toLowerCase()}/${driveMatch[2]}`;
+}
+
+function shellQuoteBash(value) {
+  return `'${String(value).replaceAll("'", `'\"'\"'`)}'`;
+}
+
 function isImageFile(filename) {
   return IMAGE_EXTENSIONS.has(extname(filename).toLowerCase());
 }
@@ -794,16 +808,25 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
 
 async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   const { meta, sceneDir, sceneId } = options;
+  const templateVariables = {
+    input: inputPhoto,
+    output: worldDir,
+    sceneId,
+    sceneDir,
+    worldDir,
+    primary: inputPhoto,
+  };
   const worldModelCommand =
     process.env.SINGLE_IMAGE_WORLD_COMMAND ||
     process.env.WORLD_MODEL_COMMAND ||
-    buildDefaultWorldModelCommand();
+    buildDefaultWorldModelCommand(templateVariables);
   if (!worldModelCommand) {
     throw new Error(
       [
         '[World Model] No command configured.',
         'Set SINGLE_IMAGE_WORLD_COMMAND or WORLD_MODEL_COMMAND to a working single-image world generator,',
         'or set WORLD_MODEL_BACKEND=worldgen to use the local backend wrapper.',
+        'On Windows, the default path now prefers a WSL backend if available.',
         'Supported placeholders:',
         '  {input} {primary} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
       ].join('\n'),
@@ -816,7 +839,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   });
 
   try {
-    const command = expandCommandTemplate(worldModelCommand, {
+    const commandVariables = {
       input: inputPhoto,
       output: worldDir,
       sceneId,
@@ -827,7 +850,10 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       generatedDir: bundle.generatedDir,
       primary: bundle.primaryView?.stagedPath ?? inputPhoto,
       bundleJson: join(worldDir, 'view-bundle.json'),
-    });
+    };
+    const command = worldModelCommand.includes('{')
+      ? expandCommandTemplate(worldModelCommand, commandVariables)
+      : worldModelCommand;
 
     console.log(`\n[World Model] Running: ${command}\n`);
     const result = runShellCommand(command);
@@ -933,10 +959,54 @@ function getDefaultWorldModelPython() {
   return process.platform === 'win32' ? 'py -3.12' : 'python3';
 }
 
-function buildDefaultWorldModelCommand() {
+function shouldUseWslWorldModelBackend() {
+  if (process.env.WORLD_MODEL_USE_WSL === '1') return true;
+  if (process.env.WORLD_MODEL_USE_WSL === '0') return false;
+  return process.platform === 'win32';
+}
+
+function getDefaultWorldModelWslDistro() {
+  return process.env.WORLD_MODEL_WSL_DISTRO || 'Ubuntu';
+}
+
+function getDefaultWorldModelWslVenv() {
+  return process.env.WORLD_MODEL_WSL_VENV || '$HOME/.venvs/worldgen312';
+}
+
+function getDefaultWorldModelWslPython() {
+  return process.env.WORLD_MODEL_WSL_PYTHON || 'python';
+}
+
+function buildDefaultWorldModelWslCommand(backend, variables = {}) {
+  const wrapperPath = toWslPath(LOCAL_WORLD_MODEL_WRAPPER);
+  const worldgenRoot = toWslPath(
+    process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen'),
+  );
+  const bashCommand = [
+    `source ${getDefaultWorldModelWslVenv()}/bin/activate`,
+    `export WORLDGEN_ROOT=${shellQuoteBash(worldgenRoot)}`,
+    [
+      getDefaultWorldModelWslPython(),
+      shellQuoteBash(wrapperPath),
+      `--backend ${shellQuoteBash(backend)}`,
+      `--input ${shellQuoteBash(toWslPath(variables.primary ?? variables.input ?? ''))}`,
+      `--output ${shellQuoteBash(toWslPath(variables.worldDir ?? variables.output ?? ''))}`,
+      `--generated-views ${shellQuoteBash(toWslPath(variables.generatedDir ?? ''))}`,
+      `--scene-id ${shellQuoteBash(variables.sceneId ?? '')}`,
+    ].join(' '),
+  ].join(' && ');
+
+  return `wsl -d ${getDefaultWorldModelWslDistro()} -- bash -lc ${JSON.stringify(bashCommand)}`;
+}
+
+function buildDefaultWorldModelCommand(variables = {}) {
   const backend = process.env.WORLD_MODEL_BACKEND || '';
   if (!backend || !existsSync(LOCAL_WORLD_MODEL_WRAPPER)) {
     return '';
+  }
+
+  if (shouldUseWslWorldModelBackend()) {
+    return buildDefaultWorldModelWslCommand(backend, variables);
   }
 
   return [

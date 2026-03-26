@@ -93,6 +93,28 @@ set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --o
 node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
 ```
 
+### Windows + WSL WorldGen
+
+On this machine, the practical `WorldGen` path is `Windows pipeline -> WSL Ubuntu -> Linux GPU env`.
+
+The pipeline now supports that directly when you set:
+
+```powershell
+$env:WORLD_MODEL_BACKEND = 'worldgen'
+$env:WORLD_MODEL_WSL_DISTRO = 'Ubuntu'
+$env:WORLD_MODEL_WSL_VENV = '/home/jarowe/.venvs/worldgen312'
+
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+```
+
+Notes:
+
+- `WORLD_MODEL_USE_WSL` defaults to `1` on Windows
+- `WORLD_MODEL_WSL_VENV` should be the Linux path to the prepared backend env
+- `WORLDGEN_ROOT` is exported into WSL automatically; by default it points at `_experiments/WorldGen`
+- the current hard blocker for image-to-scene WorldGen is still gated access to `black-forest-labs/FLUX.1-Fill-dev`
+- once Hugging Face auth is configured in WSL, the same command should move past model init into real world generation
+
 Supported placeholders in `WORLD_MODEL_COMMAND` / `SINGLE_IMAGE_WORLD_COMMAND`:
 
 - `{input}`: absolute path to the scene's source photo
