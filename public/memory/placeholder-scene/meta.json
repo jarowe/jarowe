@@ -8,8 +8,21 @@
     "photo": "photo.jpg",
     "depth": null,
     "mask": null,
-    "generator": "sharp",
-    "generated": "2026-03-25"
+    "generator": "world-model",
+    "generated": "2026-03-26",
+    "generationMode": "single-image-world-model",
+    "worldModelPrompt": "Smiling bearded man with glasses in a tan jacket in a warm brick restaurant courtyard at night, preserve him clearly in the foreground, complete a fully explorable 360 patio with stair rail, glowing sconces, tables, greenery, and believable architecture, no duplicates, no voids, no floating fragments.",
+    "expansion": {
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model"
+    }
   },
   "world": {
     "splat": "world/scene.runtime.ply",
@@ -18,7 +31,7 @@
     "collider": null,
     "format": "ply",
     "splatCount": 294912,
-    "sourceSplatCount": 1179648,
+    "sourceSplatCount": 16515072,
     "bounds": null,
     "transform": {
       "position": [
@@ -37,6 +50,12 @@
         0,
         0
       ]
+    },
+    "provenance": {
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 1
     }
   },
   "fallback": {

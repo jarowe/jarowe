@@ -11,7 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
-    "worldModelPrompt": "Golden-hour Naxos shoreline memory, seated boy in bright blue hoodie on a foreground rock, preserve him as the clear subject, full 360 coastal world, continuous sand, granite rocks, tide pools, distant islands, sea horizon, warm Mediterranean light, no floating fragments.",
+    "worldModelPrompt": "Seated boy in a bright blue hoodie on a granite rock at a golden-hour Naxos shoreline, preserve him clearly as the main subject, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -35,12 +35,13 @@
   "world": {
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
-    "presentationMode": "anchor",
+    "sharedSceneId": "naxos-laugh",
+    "presentationMode": "chapter",
     "mesh": null,
     "collider": null,
     "format": "ply",
     "splatCount": 850000,
-    "sourceSplatCount": 2097152,
+    "sourceSplatCount": 16515072,
     "bounds": null,
     "transform": {
       "position": [
@@ -73,16 +74,16 @@
   },
   "camera": {
     "startPosition": [
-      0.24,
-      0.12,
-      5.8
+      0.08,
+      0.16,
+      4.4
     ],
     "startTarget": [
-      0,
-      0.03,
+      0.04,
+      0.08,
       0
     ],
-    "fov": 52,
+    "fov": 48,
     "near": 0.1,
     "far": 80
   },

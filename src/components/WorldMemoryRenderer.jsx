@@ -1225,15 +1225,15 @@ function WorldPostProcessing({
   const dofFocusDistance = chapterMode
     ? 0.012
     : standaloneWorld
-      ? 0.01
+      ? 0.013
       : 0.02;
   const dofFocalLength = chapterMode
     ? 0.02
     : standaloneWorld
-      ? 0.018
+      ? 0.014
       : 0.04;
   const dofBokehScale = archiveMode
-    ? (chapterMode ? 0.7 : standaloneWorld ? 0.42 : 1.0)
+    ? (chapterMode ? 0.7 : standaloneWorld ? 0.18 : 1.0)
     : 1.5;
   const bloomIntensity = standaloneWorld && archiveMode ? 0.22 : 0.35;
   return (
@@ -1814,19 +1814,20 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const clusterPrimaryImage = meta?.source?.postImages?.length
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
-  const clusterPrimaryCrop = standaloneAnchorWorld
-    ? null
-    : (meta?.artDirection?.subjectCrop ?? null);
-  const clusterSourceImages = chapterPresentation
+  const clusterPrimaryCrop = meta?.artDirection?.subjectCrop ?? null;
+  const clusterSourceImages = standaloneAnchorWorld
+    ? [clusterPrimaryImage].filter(Boolean)
+    : chapterPresentation
     ? [clusterPrimaryImage].filter(Boolean)
     : (meta?.source?.postImages ?? []).slice(0, 4);
   const revealStandaloneFacets = archivePointer.activity > 0.42 || archiveTravelProgress > 0.44;
   const anchorFacetPresentation = standaloneAnchorWorld ? 'ambient' : (chapterPresentation ? 'chapter' : 'anchor');
   const anchorFacetBlend = standaloneAnchorWorld
     ? (
-      (revealStandaloneFacets ? 0.04 : 0)
-      + Math.max(0, archivePointer.activity - 0.28) * 0.18
-      + Math.max(0, archiveTravelProgress - 0.3) * 0.16
+      0.22
+      + Math.max(0, archivePointer.activity - 0.18) * 0.22
+      + Math.max(0, archiveTravelProgress - 0.24) * 0.18
+      + (revealStandaloneFacets ? 0.06 : 0)
     )
     : (archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1);
   const dreamParticleCount = standaloneAnchorWorld
@@ -1988,7 +1989,13 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             onError={handleSplatError}
           />
 
-          {!rawWorldMode && clusterSourceImages.length > 1 && (!standaloneAnchorWorld || revealStandaloneFacets) && (
+          {!rawWorldMode
+            && (
+              standaloneAnchorWorld
+                ? clusterSourceImages.length > 0
+                : clusterSourceImages.length > 1
+            )
+            && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
               primaryCrop={clusterPrimaryCrop}

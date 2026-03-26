@@ -11,7 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
-    "worldModelPrompt": "Golden-hour Naxos shoreline memory, laughing boy in a bright blue shirt on pale coastal rocks, preserve him clearly, surround him with continuous beach stone, tide pools, sea horizon, distant islands, and warm Mediterranean sky, no voids or floating fragments.",
+    "worldModelPrompt": "Laughing boy in a bright blue hoodie on pale Naxos rocks, preserve him clearly as the main subject, complete a fully explorable 360 shoreline with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -35,12 +35,12 @@
   "world": {
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
-    "presentationMode": "chapter",
+    "presentationMode": "anchor",
     "mesh": null,
     "collider": null,
     "format": "ply",
     "splatCount": 650000,
-    "sourceSplatCount": 2097152,
+    "sourceSplatCount": 2234638,
     "bounds": null,
     "transform": {
       "position": [
