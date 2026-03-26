@@ -57,6 +57,11 @@ function resolveMemoryWorldPath(sceneId, assetPath) {
   return `memory/${sceneId}/${normalized}`;
 }
 
+function smoothstep(edge0, edge1, value) {
+  const t = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 function sampleGlobalAudioBands(targetArray) {
   const analyser = window.globalAnalyser;
   if (!analyser) {
@@ -531,6 +536,7 @@ function DreamParticles({
 function ClusterMemoryFacets({
   primaryImage = null,
   images = [],
+  primaryCrop = null,
   pointer = { x: 0, y: 0, activity: 0 },
   travelProgress = 0,
   blend = 1,
@@ -556,13 +562,183 @@ function ClusterMemoryFacets({
     primaryUrl ? [primaryUrl] : [],
   );
   const primaryTexture = primaryTextures[0] ?? null;
+  const primaryAlphaTexture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    const image = primaryTexture?.image;
+    const hasImage =
+      image &&
+      typeof image.width === 'number' &&
+      typeof image.height === 'number' &&
+      image.width > 0 &&
+      image.height > 0;
+
+    if (hasImage) {
+      const crop = Array.isArray(primaryCrop) && primaryCrop.length === 4
+        ? primaryCrop.map(value => THREE.MathUtils.clamp(Number(value) || 0, 0, 1))
+        : [0, 0, 1, 1];
+      const [cropX, cropY, cropWidth, cropHeight] = crop;
+      const sourceX = cropX * image.width;
+      const sourceY = cropY * image.height;
+      const sourceWidth = Math.max(1, cropWidth * image.width);
+      const sourceHeight = Math.max(1, cropHeight * image.height);
+      ctx.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+
+      const sourceData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const alphaData = ctx.createImageData(canvas.width, canvas.height);
+      const border = 0.12;
+      let borderR = 0;
+      let borderG = 0;
+      let borderB = 0;
+      let borderLuma = 0;
+      let borderCount = 0;
+
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const u = x / (canvas.width - 1);
+          const v = y / (canvas.height - 1);
+          if (u > border && u < 1 - border && v > border && v < 1 - border) continue;
+          const index = (y * canvas.width + x) * 4;
+          const r = sourceData.data[index] / 255;
+          const g = sourceData.data[index + 1] / 255;
+          const b = sourceData.data[index + 2] / 255;
+          borderR += r;
+          borderG += g;
+          borderB += b;
+          borderLuma += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          borderCount += 1;
+        }
+      }
+
+      const avgBorder = {
+        r: borderR / Math.max(1, borderCount),
+        g: borderG / Math.max(1, borderCount),
+        b: borderB / Math.max(1, borderCount),
+        luma: borderLuma / Math.max(1, borderCount),
+      };
+
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const u = x / (canvas.width - 1);
+          const v = y / (canvas.height - 1);
+          const index = (y * canvas.width + x) * 4;
+          const r = sourceData.data[index] / 255;
+          const g = sourceData.data[index + 1] / 255;
+          const b = sourceData.data[index + 2] / 255;
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const saturation = max <= 0 ? 0 : (max - min) / max;
+          const colorDistance = Math.sqrt(
+            ((r - avgBorder.r) ** 2) +
+            ((g - avgBorder.g) ** 2) +
+            ((b - avgBorder.b) ** 2),
+          );
+          const lumaDistance = Math.abs(luma - avgBorder.luma);
+          const borderRejection = smoothstep(0.12, 0.4, colorDistance + lumaDistance * 0.92 + saturation * 0.22);
+          const edgeMask =
+            smoothstep(0, 0.16, u) *
+            smoothstep(0, 0.16, 1 - u) *
+            smoothstep(0, 0.16, v) *
+            smoothstep(0, 0.16, 1 - v);
+          const dx = (u - 0.5) / 0.48;
+          const dy = (v - 0.52) / 0.56;
+          const radial = 1 - smoothstep(0.78, 1.08, Math.sqrt(dx * dx + dy * dy));
+          const silhouette = THREE.MathUtils.clamp(borderRejection * 1.08 + radial * 0.14 - 0.06, 0, 1);
+          const alpha = Math.round(255 * THREE.MathUtils.clamp(edgeMask * silhouette, 0, 1));
+          alphaData.data[index] = alpha;
+          alphaData.data[index + 1] = alpha;
+          alphaData.data[index + 2] = alpha;
+          alphaData.data[index + 3] = 255;
+        }
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.putImageData(alphaData, 0, 0);
+    } else {
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const feather = 0.18;
+      for (let y = 0; y < canvas.height; y += 1) {
+        for (let x = 0; x < canvas.width; x += 1) {
+          const u = x / (canvas.width - 1);
+          const v = y / (canvas.height - 1);
+          const edgeMask =
+            smoothstep(0, feather, u) *
+            smoothstep(0, feather, 1 - u) *
+            smoothstep(0, feather, v) *
+            smoothstep(0, feather, 1 - v);
+          const dx = (u - 0.5) / 0.46;
+          const dy = (v - 0.5) / 0.5;
+          const radial = 1 - smoothstep(0.82, 1.12, Math.sqrt(dx * dx + dy * dy));
+          const alpha = Math.round(255 * THREE.MathUtils.clamp(edgeMask * radial, 0, 1));
+          const index = (y * canvas.width + x) * 4;
+          imageData.data[index] = alpha;
+          imageData.data[index + 1] = alpha;
+          imageData.data[index + 2] = alpha;
+          imageData.data[index + 3] = 255;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }, [primaryCrop, primaryTexture]);
+  const croppedPrimaryTexture = useMemo(() => {
+    if (!primaryTexture) return null;
+    if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return primaryTexture;
+    const [x, y, width, height] = primaryCrop.map(value => THREE.MathUtils.clamp(Number(value) || 0, 0, 1));
+    const safeWidth = THREE.MathUtils.clamp(width, 0.01, 1);
+    const safeHeight = THREE.MathUtils.clamp(height, 0.01, 1);
+    const texture = primaryTexture.clone();
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.set(safeWidth, safeHeight);
+    texture.offset.set(
+      THREE.MathUtils.clamp(x, 0, 1 - safeWidth),
+      THREE.MathUtils.clamp(1 - y - safeHeight, 0, 1 - safeHeight),
+    );
+    texture.needsUpdate = true;
+    return texture;
+  }, [primaryCrop, primaryTexture]);
+  const primaryAspect = useMemo(() => {
+    if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return 1;
+    const width = Math.max(0.01, Number(primaryCrop[2]) || 0.01);
+    const height = Math.max(0.01, Number(primaryCrop[3]) || 0.01);
+    return width / height;
+  }, [primaryCrop]);
 
   useEffect(() => {
-    [primaryTexture, ...supportTextures].filter(Boolean).forEach(texture => {
+    [primaryTexture, croppedPrimaryTexture, ...supportTextures].filter(Boolean).forEach(texture => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
     });
-  }, [primaryTexture, supportTextures]);
+    return () => {
+      if (croppedPrimaryTexture && croppedPrimaryTexture !== primaryTexture) {
+        croppedPrimaryTexture.dispose();
+      }
+    };
+  }, [croppedPrimaryTexture, primaryTexture, supportTextures]);
+
+  useEffect(() => () => {
+    primaryAlphaTexture?.dispose?.();
+  }, [primaryAlphaTexture]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -584,15 +760,20 @@ function ClusterMemoryFacets({
     );
   });
 
-  if (!primaryTexture && !supportTextures.length) return null;
+  if (!croppedPrimaryTexture && !supportTextures.length) return null;
 
   const isChapter = presentation === 'chapter';
   const isAnchor = presentation === 'anchor';
-  const primaryScale = isChapter
-    ? [4.8 * radiusMultiplier, 3.2 * radiusMultiplier, 1]
+  const primaryHeight = isChapter
+    ? 3.2 * radiusMultiplier
     : isAnchor
-      ? [3.9 * radiusMultiplier, 2.62 * radiusMultiplier, 1]
-    : [3.1 * radiusMultiplier, 2.08 * radiusMultiplier, 1];
+      ? 2.62 * radiusMultiplier
+      : 2.08 * radiusMultiplier;
+  const primaryScale = [
+    primaryHeight * primaryAspect,
+    primaryHeight,
+    1,
+  ];
   const primaryPosition = isChapter
     ? [pointer.x * 0.08, 0.03 + pointer.y * 0.05, -1.45 + depthOffset * 0.25]
     : isAnchor
@@ -604,15 +785,15 @@ function ClusterMemoryFacets({
       ? [pointer.y * 0.035, pointer.x * -0.1 + orbitOffset * 0.2, pointer.x * -0.02]
     : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
   const primaryOpacity = isChapter
-    ? (0.42 + pointer.activity * 0.16 + travelProgress * 0.08) * blend
+    ? (0.5 + pointer.activity * 0.16 + travelProgress * 0.08) * blend
     : isAnchor
-      ? (0.26 + pointer.activity * 0.12 + travelProgress * 0.08) * blend
+      ? (0.4 + pointer.activity * 0.14 + travelProgress * 0.08) * blend
       : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
   const primaryBlending = isChapter || isAnchor ? THREE.NormalBlending : THREE.AdditiveBlending;
 
   return (
     <group ref={groupRef}>
-      {primaryTexture && (
+      {croppedPrimaryTexture && (
         <group>
           {(isChapter || isAnchor) && (
             <mesh
@@ -632,18 +813,19 @@ function ClusterMemoryFacets({
               />
             </mesh>
           )}
-          <mesh
-            renderOrder={40}
-            position={primaryPosition}
-            rotation={primaryRotation}
-            scale={primaryScale}
-          >
-            <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial
-              map={primaryTexture}
-              transparent
-              opacity={primaryOpacity}
-              color={isChapter || isAnchor ? '#ffffff' : tint}
+            <mesh
+              renderOrder={40}
+              position={primaryPosition}
+              rotation={primaryRotation}
+              scale={primaryScale}
+            >
+              <planeGeometry args={[1, 1]} />
+              <meshBasicMaterial
+                map={croppedPrimaryTexture}
+                alphaMap={primaryAlphaTexture}
+                transparent
+                opacity={primaryOpacity}
+                color={isChapter || isAnchor ? '#ffffff' : tint}
               depthWrite={false}
               depthTest={false}
               blending={primaryBlending}
@@ -658,7 +840,8 @@ function ClusterMemoryFacets({
             >
               <planeGeometry args={[1, 1]} />
               <meshBasicMaterial
-                map={primaryTexture}
+                map={croppedPrimaryTexture}
+                alphaMap={primaryAlphaTexture}
                 transparent
                 opacity={((isChapter ? 0.09 : 0.05) + pointer.activity * 0.06) * blend}
                 color={tint}
@@ -1556,6 +1739,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const clusterPrimaryImage = meta?.source?.postImages?.length
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
+  const clusterPrimaryCrop = meta?.artDirection?.subjectCrop ?? null;
   const clusterSourceImages = meta?.world?.sharedSceneId
     ? []
     : (meta?.source?.postImages ?? []).slice(0, 4);
@@ -1711,6 +1895,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {!rawWorldMode && clusterSourceImages.length > 1 && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
+              primaryCrop={clusterPrimaryCrop}
               images={clusterSourceImages}
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
@@ -1722,6 +1907,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {!rawWorldMode && meta?.world?.sharedSceneId && clusterPrimaryImage && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
+              primaryCrop={clusterPrimaryCrop}
               images={[]}
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}

@@ -87,6 +87,14 @@
     "near": 0.1,
     "far": 80
   },
+  "artDirection": {
+    "subjectCrop": [
+      0.11,
+      0.02,
+      0.4,
+      0.86
+    ]
+  },
   "narrative": [
     {
       "threshold": 0.16,
