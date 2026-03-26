@@ -865,11 +865,79 @@ function ClusterMemoryFacets({
       ? (0.4 + pointer.activity * 0.14 + travelProgress * 0.08) * blend
       : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
   const primaryBlending = isChapter || isAnchor ? THREE.NormalBlending : THREE.AdditiveBlending;
+  const subjectShells = useMemo(() => {
+    if (!croppedPrimaryTexture || !primaryAlphaTexture || (!isAnchor && !isChapter)) return [];
+    const shellCount = isAnchor ? 5 : 3;
+    return Array.from({ length: shellCount }, (_, index) => {
+      const normalized = shellCount === 1 ? 0 : index / Math.max(1, shellCount - 1);
+      const depthShift = 0.026 + normalized * (isAnchor ? 0.13 : 0.07);
+      const xShift = (pointer.x * 0.06 + orbitOffset * 0.08) * (0.4 + normalized * 0.9);
+      const yShift = (pointer.y * 0.045 + Math.sin(normalized * Math.PI) * 0.02) * (0.6 + normalized * 0.6);
+      const zShift = primaryPosition[2] - depthShift;
+      const scaleBoost = 1 + normalized * (isAnchor ? 0.095 : 0.055);
+      const rotationBoost = [
+        primaryRotation[0] * (1 + normalized * 0.35),
+        primaryRotation[1] - normalized * 0.04,
+        primaryRotation[2] * (1 + normalized * 0.3),
+      ];
+      const baseOpacity = isAnchor ? 0.09 : 0.055;
+      const activityGain = isAnchor ? 0.08 : 0.045;
+      return {
+        key: `subject-shell-${index}`,
+        position: [
+          primaryPosition[0] - xShift,
+          primaryPosition[1] + yShift,
+          zShift,
+        ],
+        rotation: rotationBoost,
+        scale: [primaryScale[0] * scaleBoost, primaryScale[1] * scaleBoost, 1],
+        opacity: (baseOpacity + pointer.activity * activityGain) * (1 - normalized * 0.42) * blend,
+        color: normalized > 0.6 ? tint : '#ffffff',
+        blending: normalized > 0.55 ? THREE.AdditiveBlending : THREE.NormalBlending,
+        renderOrder: 33 - index,
+      };
+    });
+  }, [
+    blend,
+    croppedPrimaryTexture,
+    isAnchor,
+    isChapter,
+    orbitOffset,
+    pointer.activity,
+    pointer.x,
+    pointer.y,
+    primaryAlphaTexture,
+    primaryPosition,
+    primaryRotation,
+    primaryScale,
+    tint,
+  ]);
 
   return (
     <group ref={groupRef}>
       {croppedPrimaryTexture && (
         <group>
+          {subjectShells.map(shell => (
+            <mesh
+              key={shell.key}
+              renderOrder={shell.renderOrder}
+              position={shell.position}
+              rotation={shell.rotation}
+              scale={shell.scale}
+            >
+              <planeGeometry args={[1, 1]} />
+              <meshBasicMaterial
+                map={croppedPrimaryTexture}
+                alphaMap={primaryAlphaTexture}
+                transparent
+                opacity={shell.opacity}
+                color={shell.color}
+                depthWrite={false}
+                depthTest={false}
+                blending={shell.blending}
+              />
+            </mesh>
+          ))}
           {isAnchor && (
             <mesh
               renderOrder={36}
