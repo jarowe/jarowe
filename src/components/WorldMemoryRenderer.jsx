@@ -529,6 +529,7 @@ function DreamParticles({
 }
 
 function ClusterMemoryFacets({
+  primaryImage = null,
   images = [],
   pointer = { x: 0, y: 0, activity: 0 },
   travelProgress = 0,
@@ -537,21 +538,31 @@ function ClusterMemoryFacets({
   orbitOffset = 0,
   depthOffset = 0,
   radiusMultiplier = 1,
+  presentation = 'ambient',
 }) {
   const groupRef = useRef(null);
   const safeImages = useMemo(() => images.filter(Boolean).slice(0, 4), [images]);
-  const resolvedUrls = useMemo(
-    () => safeImages.map(image => resolveAsset(image)),
-    [safeImages],
+  const primaryUrl = useMemo(
+    () => (primaryImage ? resolveAsset(primaryImage) : null),
+    [primaryImage],
   );
-  const textures = useLoader(THREE.TextureLoader, resolvedUrls);
+  const resolvedUrls = useMemo(() => {
+    const urls = safeImages.map(image => resolveAsset(image));
+    return primaryUrl ? urls.filter(url => url !== primaryUrl) : urls;
+  }, [primaryUrl, safeImages]);
+  const supportTextures = useLoader(THREE.TextureLoader, resolvedUrls);
+  const primaryTextures = useLoader(
+    THREE.TextureLoader,
+    primaryUrl ? [primaryUrl] : [],
+  );
+  const primaryTexture = primaryTextures[0] ?? null;
 
   useEffect(() => {
-    textures.forEach(texture => {
+    [primaryTexture, ...supportTextures].filter(Boolean).forEach(texture => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
     });
-  }, [textures]);
+  }, [primaryTexture, supportTextures]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -573,23 +584,107 @@ function ClusterMemoryFacets({
     );
   });
 
-  if (!textures.length) return null;
+  if (!primaryTexture && !supportTextures.length) return null;
+
+  const isChapter = presentation === 'chapter';
+  const isAnchor = presentation === 'anchor';
+  const primaryScale = isChapter
+    ? [4.8 * radiusMultiplier, 3.2 * radiusMultiplier, 1]
+    : isAnchor
+      ? [3.9 * radiusMultiplier, 2.62 * radiusMultiplier, 1]
+    : [3.1 * radiusMultiplier, 2.08 * radiusMultiplier, 1];
+  const primaryPosition = isChapter
+    ? [pointer.x * 0.08, 0.03 + pointer.y * 0.05, -1.45 + depthOffset * 0.25]
+    : isAnchor
+      ? [pointer.x * 0.11, 0.03 + pointer.y * 0.06, -1.72 + depthOffset * 0.3]
+    : [pointer.x * 0.16, 0.04 + pointer.y * 0.08, -2.15 + depthOffset * 0.4];
+  const primaryRotation = isChapter
+    ? [pointer.y * 0.02, pointer.x * -0.08 + orbitOffset * 0.15, pointer.x * -0.015]
+    : isAnchor
+      ? [pointer.y * 0.035, pointer.x * -0.1 + orbitOffset * 0.2, pointer.x * -0.02]
+    : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
+  const primaryOpacity = isChapter
+    ? (0.42 + pointer.activity * 0.16 + travelProgress * 0.08) * blend
+    : isAnchor
+      ? (0.26 + pointer.activity * 0.12 + travelProgress * 0.08) * blend
+      : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
+  const primaryBlending = isChapter || isAnchor ? THREE.NormalBlending : THREE.AdditiveBlending;
 
   return (
     <group ref={groupRef}>
-      {textures.map((texture, index) => {
-        const normalized = textures.length === 1 ? 0.5 : index / (textures.length - 1);
+      {primaryTexture && (
+        <group>
+          {(isChapter || isAnchor) && (
+            <mesh
+              renderOrder={36}
+              position={[primaryPosition[0], primaryPosition[1], primaryPosition[2] - 0.02]}
+              rotation={primaryRotation}
+              scale={[primaryScale[0] * 1.08, primaryScale[1] * 1.08, 1]}
+            >
+              <planeGeometry args={[1, 1]} />
+              <meshBasicMaterial
+                transparent
+                opacity={(isChapter ? 0.22 : 0.14) * blend}
+                color="#050608"
+                depthWrite={false}
+                depthTest={false}
+                blending={THREE.NormalBlending}
+              />
+            </mesh>
+          )}
+          <mesh
+            renderOrder={40}
+            position={primaryPosition}
+            rotation={primaryRotation}
+            scale={primaryScale}
+          >
+            <planeGeometry args={[1, 1]} />
+            <meshBasicMaterial
+              map={primaryTexture}
+              transparent
+              opacity={primaryOpacity}
+              color={isChapter || isAnchor ? '#ffffff' : tint}
+              depthWrite={false}
+              depthTest={false}
+              blending={primaryBlending}
+            />
+          </mesh>
+          {(isChapter || isAnchor) && (
+            <mesh
+              renderOrder={38}
+              position={[primaryPosition[0], primaryPosition[1], primaryPosition[2] - 0.015]}
+              rotation={primaryRotation}
+              scale={[primaryScale[0] * 1.02, primaryScale[1] * 1.02, 1]}
+            >
+              <planeGeometry args={[1, 1]} />
+              <meshBasicMaterial
+                map={primaryTexture}
+                transparent
+                opacity={((isChapter ? 0.09 : 0.05) + pointer.activity * 0.06) * blend}
+                color={tint}
+                depthWrite={false}
+                depthTest={false}
+                blending={THREE.AdditiveBlending}
+              />
+            </mesh>
+          )}
+        </group>
+      )}
+
+      {supportTextures.map((texture, index) => {
+        const normalized = supportTextures.length === 1 ? 0.5 : index / Math.max(1, supportTextures.length - 1);
         const angle = (normalized - 0.5) * 1.15 + orbitOffset;
         const radius = (3.2 + index * 0.38) * radiusMultiplier;
         const y = (index % 2 === 0 ? 0.18 : -0.14) + index * 0.02;
         const pointerBias = 1 - Math.min(1, Math.abs((pointer.x + 1) * 0.5 - normalized) * 1.8);
-        const opacity = (0.05 + travelProgress * 0.07 + pointer.activity * 0.08 * pointerBias) * blend;
+        const opacity = (0.03 + travelProgress * 0.05 + pointer.activity * 0.06 * pointerBias) * blend;
         const scaleX = 2.2 + index * 0.18;
         const scaleY = 1.45 + index * 0.12;
 
         return (
           <mesh
             key={resolvedUrls[index]}
+            renderOrder={24}
             position={[Math.sin(angle) * radius, y, -Math.cos(angle) * radius + depthOffset]}
             rotation={[0.05 * (index % 2 === 0 ? 1 : -1), angle, 0]}
             scale={[scaleX, scaleY, 1]}
@@ -601,6 +696,7 @@ function ClusterMemoryFacets({
               opacity={opacity}
               color={tint}
               depthWrite={false}
+              depthTest={false}
               blending={THREE.AdditiveBlending}
             />
           </mesh>
@@ -897,7 +993,10 @@ function WorldAtmosphere({ fogColor = '#0a0a12', radius = 30.0 }) {
 // ---------------------------------------------------------------------------
 // WorldPostProcessing — Bloom + DOF + Vignette
 // ---------------------------------------------------------------------------
-function WorldPostProcessing() {
+function WorldPostProcessing({ archiveMode = false, chapterMode = false }) {
+  const dofFocusDistance = chapterMode ? 0.012 : 0.02;
+  const dofFocalLength = chapterMode ? 0.02 : 0.04;
+  const dofBokehScale = archiveMode ? (chapterMode ? 0.7 : 1.0) : 1.5;
   return (
     <EffectComposer disableNormalPass frameBufferType={HalfFloatType}>
       <Bloom
@@ -908,9 +1007,9 @@ function WorldPostProcessing() {
         mipmapBlur
       />
       <DepthOfField
-        focusDistance={0.02}
-        focalLength={0.04}
-        bokehScale={1.5}
+        focusDistance={dofFocusDistance}
+        focalLength={dofFocalLength}
+        bokehScale={dofBokehScale}
       />
       <Vignette
         eskil={false}
@@ -1381,11 +1480,16 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
 
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
-    const preferredWorldAsset = (fullSourceMode && meta?.world?.sourceSplat) || meta?.world?.splat;
+    const sharedSceneId = meta?.world?.sharedSceneId ?? scene.id;
+    const defaultSharedAsset = fullSourceMode ? 'world/scene.ply' : 'world/scene.runtime.ply';
+    const preferredWorldAsset =
+      (fullSourceMode && meta?.world?.sourceSplat)
+      || meta?.world?.splat
+      || (meta?.world?.sharedSceneId ? defaultSharedAsset : null);
     if (preferredWorldAsset) {
       // meta.json splat paths are relative to the memory directory.
       // Support both the current world/scene.ply contract and legacy scene.ply values.
-      return resolveMemoryWorldPath(scene.id, preferredWorldAsset);
+      return resolveMemoryWorldPath(sharedSceneId, preferredWorldAsset);
     }
     return scene.splatUrl || null;
   }, [fullSourceMode, meta, scene.id, scene.splatUrl]);
@@ -1449,9 +1553,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const camNear = meta?.camera?.near ?? 0.1;
   const camFar = meta?.camera?.far ?? 200;
   const previewUrl = resolveAsset(scene.previewImage ?? scene.photoUrl);
-  const clusterSourceImages = meta?.source?.generationMode === 'multi-view-cluster'
-    ? (meta?.source?.postImages ?? []).slice(0, 4)
-    : [];
+  const clusterPrimaryImage = meta?.source?.postImages?.length
+    ? (scene.previewImage ?? scene.photoUrl)
+    : null;
+  const clusterSourceImages = meta?.world?.sharedSceneId
+    ? []
+    : (meta?.source?.postImages ?? []).slice(0, 4);
   const nextClusterPreviewImages = useMemo(
     () => archiveNextScene ? [archiveNextScene.previewImage ?? archiveNextScene.photoUrl].filter(Boolean) : [],
     [archiveNextScene],
@@ -1603,10 +1710,26 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
 
           {!rawWorldMode && clusterSourceImages.length > 1 && (
             <ClusterMemoryFacets
+              primaryImage={clusterPrimaryImage}
               images={clusterSourceImages}
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
               blend={archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1}
+              presentation="anchor"
+            />
+          )}
+
+          {!rawWorldMode && meta?.world?.sharedSceneId && clusterPrimaryImage && (
+            <ClusterMemoryFacets
+              primaryImage={clusterPrimaryImage}
+              images={[]}
+              pointer={archivePointer}
+              travelProgress={archiveTravelProgress}
+              blend={1}
+              tint="#f3eee7"
+              depthOffset={-0.6}
+              radiusMultiplier={0.92}
+              presentation="chapter"
             />
           )}
 
@@ -1671,7 +1794,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           )}
 
           {/* Layer 5: Post-processing (full tier) */}
-          {isFullTier && enablePostProcessing && !rawWorldMode && <WorldPostProcessing />}
+          {isFullTier && enablePostProcessing && !rawWorldMode && (
+            <WorldPostProcessing
+              archiveMode={archiveMode}
+              chapterMode={Boolean(meta?.world?.sharedSceneId)}
+            />
+          )}
         </Canvas>
 
         {!splatLoaded && (

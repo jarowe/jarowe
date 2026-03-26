@@ -33,6 +33,7 @@
     }
   },
   "world": {
+    "sharedSceneId": "naxos-rock",
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
     "mesh": null,
@@ -60,10 +61,11 @@
       ]
     },
     "provenance": {
-      "tier": "world-model-fused",
+      "tier": "cluster-shared-world",
       "anchorGenerator": "source-photo",
-      "reconstruction": "single-image-world-model",
-      "viewCount": 1
+      "reconstruction": "shared-cluster-world",
+      "viewCount": 1,
+      "sharedFrom": "naxos-rock"
     }
   },
   "fallback": {
@@ -72,9 +74,9 @@
   },
   "camera": {
     "startPosition": [
-      0.28,
-      0.1,
-      6.4
+      0.14,
+      0.08,
+      5.3
     ],
     "startTarget": [
       0,

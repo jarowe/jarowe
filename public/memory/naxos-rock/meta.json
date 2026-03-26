@@ -11,7 +11,7 @@
     "generator": "world-model",
     "generated": "2026-03-26",
     "postDate": "May 08, 2024 6:52 am",
-    "worldModelPrompt": "Boy seated on a rock inside a sunlit Naxos shoreline cove, bright blue shirt, pale stone coast, Aegean water, fully explorable 360 Mediterranean seaside scene. Preserve the original photo composition and the seated boy as the focal anchor, complete the surrounding rocks, waterline, sky, and shore geometry with natural cinematic depth.",
+    "worldModelPrompt": "Wide Mediterranean shoreline memory in Naxos, Greece at golden hour. Preserve the original seated boy on the foreground rock in a bright blue hoodie as the clear focal human anchor. Reconstruct the surrounding granite rock field, shallow tide pool, ocean horizon, islands, and sky as a cohesive fully explorable 360 coastal world. Keep the seated boy readable and intact, preserve ground continuity around him, avoid floating fragments or detached blocks, and complete the unseen environment with believable rock formations, sand, tide pools, and Aegean light.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -38,8 +38,8 @@
     "mesh": null,
     "collider": null,
     "format": "ply",
-    "splatCount": 650000,
-    "sourceSplatCount": 2480602,
+    "splatCount": 850000,
+    "sourceSplatCount": 16515072,
     "bounds": null,
     "transform": {
       "position": [
@@ -72,13 +72,13 @@
   },
   "camera": {
     "startPosition": [
-      0.45,
-      0.16,
-      7.1
+      0.24,
+      0.12,
+      5.8
     ],
     "startTarget": [
       0,
-      0.04,
+      0.03,
       0
     ],
     "fov": 52,
