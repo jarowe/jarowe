@@ -27,6 +27,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run a single-image world-model backend")
     parser.add_argument("--backend", required=True, choices=["worldgen", "vistadream"])
     parser.add_argument("--input", required=True, help="Absolute path to the primary input image")
+    parser.add_argument("--subject-input", dest="subject_input", default=None, help="Optional original subject photo preserved for later subject-pass workflows")
+    parser.add_argument("--mask", default=None, help="Optional subject mask path aligned with the original photo")
     parser.add_argument("--output", required=True, help="Absolute path to the target world directory")
     parser.add_argument("--generated-views", dest="generated_views", default=None, help="Optional directory for generated support views")
     parser.add_argument("--scene-id", dest="scene_id", default=None)
@@ -112,6 +114,8 @@ def run_worldgen(args: argparse.Namespace) -> int:
         "[worldgen] Generated scene.ply\n"
         f"scene_id={args.scene_id or ''}\n"
         f"input={image_path}\n"
+        f"subject_input={args.subject_input or ''}\n"
+        f"mask={args.mask or ''}\n"
         f"output={output_path}\n"
         f"resolution={args.resolution}\n"
         f"use_sharp={use_sharp}\n"

@@ -42,6 +42,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const LOCAL_DEPTH_VIEW_SCRIPT = join(ROOT, 'pipeline', 'synthesize_depth_views.py');
+const LOCAL_ENVIRONMENT_PLATE_SCRIPT = join(ROOT, 'pipeline', 'build_environment_plate.py');
 const LOCAL_WORLD_MODEL_WRAPPER = join(ROOT, 'pipeline', 'run_single_image_world_backend.py');
 const DEFAULT_MAX_RUNTIME_SPLATS = 300000;
 const MAX_RUNTIME_SPLATS = Number.parseInt(process.env.MAX_RUNTIME_SPLATS ?? '', 10) || DEFAULT_MAX_RUNTIME_SPLATS;
@@ -58,6 +59,7 @@ function parseArgs() {
   let useSharp = null;
   let inpaintBg = null;
   let lowVram = null;
+  let subjectErasedBootstrap = null;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -100,6 +102,14 @@ function parseArgs() {
       lowVram = true;
       continue;
     }
+    if (arg === '--subject-erased-bootstrap') {
+      subjectErasedBootstrap = true;
+      continue;
+    }
+    if (arg === '--no-subject-erased-bootstrap') {
+      subjectErasedBootstrap = false;
+      continue;
+    }
     if (!arg.startsWith('--') && !sceneId) {
       sceneId = arg;
     }
@@ -115,6 +125,7 @@ function parseArgs() {
       useSharp,
       inpaintBg,
       lowVram,
+      subjectErasedBootstrap,
     },
   };
 }
@@ -405,21 +416,105 @@ function refreshExpandedBundleManifest(worldDir, meta, bundle, strategy) {
   };
 }
 
-function buildWorldModelPrompt(meta) {
-  const explicitPrompt = meta?.source?.worldModelPrompt?.trim();
+function buildWorldModelPrompt(meta, options = {}) {
+  const {
+    promptOverride = '',
+    subjectErasedBootstrap = false,
+  } = options;
+
+  const explicitPrompt = String(promptOverride || '').trim() || meta?.source?.worldModelPrompt?.trim();
   if (explicitPrompt) {
-    return explicitPrompt;
+    return subjectErasedBootstrap
+      ? [
+        explicitPrompt,
+        'The provided input is an environment bootstrap plate with the main foreground subject removed. Prioritize coherent world completion, preserve non-masked anchors, avoid duplicate people, and leave clean room for the original subject to be reintroduced later.',
+      ].join(' ')
+      : explicitPrompt;
   }
 
   const title = meta?.title?.trim();
   const subtitle = meta?.subtitle?.trim();
   const description = meta?.description?.trim();
   const parts = [title, subtitle, description].filter(Boolean);
-  if (!parts.length) return '';
-  return [
+  const prompt = parts.length
+    ? [
     parts.join('. '),
-    'realistic 360 explorable scene, preserve the photo composition, complete hidden geometry, natural stone, turquoise water, cinematic depth',
+    subjectErasedBootstrap
+      ? 'realistic 360 explorable environment, complete hidden geometry and off-camera world space from the cleaned environment plate, preserve non-masked anchors, avoid duplicate people, cinematic depth'
+      : 'realistic 360 explorable scene, preserve the photo composition, complete hidden geometry, natural stone, turquoise water, cinematic depth',
+  ].join(' ')
+    : '';
+
+  if (!subjectErasedBootstrap || !prompt) {
+    return prompt;
+  }
+
+  return [
+    prompt,
+    'Use the cleaned environment plate to imagine the missing world coherently while keeping spatial room for the original subject pass.',
   ].join(' ');
+}
+
+function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, worldModelOptions = {}) {
+  const maskPath = resolveSceneAssetPath(sceneDir, meta.source?.mask);
+  const hasMask = Boolean(maskPath && existsSync(maskPath));
+  const wantsSubjectErasedBootstrap = worldModelOptions.subjectErasedBootstrap ?? hasMask;
+
+  if (!wantsSubjectErasedBootstrap || !hasMask || !existsSync(LOCAL_ENVIRONMENT_PLATE_SCRIPT)) {
+    return {
+      worldInputPath: inputPhoto,
+      subjectInputPath: inputPhoto,
+      maskPath: hasMask ? maskPath : null,
+      environmentBootstrap: null,
+    };
+  }
+
+  const bootstrapPath = join(worldDir, 'bootstrap.environment.png');
+  const command = [
+    getDefaultWorldModelPython(),
+    `"${LOCAL_ENVIRONMENT_PLATE_SCRIPT}"`,
+    `"${inputPhoto}"`,
+    `"${maskPath}"`,
+    `"${bootstrapPath}"`,
+  ].join(' ');
+
+  console.log(`\n[World Model] Building subject-erased environment plate: ${command}\n`);
+  const result = runShellCommand(command);
+  if (result.stdout?.trim()) console.log(result.stdout.trim());
+  if (result.stderr?.trim()) console.log(result.stderr.trim());
+
+  if (result.status !== 0 || !existsSync(bootstrapPath)) {
+    const failureMessage = [
+      '[World Model] Failed to build the subject-erased environment bootstrap image.',
+      `Command: ${command}`,
+      result.stderr?.trim() || result.stdout?.trim() || 'No error output.',
+    ].join('\n');
+
+    if (worldModelOptions.subjectErasedBootstrap === true) {
+      throw new Error(failureMessage);
+    }
+
+    console.warn(`${failureMessage}\n[World Model] Falling back to the original photo as the world-model input.`);
+    return {
+      worldInputPath: inputPhoto,
+      subjectInputPath: inputPhoto,
+      maskPath,
+      environmentBootstrap: null,
+    };
+  }
+
+  return {
+    worldInputPath: bootstrapPath,
+    subjectInputPath: inputPhoto,
+    maskPath,
+    environmentBootstrap: {
+      strategy: 'subject-erased-environment-bootstrap',
+      image: toWorldRelative('bootstrap.environment.png'),
+      subjectInput: meta.source?.photo ?? null,
+      mask: meta.source?.mask ?? null,
+      usedAsWorldInput: true,
+    },
+  };
 }
 
 function cleanWorldAssets(worldDir) {
@@ -428,6 +523,7 @@ function cleanWorldAssets(worldDir) {
     'scene.runtime.ply',
     'scene.spz',
     'scene.glb',
+    'bootstrap.environment.png',
     'collider.glb',
     'bounds.json',
   ];
@@ -1111,15 +1207,30 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
 
 async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   const { meta, sceneDir, sceneId, worldModelOptions = {} } = options;
-  const synthesizedPrompt = buildWorldModelPrompt(meta);
+  const worldModelInputs = buildEnvironmentBootstrapImage(
+    sceneDir,
+    worldDir,
+    inputPhoto,
+    meta,
+    worldModelOptions,
+  );
+  const synthesizedPrompt = buildWorldModelPrompt(meta, {
+    promptOverride: worldModelOptions.prompt,
+    subjectErasedBootstrap: Boolean(worldModelInputs.environmentBootstrap),
+  });
   const templateVariables = {
-    input: inputPhoto,
+    input: worldModelInputs.worldInputPath,
     output: worldDir,
     sceneId,
     sceneDir,
     worldDir,
-    primary: inputPhoto,
-    prompt: worldModelOptions.prompt || synthesizedPrompt,
+    primary: worldModelInputs.worldInputPath,
+    bootstrap: worldModelInputs.environmentBootstrap?.image
+      ? resolve(sceneDir, worldModelInputs.environmentBootstrap.image)
+      : '',
+    subjectInput: worldModelInputs.subjectInputPath,
+    mask: worldModelInputs.maskPath,
+    prompt: synthesizedPrompt,
     resolution: worldModelOptions.resolution,
     useSharp: worldModelOptions.useSharp,
     inpaintBg: worldModelOptions.inpaintBg,
@@ -1137,7 +1248,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
         'or set WORLD_MODEL_BACKEND=worldgen to use the local backend wrapper.',
         'On Windows, the default path now prefers a WSL backend if available.',
         'Supported placeholders:',
-        '  {input} {primary} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
+        '  {input} {primary} {bootstrap} {subjectInput} {mask} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
       ].join('\n'),
     );
   }
@@ -1150,7 +1261,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
 
   try {
     const commandVariables = {
-      input: inputPhoto,
+      input: worldModelInputs.worldInputPath,
       output: worldDir,
       sceneId,
       sceneDir,
@@ -1158,9 +1269,14 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       bundleDir: bundle.bundleRoot,
       sourceDir: bundle.sourceDir,
       generatedDir: bundle.generatedDir,
-      primary: bundle.primaryView?.stagedPath ?? inputPhoto,
+      primary: worldModelInputs.worldInputPath,
       bundleJson: join(worldDir, 'view-bundle.json'),
-      prompt: worldModelOptions.prompt || synthesizedPrompt,
+      bootstrap: worldModelInputs.environmentBootstrap?.image
+        ? resolve(sceneDir, worldModelInputs.environmentBootstrap.image)
+        : '',
+      subjectInput: worldModelInputs.subjectInputPath,
+      mask: worldModelInputs.maskPath,
+      prompt: synthesizedPrompt,
       resolution: worldModelOptions.resolution,
       useSharp: worldModelOptions.useSharp,
       inpaintBg: worldModelOptions.inpaintBg,
@@ -1214,6 +1330,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
         anchorGenerator: 'source-photo',
         viewSynthesizer: 'world-model',
         fusionEngine: 'world-model',
+        environmentBootstrap: worldModelInputs.environmentBootstrap ?? undefined,
       },
       provenance: {
         tier: 'world-model-fused',
@@ -1221,6 +1338,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
         reconstruction: 'single-image-world-model',
         viewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
       },
+      environmentBootstrap: worldModelInputs.environmentBootstrap,
     };
   } finally {
     rmSync(bundle.bundleRoot, { recursive: true, force: true });
@@ -1237,6 +1355,9 @@ function updateMetaWithAssets(meta, assets) {
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
   if (assets.generationMode) {
     meta.source.generationMode = assets.generationMode;
+  }
+  if (assets.environmentBootstrap) {
+    meta.source.environmentBootstrap = assets.environmentBootstrap;
   }
   if (assets.expansion) {
     meta.source.expansion = {
@@ -1301,6 +1422,8 @@ function buildWorldModelArgumentList(variables = {}) {
     ['--scene-id', variables.sceneId ?? ''],
   ];
 
+  if (variables.subjectInput) args.push(['--subject-input', variables.subjectInput]);
+  if (variables.mask) args.push(['--mask', variables.mask]);
   if (variables.prompt) args.push(['--prompt', variables.prompt]);
   if (Number.isFinite(variables.resolution)) args.push(['--resolution', `${variables.resolution}`]);
   if (variables.useSharp === true) args.push(['--use-sharp', null]);
@@ -1322,6 +1445,9 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
     backend,
     input: toWslPath(variables.input ?? ''),
     primary: toWslPath(variables.primary ?? ''),
+    bootstrap: toWslPath(variables.bootstrap ?? ''),
+    subjectInput: toWslPath(variables.subjectInput ?? ''),
+    mask: toWslPath(variables.mask ?? ''),
     output: toWslPath(variables.output ?? ''),
     worldDir: toWslPath(variables.worldDir ?? ''),
     generatedDir: toWslPath(variables.generatedDir ?? ''),
@@ -1586,7 +1712,7 @@ async function main() {
   const { sceneId, generator: generatorKey, force, worldModelOptions } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--low-vram]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);
