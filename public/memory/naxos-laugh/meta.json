@@ -88,11 +88,32 @@
   },
   "artDirection": {
     "subjectCrop": [
-      0.11,
-      0.02,
-      0.4,
-      0.86
+      0.135,
+      0.018,
+      0.382,
+      0.868
     ]
+  },
+  "subject3d": {
+    "mode": "projected-mesh",
+    "mesh": "subject.glb",
+    "transform": {
+      "position": [
+        0.02,
+        -0.1,
+        0.02
+      ],
+      "scale": [
+        0.66,
+        0.66,
+        0.66
+      ],
+      "rotation": [
+        0,
+        -10,
+        0
+      ]
+    }
   },
   "narrative": [
     {

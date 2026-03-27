@@ -34,6 +34,7 @@ import {
 import { BlendFunction } from 'postprocessing';
 import { HalfFloatType } from 'three';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { OrbitControls } from '@react-three/drei';
 import FlightCamera from './particleMemory/FlightCamera';
@@ -67,6 +68,75 @@ function resolveMemoryAssetPath(sceneId, assetPath) {
 function smoothstep(edge0, edge1, value) {
   const t = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
   return t * t * (3 - 2 * t);
+}
+
+function buildProjectedSubjectMeshParts(subjectScene) {
+  if (!subjectScene) return null;
+
+  const bakedGeometries = [];
+  const worldBounds = new THREE.Box3().makeEmpty();
+
+  subjectScene.updateMatrixWorld(true);
+  subjectScene.traverse((child) => {
+    if (!child.isMesh || !child.geometry) return;
+
+    const geometry = child.geometry.clone();
+    geometry.applyMatrix4(child.matrixWorld);
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+
+    if (!geometry.boundingBox) {
+      geometry.dispose();
+      return;
+    }
+
+    worldBounds.union(geometry.boundingBox);
+    bakedGeometries.push(geometry);
+  });
+
+  if (!bakedGeometries.length || worldBounds.isEmpty()) {
+    bakedGeometries.forEach(geometry => geometry.dispose());
+    return null;
+  }
+
+  const center = worldBounds.getCenter(new THREE.Vector3());
+  const size = worldBounds.getSize(new THREE.Vector3());
+  const invHeight = size.y > 1e-5 ? 1 / size.y : 1;
+
+  return bakedGeometries.map((geometry, index) => {
+    const position = geometry.attributes.position;
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      position.setXYZ(
+        vertex,
+        (position.getX(vertex) - center.x) * invHeight,
+        (position.getY(vertex) - center.y) * invHeight,
+        (position.getZ(vertex) - center.z) * invHeight,
+      );
+    }
+    position.needsUpdate = true;
+    geometry.computeBoundingBox();
+
+    const bounds = geometry.boundingBox ?? new THREE.Box3();
+    const boundsSize = bounds.getSize(new THREE.Vector3());
+    const uvArray = new Float32Array(position.count * 2);
+
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      const x = position.getX(vertex);
+      const y = position.getY(vertex);
+      const u = (x - bounds.min.x) / Math.max(boundsSize.x, 1e-5);
+      const v = (y - bounds.min.y) / Math.max(boundsSize.y, 1e-5);
+      uvArray[vertex * 2] = THREE.MathUtils.clamp(u, 0, 1);
+      uvArray[vertex * 2 + 1] = THREE.MathUtils.clamp(v, 0, 1);
+    }
+
+    geometry.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
+    geometry.computeVertexNormals();
+
+    return {
+      key: `subject-mesh-${index}`,
+      geometry,
+    };
+  });
 }
 
 function sampleGlobalAudioBands(targetArray) {
@@ -557,6 +627,8 @@ function DreamParticles({
 function ClusterMemoryFacets({
   primaryImage = null,
   primaryAlphaImage = null,
+  subjectMeshUrl = null,
+  subjectMeshTransform = null,
   images = [],
   primaryCrop = null,
   pointer = { x: 0, y: 0, activity: 0 },
@@ -569,8 +641,31 @@ function ClusterMemoryFacets({
   presentation = 'ambient',
 }) {
   const groupRef = useRef(null);
+  const subjectRigRef = useRef(null);
+  const subjectBillboardRef = useRef(null);
+  const subjectFacingRef = useRef(null);
+  const subjectBackgroundMaterialRef = useRef(null);
+  const subjectFrontMaterialRef = useRef(null);
+  const subjectGlowMaterialRef = useRef(null);
+  const subjectPointMaterialRef = useRef(null);
+  const subjectVolumeMaterialRefs = useRef([]);
+  const subjectShellMeshMaterialRefs = useRef([]);
+  const subjectHybridPointMaterialRefs = useRef([]);
+  const subjectHybridShellMaterialRefs = useRef([]);
+  const subjectProjectedMeshPointMaterialRefs = useRef([]);
+  const subjectProjectedMeshShellMaterialRefs = useRef([]);
+  const subjectProjectedSurfaceMaterialRefs = useRef([]);
+  const subjectProjectedFillMaterialRefs = useRef([]);
+  const subjectImageGeometry = useMemo(() => new THREE.PlaneGeometry(1, 1, 1, 1), []);
+  const tempSubjectPosition = useMemo(() => new THREE.Vector3(), []);
+  const tempSubjectQuaternion = useMemo(() => new THREE.Quaternion(), []);
+  const tempSubjectForward = useMemo(() => new THREE.Vector3(), []);
+  const tempCameraDirection = useMemo(() => new THREE.Vector3(), []);
+  const tempLocalCamera = useMemo(() => new THREE.Vector3(), []);
+  const { camera } = useThree();
   const isChapter = presentation === 'chapter';
   const isAnchor = presentation === 'anchor';
+  const subjectAnalysisResolution = isAnchor ? 384 : isChapter ? 320 : 160;
   const safeImages = useMemo(() => images.filter(Boolean).slice(0, 4), [images]);
   const primaryUrl = useMemo(
     () => (primaryImage ? resolveAsset(primaryImage) : null),
@@ -579,6 +674,10 @@ function ClusterMemoryFacets({
   const primaryAlphaUrl = useMemo(
     () => (primaryAlphaImage ? resolveAsset(primaryAlphaImage) : null),
     [primaryAlphaImage],
+  );
+  const resolvedSubjectMeshUrl = useMemo(
+    () => (subjectMeshUrl ? resolveAsset(subjectMeshUrl) : null),
+    [subjectMeshUrl],
   );
   const resolvedUrls = useMemo(() => {
     const urls = safeImages.map(image => resolveAsset(image));
@@ -595,6 +694,15 @@ function ClusterMemoryFacets({
     primaryAlphaUrl ? [primaryAlphaUrl] : [],
   );
   const externalPrimaryAlphaTexture = externalPrimaryAlphaTextures[0] ?? null;
+  const subjectMeshAssets = useLoader(
+    GLTFLoader,
+    resolvedSubjectMeshUrl ? [resolvedSubjectMeshUrl] : [],
+  );
+  const subjectProjectedMeshParts = useMemo(
+    () => buildProjectedSubjectMeshParts(subjectMeshAssets[0]?.scene ?? null),
+    [subjectMeshAssets],
+  );
+  const hasProjectedSubjectMesh = Boolean(subjectProjectedMeshParts?.length);
   const generatedPrimaryAlphaTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
@@ -736,7 +844,7 @@ function ClusterMemoryFacets({
       if (alphaCtx) {
         alphaCtx.putImageData(alphaData, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.filter = isChapter ? 'blur(6px)' : 'blur(3px)';
+        ctx.filter = isChapter ? 'blur(1.25px)' : 'blur(0.85px)';
         ctx.drawImage(alphaCanvas, 0, 0);
         ctx.filter = 'none';
       } else {
@@ -774,10 +882,79 @@ function ClusterMemoryFacets({
     return texture;
   }, [isChapter, primaryCrop, primaryTexture]);
   const primaryAlphaTexture = externalPrimaryAlphaTexture ?? generatedPrimaryAlphaTexture;
+  const normalizedPrimaryCrop = useMemo(() => (
+    Array.isArray(primaryCrop) && primaryCrop.length === 4
+      ? primaryCrop.map(value => THREE.MathUtils.clamp(Number(value) || 0, 0, 1))
+      : null
+  ), [primaryCrop]);
+  const effectivePrimaryCrop = useMemo(() => {
+    if (!(isAnchor || isChapter)) return normalizedPrimaryCrop;
+    const alphaImage = primaryAlphaTexture?.image;
+    if (
+      !alphaImage
+      || typeof alphaImage.width !== 'number'
+      || typeof alphaImage.height !== 'number'
+      || alphaImage.width <= 0
+      || alphaImage.height <= 0
+      || typeof document === 'undefined'
+    ) {
+      return normalizedPrimaryCrop;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = alphaImage.width;
+    canvas.height = alphaImage.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return normalizedPrimaryCrop;
+    ctx.drawImage(alphaImage, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        if (data[(y * canvas.width + x) * 4] <= 12) continue;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    if (maxX < minX || maxY < minY) return normalizedPrimaryCrop;
+
+    const maskBounds = [
+      minX / canvas.width,
+      minY / canvas.height,
+      (maxX - minX + 1) / canvas.width,
+      (maxY - minY + 1) / canvas.height,
+    ];
+    const maskArea = maskBounds[2] * maskBounds[3];
+    const maskLooksUseful = maskBounds[2] < 0.9 || maskArea < 0.75;
+    if (!maskLooksUseful) return normalizedPrimaryCrop;
+
+    const padX = Math.max(0.045, maskBounds[2] * (isChapter ? 0.12 : 0.1));
+    const padY = Math.max(0.04, maskBounds[3] * (isChapter ? 0.08 : 0.07));
+    let x0 = Math.max(0, maskBounds[0] - padX);
+    let y0 = Math.max(0, maskBounds[1] - padY);
+    let x1 = Math.min(1, maskBounds[0] + maskBounds[2] + padX);
+    let y1 = Math.min(1, maskBounds[1] + maskBounds[3] + padY);
+
+    if (normalizedPrimaryCrop) {
+      x0 = Math.min(x0, normalizedPrimaryCrop[0]);
+      y0 = Math.min(y0, normalizedPrimaryCrop[1]);
+      x1 = Math.max(x1, normalizedPrimaryCrop[0] + normalizedPrimaryCrop[2]);
+      y1 = Math.max(y1, normalizedPrimaryCrop[1] + normalizedPrimaryCrop[3]);
+    }
+
+    return [x0, y0, x1 - x0, y1 - y0];
+  }, [isAnchor, isChapter, normalizedPrimaryCrop, primaryAlphaTexture]);
   const croppedPrimaryTexture = useMemo(() => {
     if (!primaryTexture) return null;
-    if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return primaryTexture;
-    const [x, y, width, height] = primaryCrop.map(value => THREE.MathUtils.clamp(Number(value) || 0, 0, 1));
+    if (!effectivePrimaryCrop || effectivePrimaryCrop.length !== 4) return primaryTexture;
+    const [x, y, width, height] = effectivePrimaryCrop;
     const safeWidth = THREE.MathUtils.clamp(width, 0.01, 1);
     const safeHeight = THREE.MathUtils.clamp(height, 0.01, 1);
     const texture = primaryTexture.clone();
@@ -790,28 +967,227 @@ function ClusterMemoryFacets({
     );
     texture.needsUpdate = true;
     return texture;
-  }, [primaryCrop, primaryTexture]);
+  }, [effectivePrimaryCrop, primaryTexture]);
+  const croppedPrimaryAlphaTexture = useMemo(() => {
+    if (!primaryAlphaTexture) return null;
+    if (!effectivePrimaryCrop || effectivePrimaryCrop.length !== 4) return primaryAlphaTexture;
+    const image = primaryAlphaTexture.image;
+    if (
+      typeof document === 'undefined'
+      || !image
+      || typeof image.width !== 'number'
+      || typeof image.height !== 'number'
+      || image.width <= 0
+      || image.height <= 0
+    ) {
+      return primaryAlphaTexture;
+    }
+
+    const [x, y, width, height] = effectivePrimaryCrop;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return primaryAlphaTexture;
+
+    ctx.drawImage(
+      image,
+      x * image.width,
+      y * image.height,
+      Math.max(1, width * image.width),
+      Math.max(1, height * image.height),
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
+  }, [effectivePrimaryCrop, primaryAlphaTexture]);
+  const primaryColorCanvas = useMemo(() => {
+    if (typeof document === 'undefined' || !primaryTexture?.image) return null;
+    const image = primaryTexture.image;
+    if (
+      typeof image.width !== 'number'
+      || typeof image.height !== 'number'
+      || image.width <= 0
+      || image.height <= 0
+    ) {
+      return null;
+    }
+
+    const crop = effectivePrimaryCrop?.length === 4
+      ? effectivePrimaryCrop
+      : [0, 0, 1, 1];
+    const [cropX, cropY, cropWidth, cropHeight] = crop;
+    const canvas = document.createElement('canvas');
+    canvas.width = subjectAnalysisResolution;
+    canvas.height = subjectAnalysisResolution;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    ctx.drawImage(
+      image,
+      cropX * image.width,
+      cropY * image.height,
+      Math.max(1, cropWidth * image.width),
+      Math.max(1, cropHeight * image.height),
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+
+    return canvas;
+  }, [effectivePrimaryCrop, primaryTexture, subjectAnalysisResolution]);
+  const primaryBackgroundTexture = useMemo(() => {
+    if (!(isAnchor || isChapter) || typeof document === 'undefined' || !primaryColorCanvas || !croppedPrimaryAlphaTexture?.image) {
+      return null;
+    }
+
+    const width = primaryColorCanvas.width;
+    const height = primaryColorCanvas.height;
+    const backgroundCanvas = document.createElement('canvas');
+    backgroundCanvas.width = width;
+    backgroundCanvas.height = height;
+    const colorCtx = backgroundCanvas.getContext('2d', { willReadFrequently: true });
+    if (!colorCtx) return null;
+    const alphaCanvas = document.createElement('canvas');
+    alphaCanvas.width = width;
+    alphaCanvas.height = height;
+    const alphaCtx = alphaCanvas.getContext('2d', { willReadFrequently: true });
+    if (!alphaCtx) return null;
+    alphaCtx.drawImage(croppedPrimaryAlphaTexture.image, 0, 0, width, height);
+
+    colorCtx.drawImage(primaryColorCanvas, 0, 0);
+    const colorData = colorCtx.getImageData(0, 0, width, height);
+    const alphaData = alphaCtx.getImageData(0, 0, width, height).data;
+
+    const getColor = (x, y) => {
+      const index = (y * width + x) * 4;
+      return [
+        colorData.data[index],
+        colorData.data[index + 1],
+        colorData.data[index + 2],
+        colorData.data[index + 3],
+      ];
+    };
+
+    const setColor = (x, y, rgba) => {
+      const index = (y * width + x) * 4;
+      colorData.data[index] = rgba[0];
+      colorData.data[index + 1] = rgba[1];
+      colorData.data[index + 2] = rgba[2];
+      colorData.data[index + 3] = rgba[3];
+    };
+
+    const isMasked = (x, y) => alphaData[(y * width + x) * 4] > 20;
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        if (!isMasked(x, y)) continue;
+
+        let left = null;
+        for (let searchX = x - 1; searchX >= 0; searchX -= 1) {
+          if (!isMasked(searchX, y)) {
+            left = getColor(searchX, y);
+            break;
+          }
+        }
+
+        let right = null;
+        for (let searchX = x + 1; searchX < width; searchX += 1) {
+          if (!isMasked(searchX, y)) {
+            right = getColor(searchX, y);
+            break;
+          }
+        }
+
+        let up = null;
+        for (let searchY = y - 1; searchY >= 0; searchY -= 1) {
+          if (!isMasked(x, searchY)) {
+            up = getColor(x, searchY);
+            break;
+          }
+        }
+
+        let down = null;
+        for (let searchY = y + 1; searchY < height; searchY += 1) {
+          if (!isMasked(x, searchY)) {
+            down = getColor(x, searchY);
+            break;
+          }
+        }
+
+        const neighbors = [left, right, up, down].filter(Boolean);
+        if (!neighbors.length) continue;
+
+        const average = neighbors.reduce(
+          (accumulator, rgba) => ([
+            accumulator[0] + rgba[0],
+            accumulator[1] + rgba[1],
+            accumulator[2] + rgba[2],
+            accumulator[3] + rgba[3],
+          ]),
+          [0, 0, 0, 0],
+        ).map(value => value / neighbors.length);
+
+        setColor(x, y, average);
+      }
+    }
+
+    colorCtx.putImageData(colorData, 0, 0);
+    colorCtx.putImageData(colorData, 0, 0);
+    colorCtx.filter = isAnchor ? 'blur(5px)' : isChapter ? 'blur(3px)' : 'blur(4px)';
+    colorCtx.drawImage(backgroundCanvas, 0, 0);
+    colorCtx.filter = 'none';
+
+    const texture = new THREE.CanvasTexture(backgroundCanvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
+  }, [croppedPrimaryAlphaTexture, isAnchor, isChapter, primaryColorCanvas]);
   const primaryAspect = useMemo(() => {
-    if (!Array.isArray(primaryCrop) || primaryCrop.length !== 4) return 1;
-    const width = Math.max(0.01, Number(primaryCrop[2]) || 0.01);
-    const height = Math.max(0.01, Number(primaryCrop[3]) || 0.01);
+    if (!effectivePrimaryCrop || effectivePrimaryCrop.length !== 4) return 1;
+    const width = Math.max(0.01, Number(effectivePrimaryCrop[2]) || 0.01);
+    const height = Math.max(0.01, Number(effectivePrimaryCrop[3]) || 0.01);
     return width / height;
-  }, [primaryCrop]);
+  }, [effectivePrimaryCrop]);
 
   useEffect(() => {
     [primaryTexture, croppedPrimaryTexture, ...supportTextures].filter(Boolean).forEach(texture => {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.needsUpdate = true;
     });
-    if (externalPrimaryAlphaTexture) {
-      externalPrimaryAlphaTexture.needsUpdate = true;
-    }
+    [externalPrimaryAlphaTexture, croppedPrimaryAlphaTexture, primaryBackgroundTexture].filter(Boolean).forEach(texture => {
+      texture.needsUpdate = true;
+    });
     return () => {
       if (croppedPrimaryTexture && croppedPrimaryTexture !== primaryTexture) {
         croppedPrimaryTexture.dispose();
       }
+      if (croppedPrimaryAlphaTexture && croppedPrimaryAlphaTexture !== primaryAlphaTexture) {
+        croppedPrimaryAlphaTexture.dispose();
+      }
+      if (primaryBackgroundTexture) {
+        primaryBackgroundTexture.dispose();
+      }
     };
-  }, [croppedPrimaryTexture, externalPrimaryAlphaTexture, primaryTexture, supportTextures]);
+  }, [
+    croppedPrimaryAlphaTexture,
+    croppedPrimaryTexture,
+    externalPrimaryAlphaTexture,
+    primaryBackgroundTexture,
+    primaryAlphaTexture,
+    primaryTexture,
+    supportTextures,
+  ]);
 
   useEffect(() => () => {
     generatedPrimaryAlphaTexture?.dispose?.();
@@ -835,6 +1211,182 @@ function ClusterMemoryFacets({
       Math.sin(state.clock.elapsedTime * 0.35) * 0.08 + pointer.y * 0.12,
       1 - Math.exp(-delta * 2.0),
     );
+
+    if (!subjectRigRef.current || !subjectFacingRef.current || !(isAnchor || isChapter)) return;
+
+    if (subjectBillboardRef.current && isChapter) {
+      subjectRigRef.current.updateWorldMatrix(true, false);
+      tempLocalCamera.copy(camera.position);
+      subjectRigRef.current.worldToLocal(tempLocalCamera);
+      const desiredYaw = THREE.MathUtils.clamp(
+        Math.atan2(tempLocalCamera.x, Math.max(0.0001, tempLocalCamera.z)) * 0.045,
+        -0.038,
+        0.038,
+      );
+      const desiredPitch = THREE.MathUtils.clamp(
+        Math.atan2(-tempLocalCamera.y, Math.max(0.0001, Math.hypot(tempLocalCamera.x, tempLocalCamera.z))) * 0.012,
+        -0.014,
+        0.014,
+      );
+      subjectBillboardRef.current.rotation.y = THREE.MathUtils.lerp(
+        subjectBillboardRef.current.rotation.y,
+        desiredYaw,
+        1 - Math.exp(-delta * 4.2),
+      );
+      subjectBillboardRef.current.rotation.x = THREE.MathUtils.lerp(
+        subjectBillboardRef.current.rotation.x,
+        desiredPitch,
+        1 - Math.exp(-delta * 3.6),
+      );
+    }
+
+    subjectFacingRef.current.updateWorldMatrix(true, false);
+    subjectFacingRef.current.getWorldPosition(tempSubjectPosition);
+    subjectFacingRef.current.getWorldQuaternion(tempSubjectQuaternion);
+    tempSubjectForward.set(0, 0, 1).applyQuaternion(tempSubjectQuaternion).normalize();
+    tempCameraDirection.copy(camera.position).sub(tempSubjectPosition).normalize();
+
+    const frontFacing = THREE.MathUtils.clamp(
+      tempSubjectForward.dot(tempCameraDirection),
+      -1,
+      1,
+    );
+    const frontReveal = smoothstep(
+      isChapter ? 0.64 : 0.5,
+      isChapter ? 0.985 : 0.96,
+      frontFacing,
+    );
+    const sideReveal = 1 - frontReveal;
+
+    if (subjectBackgroundMaterialRef.current) {
+      subjectBackgroundMaterialRef.current.opacity =
+        ((isAnchor ? 0.05 : 0.016) * blend)
+        * (hasSubjectDepthSlices
+          ? (isChapter ? Math.pow(frontReveal, 2.2) * 0.06 : 0.02 + frontReveal * 0.12)
+          : (isChapter ? Math.pow(frontReveal, 2.2) * 0.035 : 0.02 + frontReveal * 0.3));
+    }
+
+    subjectVolumeMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      material.opacity = baseOpacity * Math.pow(sideReveal, isAnchor ? 3.2 : 4.8) * (isChapter ? 0.58 : 1.12);
+    });
+    subjectShellMeshMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.6;
+      const sideWeight = material.userData.sideWeight ?? 0.18;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+    subjectHybridShellMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.08;
+      const sideWeight = material.userData.sideWeight ?? 0.72;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+    subjectHybridPointMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      material.opacity = baseOpacity * blend * (
+        0.08
+        + sideReveal * 0.88
+        + frontReveal * 0.12
+      );
+    });
+    subjectProjectedMeshPointMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.02;
+      const sideWeight = material.userData.sideWeight ?? 0.62;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+    subjectProjectedMeshShellMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.01;
+      const sideWeight = material.userData.sideWeight ?? 0.24;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+    subjectProjectedFillMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.2;
+      const sideWeight = material.userData.sideWeight ?? 0.56;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+    subjectProjectedSurfaceMaterialRefs.current.forEach((material) => {
+      if (!material) return;
+      const baseOpacity = material.userData.baseOpacity ?? material.opacity;
+      const frontWeight = material.userData.frontWeight ?? 0.88;
+      const sideWeight = material.userData.sideWeight ?? 0.2;
+      material.opacity = baseOpacity * blend * (
+        frontReveal * frontWeight
+        + sideReveal * sideWeight
+      );
+    });
+
+    if (subjectPointMaterialRef.current) {
+      const baseOpacity = ((isAnchor ? 0.24 : 0.18) * blend);
+      subjectPointMaterialRef.current.opacity = isChapter
+        ? (hasSubjectDepthSlices
+          ? baseOpacity * (0.16 + frontReveal * 0.34 + sideReveal * 0.16)
+          : baseOpacity * (0.18 + frontReveal * 0.72))
+        : (hasSubjectDepthSlices
+          ? baseOpacity * (0.14 + frontReveal * 0.46 + sideReveal * 0.12)
+          : baseOpacity * (0.08 + frontReveal * 0.92));
+    }
+
+    if (subjectFrontMaterialRef.current) {
+      const baseOpacity = Math.min(
+        useProjectedSubjectMesh ? 0.76 : 0.62,
+        subjectImageOpacity * (useProjectedSubjectMesh ? 2.0 : 1.45),
+      ) * (
+        useProjectedSubjectMesh
+          ? (isChapter ? 0.9 : 0.84)
+          : useProjectedSubjectSurface
+            ? (isChapter ? 0.18 : 0.26)
+            : (
+              hasSubjectDepthSlices
+                ? (useHybridSubjectSupport ? (isChapter ? 0.12 : 0.22) : (isChapter ? 0.18 : 0.3))
+                : (subjectUsesMeshShellStrategy ? (isChapter ? 0.76 : 0.72) : 1)
+            )
+      );
+      subjectFrontMaterialRef.current.opacity = baseOpacity * Math.pow(
+        frontReveal,
+        useProjectedSubjectMesh ? (isChapter ? 2.1 : 1.35) : (isChapter ? 3.1 : 1.6),
+      );
+    }
+
+    if (subjectGlowMaterialRef.current) {
+      const baseOpacity = ((isChapter ? 0.018 : 0.028) + pointer.activity * (isChapter ? 0.026 : 0.03)) * blend;
+      subjectGlowMaterialRef.current.opacity = baseOpacity * (
+        useProjectedSubjectMesh
+          ? (0.015 + frontReveal * 0.22 + sideReveal * 0.01)
+          : useProjectedSubjectSurface
+            ? (0.03 + frontReveal * 0.22 + sideReveal * 0.04)
+          : (
+            hasSubjectDepthSlices
+              ? (useHybridSubjectSupport ? (0.06 + frontReveal * 0.28 + sideReveal * 0.06) : (0.08 + frontReveal * 0.42))
+              : (subjectUsesMeshShellStrategy ? (0.12 + frontReveal * 0.58) : (0.16 + frontReveal * 0.84))
+          )
+      );
+    }
   });
 
   if (!croppedPrimaryTexture && !supportTextures.length) return null;
@@ -859,161 +1411,1243 @@ function ClusterMemoryFacets({
     : isAnchor
       ? [pointer.y * 0.035, pointer.x * -0.1 + orbitOffset * 0.2, pointer.x * -0.02]
       : [pointer.y * 0.05, pointer.x * -0.16 + orbitOffset * 0.3, pointer.x * -0.03];
-  const primaryOpacity = isChapter
-    ? (0.2 + pointer.activity * 0.18 + travelProgress * 0.08) * blend
+  const subjectLocalRotation = isChapter
+    ? [pointer.y * 0.02, 0, pointer.x * -0.018]
     : isAnchor
-      ? (0.4 + pointer.activity * 0.14 + travelProgress * 0.08) * blend
+      ? [pointer.y * 0.03, 0, pointer.x * -0.022]
+      : primaryRotation;
+  const subjectWorldRotation = isChapter
+    ? [primaryRotation[0] * 0.28, orbitOffset * 0.08, primaryRotation[2] * 0.35]
+    : isAnchor
+      ? [primaryRotation[0] * 0.35, orbitOffset * 0.1, primaryRotation[2] * 0.42]
+      : primaryRotation;
+  const effectiveSubjectMeshTransform = useMemo(() => ({
+    mode: subjectMeshTransform?.mode ?? 'projected-mesh',
+    surfaceMode: subjectMeshTransform?.surfaceMode ?? 'fill-only',
+    supportMode:
+      subjectMeshTransform?.supportMode
+      ?? (subjectMeshTransform?.mode === 'depth-volume' ? 'image-cloud' : 'mesh-fill'),
+    position: cloneVec3(subjectMeshTransform?.position, [0, 0, 0]),
+    scale: cloneVec3(subjectMeshTransform?.scale, [1, 1, 1]),
+    rotation: cloneVec3(subjectMeshTransform?.rotation, [0, 0, 0]),
+  }), [
+    subjectMeshTransform?.mode,
+    subjectMeshTransform?.position,
+    subjectMeshTransform?.rotation,
+    subjectMeshTransform?.scale,
+    subjectMeshTransform?.supportMode,
+    subjectMeshTransform?.surfaceMode,
+  ]);
+  const subjectMeshMode = effectiveSubjectMeshTransform.mode;
+  const subjectSupportMode = effectiveSubjectMeshTransform.supportMode;
+  const useProjectedSubjectMesh = hasProjectedSubjectMesh && subjectMeshMode === 'projected-mesh';
+  const useDepthVolumeSubject = subjectMeshMode === 'depth-volume';
+  const useImageCloudSubject = useDepthVolumeSubject && subjectSupportMode === 'image-cloud';
+  const useImageSliceVolume = useDepthVolumeSubject && subjectSupportMode === 'image-volume';
+  const useHybridSubjectSupport =
+    useDepthVolumeSubject
+    && hasProjectedSubjectMesh
+    && subjectSupportMode !== 'image-volume'
+    && subjectSupportMode !== 'image-cloud';
+  const useHybridSubjectFill = useHybridSubjectSupport && subjectSupportMode !== 'mesh-points';
+  const useHybridSubjectPoints = useHybridSubjectSupport && subjectSupportMode !== 'mesh-fill';
+  const useProjectedSubjectSurface =
+    useHybridSubjectSupport && effectiveSubjectMeshTransform.surfaceMode === 'projected-surface';
+  const subjectUsesMeshShellStrategy = !useDepthVolumeSubject && (isAnchor || isChapter);
+  const subjectMeshWorldPosition = [
+    primaryPosition[0] + effectiveSubjectMeshTransform.position[0],
+    primaryPosition[1] + effectiveSubjectMeshTransform.position[1],
+    primaryPosition[2] + effectiveSubjectMeshTransform.position[2],
+  ];
+  const subjectMeshWorldScale = [
+    primaryHeight * 0.82 * effectiveSubjectMeshTransform.scale[0],
+    primaryHeight * 0.82 * effectiveSubjectMeshTransform.scale[1],
+    primaryHeight * 0.82 * effectiveSubjectMeshTransform.scale[2],
+  ];
+  const subjectMeshWorldRotation = [
+    THREE.MathUtils.degToRad(effectiveSubjectMeshTransform.rotation[0]),
+    THREE.MathUtils.degToRad(effectiveSubjectMeshTransform.rotation[1]),
+    THREE.MathUtils.degToRad(effectiveSubjectMeshTransform.rotation[2]),
+  ];
+  const primaryOpacity = isChapter
+    ? (0.68 + pointer.activity * 0.06 + travelProgress * 0.035) * blend
+    : isAnchor
+      ? (0.76 + pointer.activity * 0.06 + travelProgress * 0.03) * blend
       : (0.16 + pointer.activity * 0.14 + travelProgress * 0.12) * blend;
+  const subjectImageOpacity = isChapter
+    ? (0.24 + pointer.activity * 0.03 + travelProgress * 0.025) * blend
+    : isAnchor
+      ? (0.28 + pointer.activity * 0.035 + travelProgress * 0.03) * blend
+      : primaryOpacity;
   const primaryBlending = isChapter || isAnchor ? THREE.NormalBlending : THREE.AdditiveBlending;
-  const subjectShells = useMemo(() => {
-    if (!croppedPrimaryTexture || !primaryAlphaTexture || (!isAnchor && !isChapter)) return [];
-    const shellCount = isAnchor ? 5 : 3;
-    return Array.from({ length: shellCount }, (_, index) => {
-      const normalized = shellCount === 1 ? 0 : index / Math.max(1, shellCount - 1);
-      const depthShift = 0.026 + normalized * (isAnchor ? 0.13 : 0.07);
-      const xShift = (pointer.x * 0.06 + orbitOffset * 0.08) * (0.4 + normalized * 0.9);
-      const yShift = (pointer.y * 0.045 + Math.sin(normalized * Math.PI) * 0.02) * (0.6 + normalized * 0.6);
-      const zShift = primaryPosition[2] - depthShift;
-      const scaleBoost = 1 + normalized * (isAnchor ? 0.095 : 0.055);
-      const rotationBoost = [
-        primaryRotation[0] * (1 + normalized * 0.35),
-        primaryRotation[1] - normalized * 0.04,
-        primaryRotation[2] * (1 + normalized * 0.3),
-      ];
-      const baseOpacity = isAnchor ? 0.09 : 0.055;
-      const activityGain = isAnchor ? 0.08 : 0.045;
-      return {
-        key: `subject-shell-${index}`,
-        position: [
-          primaryPosition[0] - xShift,
-          primaryPosition[1] + yShift,
-          zShift,
-        ],
-        rotation: rotationBoost,
-        scale: [primaryScale[0] * scaleBoost, primaryScale[1] * scaleBoost, 1],
-        opacity: (baseOpacity + pointer.activity * activityGain) * (1 - normalized * 0.42) * blend,
-        color: normalized > 0.6 ? tint : '#ffffff',
-        blending: normalized > 0.55 ? THREE.AdditiveBlending : THREE.NormalBlending,
-        renderOrder: 33 - index,
-      };
-    });
+  const subjectDepthMap = useMemo(() => {
+    if (typeof document === 'undefined' || !primaryTexture?.image || !croppedPrimaryTexture) return null;
+    const image = primaryTexture.image;
+    if (
+      typeof image.width !== 'number'
+      || typeof image.height !== 'number'
+      || image.width <= 0
+      || image.height <= 0
+    ) {
+      return null;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = subjectAnalysisResolution;
+    canvas.height = subjectAnalysisResolution;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    const crop = effectivePrimaryCrop?.length === 4
+      ? effectivePrimaryCrop
+      : [0, 0, 1, 1];
+    const [cropX, cropY, cropWidth, cropHeight] = crop;
+    const sourceX = cropX * image.width;
+    const sourceY = cropY * image.height;
+    const sourceWidth = Math.max(1, cropWidth * image.width);
+    const sourceHeight = Math.max(1, cropHeight * image.height);
+
+    ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+
+    const source = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const alphaCanvas = document.createElement('canvas');
+    alphaCanvas.width = canvas.width;
+    alphaCanvas.height = canvas.height;
+    const alphaCtx = alphaCanvas.getContext('2d', { willReadFrequently: true });
+    if (!alphaCtx) return null;
+
+    const alphaImage = (croppedPrimaryAlphaTexture ?? primaryAlphaTexture)?.image;
+    if (
+      alphaImage
+      && typeof alphaImage.width === 'number'
+      && typeof alphaImage.height === 'number'
+      && alphaImage.width > 0
+      && alphaImage.height > 0
+    ) {
+      alphaCtx.drawImage(alphaImage, 0, 0, canvas.width, canvas.height);
+    } else {
+      alphaCtx.fillStyle = '#ffffff';
+      alphaCtx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const alphaSource = alphaCtx.getImageData(0, 0, canvas.width, canvas.height);
+    const out = ctx.createImageData(canvas.width, canvas.height);
+
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        const u = x / (canvas.width - 1);
+        const v = y / (canvas.height - 1);
+        const index = (y * canvas.width + x) * 4;
+        const alpha = alphaSource.data[index] / 255;
+        const r = source.data[index] / 255;
+        const g = source.data[index + 1] / 255;
+        const b = source.data[index + 2] / 255;
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+        const ovalDx = (u - 0.5) / (isAnchor ? 0.42 : 0.38);
+        const ovalDy = (v - (isChapter ? 0.48 : 0.52)) / (isAnchor ? 0.56 : 0.5);
+        const bodyOval = 1 - smoothstep(0.72, 1.08, Math.sqrt(ovalDx * ovalDx + ovalDy * ovalDy));
+
+        const shoulderDx = (u - 0.5) / 0.42;
+        const shoulderDy = (v - 0.76) / 0.2;
+        const shoulderSupport = 1 - smoothstep(0.75, 1.05, Math.sqrt(shoulderDx * shoulderDx + shoulderDy * shoulderDy));
+
+        const upperBias = 1 - smoothstep(0.42, 0.96, v);
+        const depth = THREE.MathUtils.clamp(
+          alpha * (
+            0.24
+            + bodyOval * 0.38
+            + shoulderSupport * 0.22
+            + upperBias * 0.08
+            + luma * 0.12
+          ),
+          0,
+          1,
+        );
+
+        const value = Math.round(depth * 255);
+        out.data[index] = value;
+        out.data[index + 1] = value;
+        out.data[index + 2] = value;
+        out.data[index + 3] = 255;
+      }
+    }
+
+    ctx.putImageData(out, 0, 0);
+    ctx.filter = 'blur(3px)';
+    ctx.drawImage(canvas, 0, 0);
+    ctx.filter = 'none';
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
   }, [
-    blend,
+    croppedPrimaryAlphaTexture,
     croppedPrimaryTexture,
     isAnchor,
     isChapter,
-    orbitOffset,
-    pointer.activity,
-    pointer.x,
-    pointer.y,
-    primaryAlphaTexture,
-    primaryPosition,
-    primaryRotation,
-    primaryScale,
-    tint,
+    effectivePrimaryCrop,
+    primaryTexture,
+    subjectAnalysisResolution,
   ]);
+  const primarySilhouetteCanvas = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const alphaImage = croppedPrimaryAlphaTexture?.image;
+    if (
+      !alphaImage
+      || typeof alphaImage.width !== 'number'
+      || typeof alphaImage.height !== 'number'
+      || alphaImage.width <= 0
+      || alphaImage.height <= 0
+    ) {
+      return null;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = subjectAnalysisResolution;
+    canvas.height = subjectAnalysisResolution;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(alphaImage, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }, [croppedPrimaryAlphaTexture, subjectAnalysisResolution]);
+  const subjectShellColor = useMemo(() => {
+    if (!primaryColorCanvas || !primarySilhouetteCanvas) return '#d9dbe2';
+
+    const colorCtx = primaryColorCanvas.getContext('2d', { willReadFrequently: true });
+    const silhouetteCtx = primarySilhouetteCanvas.getContext('2d', { willReadFrequently: true });
+    if (!colorCtx || !silhouetteCtx) return '#d9dbe2';
+
+    const width = primaryColorCanvas.width;
+    const height = primaryColorCanvas.height;
+    const colorData = colorCtx.getImageData(0, 0, width, height).data;
+    const alphaData = silhouetteCtx.getImageData(0, 0, width, height).data;
+
+    let rSum = 0;
+    let gSum = 0;
+    let bSum = 0;
+    let weightSum = 0;
+
+    for (let index = 0; index < colorData.length; index += 4) {
+      const alpha = alphaData[index] / 255;
+      if (alpha < 0.18) continue;
+
+      const weight = 0.2 + alpha * 0.8;
+      rSum += colorData[index] * weight;
+      gSum += colorData[index + 1] * weight;
+      bSum += colorData[index + 2] * weight;
+      weightSum += weight;
+    }
+
+    if (!weightSum) return '#d9dbe2';
+
+    const color = new THREE.Color(
+      rSum / (weightSum * 255),
+      gSum / (weightSum * 255),
+      bSum / (weightSum * 255),
+    );
+    const hsl = {};
+    color.getHSL(hsl);
+    color.setHSL(
+      hsl.h,
+      THREE.MathUtils.clamp(hsl.s * 0.92, 0.18, 0.7),
+      THREE.MathUtils.clamp(hsl.l * 1.06, 0.34, 0.76),
+    );
+    return `#${color.getHexString()}`;
+  }, [primaryColorCanvas, primarySilhouetteCanvas]);
+  const subjectBodyColor = useMemo(() => {
+    const color = new THREE.Color(subjectShellColor);
+    const lift = new THREE.Color('#f4f0e8');
+    color.lerp(lift, isChapter ? 0.08 : 0.14);
+    color.offsetHSL(0, 0.02, -0.08);
+    return `#${color.getHexString()}`;
+  }, [isChapter, subjectShellColor]);
+  const subjectProjectedPointParts = useMemo(() => {
+    if (!subjectProjectedMeshParts?.length || !primaryColorCanvas || !primarySilhouetteCanvas) return [];
+
+    const colorCtx = primaryColorCanvas.getContext('2d', { willReadFrequently: true });
+    const silhouetteCtx = primarySilhouetteCanvas.getContext('2d', { willReadFrequently: true });
+    if (!colorCtx || !silhouetteCtx) return [];
+
+    const width = primaryColorCanvas.width;
+    const height = primaryColorCanvas.height;
+    const colorData = colorCtx.getImageData(0, 0, width, height).data;
+    const alphaData = silhouetteCtx.getImageData(0, 0, width, height).data;
+    const shellColor = new THREE.Color(subjectShellColor);
+
+    return subjectProjectedMeshParts
+      .map((part, index) => {
+        const position = part.geometry.getAttribute('position');
+        const normal = part.geometry.getAttribute('normal');
+        const uv = part.geometry.getAttribute('uv');
+        if (!position || !uv) return null;
+
+        const points = [];
+        const colors = [];
+        for (let vertex = 0; vertex < position.count; vertex += 1) {
+          const facing = normal ? Math.abs(normal.getZ(vertex)) : 1;
+          if (facing < 0.08) continue;
+
+          const u = THREE.MathUtils.clamp(uv.getX(vertex), 0, 1);
+          const v = THREE.MathUtils.clamp(1 - uv.getY(vertex), 0, 1);
+          const x = Math.round(u * Math.max(1, width - 1));
+          const y = Math.round(v * Math.max(1, height - 1));
+          const sampleIndex = (y * width + x) * 4;
+          const alpha = alphaData[sampleIndex] / 255;
+          if (alpha < 0.28) continue;
+
+          points.push(
+            position.getX(vertex),
+            position.getY(vertex),
+            position.getZ(vertex),
+          );
+
+          const mix = THREE.MathUtils.clamp(0.16 + alpha * 0.72, 0, 0.9);
+          colors.push(
+            (colorData[sampleIndex] / 255) * mix + shellColor.r * (1 - mix),
+            (colorData[sampleIndex + 1] / 255) * mix + shellColor.g * (1 - mix),
+            (colorData[sampleIndex + 2] / 255) * mix + shellColor.b * (1 - mix),
+          );
+        }
+
+        if (points.length < 9) return null;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        return {
+          key: `subject-point-cloud-${index}`,
+          geometry,
+        };
+      })
+      .filter(Boolean);
+  }, [primaryColorCanvas, primarySilhouetteCanvas, subjectProjectedMeshParts, subjectShellColor]);
+  const primaryFacetGeometry = useMemo(() => {
+    const geometry = new THREE.PlaneGeometry(1, 1, 68, 68);
+    const silhouetteCanvas = primarySilhouetteCanvas;
+    const silhouetteCtx = silhouetteCanvas?.getContext?.('2d', { willReadFrequently: true });
+    const depthCanvas = subjectDepthMap?.image;
+    const depthCtx = depthCanvas?.getContext?.('2d', { willReadFrequently: true });
+    if (!silhouetteCtx || !depthCtx) return geometry;
+
+    const depthData = depthCtx.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+    const alphaData = silhouetteCtx.getImageData(0, 0, silhouetteCanvas.width, silhouetteCanvas.height).data;
+    const position = geometry.attributes.position;
+    const uv = geometry.attributes.uv;
+    const relief = isAnchor ? 0.15 : 0.09;
+    const sampleAlpha = (u, v) => {
+      const sampleX = Math.min(
+        silhouetteCanvas.width - 1,
+        Math.max(0, Math.round(u * (silhouetteCanvas.width - 1))),
+      );
+      const sampleY = Math.min(
+        silhouetteCanvas.height - 1,
+        Math.max(0, Math.round(v * (silhouetteCanvas.height - 1))),
+      );
+      const sampleIndex = (sampleY * silhouetteCanvas.width + sampleX) * 4;
+      return alphaData[sampleIndex] / 255;
+    };
+
+    for (let index = 0; index < position.count; index += 1) {
+      const u = uv.getX(index);
+      const v = 1 - uv.getY(index);
+      const sampleX = Math.min(depthCanvas.width - 1, Math.max(0, Math.round(u * (depthCanvas.width - 1))));
+      const sampleY = Math.min(depthCanvas.height - 1, Math.max(0, Math.round(v * (depthCanvas.height - 1))));
+      const sampleIndex = (sampleY * depthCanvas.width + sampleX) * 4;
+      const depth = depthData[sampleIndex] / 255;
+      const alpha = sampleAlpha(u, v);
+      const edgeFade = smoothstep(0.06, 0.34, alpha);
+      position.setZ(index, depth * relief * edgeFade);
+    }
+
+    const segmentCount = 68;
+    const indices = [];
+    const activeThreshold = isAnchor ? 0.16 : 0.2;
+    for (let y = 0; y < segmentCount; y += 1) {
+      for (let x = 0; x < segmentCount; x += 1) {
+        const u0 = x / segmentCount;
+        const v0 = y / segmentCount;
+        const u1 = (x + 1) / segmentCount;
+        const v1 = (y + 1) / segmentCount;
+        const cellAlpha = Math.max(
+          sampleAlpha(u0, v0),
+          sampleAlpha(u1, v0),
+          sampleAlpha(u0, v1),
+          sampleAlpha(u1, v1),
+        );
+        if (cellAlpha < activeThreshold) continue;
+
+        const topLeft = y * (segmentCount + 1) + x;
+        const topRight = topLeft + 1;
+        const bottomLeft = (y + 1) * (segmentCount + 1) + x;
+        const bottomRight = bottomLeft + 1;
+        indices.push(topLeft, bottomLeft, topRight, topRight, bottomLeft, bottomRight);
+      }
+    }
+
+    geometry.setIndex(indices);
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    return geometry;
+  }, [isAnchor, primarySilhouetteCanvas, subjectDepthMap]);
+  const subjectPointCloudGeometry = useMemo(() => {
+    if (!(isAnchor || isChapter) || !primaryColorCanvas || !primarySilhouetteCanvas || !subjectDepthMap?.image) {
+      return null;
+    }
+
+    const colorCtx = primaryColorCanvas.getContext('2d', { willReadFrequently: true });
+    const silhouetteCtx = primarySilhouetteCanvas.getContext('2d', { willReadFrequently: true });
+    const depthCanvas = subjectDepthMap.image;
+    const depthCtx = depthCanvas?.getContext?.('2d', { willReadFrequently: true });
+    if (!colorCtx || !silhouetteCtx || !depthCtx) return null;
+
+    const width = primaryColorCanvas.width;
+    const height = primaryColorCanvas.height;
+    const colorData = colorCtx.getImageData(0, 0, width, height).data;
+    const alphaData = silhouetteCtx.getImageData(0, 0, width, height).data;
+    const depthData = depthCtx.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+
+    const stride = 1;
+    const jitterXY = isAnchor ? 0.0055 : 0.0052;
+    const jitterZ = isAnchor ? 0.026 : 0.012;
+    const relief = isAnchor ? 0.3 : 0.16;
+    const positions = [];
+    const colors = [];
+
+    const hash01 = (x, y, seed) => {
+      const value = Math.sin((x + 1.137) * 127.1 + (y + 0.731) * 311.7 + seed * 74.7) * 43758.5453123;
+      return value - Math.floor(value);
+    };
+    const sampleAlpha = (x, y) => {
+      const safeX = Math.max(0, Math.min(width - 1, x));
+      const safeY = Math.max(0, Math.min(height - 1, y));
+      return alphaData[(safeY * width + safeX) * 4] / 255;
+    };
+    const sampleLuma = (x, y) => {
+      const safeX = Math.max(0, Math.min(width - 1, x));
+      const safeY = Math.max(0, Math.min(height - 1, y));
+      const index = (safeY * width + safeX) * 4;
+      const r = colorData[index] / 255;
+      const g = colorData[index + 1] / 255;
+      const b = colorData[index + 2] / 255;
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+
+    for (let y = 0; y < height; y += stride) {
+      for (let x = 0; x < width; x += stride) {
+        const index = (y * width + x) * 4;
+        const alpha = alphaData[index] / 255;
+        if (alpha < (isAnchor ? 0.24 : 0.42)) continue;
+
+        const alphaDx = Math.abs(sampleAlpha(x + 1, y) - sampleAlpha(x - 1, y));
+        const alphaDy = Math.abs(sampleAlpha(x, y + 1) - sampleAlpha(x, y - 1));
+        const edgeStrength = THREE.MathUtils.clamp((alphaDx + alphaDy) * 1.8, 0, 1);
+        const lumaDx = Math.abs(sampleLuma(x + 1, y) - sampleLuma(x - 1, y));
+        const lumaDy = Math.abs(sampleLuma(x, y + 1) - sampleLuma(x, y - 1));
+        const detailStrength = THREE.MathUtils.clamp((lumaDx + lumaDy) * 2.4, 0, 1);
+        const fillStrength = THREE.MathUtils.smoothstep(0.22, 0.86, alpha) * 0.16;
+        const keepChance = isAnchor
+          ? THREE.MathUtils.clamp(
+            0.12
+            + edgeStrength * 0.9
+            + detailStrength * 0.58
+            + fillStrength * 1.1,
+            0.12,
+            1,
+          )
+          : THREE.MathUtils.clamp(
+            0.035
+            + edgeStrength * 1.15
+            + detailStrength * 0.82
+            + fillStrength * 0.18,
+            0.035,
+            0.78,
+          );
+        if (hash01(x, y, 3) > keepChance) continue;
+
+        const depthIndex = (y * depthCanvas.width + x) * 4;
+        const depth = depthData[depthIndex] / 255;
+        const r = colorData[index] / 255;
+        const g = colorData[index + 1] / 255;
+        const b = colorData[index + 2] / 255;
+
+        const u = x / (width - 1);
+        const v = y / (height - 1);
+        const centeredX = (u - 0.5) * 1.02;
+        const centeredY = (0.5 - v) * 1.02;
+        const contourTaper = THREE.MathUtils.smoothstep(0.18, 0.9, alpha);
+        const emphasis = THREE.MathUtils.clamp(
+          0.3 + edgeStrength * 0.9 + detailStrength * 0.45,
+          0.25,
+          1.1,
+        );
+        const localDepth = depth * relief * contourTaper * emphasis * (isAnchor ? 1 : 0.72);
+        const basePx = centeredX + (hash01(x, y, 11) - 0.5) * jitterXY;
+        const basePy = centeredY + (hash01(x, y, 19) - 0.5) * jitterXY;
+        const layerCount = isAnchor ? 5 : 3;
+
+        for (let layer = 0; layer < layerCount; layer += 1) {
+          const layerT = layerCount === 1 ? 0.5 : layer / (layerCount - 1);
+          const layerBias = isAnchor
+            ? (layerT - 0.5) * 0.13
+            : -0.024 * contourTaper;
+          const pz = localDepth + layerBias * contourTaper + (hash01(x, y, 29 + layer * 7) - 0.5) * jitterZ * contourTaper;
+          const px = basePx + (hash01(x, y, 41 + layer * 5) - 0.5) * jitterXY * 0.7;
+          const py = basePy + (hash01(x, y, 53 + layer * 5) - 0.5) * jitterXY * 0.7;
+
+          positions.push(px, py, pz);
+          colors.push(r, g, b);
+        }
+      }
+    }
+
+    if (!positions.length) return null;
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.computeBoundingSphere();
+    return geometry;
+  }, [isAnchor, isChapter, primaryColorCanvas, primarySilhouetteCanvas, subjectDepthMap]);
+  const subjectContourCloudGeometry = useMemo(() => {
+    if (!(isAnchor || isChapter) || !primarySilhouetteCanvas || !subjectDepthMap?.image) {
+      return null;
+    }
+
+    const silhouetteCtx = primarySilhouetteCanvas.getContext('2d', { willReadFrequently: true });
+    const depthCanvas = subjectDepthMap.image;
+    const depthCtx = depthCanvas?.getContext?.('2d', { willReadFrequently: true });
+    if (!silhouetteCtx || !depthCtx) return null;
+
+    const width = primarySilhouetteCanvas.width;
+    const height = primarySilhouetteCanvas.height;
+    const alphaData = silhouetteCtx.getImageData(0, 0, width, height).data;
+    const depthData = depthCtx.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+    const positions = [];
+    const jitterXY = isAnchor ? 0.0038 : 0.0048;
+    const jitterZ = isAnchor ? 0.018 : 0.015;
+    const relief = isAnchor ? 0.2 : 0.16;
+
+    const hash01 = (x, y, seed) => {
+      const value = Math.sin((x + 1.137) * 127.1 + (y + 0.731) * 311.7 + seed * 74.7) * 43758.5453123;
+      return value - Math.floor(value);
+    };
+    const sampleAlpha = (x, y) => {
+      const safeX = Math.max(0, Math.min(width - 1, x));
+      const safeY = Math.max(0, Math.min(height - 1, y));
+      return alphaData[(safeY * width + safeX) * 4] / 255;
+    };
+
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        const alpha = alphaData[index] / 255;
+        if (alpha < (isAnchor ? 0.18 : 0.26)) continue;
+
+        const alphaDx = Math.abs(sampleAlpha(x + 1, y) - sampleAlpha(x - 1, y));
+        const alphaDy = Math.abs(sampleAlpha(x, y + 1) - sampleAlpha(x, y - 1));
+        const edgeStrength = THREE.MathUtils.clamp((alphaDx + alphaDy) * 2.1, 0, 1);
+        const rimStrength = THREE.MathUtils.clamp((1 - alpha) * 1.8, 0, 1);
+        const contourStrength = Math.max(edgeStrength, rimStrength * 0.8);
+        if (contourStrength < (isAnchor ? 0.08 : 0.11)) continue;
+
+        const keepChance = THREE.MathUtils.clamp(
+          0.12 + contourStrength * 0.95,
+          0.12,
+          0.96,
+        );
+        if (hash01(x, y, 61) > keepChance) continue;
+
+        const depthIndex = (y * depthCanvas.width + x) * 4;
+        const depth = depthData[depthIndex] / 255;
+        const u = x / (width - 1);
+        const v = y / (height - 1);
+        const centeredX = (u - 0.5) * 1.01;
+        const centeredY = (0.5 - v) * 1.01;
+        const contourTaper = THREE.MathUtils.smoothstep(0.12, 0.92, alpha);
+        const baseDepth = depth * relief * (0.55 + contourStrength * 0.8) * contourTaper;
+        const px = centeredX + (hash01(x, y, 67) - 0.5) * jitterXY;
+        const py = centeredY + (hash01(x, y, 71) - 0.5) * jitterXY;
+        const layerCount = isAnchor ? 3 : 2;
+
+        for (let layer = 0; layer < layerCount; layer += 1) {
+          const layerT = layerCount === 1 ? 0.5 : layer / (layerCount - 1);
+          const pz = baseDepth
+            + (layerT - 0.5) * (isAnchor ? 0.08 : 0.06) * contourStrength
+            + (hash01(x, y, 79 + layer * 7) - 0.5) * jitterZ * contourTaper;
+
+          positions.push(px, py, pz);
+        }
+      }
+    }
+
+    if (!positions.length) return null;
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.computeBoundingSphere();
+    return geometry;
+  }, [isAnchor, isChapter, primarySilhouetteCanvas, subjectDepthMap]);
+  const subjectDepthSliceTextures = useMemo(() => {
+    if (!(isAnchor || isChapter) || typeof document === 'undefined' || !primaryColorCanvas || !primarySilhouetteCanvas || !subjectDepthMap?.image) {
+      return [];
+    }
+    if (useHybridSubjectSupport || !useImageSliceVolume) {
+      return [];
+    }
+
+    const colorCtx = primaryColorCanvas.getContext('2d', { willReadFrequently: true });
+    const silhouetteCtx = primarySilhouetteCanvas.getContext('2d', { willReadFrequently: true });
+    const depthCanvas = subjectDepthMap.image;
+    const depthCtx = depthCanvas?.getContext?.('2d', { willReadFrequently: true });
+    if (!colorCtx || !silhouetteCtx || !depthCtx) return [];
+
+    const width = primaryColorCanvas.width;
+    const height = primaryColorCanvas.height;
+    const colorData = colorCtx.getImageData(0, 0, width, height).data;
+    const alphaData = silhouetteCtx.getImageData(0, 0, width, height).data;
+    const depthData = depthCtx.getImageData(0, 0, depthCanvas.width, depthCanvas.height).data;
+
+    const sliceCount = isAnchor ? 12 : 7;
+    const bandWidth = isAnchor ? 0.11 : 0.16;
+    const slices = [];
+
+    for (let slice = 0; slice < sliceCount; slice += 1) {
+      const center = sliceCount === 1 ? 0.5 : slice / (sliceCount - 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) continue;
+
+      const image = ctx.createImageData(width, height);
+      let coverage = 0;
+
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const index = (y * width + x) * 4;
+          const alpha = alphaData[index] / 255;
+          if (alpha < 0.2) continue;
+
+          const depth = depthData[index] / 255;
+          const distance = Math.abs(depth - center);
+          const band = 1 - smoothstep(0, bandWidth, distance);
+          if (band <= 0.02) continue;
+
+          const u = x / Math.max(1, width - 1);
+          const v = y / Math.max(1, height - 1);
+          const ovalDx = (u - 0.5) / 0.4;
+          const ovalDy = (v - 0.5) / 0.56;
+          const bodyBias = 1 - smoothstep(0.74, 1.02, Math.sqrt(ovalDx * ovalDx + ovalDy * ovalDy));
+          const finalAlpha = THREE.MathUtils.clamp(
+            alpha * Math.pow(band, 1.25) * (0.58 + bodyBias * 0.42),
+            0,
+            1,
+          );
+          if (finalAlpha <= 0.035) continue;
+
+          image.data[index] = colorData[index];
+          image.data[index + 1] = colorData[index + 1];
+          image.data[index + 2] = colorData[index + 2];
+          image.data[index + 3] = Math.round(finalAlpha * 255);
+          coverage += finalAlpha;
+        }
+      }
+
+      if (coverage <= width * height * (isAnchor ? 0.0009 : 0.0014)) {
+        continue;
+      }
+
+      ctx.putImageData(image, 0, 0);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
+
+      const depthOffset = (center - 0.5) * (isAnchor ? 0.18 : 0.09);
+      const scaleBoost = 1 + Math.abs(center - 0.5) * (isAnchor ? 0.03 : 0.022);
+      slices.push({
+        key: `slice-${slice}`,
+        texture,
+        z: depthOffset,
+        opacity: (isAnchor ? 0.08 : 0.06) + (1 - Math.abs(center - 0.5) * 1.2) * (isAnchor ? 0.12 : 0.08),
+        scaleBoost,
+      });
+    }
+
+    return slices;
+  }, [
+    isAnchor,
+    isChapter,
+    primaryColorCanvas,
+    primarySilhouetteCanvas,
+    subjectDepthMap,
+    useHybridSubjectSupport,
+    useImageSliceVolume,
+  ]);
+  useEffect(() => () => {
+    subjectDepthMap?.dispose?.();
+    primaryFacetGeometry?.dispose?.();
+    subjectImageGeometry?.dispose?.();
+    subjectPointCloudGeometry?.dispose?.();
+    subjectContourCloudGeometry?.dispose?.();
+    subjectProjectedMeshParts?.forEach((part) => {
+      part.geometry?.dispose?.();
+    });
+    subjectProjectedPointParts?.forEach((part) => {
+      part.geometry?.dispose?.();
+    });
+    subjectDepthSliceTextures.forEach((slice) => {
+      slice.texture?.dispose?.();
+    });
+  }, [
+    primaryFacetGeometry,
+    subjectDepthMap,
+    subjectImageGeometry,
+    subjectPointCloudGeometry,
+    subjectContourCloudGeometry,
+    subjectProjectedMeshParts,
+    subjectProjectedPointParts,
+    subjectDepthSliceTextures,
+  ]);
+  const subjectVolumeCloudLayers = useMemo(() => [], []);
+  const subjectMeshShellLayers = useMemo(() => {
+    if (!(isAnchor || isChapter)) return [];
+
+    if (isChapter) {
+      return [
+        {
+          key: 'chapter-shell-back',
+          position: [0, 0, -0.018],
+          scale: [1.004, 1.003, 1],
+          opacity: 0.022,
+          color: subjectShellColor,
+        },
+      ];
+    }
+
+    return [
+      {
+        key: 'anchor-shell-back',
+        position: [0, 0, -0.046],
+        scale: [1.014, 1.01, 1],
+        opacity: 0.052,
+        color: '#f7fbff',
+      },
+      {
+        key: 'anchor-shell-mid',
+        position: [0, 0, -0.022],
+        scale: [1.006, 1.004, 1],
+        opacity: 0.032,
+        color: subjectShellColor,
+      },
+    ];
+  }, [isAnchor, isChapter, subjectShellColor]);
+  const chapterSubjectAuraLayers = useMemo(() => {
+    if (!isChapter) return [];
+    return [];
+  }, [blend, isChapter, subjectShellColor]);
+  const hasSubjectDepthSlices = subjectDepthSliceTextures.length > 0;
+  const shouldUseSubjectMeshShells = subjectMeshShellLayers.length > 0 && !useDepthVolumeSubject;
 
   return (
     <group ref={groupRef}>
       {croppedPrimaryTexture && (
         <group>
-          {subjectShells.map(shell => (
-            <mesh
-              key={shell.key}
-              renderOrder={shell.renderOrder}
-              position={shell.position}
-              rotation={shell.rotation}
-              scale={shell.scale}
+          {(isAnchor || isChapter) ? (
+            useProjectedSubjectMesh ? (
+              <>
+                <group
+                  position={subjectMeshWorldPosition}
+                  rotation={subjectWorldRotation}
+                >
+                  <group rotation={subjectMeshWorldRotation}>
+                    <group scale={subjectMeshWorldScale}>
+                      {subjectProjectedPointParts.map((part, index) => (
+                        <points key={part.key} renderOrder={46 + index}>
+                          <primitive object={part.geometry} attach="geometry" />
+                          <pointsMaterial
+                            ref={(material) => {
+                              subjectProjectedMeshPointMaterialRefs.current[index] = material ?? null;
+                              if (material) {
+                                material.userData.baseOpacity = isChapter ? 0.082 : 0.105;
+                                material.userData.frontWeight = isChapter ? 0.012 : 0.018;
+                                material.userData.sideWeight = isChapter ? 0.44 : 0.54;
+                              }
+                            }}
+                            vertexColors
+                            size={isChapter ? 0.0072 : 0.0088}
+                            sizeAttenuation
+                            transparent
+                            opacity={(isChapter ? 0.082 : 0.105) * blend}
+                            depthWrite={false}
+                            depthTest
+                            blending={THREE.NormalBlending}
+                          />
+                        </points>
+                      ))}
+                    </group>
+                  </group>
+                </group>
+                <group
+                  ref={subjectRigRef}
+                  position={primaryPosition}
+                  rotation={subjectWorldRotation}
+                >
+                  <group ref={subjectBillboardRef}>
+                    <group ref={subjectFacingRef} rotation={subjectLocalRotation}>
+                      <mesh
+                        renderOrder={52}
+                        scale={primaryScale}
+                      >
+                        <primitive object={subjectImageGeometry} attach="geometry" />
+                        <meshBasicMaterial
+                          ref={subjectFrontMaterialRef}
+                          map={croppedPrimaryTexture}
+                          alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                          transparent={false}
+                          opacity={Math.min(0.76, subjectImageOpacity * 2.0)}
+                          alphaTest={isChapter ? 0.78 : 0.72}
+                          color="#ffffff"
+                          depthWrite
+                          depthTest
+                          blending={THREE.NormalBlending}
+                        />
+                      </mesh>
+                      <mesh
+                        renderOrder={51}
+                        position={[0, 0, -0.014]}
+                        scale={[primaryScale[0] * 1.02, primaryScale[1] * 1.02, 1]}
+                      >
+                        <primitive object={subjectImageGeometry} attach="geometry" />
+                        <meshBasicMaterial
+                          ref={subjectGlowMaterialRef}
+                          map={croppedPrimaryTexture}
+                          alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                          transparent
+                          opacity={((isChapter ? 0.008 : 0.012) + pointer.activity * (isChapter ? 0.012 : 0.016)) * blend}
+                          alphaTest={0.84}
+                          color={tint}
+                          depthWrite={false}
+                          depthTest={false}
+                          blending={THREE.AdditiveBlending}
+                        />
+                      </mesh>
+                    </group>
+                  </group>
+                </group>
+              </>
+            ) : (
+            <>
+            {useHybridSubjectSupport && (
+              <group
+                position={subjectMeshWorldPosition}
+                rotation={subjectWorldRotation}
+              >
+                <group rotation={subjectMeshWorldRotation}>
+                  <group scale={subjectMeshWorldScale}>
+                    {useHybridSubjectFill && subjectProjectedMeshParts.map((part, index) => (
+                      <mesh key={`${part.key}-hybrid-fill`} renderOrder={40 + index}>
+                        <primitive object={part.geometry} attach="geometry" />
+                        <meshBasicMaterial
+                          transparent
+                          opacity={(isChapter ? 0.028 : 0.044) * blend}
+                          color={subjectBodyColor}
+                          side={THREE.DoubleSide}
+                          depthWrite={false}
+                          depthTest={false}
+                          blending={THREE.NormalBlending}
+                          ref={(material) => {
+                            subjectProjectedFillMaterialRefs.current[index] = material ?? null;
+                            if (material) {
+                              material.userData.baseOpacity = isChapter ? 0.028 : 0.044;
+                              material.userData.frontWeight = isChapter ? 0.05 : 0.1;
+                              material.userData.sideWeight = isChapter ? 0.54 : 0.48;
+                            }
+                          }}
+                        />
+                      </mesh>
+                    ))}
+                    {useProjectedSubjectSurface && subjectProjectedMeshParts.map((part, index) => (
+                      <mesh key={`${part.key}-hybrid-surface`} renderOrder={41 + index}>
+                        <primitive object={part.geometry} attach="geometry" />
+                        <meshBasicMaterial
+                          map={croppedPrimaryTexture}
+                          alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                          transparent
+                          opacity={(isChapter ? 0.18 : 0.24) * blend}
+                          color="#ffffff"
+                          side={THREE.FrontSide}
+                          depthWrite={false}
+                          depthTest={false}
+                          alphaTest={isChapter ? 0.62 : 0.54}
+                          blending={THREE.NormalBlending}
+                          ref={(material) => {
+                            subjectProjectedSurfaceMaterialRefs.current[index] = material ?? null;
+                            if (material) {
+                              material.userData.baseOpacity = isChapter ? 0.18 : 0.24;
+                              material.userData.frontWeight = isChapter ? 0.84 : 0.9;
+                              material.userData.sideWeight = isChapter ? 0.04 : 0.1;
+                            }
+                          }}
+                        />
+                      </mesh>
+                    ))}
+                    {subjectProjectedMeshParts.map((part, index) => (
+                      !isChapter && (
+                      <mesh key={`${part.key}-hybrid-shell`} renderOrder={42 + index}>
+                        <primitive object={part.geometry} attach="geometry" />
+                        <meshBasicMaterial
+                          transparent
+                          opacity={0.058 * blend}
+                          color={subjectBodyColor}
+                          side={THREE.DoubleSide}
+                          depthWrite={false}
+                          depthTest={false}
+                          blending={THREE.NormalBlending}
+                          ref={(material) => {
+                            subjectHybridShellMaterialRefs.current[index] = material ?? null;
+                            if (material) {
+                              material.userData.baseOpacity = 0.058;
+                              material.userData.frontWeight = 0.08;
+                              material.userData.sideWeight = 0.62;
+                            }
+                          }}
+                        />
+                      </mesh>
+                      )
+                    ))}
+                    {useHybridSubjectPoints && subjectProjectedPointParts.map((part, index) => (
+                      <points key={`${part.key}-hybrid-points`} renderOrder={46 + index}>
+                        <primitive object={part.geometry} attach="geometry" />
+                        <pointsMaterial
+                          vertexColors
+                          size={isChapter ? 0.0078 : 0.0094}
+                          sizeAttenuation
+                          transparent
+                          opacity={(isChapter ? 0.075 : 0.11) * blend}
+                          depthWrite={false}
+                          depthTest={false}
+                          blending={THREE.AdditiveBlending}
+                          ref={(material) => {
+                            subjectHybridPointMaterialRefs.current[index] = material ?? null;
+                            if (material) {
+                              material.userData.baseOpacity = isChapter ? 0.075 : 0.11;
+                            }
+                          }}
+                        />
+                      </points>
+                    ))}
+                  </group>
+                </group>
+              </group>
+            )}
+            <group
+              ref={subjectRigRef}
+              position={primaryPosition}
+              rotation={subjectWorldRotation}
             >
-              <planeGeometry args={[1, 1]} />
-              <meshBasicMaterial
-                map={croppedPrimaryTexture}
-                alphaMap={primaryAlphaTexture}
-                transparent
-                opacity={shell.opacity}
-                color={shell.color}
-                depthWrite={false}
-                depthTest={false}
-                blending={shell.blending}
-              />
-            </mesh>
-          ))}
-          {isAnchor && (
-            <mesh
-              renderOrder={36}
-              position={[primaryPosition[0], primaryPosition[1], primaryPosition[2] - 0.02]}
-              rotation={primaryRotation}
-              scale={[primaryScale[0] * 1.08, primaryScale[1] * 1.08, 1]}
-            >
-              <planeGeometry args={[1, 1]} />
-              <meshBasicMaterial
-                transparent
-                alphaMap={primaryAlphaTexture}
-                opacity={(isChapter ? 0.06 : 0.12) * blend}
-                color="#050608"
-                depthWrite={false}
-                depthTest={false}
-                blending={THREE.NormalBlending}
-              />
-            </mesh>
-          )}
+              <group ref={subjectBillboardRef}>
+              <group ref={subjectFacingRef} rotation={subjectLocalRotation}>
+                <mesh
+                  renderOrder={36}
+                  position={[0, 0, -0.02]}
+                  scale={[primaryScale[0] * 1.1, primaryScale[1] * 1.1, 1]}
+                >
+                  <primitive object={primaryFacetGeometry} attach="geometry" />
+                  <meshBasicMaterial
+                    transparent
+                    alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                    opacity={(isChapter ? 0.022 : 0.03) * blend}
+                    color="#050608"
+                    depthWrite={false}
+                    depthTest={false}
+                    blending={THREE.NormalBlending}
+                  />
+                </mesh>
+                {!useDepthVolumeSubject && primaryBackgroundTexture && isAnchor && !hasSubjectDepthSlices && (
+                  <mesh
+                    renderOrder={37}
+                    position={[0, 0, isChapter ? -0.018 : -0.055]}
+                    scale={[
+                      primaryScale[0] * (isChapter ? 1.03 : 1.05),
+                      primaryScale[1] * (isChapter ? 1.03 : 1.05),
+                      1,
+                    ]}
+                  >
+                    <primitive object={primaryFacetGeometry} attach="geometry" />
+                    <meshBasicMaterial
+                      ref={subjectBackgroundMaterialRef}
+                      map={primaryBackgroundTexture}
+                      alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                      transparent
+                      opacity={(isAnchor ? 0.08 : isChapter ? 0.06 : 0.028) * blend}
+                      alphaTest={isChapter ? 0.86 : hasSubjectDepthSlices ? 0.56 : 0}
+                      depthWrite={false}
+                      depthTest={false}
+                      blending={isChapter ? THREE.NormalBlending : THREE.AdditiveBlending}
+                    />
+                  </mesh>
+                )}
+                {!useDepthVolumeSubject && isChapter && chapterSubjectAuraLayers.map((shell, index) => (
+                  <mesh
+                    key={shell.key}
+                    renderOrder={38 + index}
+                    position={shell.position}
+                    scale={[
+                      primaryScale[0] * shell.scale[0],
+                      primaryScale[1] * shell.scale[1],
+                      1,
+                    ]}
+                  >
+                    <primitive object={primaryFacetGeometry} attach="geometry" />
+                    <meshBasicMaterial
+                      alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                      transparent
+                      opacity={shell.opacity}
+                      alphaTest={0.6}
+                      color={shell.color}
+                      depthWrite={false}
+                      depthTest={false}
+                      blending={THREE.AdditiveBlending}
+                    />
+                  </mesh>
+                ))}
+                {shouldUseSubjectMeshShells && subjectMeshShellLayers.map((shell, index) => (
+                  <mesh
+                    key={shell.key}
+                    renderOrder={39 + index}
+                    position={shell.position}
+                    scale={[
+                      primaryScale[0] * shell.scale[0],
+                      primaryScale[1] * shell.scale[1],
+                      1,
+                    ]}
+                  >
+                    <primitive object={primaryFacetGeometry} attach="geometry" />
+                    <meshBasicMaterial
+                      alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                      transparent
+                      opacity={shell.opacity * blend}
+                      alphaTest={isChapter ? 0.76 : 0.68}
+                      color={shell.color}
+                      depthWrite={false}
+                      depthTest={isAnchor}
+                      blending={THREE.NormalBlending}
+                      ref={(material) => {
+                        subjectShellMeshMaterialRefs.current[index] = material ?? null;
+                        if (material) {
+                          material.userData.baseOpacity = shell.opacity;
+                          material.userData.frontWeight = isChapter ? 0.12 - index * 0.02 : 0.28 - index * 0.06;
+                          material.userData.sideWeight = isChapter ? 0.22 + index * 0.04 : 0.14 + index * 0.06;
+                        }
+                      }}
+                    />
+                  </mesh>
+                ))}
+                {subjectVolumeCloudLayers.map((shell, index) => (
+                  <points
+                    key={shell.key}
+                    renderOrder={38}
+                    position={shell.position}
+                    rotation={shell.rotation}
+                    scale={[
+                      primaryScale[0] * shell.scale[0],
+                      primaryScale[1] * shell.scale[1],
+                      1,
+                    ]}
+                  >
+                    <primitive object={subjectContourCloudGeometry ?? subjectPointCloudGeometry} attach="geometry" />
+                    <pointsMaterial
+                      ref={(material) => {
+                        subjectVolumeMaterialRefs.current[index] = material ?? null;
+                        if (material) {
+                          material.userData.baseOpacity = shell.opacity;
+                        }
+                      }}
+                      size={shell.size}
+                      sizeAttenuation
+                      transparent
+                      opacity={shell.opacity}
+                      color={subjectShellColor}
+                      depthWrite={false}
+                      depthTest={false}
+                      blending={THREE.AdditiveBlending}
+                    />
+                  </points>
+                ))}
+                {hasSubjectDepthSlices && subjectContourCloudGeometry && (
+                  <points
+                    renderOrder={39}
+                    position={[0, 0, -0.01]}
+                    scale={[primaryScale[0], primaryScale[1], 1]}
+                  >
+                    <primitive object={subjectContourCloudGeometry} attach="geometry" />
+                    <pointsMaterial
+                      size={isAnchor ? 0.0062 : 0.0058}
+                      sizeAttenuation
+                      transparent
+                      opacity={(isAnchor ? 0.028 : 0.024) * blend}
+                      color={subjectShellColor}
+                      depthWrite={false}
+                      depthTest={false}
+                      blending={THREE.AdditiveBlending}
+                    />
+                  </points>
+                )}
+                {hasSubjectDepthSlices && subjectDepthSliceTextures.map((slice, index) => (
+                  <mesh
+                    key={slice.key}
+                    renderOrder={40 + index}
+                    position={[0, 0, slice.z]}
+                    scale={[
+                      primaryScale[0] * slice.scaleBoost,
+                      primaryScale[1] * slice.scaleBoost,
+                      1,
+                    ]}
+                  >
+                    <primitive object={subjectImageGeometry} attach="geometry" />
+                    <meshBasicMaterial
+                      map={slice.texture}
+                      transparent
+                      opacity={slice.opacity * blend}
+                      color="#ffffff"
+                      depthWrite={false}
+                      depthTest={false}
+                      alphaTest={isAnchor ? 0.28 : 0.42}
+                      blending={THREE.NormalBlending}
+                    />
+                  </mesh>
+                ))}
+                {subjectPointCloudGeometry && (isAnchor || isChapter) && !hasSubjectDepthSlices && !shouldUseSubjectMeshShells && (
+                  <points
+                    renderOrder={40}
+                    position={[0, 0, isChapter ? -0.016 : -0.012]}
+                    scale={[primaryScale[0], primaryScale[1], 1]}
+                  >
+                    <primitive object={subjectPointCloudGeometry} attach="geometry" />
+                    <pointsMaterial
+                      ref={subjectPointMaterialRef}
+                      vertexColors
+                      size={useImageCloudSubject ? (isAnchor ? 0.0048 : 0.0042) : (isAnchor ? 0.0058 : 0.0052)}
+                      sizeAttenuation
+                      transparent
+                      opacity={((useImageCloudSubject ? (isAnchor ? 0.34 : 0.26) : (isAnchor ? 0.24 : 0.18))) * blend}
+                      depthWrite={false}
+                      depthTest={false}
+                      blending={THREE.NormalBlending}
+                    />
+                  </points>
+                )}
+                <mesh
+                  renderOrder={48}
+                  scale={primaryScale}
+                >
+                  <primitive object={(isChapter || shouldUseSubjectMeshShells || useDepthVolumeSubject) ? subjectImageGeometry : primaryFacetGeometry} attach="geometry" />
+                  <meshBasicMaterial
+                    ref={subjectFrontMaterialRef}
+                    map={croppedPrimaryTexture}
+                    alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                    transparent
+                    opacity={Math.min(useImageCloudSubject ? 0.68 : 0.58, subjectImageOpacity * (useImageCloudSubject ? 1.72 : 1.45))}
+                    alphaTest={
+                      useImageCloudSubject
+                        ? (isChapter ? 0.6 : 0.5)
+                        : (isChapter ? 0.64 : hasSubjectDepthSlices ? 0.52 : 0.42)
+                    }
+                    color="#ffffff"
+                    depthWrite={isChapter}
+                    depthTest={isChapter}
+                    blending={THREE.NormalBlending}
+                  />
+                </mesh>
+                <mesh
+                  renderOrder={39}
+                  position={[0, 0, -0.015]}
+                  scale={[primaryScale[0] * 1.02, primaryScale[1] * 1.02, 1]}
+                >
+                  <primitive object={(isChapter || shouldUseSubjectMeshShells || useDepthVolumeSubject) ? subjectImageGeometry : primaryFacetGeometry} attach="geometry" />
+                  <meshBasicMaterial
+                    ref={subjectGlowMaterialRef}
+                    map={croppedPrimaryTexture}
+                    alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
+                    transparent
+                    opacity={((isChapter ? 0.018 : 0.028) + pointer.activity * (isChapter ? 0.026 : 0.03)) * blend}
+                    alphaTest={isChapter ? 0.68 : hasSubjectDepthSlices ? 0.26 : 0}
+                    color={tint}
+                    depthWrite={false}
+                    depthTest={isChapter}
+                    blending={THREE.AdditiveBlending}
+                  />
+                </mesh>
+              </group>
+              </group>
+            </group>
+            </>
+            )
+          ) : (
             <mesh
               renderOrder={40}
               position={primaryPosition}
               rotation={primaryRotation}
               scale={primaryScale}
             >
-              <planeGeometry args={[1, 1]} />
+              <primitive object={primaryFacetGeometry} attach="geometry" />
               <meshBasicMaterial
                 map={croppedPrimaryTexture}
-                alphaMap={primaryAlphaTexture}
+                alphaMap={croppedPrimaryAlphaTexture ?? primaryAlphaTexture}
                 transparent
                 opacity={primaryOpacity}
-                color={isChapter || isAnchor ? '#ffffff' : tint}
-              depthWrite={false}
-              depthTest={false}
-              blending={primaryBlending}
-            />
-          </mesh>
-          {(isChapter || isAnchor) && (
-            <mesh
-              renderOrder={38}
-              position={[primaryPosition[0], primaryPosition[1], primaryPosition[2] - 0.015]}
-              rotation={primaryRotation}
-              scale={[primaryScale[0] * 1.02, primaryScale[1] * 1.02, 1]}
-            >
-              <planeGeometry args={[1, 1]} />
-              <meshBasicMaterial
-                map={croppedPrimaryTexture}
-                alphaMap={primaryAlphaTexture}
-                transparent
-                opacity={((isChapter ? 0.032 : 0.05) + pointer.activity * (isChapter ? 0.04 : 0.05)) * blend}
                 color={tint}
                 depthWrite={false}
                 depthTest={false}
-                blending={THREE.AdditiveBlending}
+                blending={primaryBlending}
               />
             </mesh>
           )}
         </group>
       )}
 
-      {supportTextures.map((texture, index) => {
+      {!(isAnchor || isChapter) && supportTextures.map((texture, index) => {
+        const isPeripheralShard = isAnchor || isChapter;
         const normalized = supportTextures.length === 1 ? 0.5 : index / Math.max(1, supportTextures.length - 1);
         const angle = (normalized - 0.5) * 1.15 + orbitOffset;
-        const radius = (3.2 + index * 0.38) * radiusMultiplier;
-        const y = (index % 2 === 0 ? 0.18 : -0.14) + index * 0.02;
+        const radius = (isPeripheralShard ? 4.1 + index * 0.22 : 3.2 + index * 0.38) * radiusMultiplier;
+        const y = isPeripheralShard
+          ? ((index % 2 === 0 ? 0.34 : -0.24) + index * 0.04)
+          : ((index % 2 === 0 ? 0.18 : -0.14) + index * 0.02);
         const pointerBias = 1 - Math.min(1, Math.abs((pointer.x + 1) * 0.5 - normalized) * 1.8);
-        const opacity = (0.03 + travelProgress * 0.05 + pointer.activity * 0.06 * pointerBias) * blend;
-        const scaleX = 2.2 + index * 0.18;
-        const scaleY = 1.45 + index * 0.12;
+        const shardWake = smoothstep(0.84, 0.985, travelProgress);
+        const opacity = isPeripheralShard
+          ? (shardWake * (0.025 + pointer.activity * 0.035 * pointerBias)) * blend
+          : (0.03 + travelProgress * 0.05 + pointer.activity * 0.06 * pointerBias) * blend;
+        const scaleX = isPeripheralShard ? 0.78 + index * 0.08 : 2.2 + index * 0.18;
+        const scaleY = isPeripheralShard ? 1.04 + index * 0.06 : 1.45 + index * 0.12;
+        const shardColor = isPeripheralShard ? '#d6d0c5' : tint;
 
         return (
           <mesh
             key={resolvedUrls[index]}
             renderOrder={24}
             position={[Math.sin(angle) * radius, y, -Math.cos(angle) * radius + depthOffset]}
-            rotation={[0.05 * (index % 2 === 0 ? 1 : -1), angle, 0]}
+            rotation={[
+              0.03 * (index % 2 === 0 ? 1 : -1),
+              angle + (isPeripheralShard ? (normalized - 0.5) * 0.35 : 0),
+              isPeripheralShard ? (normalized - 0.5) * 0.08 : 0,
+            ]}
             scale={[scaleX, scaleY, 1]}
           >
             <planeGeometry args={[1, 1]} />
@@ -1021,7 +2655,7 @@ function ClusterMemoryFacets({
               map={texture}
               transparent
               opacity={opacity}
-              color={tint}
+              color={shardColor}
               depthWrite={false}
               depthTest={false}
               blending={THREE.AdditiveBlending}
@@ -1326,17 +2960,17 @@ function WorldPostProcessing({
   standaloneWorld = false,
 }) {
   const dofFocusDistance = chapterMode
-    ? 0.012
+    ? 0.015
     : standaloneWorld
-      ? 0.013
+      ? 0.015
       : 0.02;
   const dofFocalLength = chapterMode
-    ? 0.02
+    ? 0.012
     : standaloneWorld
-      ? 0.014
+      ? 0.01
       : 0.04;
   const dofBokehScale = archiveMode
-    ? (chapterMode ? 0.7 : standaloneWorld ? 0.18 : 1.0)
+    ? (chapterMode ? 0.2 : standaloneWorld ? 0.08 : 1.0)
     : 1.5;
   const bloomIntensity = standaloneWorld && archiveMode ? 0.22 : 0.35;
   return (
@@ -1421,6 +3055,7 @@ function ArchiveEditorPanel({
   value,
   onChange,
   onReset,
+  subjectMeshPath = null,
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -1464,7 +3099,15 @@ function ArchiveEditorPanel({
     artDirection: value.subjectCrop ? {
       subjectCrop: value.subjectCrop,
     } : undefined,
-  }), [value]);
+    subject3d: subjectMeshPath ? {
+      mesh: subjectMeshPath,
+      transform: {
+        position: value.subjectMeshPosition,
+        scale: value.subjectMeshScale,
+        rotation: value.subjectMeshRotation,
+      },
+    } : undefined,
+  }), [subjectMeshPath, value]);
 
   const copyJson = useCallback(async () => {
     try {
@@ -1602,6 +3245,9 @@ function ArchiveEditorPanel({
       {renderVec3('Focus Anchor', 'focusAnchor')}
       {renderVec3('Depart Anchor', 'departAnchor')}
       {renderVec4('Subject Crop', 'subjectCrop')}
+      {subjectMeshPath && renderVec3('Subject Mesh Pos', 'subjectMeshPosition')}
+      {subjectMeshPath && renderVec3('Subject Mesh Scale', 'subjectMeshScale')}
+      {subjectMeshPath && renderVec3('Subject Mesh Rot', 'subjectMeshRotation')}
 
       <label style={{ display: 'grid', gap: '0.28rem' }}>
         <span style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.56)' }}>
@@ -1952,7 +3598,33 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     () => cloneVec4(meta?.artDirection?.subjectCrop, [0, 0, 1, 1]),
     [meta?.artDirection?.subjectCrop],
   );
+  const defaultSubjectMeshPath = meta?.subject3d?.mesh ?? null;
+  const defaultSubjectMeshTransform = useMemo(() => ({
+    mode: meta?.subject3d?.mode ?? 'projected-mesh',
+    supportMode:
+      meta?.subject3d?.transform?.supportMode
+      ?? (meta?.subject3d?.mode === 'depth-volume' ? 'image-cloud' : 'mesh-fill'),
+    position: cloneVec3(meta?.subject3d?.transform?.position, [0, 0, 0]),
+    scale: cloneVec3(meta?.subject3d?.transform?.scale, [1, 1, 1]),
+    rotation: cloneVec3(meta?.subject3d?.transform?.rotation, [0, 0, 0]),
+  }), [
+    meta?.subject3d?.mode,
+    meta?.subject3d?.transform?.supportMode,
+    meta?.subject3d?.transform?.position,
+    meta?.subject3d?.transform?.rotation,
+    meta?.subject3d?.transform?.scale,
+  ]);
   const clusterPrimaryCrop = editorState?.subjectCrop ?? defaultSubjectCrop;
+  const effectiveSubjectMeshTransform = editorState ? {
+    mode: defaultSubjectMeshTransform.mode,
+    supportMode: defaultSubjectMeshTransform.supportMode,
+    position: cloneVec3(editorState.subjectMeshPosition, defaultSubjectMeshTransform.position),
+    scale: cloneVec3(editorState.subjectMeshScale, defaultSubjectMeshTransform.scale),
+    rotation: cloneVec3(editorState.subjectMeshRotation, defaultSubjectMeshTransform.rotation),
+  } : defaultSubjectMeshTransform;
+  const clusterSubjectMesh = defaultSubjectMeshPath
+    ? resolveMemoryAssetPath(scene.id, defaultSubjectMeshPath)
+    : null;
   const clusterSourceImages = standaloneAnchorWorld
     ? [clusterPrimaryImage].filter(Boolean)
     : chapterPresentation
@@ -1964,11 +3636,14 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     ? (maskedSubjectAnchor ? 'anchor' : 'ambient')
     : (chapterPresentation ? 'chapter' : 'anchor');
   const anchorFacetBlend = standaloneAnchorWorld
-    ? (
-      (maskedSubjectAnchor ? 0.3 : 0.22)
-      + Math.max(0, archivePointer.activity - 0.18) * (maskedSubjectAnchor ? 0.28 : 0.22)
-      + Math.max(0, archiveTravelProgress - 0.24) * (maskedSubjectAnchor ? 0.22 : 0.18)
-      + (revealStandaloneFacets ? (maskedSubjectAnchor ? 0.1 : 0.06) : 0)
+    ? Math.min(
+      0.96,
+      (
+        (maskedSubjectAnchor ? 0.62 : 0.26)
+        + Math.max(0, archivePointer.activity - 0.18) * (maskedSubjectAnchor ? 0.22 : 0.16)
+        + Math.max(0, archiveTravelProgress - 0.28) * (maskedSubjectAnchor ? 0.14 : 0.1)
+        + (revealStandaloneFacets ? (maskedSubjectAnchor ? 0.06 : 0.04) : 0)
+      ),
     )
     : (archiveNextScene ? Math.max(0.28, 1 - archiveClusterBlend * 0.52) : 1);
   const dreamParticleCount = standaloneAnchorWorld
@@ -2045,6 +3720,18 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
         isCurrentEditorState ? parsed?.subjectCrop : null,
         defaultSubjectCrop,
       ),
+      subjectMeshPosition: cloneVec3(
+        isCurrentEditorState ? parsed?.subjectMeshPosition : null,
+        defaultSubjectMeshTransform.position,
+      ),
+      subjectMeshScale: cloneVec3(
+        isCurrentEditorState ? parsed?.subjectMeshScale : null,
+        defaultSubjectMeshTransform.scale,
+      ),
+      subjectMeshRotation: cloneVec3(
+        isCurrentEditorState ? parsed?.subjectMeshRotation : null,
+        defaultSubjectMeshTransform.rotation,
+      ),
     });
   }, [
     archiveMode,
@@ -2057,6 +3744,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     defaultWorldTransform.rotation,
     defaultWorldTransform.scale,
     defaultSubjectCrop,
+    defaultSubjectMeshTransform.position,
+    defaultSubjectMeshTransform.rotation,
+    defaultSubjectMeshTransform.scale,
     metaLoaded,
     scene.id,
   ]);
@@ -2145,6 +3835,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
               primaryAlphaImage={clusterPrimaryMask}
+              subjectMeshUrl={clusterSubjectMesh}
+              subjectMeshTransform={effectiveSubjectMeshTransform}
               primaryCrop={clusterPrimaryCrop}
               images={clusterSourceImages}
               pointer={archivePointer}
@@ -2157,6 +3849,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           {!rawWorldMode && chapterPresentation && clusterPrimaryImage && (
             <ClusterMemoryFacets
               primaryImage={clusterPrimaryImage}
+              primaryAlphaImage={clusterPrimaryMask}
+              subjectMeshUrl={clusterSubjectMesh}
+              subjectMeshTransform={effectiveSubjectMeshTransform}
               primaryCrop={clusterPrimaryCrop}
               images={[]}
               pointer={archivePointer}
@@ -2169,16 +3864,16 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             />
           )}
 
-          {!rawWorldMode && archiveMode && archiveClusterBlend > (standaloneAnchorWorld ? 0.16 : 0.04) && nextClusterPreviewImages.length > 0 && (
+          {!rawWorldMode && archiveMode && archiveClusterBlend > 0.82 && nextClusterPreviewImages.length > 0 && (
             <ClusterMemoryFacets
               images={nextClusterPreviewImages}
               pointer={archivePointer}
-              travelProgress={Math.min(1, archiveTravelProgress + archiveClusterBlend * 0.34)}
-              blend={archiveClusterBlend}
-              tint="#dff4ff"
-              orbitOffset={0.5}
-              depthOffset={-1.6 * archiveClusterBlend}
-              radiusMultiplier={0.82}
+              travelProgress={Math.min(1, archiveTravelProgress * 0.18 + archiveClusterBlend * 0.16)}
+              blend={Math.max(0, archiveClusterBlend - 0.82) / 0.18 * 0.18}
+              tint="#ecf5ff"
+              orbitOffset={0.42}
+              depthOffset={-0.78 * archiveClusterBlend}
+              radiusMultiplier={0.58}
             />
           )}
 
@@ -2285,6 +3980,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             sceneId={scene.id}
             value={editorState}
             onChange={setEditorState}
+            subjectMeshPath={defaultSubjectMeshPath}
             onReset={() => {
               const storageKey = `memory-world-editor:${scene.id}`;
               window.localStorage.removeItem(storageKey);
@@ -2298,6 +3994,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
                 focusAnchor: cloneVec3(baseTravelAnchors.focus),
                 departAnchor: cloneVec3(baseTravelAnchors.depart),
                 subjectCrop: cloneVec4(defaultSubjectCrop),
+                subjectMeshPosition: cloneVec3(defaultSubjectMeshTransform.position),
+                subjectMeshScale: cloneVec3(defaultSubjectMeshTransform.scale),
+                subjectMeshRotation: cloneVec3(defaultSubjectMeshTransform.rotation),
               });
             }}
           />
@@ -2371,6 +4070,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
           sceneId={scene.id}
           value={editorState}
           onChange={setEditorState}
+          subjectMeshPath={defaultSubjectMeshPath}
           onReset={() => {
             const storageKey = `memory-world-editor:${scene.id}`;
             window.localStorage.removeItem(storageKey);
@@ -2384,6 +4084,9 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               focusAnchor: cloneVec3(baseTravelAnchors.focus),
               departAnchor: cloneVec3(baseTravelAnchors.depart),
               subjectCrop: cloneVec4(defaultSubjectCrop),
+              subjectMeshPosition: cloneVec3(defaultSubjectMeshTransform.position),
+              subjectMeshScale: cloneVec3(defaultSubjectMeshTransform.scale),
+              subjectMeshRotation: cloneVec3(defaultSubjectMeshTransform.rotation),
             });
           }}
         />
