@@ -47,6 +47,13 @@ def ensure_dir(path: str | None) -> None:
         Path(path).mkdir(parents=True, exist_ok=True)
 
 
+def should_clean_subject_from_pano(args: argparse.Namespace) -> bool:
+    configured = os.environ.get("WORLDGEN_CLEAN_PANO_SUBJECT", "1").strip().lower()
+    if configured in {"0", "false", "no", "off"}:
+        return False
+    return bool(args.mask and Path(args.mask).exists())
+
+
 def run_worldgen(args: argparse.Namespace) -> int:
     worldgen_root = Path(os.environ.get("WORLDGEN_ROOT", ROOT / "_experiments" / "WorldGen")).resolve()
     worldgen_src = worldgen_root / "src"
@@ -62,10 +69,14 @@ def run_worldgen(args: argparse.Namespace) -> int:
     sys.path.insert(0, str(worldgen_src))
 
     try:
-        from PIL import Image
+        from PIL import Image, ImageFilter
+        import numpy as np
         import torch
         from worldgen import WorldGen
+        from worldgen.pano_depth import pred_depth
+        from worldgen.pano_inpaint import build_inpaint_model, inpaint_pano
         from worldgen.pano_sharp import predict_equirectangular
+        from worldgen.utils.general_utils import map_image_to_pano, resize_img
     except Exception as exc:  # pragma: no cover - dependency discovery path
         print(
             "[worldgen] Failed to import WorldGen dependencies.\n"
@@ -107,7 +118,32 @@ def run_worldgen(args: argparse.Namespace) -> int:
         world.predict_equirectangular = predict_equirectangular
 
     image = Image.open(image_path).convert("RGB")
-    splat = world.generate_world(prompt=args.prompt or "", image=image, return_mesh=False)
+
+    pano_image = world.generate_pano(prompt=args.prompt or "", image=image)
+
+    if should_clean_subject_from_pano(args):
+        mask_path = Path(args.mask).resolve()
+        mask_image = Image.open(mask_path).convert("L").resize(image.size, Image.Resampling.BILINEAR)
+        resized_image = resize_img(image)
+        resized_mask = mask_image.resize(resized_image.size, Image.Resampling.BILINEAR)
+
+        predictions = pred_depth(world.depth_model, resized_image)
+        mask_array = np.array(resized_mask)
+        mask_rgb = np.repeat(mask_array[:, :, None], 3, axis=2)
+        mask_predictions = {
+            **predictions,
+            "rgb": torch.from_numpy(mask_rgb).to(predictions["rgb"].device),
+        }
+        pano_mask_image, _ = map_image_to_pano(mask_predictions, device=world.device)
+        pano_mask = pano_mask_image.convert("L").point(lambda value: 255 if value > 24 else 0, mode="L")
+        pano_mask = pano_mask.filter(ImageFilter.MaxFilter(size=31))
+
+        inpaint_model = build_inpaint_model(device=device)
+        pano_image = inpaint_pano(inpaint_model, pano_image, (np.array(pano_mask) > 0).astype(np.uint8))
+        pano_image.save(output_dir / "scene.pano.cleaned.png")
+        pano_mask.save(output_dir / "scene.pano.subject-mask.png")
+
+    splat = world._generate_world(pano_image, return_mesh=False)
     splat.save(str(output_path))
 
     print(

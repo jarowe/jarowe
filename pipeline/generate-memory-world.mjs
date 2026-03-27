@@ -43,6 +43,7 @@ const LOCAL_SHARP_CLI = join(ROOT, '.venv-sharp', 'Scripts', 'sharp.exe');
 const LOCAL_SHARP_CHECKPOINT = join(ROOT, '.models', 'sharp_2572gikvuh.pt');
 const LOCAL_DEPTH_VIEW_SCRIPT = join(ROOT, 'pipeline', 'synthesize_depth_views.py');
 const LOCAL_ENVIRONMENT_PLATE_SCRIPT = join(ROOT, 'pipeline', 'build_environment_plate.py');
+const LOCAL_ENVIRONMENT_INPAINT_SCRIPT = join(ROOT, 'pipeline', 'inpaint_environment_plate.py');
 const LOCAL_WORLD_MODEL_WRAPPER = join(ROOT, 'pipeline', 'run_single_image_world_backend.py');
 const DEFAULT_MAX_RUNTIME_SPLATS = 300000;
 const MAX_RUNTIME_SPLATS = Number.parseInt(process.env.MAX_RUNTIME_SPLATS ?? '', 10) || DEFAULT_MAX_RUNTIME_SPLATS;
@@ -166,6 +167,18 @@ function shellQuoteBash(value) {
 
 function shellQuoteWin(value) {
   return `"${String(value).replaceAll('"', '\\"')}"`;
+}
+
+function trimPromptWords(text, maxWords = 26) {
+  const words = String(text || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .filter(Boolean);
+  if (words.length <= maxWords) {
+    return words.join(' ');
+  }
+  return words.slice(0, maxWords).join(' ');
 }
 
 function isImageFile(filename) {
@@ -428,8 +441,8 @@ function buildWorldModelPrompt(meta, options = {}) {
   if (explicitPrompt) {
     return subjectErasedBootstrap
       ? [
-        explicitPrompt,
-        'The provided input is an environment bootstrap plate with the main foreground subject removed. Prioritize coherent world completion, preserve non-masked anchors, avoid duplicate people, and leave clean room for the original subject to be reintroduced later.',
+        trimPromptWords(explicitPrompt, 22),
+        'Empty environment. No people. Preserve rocks and shore.',
       ].join(' ')
       : explicitPrompt;
   }
@@ -452,9 +465,16 @@ function buildWorldModelPrompt(meta, options = {}) {
   }
 
   return [
-    prompt,
-    'Use the cleaned environment plate to imagine the missing world coherently while keeping spatial room for the original subject pass.',
+    trimPromptWords(prompt, 22),
+    'Empty environment. No people.',
   ].join(' ');
+}
+
+function shouldUseWorldgenBootstrapInpaint() {
+  const configured = (process.env.WORLD_MODEL_BOOTSTRAP_BACKEND || 'auto').toLowerCase();
+  if (configured === 'diffuse' || configured === 'local') return false;
+  if (configured === 'lama' || configured === 'worldgen') return true;
+  return shouldUseWslWorldModelBackend() && (process.env.WORLD_MODEL_BACKEND || '') === 'worldgen';
 }
 
 function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, worldModelOptions = {}) {
@@ -474,13 +494,33 @@ function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, wo
   }
 
   const bootstrapPath = join(worldDir, 'bootstrap.environment.png');
-  const command = [
-    getDefaultWorldModelPython(),
-    `"${LOCAL_ENVIRONMENT_PLATE_SCRIPT}"`,
-    `"${inputPhoto}"`,
-    `"${bootstrapMaskPath}"`,
-    `"${bootstrapPath}"`,
-  ].join(' ');
+  const useWorldgenInpaint = shouldUseWorldgenBootstrapInpaint() && existsSync(LOCAL_ENVIRONMENT_INPAINT_SCRIPT);
+  const command = useWorldgenInpaint
+    ? (() => {
+      const scriptPath = toWslPath(LOCAL_ENVIRONMENT_INPAINT_SCRIPT);
+      const worldgenRoot = toWslPath(
+        process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen'),
+      );
+      const bashCommand = [
+        `source ${getDefaultWorldModelWslVenv()}/bin/activate`,
+        `export WORLDGEN_ROOT=${shellQuoteBash(worldgenRoot)}`,
+        [
+          getDefaultWorldModelWslPython(),
+          shellQuoteBash(scriptPath),
+          shellQuoteBash(toWslPath(inputPhoto)),
+          shellQuoteBash(toWslPath(bootstrapMaskPath)),
+          shellQuoteBash(toWslPath(bootstrapPath)),
+        ].join(' '),
+      ].join(' && ');
+      return `wsl -d ${getDefaultWorldModelWslDistro()} -- bash -lc ${JSON.stringify(bashCommand)}`;
+    })()
+    : [
+      getDefaultWorldModelPython(),
+      `"${LOCAL_ENVIRONMENT_PLATE_SCRIPT}"`,
+      `"${inputPhoto}"`,
+      `"${bootstrapMaskPath}"`,
+      `"${bootstrapPath}"`,
+    ].join(' ');
 
   console.log(`\n[World Model] Building subject-erased environment plate: ${command}\n`);
   const result = runShellCommand(command);
