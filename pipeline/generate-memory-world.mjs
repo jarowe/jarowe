@@ -181,6 +181,25 @@ function trimPromptWords(text, maxWords = 26) {
   return words.slice(0, maxWords).join(' ');
 }
 
+function analyzeWorldFraming(meta) {
+  const crop = meta?.artDirection?.subjectCrop;
+  if (!Array.isArray(crop) || crop.length < 4) {
+    return null;
+  }
+
+  const width = Number(crop[2]) || 0;
+  const height = Number(crop[3]) || 0;
+  const area = Math.max(0, width) * Math.max(0, height);
+  const closeSubject = area >= 0.22 || height >= 0.62;
+
+  return {
+    subjectCropArea: Number(area.toFixed(3)),
+    subjectCropHeight: Number(height.toFixed(3)),
+    framingClass: closeSubject ? 'close-subject' : 'environment-anchor',
+    recommendedPresentationMode: closeSubject ? 'chapter' : 'anchor',
+  };
+}
+
 function isImageFile(filename) {
   return IMAGE_EXTENSIONS.has(extname(filename).toLowerCase());
 }
@@ -1400,6 +1419,10 @@ function updateMetaWithAssets(meta, assets) {
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
   if (assets.generationMode) {
     meta.source.generationMode = assets.generationMode;
+  }
+  const worldFramingAnalysis = analyzeWorldFraming(meta);
+  if (worldFramingAnalysis) {
+    meta.source.worldFramingAnalysis = worldFramingAnalysis;
   }
   if (assets.environmentBootstrap) {
     meta.source.environmentBootstrap = assets.environmentBootstrap;

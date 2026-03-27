@@ -2,7 +2,7 @@
   "id": "naxos-laugh",
   "title": "Before The Days Go By",
   "subtitle": "Naxos, Greece — May 2024",
-  "description": "A closer turn back into the light: Jace laughing on the rocks in Naxos, the joy inside the poem revealed as a living world.",
+  "description": "A closer turn back into the light: Jace laughing on the rocks in Naxos, the joy inside the poem revealed as a chapter inside the stronger shoreline world.",
   "source": {
     "type": "instagram-carousel",
     "photo": "photo.jpg",
@@ -20,6 +20,12 @@
       "/images/Instagram/media/posts/202405/18122780437357613.jpg"
     ],
     "generationMode": "single-image-world-model",
+    "worldFramingAnalysis": {
+      "subjectCropArea": 0.332,
+      "subjectCropHeight": 0.868,
+      "framingClass": "close-subject",
+      "recommendedPresentationMode": "chapter"
+    },
     "expansion": {
       "strategy": "learned-scene-expansion",
       "stage": "world-model-fused",
@@ -52,7 +58,8 @@
   "world": {
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
-    "presentationMode": "anchor",
+    "sharedSceneId": "naxos-rock",
+    "presentationMode": "chapter",
     "mesh": null,
     "collider": null,
     "format": "ply",

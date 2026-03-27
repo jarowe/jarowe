@@ -20,6 +20,12 @@
       "/images/Instagram/media/posts/202405/18122780437357613.jpg"
     ],
     "generationMode": "single-image-world-model",
+    "worldFramingAnalysis": {
+      "subjectCropArea": 0.095,
+      "subjectCropHeight": 0.405,
+      "framingClass": "environment-anchor",
+      "recommendedPresentationMode": "anchor"
+    },
     "expansion": {
       "strategy": "learned-scene-expansion",
       "stage": "world-model-fused",
@@ -52,8 +58,7 @@
   "world": {
     "splat": "world/scene.runtime.ply",
     "sourceSplat": "world/scene.ply",
-    "sharedSceneId": "naxos-laugh",
-    "presentationMode": "chapter",
+    "presentationMode": "anchor",
     "mesh": null,
     "collider": null,
     "format": "ply",
