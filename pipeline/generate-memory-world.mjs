@@ -49,6 +49,29 @@ const DEFAULT_MAX_RUNTIME_SPLATS = 300000;
 const MAX_RUNTIME_SPLATS = Number.parseInt(process.env.MAX_RUNTIME_SPLATS ?? '', 10) || DEFAULT_MAX_RUNTIME_SPLATS;
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const DEFAULT_CLUSTER_VIEW_LIMIT = 4;
+const WORLD_QUALITY_PROFILES = {
+  draft: {
+    resolution: 1600,
+    useSharp: true,
+    inpaintBg: false,
+    subjectErasedBootstrap: true,
+    runtimePreviewSplatTarget: 300000,
+  },
+  hero: {
+    resolution: 2048,
+    useSharp: false,
+    inpaintBg: true,
+    subjectErasedBootstrap: true,
+    runtimePreviewSplatTarget: 900000,
+  },
+  ultra: {
+    resolution: 2304,
+    useSharp: false,
+    inpaintBg: true,
+    subjectErasedBootstrap: true,
+    runtimePreviewSplatTarget: 1200000,
+  },
+};
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -61,6 +84,7 @@ function parseArgs() {
   let inpaintBg = null;
   let lowVram = null;
   let subjectErasedBootstrap = null;
+  let qualityProfile = null;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -77,6 +101,19 @@ function parseArgs() {
     if (arg === '--prompt') {
       prompt = args[index + 1] ?? null;
       index += 1;
+      continue;
+    }
+    if (arg === '--quality') {
+      qualityProfile = args[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (arg === '--hero') {
+      qualityProfile = 'hero';
+      continue;
+    }
+    if (arg === '--ultra') {
+      qualityProfile = 'ultra';
       continue;
     }
     if (arg === '--force') {
@@ -121,6 +158,7 @@ function parseArgs() {
     generator,
     force,
     worldModelOptions: {
+      qualityProfile,
       resolution: Number.isFinite(resolution) ? resolution : null,
       prompt,
       useSharp,
@@ -141,6 +179,44 @@ function readMeta(sceneDir) {
 
 function writeMeta(metaPath, meta) {
   writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n', 'utf8');
+}
+
+function resolveWorldQualityProfileName(meta, worldModelOptions = {}) {
+  const requestedProfile = String(worldModelOptions.qualityProfile || '').trim().toLowerCase();
+  if (requestedProfile && WORLD_QUALITY_PROFILES[requestedProfile]) {
+    return requestedProfile;
+  }
+
+  const metaProfile = String(
+    meta?.source?.worldGenerationProfile
+    || meta?.world?.generationProfile
+    || '',
+  ).trim().toLowerCase();
+  if (metaProfile && WORLD_QUALITY_PROFILES[metaProfile]) {
+    return metaProfile;
+  }
+
+  return 'draft';
+}
+
+function resolveWorldModelOptions(meta, worldModelOptions = {}) {
+  const qualityProfile = resolveWorldQualityProfileName(meta, worldModelOptions);
+  const profileDefaults = WORLD_QUALITY_PROFILES[qualityProfile] ?? WORLD_QUALITY_PROFILES.draft;
+
+  return {
+    ...worldModelOptions,
+    qualityProfile,
+    resolution: Number.isFinite(worldModelOptions.resolution) ? worldModelOptions.resolution : profileDefaults.resolution,
+    useSharp: typeof worldModelOptions.useSharp === 'boolean' ? worldModelOptions.useSharp : profileDefaults.useSharp,
+    inpaintBg: typeof worldModelOptions.inpaintBg === 'boolean' ? worldModelOptions.inpaintBg : profileDefaults.inpaintBg,
+    lowVram: typeof worldModelOptions.lowVram === 'boolean' ? worldModelOptions.lowVram : false,
+    subjectErasedBootstrap: typeof worldModelOptions.subjectErasedBootstrap === 'boolean'
+      ? worldModelOptions.subjectErasedBootstrap
+      : profileDefaults.subjectErasedBootstrap,
+    runtimePreviewSplatTarget: Number.isFinite(worldModelOptions.runtimePreviewSplatTarget)
+      ? worldModelOptions.runtimePreviewSplatTarget
+      : profileDefaults.runtimePreviewSplatTarget,
+  };
 }
 
 function toWorldRelative(filename) {
@@ -493,7 +569,8 @@ function shouldUseWorldgenBootstrapInpaint() {
   const configured = (process.env.WORLD_MODEL_BOOTSTRAP_BACKEND || 'auto').toLowerCase();
   if (configured === 'diffuse' || configured === 'local') return false;
   if (configured === 'lama' || configured === 'worldgen') return true;
-  return shouldUseWslWorldModelBackend() && (process.env.WORLD_MODEL_BACKEND || '') === 'worldgen';
+  const backend = (process.env.WORLD_MODEL_BACKEND || 'worldgen').toLowerCase();
+  return shouldUseWslWorldModelBackend() && backend === 'worldgen';
 }
 
 function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, worldModelOptions = {}) {
@@ -1021,6 +1098,21 @@ function resolveRuntimePreviewTarget(meta, assets) {
     return envTarget;
   }
 
+  const explicitRuntimeTarget = meta?.world?.runtimePreviewSplatTarget ?? meta?.world?.runtimeSplatTarget;
+  if (Number.isFinite(explicitRuntimeTarget) && explicitRuntimeTarget > 0) {
+    return explicitRuntimeTarget;
+  }
+
+  const qualityProfile = String(
+    meta?.source?.worldGenerationProfile
+    || meta?.world?.generationProfile
+    || '',
+  ).trim().toLowerCase();
+  const profileRuntimeTarget = WORLD_QUALITY_PROFILES[qualityProfile]?.runtimePreviewSplatTarget;
+  if (Number.isFinite(profileRuntimeTarget) && profileRuntimeTarget > 0) {
+    return profileRuntimeTarget;
+  }
+
   const metaRuntimeTarget = meta?.world?.splat?.endsWith('scene.runtime.ply')
     ? meta?.world?.splatCount
     : null;
@@ -1271,15 +1363,16 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
 
 async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
   const { meta, sceneDir, sceneId, worldModelOptions = {} } = options;
+  const resolvedWorldModelOptions = resolveWorldModelOptions(meta, worldModelOptions);
   const worldModelInputs = buildEnvironmentBootstrapImage(
     sceneDir,
     worldDir,
     inputPhoto,
     meta,
-    worldModelOptions,
+    resolvedWorldModelOptions,
   );
   const synthesizedPrompt = buildWorldModelPrompt(meta, {
-    promptOverride: worldModelOptions.prompt,
+    promptOverride: resolvedWorldModelOptions.prompt,
     subjectErasedBootstrap: Boolean(worldModelInputs.environmentBootstrap),
   });
   const templateVariables = {
@@ -1295,10 +1388,10 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
     subjectInput: worldModelInputs.subjectInputPath,
     mask: worldModelInputs.maskPath,
     prompt: synthesizedPrompt,
-    resolution: worldModelOptions.resolution,
-    useSharp: worldModelOptions.useSharp,
-    inpaintBg: worldModelOptions.inpaintBg,
-    lowVram: worldModelOptions.lowVram,
+    resolution: resolvedWorldModelOptions.resolution,
+    useSharp: resolvedWorldModelOptions.useSharp,
+    inpaintBg: resolvedWorldModelOptions.inpaintBg,
+    lowVram: resolvedWorldModelOptions.lowVram,
   };
   const worldModelCommand =
     process.env.SINGLE_IMAGE_WORLD_COMMAND ||
@@ -1341,10 +1434,10 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       subjectInput: worldModelInputs.subjectInputPath,
       mask: worldModelInputs.maskPath,
       prompt: synthesizedPrompt,
-      resolution: worldModelOptions.resolution,
-      useSharp: worldModelOptions.useSharp,
-      inpaintBg: worldModelOptions.inpaintBg,
-      lowVram: worldModelOptions.lowVram,
+      resolution: resolvedWorldModelOptions.resolution,
+      useSharp: resolvedWorldModelOptions.useSharp,
+      inpaintBg: resolvedWorldModelOptions.inpaintBg,
+      lowVram: resolvedWorldModelOptions.lowVram,
     };
     const command = worldModelCommand.includes('{')
       ? expandCommandTemplate(worldModelCommand, commandVariables)
@@ -1403,6 +1496,8 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
         viewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
       },
       environmentBootstrap: worldModelInputs.environmentBootstrap,
+      worldGenerationProfile: resolvedWorldModelOptions.qualityProfile,
+      runtimePreviewSplatTarget: resolvedWorldModelOptions.runtimePreviewSplatTarget,
     };
   } finally {
     rmSync(bundle.bundleRoot, { recursive: true, force: true });
@@ -1417,6 +1512,9 @@ function detectExistingAssets(worldDir) {
 function updateMetaWithAssets(meta, assets) {
   meta.source.generator = assets.generator || meta.source.generator || 'external';
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
+  if (assets.worldGenerationProfile) {
+    meta.source.worldGenerationProfile = assets.worldGenerationProfile;
+  }
   if (assets.generationMode) {
     meta.source.generationMode = assets.generationMode;
   }
@@ -1444,6 +1542,8 @@ function updateMetaWithAssets(meta, assets) {
     splatCount: assets.splatCount ?? null,
     sourceSplatCount: assets.sourceSplatCount ?? null,
     bounds: assets.bounds ?? null,
+    runtimePreviewSplatTarget: assets.runtimePreviewSplatTarget ?? existingWorld.runtimePreviewSplatTarget ?? null,
+    generationProfile: assets.worldGenerationProfile ?? existingWorld.generationProfile ?? null,
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };
@@ -1538,7 +1638,7 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
 }
 
 function buildDefaultWorldModelCommand(variables = {}) {
-  const backend = process.env.WORLD_MODEL_BACKEND || '';
+  const backend = (process.env.WORLD_MODEL_BACKEND || 'worldgen').trim().toLowerCase();
   if (!backend || !existsSync(LOCAL_WORLD_MODEL_WRAPPER)) {
     return '';
   }
@@ -1782,7 +1882,7 @@ async function main() {
   const { sceneId, generator: generatorKey, force, worldModelOptions } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--quality draft|hero|ultra] [--hero] [--ultra] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);

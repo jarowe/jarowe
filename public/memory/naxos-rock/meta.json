@@ -10,6 +10,7 @@
     "mask": "mask.png",
     "generator": "world-model",
     "generated": "2026-03-27",
+    "worldGenerationProfile": "hero",
     "postDate": "May 08, 2024 6:52 am",
     "worldModelPrompt": "Seated boy in a bright blue hoodie on a granite rock at a golden-hour Naxos shoreline, preserve him clearly as the main subject, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
     "environmentWorldModelPrompt": "Golden-hour Naxos shoreline with a granite rock seat as a clear foreground anchor, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, preserve non-masked rocks and shoreline structure, leave clean room for the seated subject to be reintroduced later, no duplicate people, no voids, no floating fragments.",
@@ -62,8 +63,8 @@
     "mesh": null,
     "collider": null,
     "format": "ply",
-    "splatCount": 850000,
-    "sourceSplatCount": 2097152,
+    "splatCount": 900000,
+    "sourceSplatCount": 2261632,
     "bounds": null,
     "transform": {
       "position": [
@@ -88,7 +89,9 @@
       "anchorGenerator": "source-photo",
       "reconstruction": "single-image-world-model",
       "viewCount": 1
-    }
+    },
+    "runtimePreviewSplatTarget": 900000,
+    "generationProfile": "hero"
   },
   "fallback": {
     "type": "photo-preview",

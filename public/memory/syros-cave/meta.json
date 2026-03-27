@@ -11,6 +11,7 @@
     "environmentMask": "environment-mask.png",
     "generator": "world-model",
     "generated": "2026-03-27",
+    "worldGenerationProfile": "hero",
     "generationMode": "single-image-world-model",
     "worldModelPrompt": "Sea cave in Syros with a young boy in a blue shirt beside a white bell frame and hanging bronze bell, vivid turquoise water beyond. Fully explorable 360 real-world cave, preserve the photo composition, keep the boy, bell, and bellframe clear focal anchors, complete the surrounding limestone interior, natural depth, cinematic light.",
     "environmentWorldModelPrompt": "Sea cave in Syros with a white bell frame and hanging bronze bell as clear non-masked anchors and vivid turquoise water beyond. Fully explorable 360 real-world limestone cave with coherent natural depth, complete the surrounding cave interior and coastal opening, preserve the bell and frame, leave clean room for the boy to be reintroduced later, cinematic light, no duplicate people or voids.",
@@ -75,7 +76,9 @@
       "anchorGenerator": "source-photo",
       "reconstruction": "single-image-world-model",
       "viewCount": 1
-    }
+    },
+    "runtimePreviewSplatTarget": 900000,
+    "generationProfile": "hero"
   },
   "fallback": {
     "type": "depth-particles",
