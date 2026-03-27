@@ -131,6 +131,7 @@ The command is expected to produce at least one of:
 
 - `scene.ply`
 - `scene.spz`
+- `scene.ksplat`
 - `scene.glb`
 - `collider.glb`
 
@@ -211,6 +212,7 @@ world/
   scene.ply         Gaussian splat in PLY format
   scene.runtime.ply Runtime-decimated preview asset
   scene.spz         Optional compressed splat asset
+  scene.ksplat      Optional compressed runtime splat asset for gaussian-splats-3d
   scene.glb         Optional triangulated mesh fallback
   collider.glb      Optional simplified collision mesh
   bounds.json       Optional world bounds metadata

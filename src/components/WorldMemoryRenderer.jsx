@@ -3547,26 +3547,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     () => new URLSearchParams(location.search).get('full') === '1',
     [location.search],
   );
-  const previewMode = useMemo(
-    () => new URLSearchParams(location.search).get('preview') === '1',
-    [location.search],
-  );
-
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
     const sharedSceneId = meta?.world?.sharedSceneId ?? scene.id;
     const defaultSharedAsset = fullSourceMode ? 'world/scene.ply' : 'world/scene.runtime.ply';
-    const presentationMode = meta?.world?.presentationMode
-      ?? (meta?.world?.sharedSceneId ? 'chapter' : 'anchor');
-    const preferSourceForAnchor =
-      !previewMode
-      && !rawWorldMode
-      && archiveMode
-      && isFullTier
-      && (presentationMode === 'anchor' || presentationMode === 'chapter')
-      && meta?.world?.provenance?.tier === 'world-model-fused';
     const preferredWorldAsset =
-      ((fullSourceMode || preferSourceForAnchor) && meta?.world?.sourceSplat)
+      (fullSourceMode && meta?.world?.sourceSplat)
       || meta?.world?.splat
       || (meta?.world?.sharedSceneId ? defaultSharedAsset : null);
     if (preferredWorldAsset) {
@@ -3575,7 +3561,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
       return resolveMemoryWorldPath(sharedSceneId, preferredWorldAsset);
     }
     return scene.splatUrl || null;
-  }, [archiveMode, fullSourceMode, isFullTier, meta, previewMode, rawWorldMode, scene.id, scene.splatUrl]);
+  }, [fullSourceMode, meta, scene.id, scene.splatUrl]);
 
   // If no splat is available after meta loads, signal that we should fall back.
   // The parent (CapsuleShell) handles actual fallback; we just render what we can.

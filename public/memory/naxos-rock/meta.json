@@ -54,17 +54,101 @@
       "mask": "mask.png",
       "subjectMask": "mask.png",
       "usedAsWorldInput": true
+    },
+    "worldSelection": {
+      "generatedAt": "2026-03-27T21:19:49.038Z",
+      "sceneId": "naxos-rock",
+      "selectedCandidate": "candidate-01",
+      "selectedScore": 0.37731445631270566,
+      "candidates": [
+        {
+          "id": "candidate-01",
+          "seed": 42,
+          "prompt": "golden-hour light, open shoreline, rock anchor, sea horizon. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people.",
+          "score": 0.37731445631270566,
+          "metrics": {
+            "score": 0.37731445631270566,
+            "occupancyRatio": 0.19765625,
+            "depthCoverage": 1,
+            "depthEntropy": 0.6353210773976425,
+            "radialEntropy": 0.49823571024846625,
+            "widthDepthBalance": 1,
+            "heightDepthBalance": 0.7564925430262815,
+            "frontSheetPenalty": 0,
+            "dominantDepthShare": 0.5004166666666666,
+            "maxDepthSliceCoverage": 0.33125,
+            "frontalWallPenalty": 0,
+            "depthConcentrationPenalty": 1,
+            "samplePointCount": 60000,
+            "bounds": {
+              "min": [
+                -62.087364196777344,
+                -95.82233428955078,
+                -104.3540267944336
+              ],
+              "max": [
+                63.331298828125,
+                3.300504684448242,
+                30.62021255493164
+              ],
+              "extent": [
+                125.41866302490234,
+                99.12283897399902,
+                134.97423934936523
+              ]
+            }
+          }
+        },
+        {
+          "id": "candidate-02",
+          "seed": 1337,
+          "prompt": "golden-hour light, open shoreline, rock anchor, sea horizon. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people.",
+          "score": 0.31563184992029125,
+          "metrics": {
+            "score": 0.31563184992029125,
+            "occupancyRatio": 0.11875,
+            "depthCoverage": 1,
+            "depthEntropy": 0.4653307159205639,
+            "radialEntropy": 0.3554941958806432,
+            "widthDepthBalance": 1,
+            "heightDepthBalance": 0.9192603509782521,
+            "frontSheetPenalty": 0,
+            "dominantDepthShare": 0.6024,
+            "maxDepthSliceCoverage": 0.21875,
+            "frontalWallPenalty": 0,
+            "depthConcentrationPenalty": 1,
+            "samplePointCount": 60000,
+            "bounds": {
+              "min": [
+                -104.11219787597656,
+                -130.9736328125,
+                -198.4363250732422
+              ],
+              "max": [
+                85.56793212890625,
+                5.161178112030029,
+                26.82167625427246
+              ],
+              "extent": [
+                189.6801300048828,
+                136.13481092453003,
+                225.25800132751465
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "world": {
-    "splat": "world/scene.runtime.ply",
+    "splat": "world/scene.ksplat",
     "sourceSplat": "world/scene.ply",
     "presentationMode": "anchor",
     "mesh": null,
     "collider": null,
-    "format": "ply",
+    "format": "ksplat",
     "splatCount": 900000,
-    "sourceSplatCount": 2261632,
+    "sourceSplatCount": 2097152,
     "bounds": null,
     "transform": {
       "position": [
@@ -91,7 +175,91 @@
       "viewCount": 1
     },
     "runtimePreviewSplatTarget": 900000,
-    "generationProfile": "hero"
+    "generationProfile": "hero",
+    "selection": {
+      "generatedAt": "2026-03-27T21:19:49.038Z",
+      "sceneId": "naxos-rock",
+      "selectedCandidate": "candidate-01",
+      "selectedScore": 0.37731445631270566,
+      "candidates": [
+        {
+          "id": "candidate-01",
+          "seed": 42,
+          "prompt": "golden-hour light, open shoreline, rock anchor, sea horizon. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people.",
+          "score": 0.37731445631270566,
+          "metrics": {
+            "score": 0.37731445631270566,
+            "occupancyRatio": 0.19765625,
+            "depthCoverage": 1,
+            "depthEntropy": 0.6353210773976425,
+            "radialEntropy": 0.49823571024846625,
+            "widthDepthBalance": 1,
+            "heightDepthBalance": 0.7564925430262815,
+            "frontSheetPenalty": 0,
+            "dominantDepthShare": 0.5004166666666666,
+            "maxDepthSliceCoverage": 0.33125,
+            "frontalWallPenalty": 0,
+            "depthConcentrationPenalty": 1,
+            "samplePointCount": 60000,
+            "bounds": {
+              "min": [
+                -62.087364196777344,
+                -95.82233428955078,
+                -104.3540267944336
+              ],
+              "max": [
+                63.331298828125,
+                3.300504684448242,
+                30.62021255493164
+              ],
+              "extent": [
+                125.41866302490234,
+                99.12283897399902,
+                134.97423934936523
+              ]
+            }
+          }
+        },
+        {
+          "id": "candidate-02",
+          "seed": 1337,
+          "prompt": "golden-hour light, open shoreline, rock anchor, sea horizon. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people.",
+          "score": 0.31563184992029125,
+          "metrics": {
+            "score": 0.31563184992029125,
+            "occupancyRatio": 0.11875,
+            "depthCoverage": 1,
+            "depthEntropy": 0.4653307159205639,
+            "radialEntropy": 0.3554941958806432,
+            "widthDepthBalance": 1,
+            "heightDepthBalance": 0.9192603509782521,
+            "frontSheetPenalty": 0,
+            "dominantDepthShare": 0.6024,
+            "maxDepthSliceCoverage": 0.21875,
+            "frontalWallPenalty": 0,
+            "depthConcentrationPenalty": 1,
+            "samplePointCount": 60000,
+            "bounds": {
+              "min": [
+                -104.11219787597656,
+                -130.9736328125,
+                -198.4363250732422
+              ],
+              "max": [
+                85.56793212890625,
+                5.161178112030029,
+                26.82167625427246
+              ],
+              "extent": [
+                189.6801300048828,
+                136.13481092453003,
+                225.25800132751465
+              ]
+            }
+          }
+        }
+      ]
+    }
   },
   "fallback": {
     "type": "photo-preview",

@@ -45,11 +45,11 @@
     }
   },
   "world": {
-    "splat": "world/scene.runtime.ply",
+    "splat": "world/scene.ksplat",
     "sourceSplat": "world/scene.ply",
     "mesh": null,
     "collider": null,
-    "format": "ply",
+    "format": "ksplat",
     "splatCount": 850000,
     "sourceSplatCount": 2097152,
     "bounds": null,
@@ -78,7 +78,8 @@
       "viewCount": 1
     },
     "runtimePreviewSplatTarget": 900000,
-    "generationProfile": "hero"
+    "generationProfile": "hero",
+    "selection": null
   },
   "fallback": {
     "type": "depth-particles",

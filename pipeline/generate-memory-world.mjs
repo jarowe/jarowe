@@ -85,6 +85,8 @@ function parseArgs() {
   let lowVram = null;
   let subjectErasedBootstrap = null;
   let qualityProfile = null;
+  let candidates = null;
+  let seed = null;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -95,6 +97,16 @@ function parseArgs() {
     }
     if (arg === '--resolution') {
       resolution = Number.parseInt(args[index + 1] ?? '', 10);
+      index += 1;
+      continue;
+    }
+    if (arg === '--candidates') {
+      candidates = Number.parseInt(args[index + 1] ?? '', 10);
+      index += 1;
+      continue;
+    }
+    if (arg === '--seed') {
+      seed = Number.parseInt(args[index + 1] ?? '', 10);
       index += 1;
       continue;
     }
@@ -159,6 +171,8 @@ function parseArgs() {
     force,
     worldModelOptions: {
       qualityProfile,
+      candidates: Number.isFinite(candidates) ? candidates : null,
+      seed: Number.isFinite(seed) ? seed : null,
       resolution: Number.isFinite(resolution) ? resolution : null,
       prompt,
       useSharp,
@@ -206,6 +220,8 @@ function resolveWorldModelOptions(meta, worldModelOptions = {}) {
   return {
     ...worldModelOptions,
     qualityProfile,
+    candidates: Number.isFinite(worldModelOptions.candidates) ? clamp(Math.floor(worldModelOptions.candidates), 1, 8) : 1,
+    seed: Number.isFinite(worldModelOptions.seed) ? Math.floor(worldModelOptions.seed) : 42,
     resolution: Number.isFinite(worldModelOptions.resolution) ? worldModelOptions.resolution : profileDefaults.resolution,
     useSharp: typeof worldModelOptions.useSharp === 'boolean' ? worldModelOptions.useSharp : profileDefaults.useSharp,
     inpaintBg: typeof worldModelOptions.inpaintBg === 'boolean' ? worldModelOptions.inpaintBg : profileDefaults.inpaintBg,
@@ -526,27 +542,38 @@ function refreshExpandedBundleManifest(worldDir, meta, bundle, strategy) {
 
 function buildWorldModelPrompt(meta, options = {}) {
   const {
+    prompt = '',
     promptOverride = '',
     subjectErasedBootstrap = false,
   } = options;
 
+  const requestedPrompt = String(promptOverride || prompt || '').trim();
   const explicitPrompt = subjectErasedBootstrap
-    ? String(promptOverride || '').trim() || meta?.source?.environmentWorldModelPrompt?.trim() || meta?.source?.worldModelPrompt?.trim()
-    : String(promptOverride || '').trim() || meta?.source?.worldModelPrompt?.trim();
+    ? requestedPrompt || meta?.source?.environmentWorldModelPrompt?.trim() || meta?.source?.worldModelPrompt?.trim()
+    : requestedPrompt || meta?.source?.worldModelPrompt?.trim();
   if (explicitPrompt) {
-    return subjectErasedBootstrap
-      ? [
-        trimPromptWords(explicitPrompt, 22),
-        'Empty environment. No people. Preserve rocks and shore.',
-      ].join(' ')
-      : explicitPrompt;
+    if (!subjectErasedBootstrap) {
+      return explicitPrompt;
+    }
+
+    if (requestedPrompt) {
+      return explicitPrompt;
+    }
+
+    const cappedPrompt = trimPromptWords(
+      explicitPrompt,
+      promptOverride ? 48 : 32,
+    );
+    return /\bno people\b/i.test(cappedPrompt)
+      ? cappedPrompt
+      : `${cappedPrompt} Empty environment. No people. Preserve rocks and shore.`;
   }
 
   const title = meta?.title?.trim();
   const subtitle = meta?.subtitle?.trim();
   const description = meta?.description?.trim();
   const parts = [title, subtitle, description].filter(Boolean);
-  const prompt = parts.length
+  const autoPrompt = parts.length
     ? [
     parts.join('. '),
     subjectErasedBootstrap
@@ -555,14 +582,70 @@ function buildWorldModelPrompt(meta, options = {}) {
   ].join(' ')
     : '';
 
-  if (!subjectErasedBootstrap || !prompt) {
-    return prompt;
+  if (!subjectErasedBootstrap || !autoPrompt) {
+    return autoPrompt;
   }
 
   return [
-    trimPromptWords(prompt, 22),
+    trimPromptWords(autoPrompt, 22),
     'Empty environment. No people.',
   ].join(' ');
+}
+
+function buildCompactEnvironmentPromptSeed(meta, basePrompt) {
+  const prompt = String(basePrompt || '').toLowerCase();
+  const phrases = [];
+
+  if (/\b(golden|sunset|warm|mediterranean)\b/.test(prompt)) {
+    phrases.push('golden-hour light');
+  }
+  if (/\b(shore|coast|beach|sand|sea|ocean|water|tide)\b/.test(prompt)) {
+    phrases.push('open shoreline');
+  }
+  if (/\b(granite|rock|boulder|stone|cliff)\b/.test(prompt)) {
+    phrases.push('rock anchor');
+  }
+  if (/\b(horizon|island|distant)\b/.test(prompt)) {
+    phrases.push('sea horizon');
+  }
+  if (/\b(cave|bell|frame)\b/.test(prompt)) {
+    phrases.push('preserved local landmark');
+  }
+
+  if (phrases.length) {
+    return [...new Set(phrases)].join(', ');
+  }
+
+  return trimPromptWords(
+    basePrompt || `${meta?.title || 'Memory world'} explorable world`,
+    10,
+  );
+}
+
+function buildWorldModelCandidateConfigs(meta, worldModelOptions = {}) {
+  const resolvedOptions = resolveWorldModelOptions(meta, worldModelOptions);
+  const candidateCount = resolvedOptions.candidates ?? 1;
+  const basePrompt = String(
+    resolvedOptions.prompt
+    || meta?.source?.environmentWorldModelPrompt
+    || meta?.source?.worldModelPrompt
+    || '',
+  ).trim();
+  const fallbackBase = basePrompt || `${meta?.title || 'Memory world'} complete coherent explorable surrounding space`;
+  const compactSeed = buildCompactEnvironmentPromptSeed(meta, fallbackBase);
+  const promptVariants = [
+    `${compactSeed}. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people.`,
+    `${compactSeed}. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people.`,
+    `${compactSeed}. Empty environment. Clear foreground, midground, and far horizon separation. No dominant frontal sheet. No people.`,
+    `${compactSeed}. Empty environment. Stable orbit views, side openings, and coherent surrounding topology. No floating fragments. No people.`,
+  ];
+  const seeds = [resolvedOptions.seed ?? 42, 1337, 2026, 31415, 27182, 424242, 515151, 777777];
+
+  return Array.from({ length: candidateCount }, (_, index) => ({
+    id: `candidate-${String(index + 1).padStart(2, '0')}`,
+    seed: seeds[index] ?? (resolvedOptions.seed ?? 42) + index * 97,
+    prompt: promptVariants[index % promptVariants.length],
+  }));
 }
 
 function shouldUseWorldgenBootstrapInpaint() {
@@ -663,6 +746,8 @@ function cleanWorldAssets(worldDir) {
     'scene.ply',
     'scene.runtime.ply',
     'scene.spz',
+    'scene.ksplat',
+    'scene.runtime.ksplat',
     'scene.glb',
     'bootstrap.environment.png',
     'collider.glb',
@@ -1058,6 +1143,158 @@ function parsePlyVertexCount(plyPath) {
   }
 }
 
+function sampleBinaryPlyPositions(plyPath, maxSamples = 60000) {
+  const buffer = readFileSync(plyPath);
+  const {
+    elements,
+    vertexElementIndex,
+    vertexStride,
+    vertexCount,
+    vertexOffset,
+  } = parseBinaryPlyHeader(buffer);
+  const properties = elements[vertexElementIndex].properties;
+  const offsets = buildVertexPropertyOffsets(properties);
+
+  if (offsets.x == null || offsets.y == null || offsets.z == null) {
+    throw new Error(`PLY is missing x/y/z properties: ${plyPath}`);
+  }
+
+  const sampleCount = Math.max(1, Math.min(vertexCount, maxSamples));
+  const step = Math.max(1, Math.floor(vertexCount / sampleCount));
+  const positions = new Float32Array(sampleCount * 3);
+  let writeIndex = 0;
+
+  for (let vertexIndex = 0; vertexIndex < vertexCount && writeIndex < sampleCount; vertexIndex += step) {
+    const baseOffset = vertexOffset + vertexIndex * vertexStride;
+    positions[writeIndex * 3 + 0] = buffer.readFloatLE(baseOffset + offsets.x);
+    positions[writeIndex * 3 + 1] = buffer.readFloatLE(baseOffset + offsets.y);
+    positions[writeIndex * 3 + 2] = buffer.readFloatLE(baseOffset + offsets.z);
+    writeIndex += 1;
+  }
+
+  return positions.subarray(0, writeIndex * 3);
+}
+
+function computeEntropy(counts) {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (!total) return 0;
+  let entropy = 0;
+  for (const count of counts) {
+    if (!count) continue;
+    const probability = count / total;
+    entropy -= probability * Math.log2(probability);
+  }
+  return entropy;
+}
+
+function scoreWorldPly(plyPath) {
+  const positions = sampleBinaryPlyPositions(plyPath);
+  const pointCount = Math.max(1, Math.floor(positions.length / 3));
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index + 0];
+    const y = positions[index + 1];
+    const z = positions[index + 2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    minZ = Math.min(minZ, z);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+    maxZ = Math.max(maxZ, z);
+  }
+
+  const extentX = Math.max(0.0001, maxX - minX);
+  const extentY = Math.max(0.0001, maxY - minY);
+  const extentZ = Math.max(0.0001, maxZ - minZ);
+  const widthDepthBalance = clamp(extentZ / Math.max(extentX, 0.0001), 0, 1);
+  const heightDepthBalance = clamp(extentZ / Math.max(extentY * 1.8, 0.0001), 0, 1);
+
+  const gridX = 16;
+  const gridY = 10;
+  const gridZ = 16;
+  const occupancy = new Set();
+  const depthBins = new Uint32Array(gridZ);
+  const radialBins = new Uint32Array(6);
+  const depthSliceCoverage = Array.from({ length: gridZ }, () => new Set());
+  const centerX = (minX + maxX) * 0.5;
+  const centerY = (minY + maxY) * 0.5;
+  const centerZ = (minZ + maxZ) * 0.5;
+  const radiusNormalizer = Math.max(extentX, extentY, extentZ, 0.0001) * 0.5;
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index + 0];
+    const y = positions[index + 1];
+    const z = positions[index + 2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+
+    const normalizedX = clamp((x - minX) / extentX, 0, 0.9999);
+    const normalizedY = clamp((y - minY) / extentY, 0, 0.9999);
+    const normalizedZ = clamp((z - minZ) / extentZ, 0, 0.9999);
+    const cellX = Math.floor(normalizedX * gridX);
+    const cellY = Math.floor(normalizedY * gridY);
+    const cellZ = Math.floor(normalizedZ * gridZ);
+    occupancy.add(`${cellX}:${cellY}:${cellZ}`);
+    depthSliceCoverage[cellZ].add(`${cellX}:${cellY}`);
+    depthBins[cellZ] += 1;
+
+    const radius = Math.hypot(x - centerX, y - centerY, z - centerZ) / radiusNormalizer;
+    radialBins[Math.min(radialBins.length - 1, Math.floor(clamp(radius, 0, 1.999) * 3))] += 1;
+  }
+
+  const occupancyRatio = occupancy.size / (gridX * gridY * gridZ);
+  const depthCoverage = depthBins.filter(count => count > 0).length / depthBins.length;
+  const depthEntropy = computeEntropy(Array.from(depthBins)) / Math.log2(depthBins.length);
+  const radialEntropy = computeEntropy(Array.from(radialBins)) / Math.log2(radialBins.length);
+  const frontSheetPenalty = 1 - clamp(extentZ / Math.max(extentX * 0.55, 0.0001), 0, 1);
+  const dominantDepthShare = Math.max(...depthBins) / pointCount;
+  const maxDepthSliceCoverage = Math.max(
+    ...depthSliceCoverage.map(slice => slice.size / (gridX * gridY)),
+  );
+  const frontalWallPenalty = clamp((maxDepthSliceCoverage - 0.34) / 0.36, 0, 1);
+  const depthConcentrationPenalty = clamp((dominantDepthShare - 0.15) / 0.2, 0, 1);
+  const score = clamp(
+    occupancyRatio * 0.28
+      + depthCoverage * 0.18
+      + depthEntropy * 0.18
+      + radialEntropy * 0.12
+      + widthDepthBalance * 0.09
+      + heightDepthBalance * 0.05
+      - frontSheetPenalty * 0.14
+      - frontalWallPenalty * 0.24
+      - depthConcentrationPenalty * 0.16,
+    0,
+    1,
+  );
+
+  return {
+    score,
+    occupancyRatio,
+    depthCoverage,
+    depthEntropy,
+    radialEntropy,
+    widthDepthBalance,
+    heightDepthBalance,
+    frontSheetPenalty,
+    dominantDepthShare,
+    maxDepthSliceCoverage,
+    frontalWallPenalty,
+    depthConcentrationPenalty,
+    samplePointCount: pointCount,
+    bounds: {
+      min: [minX, minY, minZ],
+      max: [maxX, maxY, maxZ],
+      extent: [extentX, extentY, extentZ],
+    },
+  };
+}
+
 function normalizeGeneratedWorldAssets(worldDir) {
   const files = readdirSync(worldDir, { withFileTypes: true })
     .filter(entry => entry.isFile())
@@ -1071,9 +1308,20 @@ function normalizeGeneratedWorldAssets(worldDir) {
     return targetName;
   };
 
+  const runtimeKsplatFile = existsSync(join(worldDir, 'scene.runtime.ksplat')) ? 'scene.runtime.ksplat' : null;
+  const runtimePlyFile = existsSync(join(worldDir, 'scene.runtime.ply')) ? 'scene.runtime.ply' : null;
+  const sourcePlyFile = existsSync(join(worldDir, 'scene.ply'))
+    ? 'scene.ply'
+    : promoteFirstMatch(name => name.toLowerCase().endsWith('.ply'), 'scene.ply');
   const splatFile =
+    runtimeKsplatFile ||
     promoteFirstMatch(name => name.toLowerCase().endsWith('.spz'), 'scene.spz') ||
-    promoteFirstMatch(name => name.toLowerCase().endsWith('.ply'), 'scene.ply');
+    promoteFirstMatch(
+      name => name.toLowerCase().endsWith('.ksplat') && name.toLowerCase() !== 'scene.runtime.ksplat',
+      'scene.ksplat',
+    ) ||
+    runtimePlyFile ||
+    sourcePlyFile;
   const meshFile = promoteFirstMatch(
     name => name.toLowerCase().endsWith('.glb') && name.toLowerCase() !== 'collider.glb',
     'scene.glb',
@@ -1081,13 +1329,32 @@ function normalizeGeneratedWorldAssets(worldDir) {
   const colliderFile = existsSync(join(worldDir, 'collider.glb')) ? 'collider.glb' : null;
   const boundsPath = join(worldDir, 'bounds.json');
   const bounds = existsSync(boundsPath) ? JSON.parse(readFileSync(boundsPath, 'utf8')) : null;
+  const sourceSplatFile = sourcePlyFile && sourcePlyFile !== splatFile
+    ? sourcePlyFile
+    : runtimePlyFile && runtimePlyFile !== splatFile
+      ? runtimePlyFile
+      : null;
+  const runtimePlyCount = runtimePlyFile ? parsePlyVertexCount(join(worldDir, runtimePlyFile)) : null;
+  const sourcePlyCount = sourcePlyFile ? parsePlyVertexCount(join(worldDir, sourcePlyFile)) : null;
 
   return {
     splat: toWorldRelative(splatFile),
+    sourceSplat: toWorldRelative(sourceSplatFile),
     mesh: toWorldRelative(meshFile),
     collider: toWorldRelative(colliderFile),
-    format: splatFile?.endsWith('.spz') ? 'spz' : splatFile?.endsWith('.ply') ? 'ply' : null,
-    splatCount: splatFile?.endsWith('.ply') ? parsePlyVertexCount(join(worldDir, splatFile)) : null,
+    format:
+      splatFile?.endsWith('.spz') ? 'spz'
+      : splatFile?.endsWith('.ksplat') ? 'ksplat'
+      : splatFile?.endsWith('.ply') ? 'ply'
+      : null,
+    splatCount:
+      splatFile?.endsWith('.ply') ? parsePlyVertexCount(join(worldDir, splatFile))
+      : splatFile?.endsWith('.ksplat') ? (runtimePlyCount ?? sourcePlyCount)
+      : null,
+    sourceSplatCount:
+      sourceSplatFile === sourcePlyFile ? sourcePlyCount
+      : sourceSplatFile === runtimePlyFile ? runtimePlyCount
+      : null,
     bounds,
   };
 }
@@ -1130,28 +1397,88 @@ function resolveRuntimePreviewTarget(meta, assets) {
   return MAX_RUNTIME_SPLATS;
 }
 
-function prepareRuntimeAssets(worldDir, assets, targetVertexCount = MAX_RUNTIME_SPLATS) {
+function shouldGenerateCompressedRuntimeSplat() {
+  return process.env.WORLD_COMPRESS_RUNTIME_SPLAT !== '0';
+}
+
+async function convertPlyToKsplat(inputPath, outputPath, options = {}) {
+  const {
+    compressionLevel = 1,
+    minimumAlpha = 1,
+    sphericalHarmonicsDegree = 0,
+  } = options;
+
+  if (!globalThis.window) {
+    globalThis.window = {
+      setTimeout,
+      clearTimeout,
+    };
+  } else {
+    globalThis.window.setTimeout ||= setTimeout;
+    globalThis.window.clearTimeout ||= clearTimeout;
+  }
+
+  const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
+  const { PlyLoader } = GaussianSplats3D;
+  const plyData = readFileSync(inputPath);
+  const arrayBuffer = plyData.buffer.slice(plyData.byteOffset, plyData.byteOffset + plyData.byteLength);
+  const splatBuffer = await PlyLoader.loadFromFileData(
+    arrayBuffer,
+    minimumAlpha,
+    compressionLevel,
+    true,
+    sphericalHarmonicsDegree,
+  );
+
+  writeFileSync(outputPath, Buffer.from(splatBuffer.bufferData));
+  return outputPath;
+}
+
+async function prepareRuntimeAssets(worldDir, assets, targetVertexCount = MAX_RUNTIME_SPLATS) {
   if (assets.format !== 'ply' || !assets.splat) {
     return assets;
   }
 
   const sourceFile = join(worldDir, assets.splat.replace(/^world\//, ''));
   const sourceCount = assets.splatCount ?? parsePlyVertexCount(sourceFile);
-  if (!sourceCount || !targetVertexCount || sourceCount <= targetVertexCount) {
-    return assets;
+  let runtimeAssets = assets;
+  let plyForCompression = sourceFile;
+  let compressedFilename = 'scene.ksplat';
+
+  if (sourceCount && targetVertexCount && sourceCount > targetVertexCount) {
+    const runtimeFilename = 'scene.runtime.ply';
+    const runtimePath = join(worldDir, runtimeFilename);
+    const runtimeCount = createRuntimePreviewPly(sourceFile, runtimePath, targetVertexCount);
+
+    runtimeAssets = {
+      ...assets,
+      splat: toWorldRelative(runtimeFilename),
+      sourceSplat: assets.splat,
+      splatCount: runtimeCount,
+      sourceSplatCount: sourceCount,
+    };
+    plyForCompression = runtimePath;
+    compressedFilename = 'scene.runtime.ksplat';
   }
 
-  const runtimeFilename = 'scene.runtime.ply';
-  const runtimePath = join(worldDir, runtimeFilename);
-  const runtimeCount = createRuntimePreviewPly(sourceFile, runtimePath, targetVertexCount);
+  if (!shouldGenerateCompressedRuntimeSplat()) {
+    return runtimeAssets;
+  }
 
-  return {
-    ...assets,
-    splat: toWorldRelative(runtimeFilename),
-    sourceSplat: assets.splat,
-    splatCount: runtimeCount,
-    sourceSplatCount: sourceCount,
-  };
+  try {
+    await convertPlyToKsplat(plyForCompression, join(worldDir, compressedFilename));
+    return {
+      ...runtimeAssets,
+      splat: toWorldRelative(compressedFilename),
+      format: 'ksplat',
+      splatCount: runtimeAssets.splatCount ?? sourceCount,
+      sourceSplat: runtimeAssets.sourceSplat ?? assets.splat,
+      sourceSplatCount: runtimeAssets.sourceSplatCount ?? sourceCount,
+    };
+  } catch (error) {
+    console.warn(`[World Assets] KSPLAT compression failed for ${plyForCompression}: ${error.message}`);
+    return runtimeAssets;
+  }
 }
 
 function runSharpPrediction(inputPhoto, outputDir, sceneIdLabel = 'memory-world') {
@@ -1187,11 +1514,11 @@ function runSharpPrediction(inputPhoto, outputDir, sceneIdLabel = 'memory-world'
   }
 }
 
-function generateSharpDraftAssets(inputPhoto, outputDir, sceneIdLabel) {
+async function generateSharpDraftAssets(inputPhoto, outputDir, sceneIdLabel) {
   runSharpPrediction(inputPhoto, outputDir, sceneIdLabel);
   const assets = normalizeGeneratedWorldAssets(outputDir);
   if (!assets.splat) {
-    throw new Error('[SHARP] No .ply or .spz file was produced in the world directory.');
+    throw new Error('[SHARP] No .ply, .spz, or .ksplat file was produced in the world directory.');
   }
   return prepareRuntimeAssets(outputDir, assets);
 }
@@ -1313,8 +1640,9 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
         const tempWorldDir = join(tmpdir(), `jarowe-cluster-${options.sceneId}-${index}-${Date.now()}`);
         mkdirSync(tempWorldDir, { recursive: true });
         tempWorldDirs.push(tempWorldDir);
-        const assets = generateSharpDraftAssets(view.absolutePath, tempWorldDir, `${options.sceneId}-cluster-${index}`);
-        plyPath = join(tempWorldDir, assets.splat.replace(/^world\//, ''));
+        const assets = await generateSharpDraftAssets(view.absolutePath, tempWorldDir, `${options.sceneId}-cluster-${index}`);
+        const draftPly = assets.sourceSplat ?? assets.splat;
+        plyPath = join(tempWorldDir, draftPly.replace(/^world\//, ''));
       }
 
       plyInputs.push({
@@ -1361,7 +1689,52 @@ async function buildCompositeExpandedWorld(inputPhoto, worldDir, options, bundle
   }
 }
 
-async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
+function buildWorldModelAssetsResult(worldDir, meta, bundle, worldModelInputs, resolvedWorldModelOptions, scoring = null) {
+  const refreshedBundle = refreshExpandedBundleManifest(
+    worldDir,
+    meta,
+    bundle,
+    'learned-scene-expansion',
+  );
+  const assets = normalizeGeneratedWorldAssets(worldDir);
+  if (!assets.splat && !assets.mesh) {
+    throw new Error(
+      [
+        '[World Model] Command completed but no world assets were produced.',
+        'Expected at least one of: scene.ply, scene.spz, scene.ksplat, scene.glb, collider.glb in the world directory.',
+      ].join('\n'),
+    );
+  }
+
+  return {
+    ...assets,
+    generationMode: 'single-image-world-model',
+    expansion: {
+      strategy: 'learned-scene-expansion',
+      stage: 'world-model-fused',
+      bundle: refreshedBundle.manifestRelativePath,
+      sourceViewCount: refreshedBundle.sourceViews.length,
+      generatedViewCount: refreshedBundle.generatedViews.length,
+      totalViewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
+      anchorGenerator: 'source-photo',
+      viewSynthesizer: 'world-model',
+      fusionEngine: 'world-model',
+      environmentBootstrap: worldModelInputs.environmentBootstrap ?? undefined,
+    },
+    provenance: {
+      tier: 'world-model-fused',
+      anchorGenerator: 'source-photo',
+      reconstruction: 'single-image-world-model',
+      viewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
+    },
+    environmentBootstrap: worldModelInputs.environmentBootstrap,
+    worldGenerationProfile: resolvedWorldModelOptions.qualityProfile,
+    runtimePreviewSplatTarget: resolvedWorldModelOptions.runtimePreviewSplatTarget,
+    worldSelection: scoring ?? undefined,
+  };
+}
+
+function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
   const { meta, sceneDir, sceneId, worldModelOptions = {} } = options;
   const resolvedWorldModelOptions = resolveWorldModelOptions(meta, worldModelOptions);
   const worldModelInputs = buildEnvironmentBootstrapImage(
@@ -1388,6 +1761,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
     subjectInput: worldModelInputs.subjectInputPath,
     mask: worldModelInputs.maskPath,
     prompt: synthesizedPrompt,
+    seed: resolvedWorldModelOptions.seed,
     resolution: resolvedWorldModelOptions.resolution,
     useSharp: resolvedWorldModelOptions.useSharp,
     inpaintBg: resolvedWorldModelOptions.inpaintBg,
@@ -1434,6 +1808,7 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       subjectInput: worldModelInputs.subjectInputPath,
       mask: worldModelInputs.maskPath,
       prompt: synthesizedPrompt,
+      seed: resolvedWorldModelOptions.seed,
       resolution: resolvedWorldModelOptions.resolution,
       useSharp: resolvedWorldModelOptions.useSharp,
       inpaintBg: resolvedWorldModelOptions.inpaintBg,
@@ -1458,50 +1833,115 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       );
     }
 
-    const refreshedBundle = refreshExpandedBundleManifest(
+    const scorePath = join(worldDir, 'scene.ply');
+    const scoring = existsSync(scorePath)
+      ? {
+        prompt: synthesizedPrompt,
+        seed: resolvedWorldModelOptions.seed,
+        metrics: scoreWorldPly(scorePath),
+      }
+      : null;
+
+    return buildWorldModelAssetsResult(
       worldDir,
       meta,
       bundle,
-      'learned-scene-expansion',
+      worldModelInputs,
+      resolvedWorldModelOptions,
+      scoring,
     );
-    const assets = normalizeGeneratedWorldAssets(worldDir);
-    if (!assets.splat && !assets.mesh) {
-      throw new Error(
-        [
-          '[World Model] Command completed but no world assets were produced.',
-          'Expected at least one of: scene.ply, scene.spz, scene.glb, collider.glb in the world directory.',
-        ].join('\n'),
-      );
-    }
-
-    return {
-      ...assets,
-      generationMode: 'single-image-world-model',
-      expansion: {
-        strategy: 'learned-scene-expansion',
-        stage: 'world-model-fused',
-        bundle: refreshedBundle.manifestRelativePath,
-        sourceViewCount: refreshedBundle.sourceViews.length,
-        generatedViewCount: refreshedBundle.generatedViews.length,
-        totalViewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
-        anchorGenerator: 'source-photo',
-        viewSynthesizer: 'world-model',
-        fusionEngine: 'world-model',
-        environmentBootstrap: worldModelInputs.environmentBootstrap ?? undefined,
-      },
-      provenance: {
-        tier: 'world-model-fused',
-        anchorGenerator: 'source-photo',
-        reconstruction: 'single-image-world-model',
-        viewCount: refreshedBundle.sourceViews.length + refreshedBundle.generatedViews.length,
-      },
-      environmentBootstrap: worldModelInputs.environmentBootstrap,
-      worldGenerationProfile: resolvedWorldModelOptions.qualityProfile,
-      runtimePreviewSplatTarget: resolvedWorldModelOptions.runtimePreviewSplatTarget,
-    };
   } finally {
     rmSync(bundle.bundleRoot, { recursive: true, force: true });
   }
+}
+
+async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
+  const { meta, sceneDir, sceneId, worldModelOptions = {} } = options;
+  const resolvedWorldModelOptions = resolveWorldModelOptions(meta, worldModelOptions);
+  const candidateConfigs = buildWorldModelCandidateConfigs(meta, resolvedWorldModelOptions);
+
+  if (candidateConfigs.length <= 1) {
+    return executeSingleImageWorldModelRun(inputPhoto, worldDir, {
+      ...options,
+      worldModelOptions: {
+        ...resolvedWorldModelOptions,
+        prompt: candidateConfigs[0]?.prompt ?? resolvedWorldModelOptions.prompt,
+        seed: candidateConfigs[0]?.seed ?? resolvedWorldModelOptions.seed,
+      },
+    });
+  }
+
+  const candidateRoot = join(worldDir, 'candidates');
+  mkdirSync(candidateRoot, { recursive: true });
+  const candidateResults = [];
+
+  for (const candidate of candidateConfigs) {
+    const candidateWorldDir = join(candidateRoot, candidate.id);
+    rmSync(candidateWorldDir, { recursive: true, force: true });
+    mkdirSync(candidateWorldDir, { recursive: true });
+    console.log(`\n[World Model] Generating ${candidate.id} seed=${candidate.seed}\n`);
+    const result = executeSingleImageWorldModelRun(inputPhoto, candidateWorldDir, {
+      ...options,
+      worldModelOptions: {
+        ...resolvedWorldModelOptions,
+        prompt: candidate.prompt,
+        seed: candidate.seed,
+        candidates: 1,
+      },
+    });
+    candidateResults.push({
+      id: candidate.id,
+      prompt: candidate.prompt,
+      seed: candidate.seed,
+      worldDir: candidateWorldDir,
+      result,
+      score: result.worldSelection?.metrics?.score ?? 0,
+    });
+  }
+
+  candidateResults.sort((left, right) => right.score - left.score);
+  const winner = candidateResults[0];
+  const worldFiles = [
+    'scene.ply',
+    'scene.runtime.ply',
+    'scene.spz',
+    'scene.ksplat',
+    'scene.runtime.ksplat',
+    'scene.glb',
+    'collider.glb',
+    'bounds.json',
+    'bootstrap.environment.png',
+    'scene.pano.cleaned.png',
+    'scene.pano.subject-mask.png',
+  ];
+
+  cleanWorldAssets(worldDir);
+  for (const filename of worldFiles) {
+    const sourcePath = join(winner.worldDir, filename);
+    if (existsSync(sourcePath)) {
+      copyFileSync(sourcePath, join(worldDir, filename));
+    }
+  }
+
+  const summary = {
+    generatedAt: new Date().toISOString(),
+    sceneId,
+    selectedCandidate: winner.id,
+    selectedScore: winner.score,
+    candidates: candidateResults.map(candidate => ({
+      id: candidate.id,
+      seed: candidate.seed,
+      prompt: candidate.prompt,
+      score: candidate.score,
+      metrics: candidate.result.worldSelection?.metrics ?? null,
+    })),
+  };
+  writeFileSync(join(candidateRoot, 'scores.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
+
+  return {
+    ...winner.result,
+    worldSelection: summary,
+  };
 }
 
 function detectExistingAssets(worldDir) {
@@ -1531,6 +1971,9 @@ function updateMetaWithAssets(meta, assets) {
       ...assets.expansion,
     };
   }
+  if (assets.worldSelection) {
+    meta.source.worldSelection = assets.worldSelection;
+  }
   const existingWorld = meta.world ?? {};
   meta.world = {
     ...existingWorld,
@@ -1544,6 +1987,7 @@ function updateMetaWithAssets(meta, assets) {
     bounds: assets.bounds ?? null,
     runtimePreviewSplatTarget: assets.runtimePreviewSplatTarget ?? existingWorld.runtimePreviewSplatTarget ?? null,
     generationProfile: assets.worldGenerationProfile ?? existingWorld.generationProfile ?? null,
+    selection: assets.worldSelection ?? existingWorld.selection ?? null,
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };
@@ -1595,6 +2039,7 @@ function buildWorldModelArgumentList(variables = {}) {
   if (variables.subjectInput) args.push(['--subject-input', variables.subjectInput]);
   if (variables.mask) args.push(['--mask', variables.mask]);
   if (variables.prompt) args.push(['--prompt', variables.prompt]);
+  if (Number.isFinite(variables.seed)) args.push(['--seed', `${variables.seed}`]);
   if (Number.isFinite(variables.resolution)) args.push(['--resolution', `${variables.resolution}`]);
   if (variables.useSharp === true) args.push(['--use-sharp', null]);
   if (variables.useSharp === false) args.push(['--no-sharp', null]);
@@ -1667,9 +2112,9 @@ const GENERATORS = {
     description: 'Apple SHARP single-image Gaussian splat generation',
     requirements: 'Python 3.10+, CUDA GPU, SHARP CLI installed (`pip install "sharp[f3d]"`)',
     async run(inputPhoto, worldDir, options) {
-      const assets = generateSharpDraftAssets(inputPhoto, worldDir, options.sceneId);
+      const assets = await generateSharpDraftAssets(inputPhoto, worldDir, options.sceneId);
       if (!assets.splat) {
-        throw new Error('[SHARP] No .ply or .spz file was produced in the world directory.');
+        throw new Error('[SHARP] No .ply, .spz, or .ksplat file was produced in the world directory.');
       }
       return assets;
     },
@@ -1882,7 +2327,7 @@ async function main() {
   const { sceneId, generator: generatorKey, force, worldModelOptions } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--quality draft|hero|ultra] [--hero] [--ultra] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--quality draft|hero|ultra] [--hero] [--ultra] [--candidates <n>] [--seed <n>] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);
@@ -1923,7 +2368,7 @@ async function main() {
 
   if ((currentAssets?.splat || currentAssets?.mesh) && !['expanded', 'world-model'].includes(generatorKey)) {
     console.log('\nExisting world assets detected. Registering them in meta.json...');
-    const runtimeAssets = prepareRuntimeAssets(
+    const runtimeAssets = await prepareRuntimeAssets(
       worldDir,
       currentAssets,
       resolveRuntimePreviewTarget(meta, currentAssets),
@@ -1949,7 +2394,7 @@ async function main() {
     force,
     worldModelOptions,
   });
-  const runtimeAssets = prepareRuntimeAssets(
+  const runtimeAssets = await prepareRuntimeAssets(
     worldDir,
     generatedAssets,
     resolveRuntimePreviewTarget(meta, generatedAssets),
