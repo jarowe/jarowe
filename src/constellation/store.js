@@ -99,6 +99,8 @@ const useConstellationStore = create((set, get) => ({
   // Timeline scrubber position (0-1 normalized)
   timelinePosition: 0,
   setTimelinePosition: (t) => set({ timelinePosition: t }),
+  timelineDragging: false,
+  setTimelineDragging: (v) => set({ timelineDragging: v }),
 }));
 
 // Selector for panelOpen (derived state)

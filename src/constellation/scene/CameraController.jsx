@@ -507,10 +507,10 @@ export default function CameraController({
 
     controls.update();
 
-    // Sync timeline scrubber with tunnel scroll position.
-    // Set a flag so the timeline camera effect knows this is a sync update
-    // (not a user slider drag) and should skip in tunnel mode.
-    if (helixBounds) {
+    // Sync timeline scrubber with tunnel scroll position — but NOT
+    // while the user is dragging the slider (that would overwrite their input).
+    const { timelineDragging } = useConstellationStore.getState();
+    if (helixBounds && !timelineDragging) {
       const range = helixBounds.maxY - helixBounds.minY;
       if (range > 0) {
         const normalized = (targetY - helixBounds.minY) / range;
@@ -818,8 +818,12 @@ export default function CameraController({
         tunnelSyncingRef.current = false;
         return;
       }
-      // User dragged the slider — move the tunnel camera to match.
+      // User interaction (slider drag or epoch click) — move the tunnel camera.
       useConstellationStore.getState().setTunnelY(mappedY);
+      // Also clear any focused node so the tunnel scroll useFrame resumes
+      if (currentFocus) {
+        useConstellationStore.getState().clearFocus();
+      }
       return;
     }
 
