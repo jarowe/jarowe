@@ -219,6 +219,18 @@ set SAM3D_BODY_COMMAND=python tools\\run_sam3d_body.py --input "{input}" --mask 
 node pipeline/generate-subject-3d.mjs naxos-rock --backend sam3d-body --label "sam3d body v1"
 ```
 
+Local Meta SAM 3D Body path now defaults to:
+
+```bash
+py -3.12 pipeline/run_sam3d_body_backend.py --input "{input}" --mask "{mask}" --output "{output}"
+```
+
+or, if present, the local repo + venv:
+
+```bash
+.\.venv-sam3d-body\Scripts\python.exe pipeline/run_sam3d_body_backend.py --input "{input}" --mask "{mask}" --output "{output}" --repo-root "_experiments/sam-3d-body"
+```
+
 Supported placeholders in `SAM3D_BODY_COMMAND` / `SUBJECT3D_COMMAND`:
 
 - `{input}` source photo path
@@ -235,6 +247,13 @@ Expected generated outputs:
 - `subject.meta.json` optional
 
 Every run snapshots the resulting subject assets into `public/memory/{scene-id}/subject-versions/` and updates `meta.subject3d.provenance` so we can grade and compare subject branches over time.
+
+Current real blocker for first SAM 3D Body inference on this machine:
+
+- the local `sam-3d-body` repo is wired
+- the backend wrapper is implemented
+- the local `.venv-sam3d-body` exists with Hugging Face tooling
+- but Hugging Face auth for `facebook/sam-3d-body-dinov3` is not active, so checkpoint download is still denied until login/access is granted
 
 ## Asset Contract
 

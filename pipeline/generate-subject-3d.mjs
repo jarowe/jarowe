@@ -21,6 +21,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const MEMORY_ROOT = join(ROOT, 'public', 'memory');
 const TODAY = new Date().toISOString().split('T')[0];
+const LOCAL_SAM3D_BODY_WRAPPER = join(ROOT, 'pipeline', 'run_sam3d_body_backend.py');
+const LOCAL_SAM3D_BODY_REPO = join(ROOT, '_experiments', 'sam-3d-body');
+const LOCAL_SAM3D_BODY_PYTHON = join(ROOT, '.venv-sam3d-body', 'Scripts', 'python.exe');
 const SUBJECT_FILES = [
   'subject.glb',
   'subject.ply',
@@ -131,6 +134,16 @@ function runShellCommand(command, cwd = ROOT) {
   });
 }
 
+function getDefaultPythonCommand() {
+  if (process.env.SAM3D_BODY_PYTHON) {
+    return process.env.SAM3D_BODY_PYTHON;
+  }
+  if (existsSync(LOCAL_SAM3D_BODY_PYTHON)) {
+    return `"${LOCAL_SAM3D_BODY_PYTHON}"`;
+  }
+  return process.platform === 'win32' ? 'py -3.12' : 'python3';
+}
+
 function resolveBackend(meta, requestedBackend, sceneDir) {
   if (requestedBackend) return requestedBackend;
   if (existsSync(join(sceneDir, 'subject.glb')) || existsSync(join(sceneDir, 'subject.ply'))) {
@@ -201,7 +214,23 @@ function buildSubjectBackendCommand(backend, variables = {}) {
   }
 
   const template = backend === 'sam3d-body'
-    ? (process.env.SAM3D_BODY_COMMAND || process.env.SUBJECT3D_COMMAND || '')
+    ? (
+      process.env.SAM3D_BODY_COMMAND
+      || (
+        existsSync(LOCAL_SAM3D_BODY_WRAPPER) && existsSync(LOCAL_SAM3D_BODY_REPO)
+          ? [
+            getDefaultPythonCommand(),
+            `"${LOCAL_SAM3D_BODY_WRAPPER}"`,
+            `--input "${variables.input}"`,
+            variables.mask ? `--mask "${variables.mask}"` : '',
+            `--output "${variables.output}"`,
+            `--repo-root "${LOCAL_SAM3D_BODY_REPO}"`,
+            '--use-mask',
+          ].filter(Boolean).join(' ')
+          : ''
+      )
+      || process.env.SUBJECT3D_COMMAND
+    )
     : (process.env.SUBJECT3D_COMMAND || '');
 
   if (!template) {
