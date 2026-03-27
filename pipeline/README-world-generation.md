@@ -20,6 +20,9 @@ node pipeline/generate-memory-world.mjs syros-cave --generator marble
 
 # Force a fresh run and overwrite normalized world outputs
 node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+
+# Register or generate a subject 3D asset with version snapshots
+node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "current proxy baseline"
 ```
 
 ## Supported Generators
@@ -202,6 +205,36 @@ Commercial API / export workflow. Best for production-grade worlds if you are ok
 export MARBLE_API_KEY=your_key_here
 node pipeline/generate-memory-world.mjs syros-cave --generator marble
 ```
+
+## Subject 3D Pipeline
+
+The subject should not be solved by the same branch that invents the world. Use `generate-subject-3d.mjs` to register or generate a dedicated subject asset, then keep the world generator focused on environment completion.
+
+```bash
+# Register the current local subject.glb into tracked subject metadata + version history
+node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "proxy baseline"
+
+# Future SAM 3D Body path
+set SAM3D_BODY_COMMAND=python tools\\run_sam3d_body.py --input "{input}" --mask "{mask}" --output "{output}"
+node pipeline/generate-subject-3d.mjs naxos-rock --backend sam3d-body --label "sam3d body v1"
+```
+
+Supported placeholders in `SAM3D_BODY_COMMAND` / `SUBJECT3D_COMMAND`:
+
+- `{input}` source photo path
+- `{mask}` subject mask path
+- `{output}` temporary output directory for generated subject assets
+- `{sceneDir}` scene root directory
+- `{sceneId}` memory scene id
+
+Expected generated outputs:
+
+- `subject.glb` preferred
+- `subject.ply` optional
+- `subject.preview.png` optional
+- `subject.meta.json` optional
+
+Every run snapshots the resulting subject assets into `public/memory/{scene-id}/subject-versions/` and updates `meta.subject3d.provenance` so we can grade and compare subject branches over time.
 
 ## Asset Contract
 

@@ -408,6 +408,14 @@ function main() {
       candidateScore: candidateSummary?.score ?? null,
       candidateMetrics: candidateSummary?.metrics ?? null,
     },
+    subject3d: meta?.subject3d ? {
+      mode: meta.subject3d.mode ?? null,
+      mesh: meta.subject3d.mesh ?? null,
+      pointCloud: meta.subject3d.pointCloud ?? null,
+      preview: meta.subject3d.preview ?? null,
+      transform: meta.subject3d.transform ?? null,
+      provenance: meta.subject3d.provenance ?? null,
+    } : null,
     machineReview: machineMetrics,
     files: linkedFiles,
   };

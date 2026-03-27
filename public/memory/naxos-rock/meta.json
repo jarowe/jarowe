@@ -306,7 +306,18 @@
         0,
         0,
         0
-      ]
+      ],
+      "supportMode": "mesh-fill"
+    },
+    "pointCloud": null,
+    "preview": null,
+    "provenance": {
+      "backend": "existing",
+      "generated": "2026-03-27",
+      "photo": "photo.jpg",
+      "mask": "mask.png",
+      "label": "mesh proxy baseline",
+      "notes": "registered current subject mesh as baseline before SAM3D"
     }
   },
   "narrative": [

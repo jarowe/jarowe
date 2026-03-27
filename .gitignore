@@ -52,6 +52,7 @@ public/memory/*/world/*.ply
 public/memory/*/world/*.spz
 public/memory/*/world/*.glb
 public/memory/*/world/versions/
+public/memory/*/subject-versions/
 
 # Editor directories and files
 .vscode/*
