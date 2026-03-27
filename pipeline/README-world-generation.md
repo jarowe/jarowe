@@ -219,6 +219,38 @@ world/
   view-bundle.json  Source-view provenance for expanded runs
 ```
 
+Reviewed snapshots go in `public/memory/{scene-id}/world/versions/`:
+
+```text
+versions/
+  index.json        Scene-level ledger of saved revisions
+  {version-id}/
+    review.json     Human + machine grading snapshot
+    ...linked world assets
+```
+
+## Version Grading
+
+Use the grading tool to freeze the current promoted world or a specific candidate as a named revision:
+
+```bash
+# Save the current promoted world
+node pipeline/grade-memory-world.mjs naxos-rock --label "hero baseline" --grade 7.2 --notes "best open shoreline so far"
+
+# Save the selected auto-picked candidate from the last multi-candidate run
+node pipeline/grade-memory-world.mjs naxos-rock --source selected-candidate --label "candidate winner"
+
+# Save a specific candidate and mark it as the current favorite
+node pipeline/grade-memory-world.mjs naxos-rock --source candidate:candidate-02 --label "wide continuity alt" --grade 8.1 --favorite
+```
+
+Each saved revision records:
+
+- prompt, seed, generator, and quality profile
+- machine world score and geometry metrics when `scene.ply` is available
+- your human grade and notes
+- a stable version id so favorite older attempts stop disappearing during iteration
+
 The pipeline writes these paths into `meta.json` under the `world` key:
 
 ```json

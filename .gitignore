@@ -51,6 +51,7 @@ pipeline/__pycache__/
 public/memory/*/world/*.ply
 public/memory/*/world/*.spz
 public/memory/*/world/*.glb
+public/memory/*/world/versions/
 
 # Editor directories and files
 .vscode/*
