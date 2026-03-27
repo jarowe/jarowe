@@ -9,9 +9,10 @@
     "depth": null,
     "mask": "mask.png",
     "generator": "world-model",
-    "generated": "2026-03-26",
+    "generated": "2026-03-27",
     "postDate": "May 08, 2024 6:52 am",
     "worldModelPrompt": "Seated boy in a bright blue hoodie on a granite rock at a golden-hour Naxos shoreline, preserve him clearly as the main subject, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
+    "environmentWorldModelPrompt": "Golden-hour Naxos shoreline with a granite rock seat as a clear foreground anchor, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, preserve non-masked rocks and shoreline structure, leave clean room for the seated subject to be reintroduced later, no duplicate people, no voids, no floating fragments.",
     "postImages": [
       "/images/Instagram/media/posts/202405/18011396732371399.jpg",
       "/images/Instagram/media/posts/202405/18033946798786712.jpg",
@@ -29,7 +30,23 @@
       "anchorGenerator": "source-photo",
       "viewSynthesizer": "world-model",
       "fusionEngine": "world-model",
-      "compositeViewCount": 1
+      "compositeViewCount": 1,
+      "environmentBootstrap": {
+        "strategy": "subject-erased-environment-bootstrap",
+        "image": "world/bootstrap.environment.png",
+        "subjectInput": "photo.jpg",
+        "mask": "mask.png",
+        "subjectMask": "mask.png",
+        "usedAsWorldInput": true
+      }
+    },
+    "environmentBootstrap": {
+      "strategy": "subject-erased-environment-bootstrap",
+      "image": "world/bootstrap.environment.png",
+      "subjectInput": "photo.jpg",
+      "mask": "mask.png",
+      "subjectMask": "mask.png",
+      "usedAsWorldInput": true
     }
   },
   "world": {
@@ -41,7 +58,7 @@
     "collider": null,
     "format": "ply",
     "splatCount": 850000,
-    "sourceSplatCount": 16515072,
+    "sourceSplatCount": 2097152,
     "bounds": null,
     "transform": {
       "position": [

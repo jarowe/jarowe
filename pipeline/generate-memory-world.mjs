@@ -422,7 +422,9 @@ function buildWorldModelPrompt(meta, options = {}) {
     subjectErasedBootstrap = false,
   } = options;
 
-  const explicitPrompt = String(promptOverride || '').trim() || meta?.source?.worldModelPrompt?.trim();
+  const explicitPrompt = subjectErasedBootstrap
+    ? String(promptOverride || '').trim() || meta?.source?.environmentWorldModelPrompt?.trim() || meta?.source?.worldModelPrompt?.trim()
+    : String(promptOverride || '').trim() || meta?.source?.worldModelPrompt?.trim();
   if (explicitPrompt) {
     return subjectErasedBootstrap
       ? [
@@ -456,15 +458,17 @@ function buildWorldModelPrompt(meta, options = {}) {
 }
 
 function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, worldModelOptions = {}) {
-  const maskPath = resolveSceneAssetPath(sceneDir, meta.source?.mask);
-  const hasMask = Boolean(maskPath && existsSync(maskPath));
+  const subjectMaskPath = resolveSceneAssetPath(sceneDir, meta.source?.mask);
+  const bootstrapMaskRelative = meta.source?.environmentMask || meta.source?.mask;
+  const bootstrapMaskPath = resolveSceneAssetPath(sceneDir, bootstrapMaskRelative);
+  const hasMask = Boolean(bootstrapMaskPath && existsSync(bootstrapMaskPath));
   const wantsSubjectErasedBootstrap = worldModelOptions.subjectErasedBootstrap ?? hasMask;
 
   if (!wantsSubjectErasedBootstrap || !hasMask || !existsSync(LOCAL_ENVIRONMENT_PLATE_SCRIPT)) {
     return {
       worldInputPath: inputPhoto,
       subjectInputPath: inputPhoto,
-      maskPath: hasMask ? maskPath : null,
+      maskPath: subjectMaskPath && existsSync(subjectMaskPath) ? subjectMaskPath : null,
       environmentBootstrap: null,
     };
   }
@@ -474,7 +478,7 @@ function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, wo
     getDefaultWorldModelPython(),
     `"${LOCAL_ENVIRONMENT_PLATE_SCRIPT}"`,
     `"${inputPhoto}"`,
-    `"${maskPath}"`,
+    `"${bootstrapMaskPath}"`,
     `"${bootstrapPath}"`,
   ].join(' ');
 
@@ -498,7 +502,7 @@ function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, wo
     return {
       worldInputPath: inputPhoto,
       subjectInputPath: inputPhoto,
-      maskPath,
+      maskPath: subjectMaskPath && existsSync(subjectMaskPath) ? subjectMaskPath : null,
       environmentBootstrap: null,
     };
   }
@@ -506,12 +510,13 @@ function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, wo
   return {
     worldInputPath: bootstrapPath,
     subjectInputPath: inputPhoto,
-    maskPath,
+    maskPath: subjectMaskPath && existsSync(subjectMaskPath) ? subjectMaskPath : null,
     environmentBootstrap: {
       strategy: 'subject-erased-environment-bootstrap',
       image: toWorldRelative('bootstrap.environment.png'),
       subjectInput: meta.source?.photo ?? null,
-      mask: meta.source?.mask ?? null,
+      mask: bootstrapMaskRelative ?? null,
+      subjectMask: meta.source?.mask ?? null,
       usedAsWorldInput: true,
     },
   };
@@ -1365,7 +1370,9 @@ function updateMetaWithAssets(meta, assets) {
       ...assets.expansion,
     };
   }
+  const existingWorld = meta.world ?? {};
   meta.world = {
+    ...existingWorld,
     splat: assets.splat,
     sourceSplat: assets.sourceSplat ?? null,
     mesh: assets.mesh,
@@ -1374,8 +1381,8 @@ function updateMetaWithAssets(meta, assets) {
     splatCount: assets.splatCount ?? null,
     sourceSplatCount: assets.sourceSplatCount ?? null,
     bounds: assets.bounds ?? null,
-    transform: assets.transform ?? meta.world?.transform ?? null,
-    provenance: assets.provenance ?? meta.world?.provenance ?? null,
+    transform: assets.transform ?? existingWorld.transform ?? null,
+    provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };
 }
 
