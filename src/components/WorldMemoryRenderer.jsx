@@ -70,6 +70,37 @@ function smoothstep(edge0, edge1, value) {
   return t * t * (3 - 2 * t);
 }
 
+function computeSubjectFocusIntensity({
+  pointer = { x: 0, y: 0, activity: 0 },
+  travelProgress = 0,
+  subjectCrop = null,
+  presentation = 'ambient',
+}) {
+  if (!Array.isArray(subjectCrop) || subjectCrop.length < 4) return 0;
+
+  const cropX = Number(subjectCrop[0]) || 0;
+  const cropY = Number(subjectCrop[1]) || 0;
+  const cropWidth = Number(subjectCrop[2]) || 0;
+  const cropHeight = Number(subjectCrop[3]) || 0;
+  const focusTargetX = ((cropX + cropWidth * 0.5) - 0.5) * 1.1;
+  const focusTargetY = (0.5 - (cropY + cropHeight * 0.5)) * 1.15;
+  const distance = Math.hypot(
+    (pointer.x - focusTargetX) * 1.2,
+    (pointer.y - focusTargetY) * 1.45,
+  );
+  const proximity = 1 - smoothstep(0.14, 0.82, distance);
+  const intent = smoothstep(0.05, 0.45, pointer.activity ?? 0);
+  const travelReady = presentation === 'chapter'
+    ? smoothstep(0.04, 0.24, travelProgress)
+    : smoothstep(0.02, 0.16, travelProgress);
+
+  return THREE.MathUtils.clamp(
+    proximity * (0.18 + intent * 0.82) * Math.max(0.35, travelReady),
+    0,
+    1,
+  );
+}
+
 function buildProjectedSubjectMeshParts(subjectScene) {
   if (!subjectScene) return null;
 
@@ -639,6 +670,7 @@ function ClusterMemoryFacets({
   depthOffset = 0,
   radiusMultiplier = 1,
   presentation = 'ambient',
+  focusIntensity = 0,
 }) {
   const groupRef = useRef(null);
   const subjectRigRef = useRef(null);
@@ -1257,19 +1289,31 @@ function ClusterMemoryFacets({
       frontFacing,
     );
     const sideReveal = 1 - frontReveal;
+    const focusFrontReveal = THREE.MathUtils.clamp(
+      THREE.MathUtils.lerp(frontReveal, 1, focusIntensity * (isChapter ? 0.82 : 0.58)),
+      0,
+      1,
+    );
+    const focusSideReveal = THREE.MathUtils.clamp(
+      sideReveal * (1 - focusIntensity * (isChapter ? 0.9 : 0.72)),
+      0,
+      1,
+    );
+    const focusBlend = 1 + focusIntensity * (isChapter ? 0.7 : 0.38);
 
     if (subjectBackgroundMaterialRef.current) {
       subjectBackgroundMaterialRef.current.opacity =
         ((isAnchor ? 0.05 : 0.016) * blend)
         * (hasSubjectDepthSlices
-          ? (isChapter ? Math.pow(frontReveal, 2.2) * 0.06 : 0.02 + frontReveal * 0.12)
-          : (isChapter ? Math.pow(frontReveal, 2.2) * 0.035 : 0.02 + frontReveal * 0.3));
+          ? (isChapter ? Math.pow(focusFrontReveal, 2.2) * 0.06 : 0.02 + focusFrontReveal * 0.12)
+          : (isChapter ? Math.pow(focusFrontReveal, 2.2) * 0.035 : 0.02 + focusFrontReveal * 0.3));
+      subjectBackgroundMaterialRef.current.opacity *= (1 - focusIntensity * 0.72);
     }
 
     subjectVolumeMaterialRefs.current.forEach((material) => {
       if (!material) return;
       const baseOpacity = material.userData.baseOpacity ?? material.opacity;
-      material.opacity = baseOpacity * Math.pow(sideReveal, isAnchor ? 3.2 : 4.8) * (isChapter ? 0.58 : 1.12);
+      material.opacity = baseOpacity * Math.pow(focusSideReveal, isAnchor ? 3.2 : 4.8) * (isChapter ? 0.58 : 1.12) * (1 - focusIntensity * 0.58);
     });
     subjectShellMeshMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1277,9 +1321,9 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.6;
       const sideWeight = material.userData.sideWeight ?? 0.18;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 - focusIntensity * 0.5);
     });
     subjectHybridShellMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1287,18 +1331,18 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.08;
       const sideWeight = material.userData.sideWeight ?? 0.72;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 - focusIntensity * 0.62);
     });
     subjectHybridPointMaterialRefs.current.forEach((material) => {
       if (!material) return;
       const baseOpacity = material.userData.baseOpacity ?? material.opacity;
       material.opacity = baseOpacity * blend * (
         0.08
-        + sideReveal * 0.88
-        + frontReveal * 0.12
-      );
+        + focusSideReveal * 0.88
+        + focusFrontReveal * 0.12
+      ) * (1 - focusIntensity * 0.55);
     });
     subjectProjectedMeshPointMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1306,9 +1350,9 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.02;
       const sideWeight = material.userData.sideWeight ?? 0.62;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 - focusIntensity * 0.6);
     });
     subjectProjectedMeshShellMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1316,9 +1360,9 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.01;
       const sideWeight = material.userData.sideWeight ?? 0.24;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 - focusIntensity * 0.62);
     });
     subjectProjectedFillMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1326,9 +1370,9 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.2;
       const sideWeight = material.userData.sideWeight ?? 0.56;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 - focusIntensity * 0.56);
     });
     subjectProjectedSurfaceMaterialRefs.current.forEach((material) => {
       if (!material) return;
@@ -1336,20 +1380,21 @@ function ClusterMemoryFacets({
       const frontWeight = material.userData.frontWeight ?? 0.88;
       const sideWeight = material.userData.sideWeight ?? 0.2;
       material.opacity = baseOpacity * blend * (
-        frontReveal * frontWeight
-        + sideReveal * sideWeight
-      );
+        focusFrontReveal * frontWeight
+        + focusSideReveal * sideWeight
+      ) * (1 + focusIntensity * 0.34);
     });
 
     if (subjectPointMaterialRef.current) {
       const baseOpacity = ((isAnchor ? 0.24 : 0.18) * blend);
       subjectPointMaterialRef.current.opacity = isChapter
         ? (hasSubjectDepthSlices
-          ? baseOpacity * (0.16 + frontReveal * 0.34 + sideReveal * 0.16)
-          : baseOpacity * (0.18 + frontReveal * 0.72))
+          ? baseOpacity * (0.16 + focusFrontReveal * 0.34 + focusSideReveal * 0.16)
+          : baseOpacity * (0.18 + focusFrontReveal * 0.72))
         : (hasSubjectDepthSlices
-          ? baseOpacity * (0.14 + frontReveal * 0.46 + sideReveal * 0.12)
-          : baseOpacity * (0.08 + frontReveal * 0.92));
+          ? baseOpacity * (0.14 + focusFrontReveal * 0.46 + focusSideReveal * 0.12)
+          : baseOpacity * (0.08 + focusFrontReveal * 0.92));
+      subjectPointMaterialRef.current.opacity *= (1 - focusIntensity * 0.46);
     }
 
     if (subjectFrontMaterialRef.current) {
@@ -1368,23 +1413,31 @@ function ClusterMemoryFacets({
             )
       );
       subjectFrontMaterialRef.current.opacity = baseOpacity * Math.pow(
-        frontReveal,
+        focusFrontReveal,
         useProjectedSubjectMesh ? (isChapter ? 2.1 : 1.35) : (isChapter ? 3.1 : 1.6),
-      );
+      ) * focusBlend;
     }
 
     if (subjectGlowMaterialRef.current) {
       const baseOpacity = ((isChapter ? 0.018 : 0.028) + pointer.activity * (isChapter ? 0.026 : 0.03)) * blend;
       subjectGlowMaterialRef.current.opacity = baseOpacity * (
         useProjectedSubjectMesh
-          ? (0.015 + frontReveal * 0.22 + sideReveal * 0.01)
+          ? (0.015 + focusFrontReveal * 0.22 + focusSideReveal * 0.01)
           : useProjectedSubjectSurface
-            ? (0.03 + frontReveal * 0.22 + sideReveal * 0.04)
+            ? (0.03 + focusFrontReveal * 0.22 + focusSideReveal * 0.04)
           : (
             hasSubjectDepthSlices
-              ? (useHybridSubjectSupport ? (0.06 + frontReveal * 0.28 + sideReveal * 0.06) : (0.08 + frontReveal * 0.42))
-              : (subjectUsesMeshShellStrategy ? (0.12 + frontReveal * 0.58) : (0.16 + frontReveal * 0.84))
+              ? (useHybridSubjectSupport ? (0.06 + focusFrontReveal * 0.28 + focusSideReveal * 0.06) : (0.08 + focusFrontReveal * 0.42))
+              : (subjectUsesMeshShellStrategy ? (0.12 + focusFrontReveal * 0.58) : (0.16 + focusFrontReveal * 0.84))
           )
+      ) * (1 + focusIntensity * 1.8);
+    }
+
+    if (subjectRigRef.current && (isAnchor || isChapter)) {
+      const targetScale = 1 + focusIntensity * (isChapter ? 0.045 : 0.03);
+      subjectRigRef.current.scale.lerp(
+        new THREE.Vector3(targetScale, targetScale, targetScale),
+        1 - Math.exp(-delta * 3.4),
       );
     }
   });
@@ -2764,6 +2817,7 @@ function ArchiveWorldController({
 function SynapseField({
   pointer = { x: 0, y: 0, activity: 0 },
   travelProgress = 0,
+  focusIntensity = 0,
 }) {
   const groupRef = useRef(null);
   const lineRef = useRef(null);
@@ -2815,7 +2869,7 @@ function SynapseField({
   useFrame(({ clock }) => {
     const audioBands = sampleGlobalAudioBands(audioDataRef.current);
     const reveal = THREE.MathUtils.clamp(
-      pointer.activity * 1.05 + Math.max(0, travelProgress - 0.15) * 0.35 + audioBands.high * 0.28,
+      pointer.activity * 1.05 + Math.max(0, travelProgress - 0.15) * 0.35 + audioBands.high * 0.28 + focusIntensity * 0.62,
       0,
       1,
     );
@@ -2828,12 +2882,12 @@ function SynapseField({
       );
       groupRef.current.position.y = THREE.MathUtils.lerp(
         groupRef.current.position.y,
-        pointer.y * 1.1,
+        pointer.y * 1.1 + focusIntensity * 0.06,
         0.14,
       );
       groupRef.current.position.z = THREE.MathUtils.lerp(
         groupRef.current.position.z,
-        -2.1 - travelProgress * 1.25,
+        -2.1 - travelProgress * 1.25 + focusIntensity * 0.16,
         0.08,
       );
     }
@@ -2841,10 +2895,10 @@ function SynapseField({
     if (lineRef.current) {
       lineRef.current.rotation.y = drift + pointer.x * 0.14;
       lineRef.current.rotation.x = pointer.y * 0.08;
-      lineRef.current.material.opacity = reveal * 0.48;
+      lineRef.current.material.opacity = reveal * (0.48 + focusIntensity * 0.26);
       lineRef.current.material.color.setRGB(
-        0.42 + audioBands.high * 0.22,
-        0.62 + pointer.activity * 0.26,
+        0.42 + audioBands.high * 0.22 + focusIntensity * 0.08,
+        0.62 + pointer.activity * 0.26 + focusIntensity * 0.12,
         1,
       );
     }
@@ -2852,7 +2906,7 @@ function SynapseField({
     if (pointRef.current) {
       pointRef.current.rotation.y = -drift * 1.15;
       pointRef.current.material.opacity = reveal;
-      pointRef.current.material.size = 0.06 + reveal * 0.08 + audioBands.high * 0.05;
+      pointRef.current.material.size = 0.06 + reveal * 0.08 + audioBands.high * 0.05 + focusIntensity * 0.04;
     }
   });
 
@@ -2958,21 +3012,24 @@ function WorldPostProcessing({
   archiveMode = false,
   chapterMode = false,
   standaloneWorld = false,
+  focusIntensity = 0,
 }) {
-  const dofFocusDistance = chapterMode
+  const baseFocusDistance = chapterMode
     ? 0.015
     : standaloneWorld
       ? 0.015
       : 0.02;
-  const dofFocalLength = chapterMode
+  const dofFocusDistance = THREE.MathUtils.lerp(baseFocusDistance, 0.008, focusIntensity);
+  const baseFocalLength = chapterMode
     ? 0.012
     : standaloneWorld
       ? 0.01
       : 0.04;
+  const dofFocalLength = THREE.MathUtils.lerp(baseFocalLength, chapterMode ? 0.022 : 0.018, focusIntensity);
   const dofBokehScale = archiveMode
-    ? (chapterMode ? 0.2 : standaloneWorld ? 0.08 : 1.0)
+    ? (chapterMode ? 0.2 : standaloneWorld ? 0.08 : 1.0) + focusIntensity * (chapterMode ? 0.75 : 0.52)
     : 1.5;
-  const bloomIntensity = standaloneWorld && archiveMode ? 0.22 : 0.35;
+  const bloomIntensity = (standaloneWorld && archiveMode ? 0.22 : 0.35) + focusIntensity * 0.08;
   return (
     <EffectComposer disableNormalPass frameBufferType={HalfFloatType}>
       <Bloom
@@ -2990,7 +3047,7 @@ function WorldPostProcessing({
       <Vignette
         eskil={false}
         offset={0.25}
-        darkness={0.6}
+        darkness={0.6 + focusIntensity * 0.12}
         blendFunction={BlendFunction.NORMAL}
       />
     </EffectComposer>
@@ -3635,6 +3692,15 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const anchorFacetPresentation = standaloneAnchorWorld
     ? (maskedSubjectAnchor ? 'anchor' : 'ambient')
     : (chapterPresentation ? 'chapter' : 'anchor');
+  const archiveSubjectFocusIntensity = useMemo(
+    () => computeSubjectFocusIntensity({
+      pointer: archivePointer,
+      travelProgress: archiveTravelProgress,
+      subjectCrop: clusterPrimaryCrop,
+      presentation: anchorFacetPresentation,
+    }),
+    [anchorFacetPresentation, archivePointer, archiveTravelProgress, clusterPrimaryCrop],
+  );
   const anchorFacetBlend = standaloneAnchorWorld
     ? Math.min(
       0.96,
@@ -3843,6 +3909,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               travelProgress={archiveTravelProgress}
               blend={anchorFacetBlend}
               presentation={anchorFacetPresentation}
+              focusIntensity={archiveSubjectFocusIntensity}
             />
           )}
 
@@ -3861,6 +3928,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               depthOffset={-0.6}
               radiusMultiplier={0.92}
               presentation="chapter"
+              focusIntensity={archiveSubjectFocusIntensity}
             />
           )}
 
@@ -3892,6 +3960,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             <SynapseField
               pointer={archivePointer}
               travelProgress={archiveTravelProgress}
+              focusIntensity={archiveSubjectFocusIntensity}
             />
           )}
 
@@ -3930,6 +3999,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               archiveMode={archiveMode}
               chapterMode={chapterPresentation}
               standaloneWorld={standaloneAnchorWorld}
+              focusIntensity={archiveSubjectFocusIntensity}
             />
           )}
         </Canvas>
