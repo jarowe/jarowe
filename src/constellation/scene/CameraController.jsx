@@ -63,6 +63,9 @@ export default function CameraController({
   // Helix timeline scroll velocity for smooth momentum
   const helixScrollVelocity = useRef(0);
 
+  // Flag: true when tunnel useFrame is syncing timelinePosition (not user drag)
+  const tunnelSyncingRef = useRef(false);
+
   // Animated view offset proxy for panel shift
   const viewOffsetProxy = useRef({ x: 0, y: 0 });
 
@@ -504,11 +507,14 @@ export default function CameraController({
 
     controls.update();
 
-    // Sync timeline scrubber with tunnel scroll position
+    // Sync timeline scrubber with tunnel scroll position.
+    // Set a flag so the timeline camera effect knows this is a sync update
+    // (not a user slider drag) and should skip in tunnel mode.
     if (helixBounds) {
       const range = helixBounds.maxY - helixBounds.minY;
       if (range > 0) {
         const normalized = (targetY - helixBounds.minY) / range;
+        tunnelSyncingRef.current = true;
         useConstellationStore.getState().setTimelinePosition(
           Math.max(0, Math.min(1, normalized))
         );
@@ -796,7 +802,9 @@ export default function CameraController({
     if (introRef?.current?.active || isFlyingRef.current) return;
 
     const { focusedNodeId: currentFocus, cameraMode: mode } = useConstellationStore.getState();
-    if (currentFocus) return;
+    // In helix mode, don't move camera while focused (panel is open).
+    // In tunnel mode, allow slider drag to move the tunnel even when focused.
+    if (currentFocus && mode !== 'tunnel') return;
 
     // Allow 15% overshoot beyond helix bounds so edges don't feel clamped
     const range = helixBounds.maxY - helixBounds.minY;
@@ -805,8 +813,13 @@ export default function CameraController({
       (helixBounds.minY - padding) + timelinePosition * (range + padding * 2);
 
     if (mode === 'tunnel') {
-      // Tunnel camera is driven by its own useFrame via tunnelVelocity.
-      // Don't interfere — the tunnel useFrame already syncs timelinePosition.
+      if (tunnelSyncingRef.current) {
+        // This update came from the tunnel scroll sync — skip to avoid feedback loop.
+        tunnelSyncingRef.current = false;
+        return;
+      }
+      // User dragged the slider — move the tunnel camera to match.
+      useConstellationStore.getState().setTunnelY(mappedY);
       return;
     }
 
