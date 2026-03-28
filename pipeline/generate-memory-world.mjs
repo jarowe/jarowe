@@ -633,11 +633,18 @@ function buildWorldModelCandidateConfigs(meta, worldModelOptions = {}) {
   ).trim();
   const fallbackBase = basePrompt || `${meta?.title || 'Memory world'} complete coherent explorable surrounding space`;
   const compactSeed = buildCompactEnvironmentPromptSeed(meta, fallbackBase);
+  const landmarkPhrase = /\b(cave|bell|frame|arch|door|window|tree|rock)\b/i.test(fallbackBase)
+    ? 'Preserve the landmark anchor.'
+    : 'Preserve the strongest foreground anchor.';
   const promptVariants = [
-    `${compactSeed}. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people.`,
-    `${compactSeed}. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people.`,
-    `${compactSeed}. Empty environment. Clear foreground, midground, and far horizon separation. No dominant frontal sheet. No people.`,
-    `${compactSeed}. Empty environment. Stable orbit views, side openings, and coherent surrounding topology. No floating fragments. No people.`,
+    `${compactSeed}. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Clear foreground, midground, and far horizon separation. No dominant frontal sheet. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Stable orbit views, side openings, and coherent surrounding topology. No floating fragments. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Strong near-ground parallax, open left and right escape paths, believable rear continuation. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Surrounding world should wrap behind the camera with readable side bays and no vertical sheet. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Preserve grounded terrain under the viewer, readable distant space, and coherent off-axis exploration. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Favor explorable depth and side continuity over photo-front fidelity. Avoid bowls, voids, and front walls. No people. ${landmarkPhrase}`,
   ];
   const seeds = [resolvedOptions.seed ?? 42, 1337, 2026, 31415, 27182, 424242, 515151, 777777];
 
@@ -1187,8 +1194,7 @@ function computeEntropy(counts) {
   return entropy;
 }
 
-function scoreWorldPly(plyPath) {
-  const positions = sampleBinaryPlyPositions(plyPath);
+function computeWorldMetricsFromPositions(positions) {
   const pointCount = Math.max(1, Math.floor(positions.length / 3));
   let minX = Infinity;
   let minY = Infinity;
@@ -1292,6 +1298,90 @@ function scoreWorldPly(plyPath) {
       max: [maxX, maxY, maxZ],
       extent: [extentX, extentY, extentZ],
     },
+  };
+}
+
+function rotatePositionsAroundCenterY(positions, centerX, centerZ, radians) {
+  if (!Number.isFinite(radians) || Math.abs(radians) < 0.000001) {
+    return positions;
+  }
+
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const rotated = new Float32Array(positions.length);
+
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index + 0] - centerX;
+    const y = positions[index + 1];
+    const z = positions[index + 2] - centerZ;
+
+    rotated[index + 0] = x * cosine - z * sine + centerX;
+    rotated[index + 1] = y;
+    rotated[index + 2] = x * sine + z * cosine + centerZ;
+  }
+
+  return rotated;
+}
+
+function normalizeAngleDegrees(value) {
+  const normalized = ((value % 360) + 360) % 360;
+  return normalized > 180 ? normalized - 360 : normalized;
+}
+
+function scoreWorldPly(plyPath) {
+  const positions = sampleBinaryPlyPositions(plyPath);
+  if (!positions.length) {
+    return {
+      score: 0,
+      occupancyRatio: 0,
+      depthCoverage: 0,
+      depthEntropy: 0,
+      radialEntropy: 0,
+      widthDepthBalance: 0,
+      heightDepthBalance: 0,
+      frontSheetPenalty: 1,
+      dominantDepthShare: 1,
+      maxDepthSliceCoverage: 1,
+      frontalWallPenalty: 1,
+      depthConcentrationPenalty: 1,
+      samplePointCount: 0,
+      preferredYawDegrees: 0,
+      evaluatedYawCount: 0,
+      bounds: {
+        min: [0, 0, 0],
+        max: [0, 0, 0],
+        extent: [0, 0, 0],
+      },
+    };
+  }
+
+  const baseMetrics = computeWorldMetricsFromPositions(positions);
+  const centerX = (baseMetrics.bounds.min[0] + baseMetrics.bounds.max[0]) * 0.5;
+  const centerZ = (baseMetrics.bounds.min[2] + baseMetrics.bounds.max[2]) * 0.5;
+  const yawCandidates = Array.from({ length: 16 }, (_, index) => index * 22.5);
+
+  let bestYawDegrees = 0;
+  let bestMetrics = baseMetrics;
+
+  for (const yawDegrees of yawCandidates) {
+    if (yawDegrees === 0) continue;
+    const rotated = rotatePositionsAroundCenterY(
+      positions,
+      centerX,
+      centerZ,
+      (yawDegrees * Math.PI) / 180,
+    );
+    const metrics = computeWorldMetricsFromPositions(rotated);
+    if (metrics.score > bestMetrics.score) {
+      bestYawDegrees = yawDegrees;
+      bestMetrics = metrics;
+    }
+  }
+
+  return {
+    ...bestMetrics,
+    preferredYawDegrees: normalizeAngleDegrees(bestYawDegrees),
+    evaluatedYawCount: yawCandidates.length,
   };
 }
 

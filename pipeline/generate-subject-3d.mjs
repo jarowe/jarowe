@@ -371,10 +371,6 @@ async function main() {
     ?? meta?.subject3d?.transform?.supportMode
     ?? (effectiveMode === 'depth-volume' ? 'image-cloud' : 'mesh-fill');
 
-  if (force) {
-    cleanSubjectAssets(sceneDir);
-  }
-
   if (backend !== 'existing') {
     const workDir = join(tmpdir(), `memory-subject3d-${sceneId}-${Date.now()}`);
     mkdirSync(workDir, { recursive: true });
@@ -400,6 +396,9 @@ async function main() {
         );
       }
 
+      if (force) {
+        cleanSubjectAssets(sceneDir);
+      }
       const generated = normalizeGeneratedSubjectAssets(workDir, sceneDir);
       if (!generated.mesh && !generated.pointCloud) {
         throw new Error(`[Subject3D] ${backend} completed but produced no subject assets.`);

@@ -3547,9 +3547,16 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
     () => new URLSearchParams(location.search).get('full') === '1',
     [location.search],
   );
+  const candidatePreviewId = useMemo(
+    () => new URLSearchParams(location.search).get('candidate')?.trim() || null,
+    [location.search],
+  );
   // Determine splat URL: meta.json world.splat takes priority, then scene.splatUrl
   const splatUrl = useMemo(() => {
     const sharedSceneId = meta?.world?.sharedSceneId ?? scene.id;
+    if (candidatePreviewId) {
+      return resolveMemoryWorldPath(sharedSceneId, `world/candidates/${candidatePreviewId}/scene.ply`);
+    }
     const defaultSharedAsset = fullSourceMode ? 'world/scene.ply' : 'world/scene.runtime.ply';
     const preferredWorldAsset =
       (fullSourceMode && meta?.world?.sourceSplat)
@@ -3561,7 +3568,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
       return resolveMemoryWorldPath(sharedSceneId, preferredWorldAsset);
     }
     return scene.splatUrl || null;
-  }, [fullSourceMode, meta, scene.id, scene.splatUrl]);
+  }, [candidatePreviewId, fullSourceMode, meta, scene.id, scene.splatUrl]);
 
   // If no splat is available after meta loads, signal that we should fall back.
   // The parent (CapsuleShell) handles actual fallback; we just render what we can.
