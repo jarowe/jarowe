@@ -91,6 +91,7 @@ export default function MemoryWorldLab() {
 
   const source = searchParams.get('source') || 'selected-candidate';
   const view = searchParams.get('view') === 'archive' ? 'archive' : 'raw';
+  const layoutMode = searchParams.get('layout') === 'focus' ? 'focus' : 'review';
 
   async function fetchScenePayload(nextSceneId) {
     const [sceneResponse, catalogResponse] = await Promise.all([
@@ -248,10 +249,11 @@ export default function MemoryWorldLab() {
     }
   }
 
-  function updateSearch(nextSource, nextView = view) {
+  function updateSearch(nextSource, nextView = view, nextLayout = layoutMode) {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('source', nextSource);
     nextParams.set('view', nextView);
+    nextParams.set('layout', nextLayout);
     setSearchParams(nextParams, { replace: true });
   }
 
@@ -264,7 +266,7 @@ export default function MemoryWorldLab() {
 
   function handleSceneChange(nextSceneId) {
     if (!nextSceneId || nextSceneId === sceneId) return;
-    navigate(`/starseed/labs/memory-worlds/${nextSceneId}?source=selected-candidate&view=${view}`);
+    navigate(`/starseed/labs/memory-worlds/${nextSceneId}?source=selected-candidate&view=${view}&layout=${layoutMode}`);
   }
 
   useEffect(() => {
@@ -319,15 +321,21 @@ export default function MemoryWorldLab() {
       if (event.key === 'f') {
         event.preventDefault();
         setFavorite((current) => !current);
+        return;
+      }
+
+      if (event.key === 'p') {
+        event.preventDefault();
+        updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus');
       }
     }
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [candidates, effectiveSource, activeCandidateIndex, grade, label, notes, favorite, saving, sceneId, view]);
+  }, [candidates, effectiveSource, activeCandidateIndex, grade, label, notes, favorite, saving, sceneId, view, layoutMode]);
 
   return (
-    <div className="memory-world-lab">
+    <div className={`memory-world-lab ${layoutMode === 'focus' ? 'memory-world-lab--focus' : 'memory-world-lab--review'}`}>
       <header className="memory-world-lab__header">
         <div className="memory-world-lab__title">
           <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
@@ -350,6 +358,13 @@ export default function MemoryWorldLab() {
           </Link>
           <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
             Refresh
+          </button>
+          <button
+            type="button"
+            className={`memory-world-lab__button ${layoutMode === 'focus' ? 'memory-world-lab__button--active' : ''}`}
+            onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
+          >
+            {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
           </button>
           <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
             Open Preview
@@ -471,18 +486,27 @@ export default function MemoryWorldLab() {
                     Archive Composite
                   </button>
                 </div>
-                <div className="memory-world-lab__toggle-group">
-                  <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
-                    Prev
+              <div className="memory-world-lab__toggle-group">
+                <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
+                  Prev
                   </button>
                   <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
                     Next
-                  </button>
-                </div>
+                </button>
               </div>
-              <div className="memory-world-lab__preview-meta">
-                <span>{effectiveSource}</span>
-                <span>{view}</span>
+              <div className="memory-world-lab__toggle-group">
+                <button
+                  type="button"
+                  className={`memory-world-lab__toggle ${layoutMode === 'focus' ? 'is-active' : ''}`}
+                  onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
+                >
+                  {layoutMode === 'focus' ? 'Preview Focused' : 'Preview Standard'}
+                </button>
+              </div>
+            </div>
+            <div className="memory-world-lab__preview-meta">
+              <span>{effectiveSource}</span>
+              <span>{view}</span>
               </div>
             </div>
 
