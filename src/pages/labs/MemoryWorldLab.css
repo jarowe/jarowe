@@ -446,6 +446,15 @@
   line-height: 1.5;
 }
 
+.memory-world-lab__route-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.memory-world-lab__route-actions .memory-world-lab__button {
+  width: 100%;
+}
+
 .memory-world-lab__reference-photo {
   border-radius: 0.95rem;
   overflow: hidden;

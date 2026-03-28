@@ -45,6 +45,28 @@ function buildPreviewUrl(sceneId, source, viewMode) {
   return `/memory/${sceneId}?${params.toString()}`;
 }
 
+function buildArchiveSceneUrl(sceneId, source) {
+  const params = new URLSearchParams();
+  params.set('lab', '1');
+
+  if (source?.startsWith('candidate:')) {
+    params.set('candidate', source.slice('candidate:'.length));
+  }
+
+  return `/archive/${sceneId}?${params.toString()}`;
+}
+
+function buildCapsuleUrl(sceneId, source) {
+  const params = new URLSearchParams();
+  params.set('lab', '1');
+
+  if (source?.startsWith('candidate:')) {
+    params.set('candidate', source.slice('candidate:'.length));
+  }
+
+  return `/memory/${sceneId}?${params.toString()}`;
+}
+
 function buildDefaultLabel(source) {
   if (source?.startsWith('candidate:')) {
     return `${source.slice('candidate:'.length)} review`;
@@ -166,7 +188,11 @@ export default function MemoryWorldLab() {
     ?? (effectiveSource === 'current' ? currentReview : null);
   const selectedPrompt = selectedCandidate?.prompt ?? data?.scene?.source?.environmentWorldModelPrompt ?? data?.scene?.source?.worldModelPrompt ?? '';
   const previewUrl = buildPreviewUrl(sceneId, effectiveSource, view);
+  const archiveSceneUrl = buildArchiveSceneUrl(sceneId, effectiveSource);
+  const capsuleUrl = buildCapsuleUrl(sceneId, effectiveSource);
   const externalUrl = `${window.location.origin}${previewUrl}`;
+  const archiveExternalUrl = `${window.location.origin}${archiveSceneUrl}`;
+  const capsuleExternalUrl = `${window.location.origin}${capsuleUrl}`;
   const sourcePhotoUrl = buildAssetUrl(sceneId, data?.scene?.source?.photo);
   const subjectVersions = data?.lab?.subjectVersions ?? [];
   const subjectVersionCount = subjectVersions.length;
@@ -435,8 +461,11 @@ export default function MemoryWorldLab() {
             >
               {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
             </button>
-            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
-              Open Preview
+            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
+              Open Archive Scene
+            </a>
+            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
+              Open Capsule
             </a>
           </div>
         </header>
@@ -602,8 +631,11 @@ export default function MemoryWorldLab() {
                     >
                       Review Panel
                     </button>
-                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
-                      Open Preview
+                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
+                      Open Archive Scene
+                    </a>
+                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
+                      Open Capsule
                     </a>
                   </div>
                   <div className="memory-world-lab__focus-bar">
@@ -761,6 +793,22 @@ export default function MemoryWorldLab() {
             <button type="button" className="memory-world-lab__button memory-world-lab__button--primary" onClick={() => saveReview()} disabled={saving}>
               {saving ? 'Saving...' : 'Save Review'}
             </button>
+
+            <div className="memory-world-lab__detail-card">
+              <h3>Route Guide</h3>
+              <p>Lab route: review and grade versions. Archive scene: cinematic thread view. Capsule: direct memory route for the same scene.</p>
+              <div className="memory-world-lab__route-actions">
+                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
+                  Open Archive Scene
+                </a>
+                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
+                  Open Capsule
+                </a>
+                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
+                  Open Current Preview
+                </a>
+              </div>
+            </div>
 
             <div className="memory-world-lab__detail-card">
               <h3>Reference Photo</h3>
