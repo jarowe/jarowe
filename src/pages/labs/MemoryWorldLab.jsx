@@ -88,6 +88,8 @@ export default function MemoryWorldLab() {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [sourcesPanelOpen, setSourcesPanelOpen] = useState(false);
+  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
 
   const source = searchParams.get('source') || 'selected-candidate';
   const view = searchParams.get('view') === 'archive' ? 'archive' : 'raw';
@@ -187,6 +189,13 @@ export default function MemoryWorldLab() {
     setNotes(selectedReview?.latestNotes ?? '');
     setSaveMessage('');
   }, [sceneId, effectiveSource, selectedReview]);
+
+  useEffect(() => {
+    if (layoutMode !== 'focus') {
+      setSourcesPanelOpen(false);
+      setInspectorPanelOpen(false);
+    }
+  }, [layoutMode, sceneId]);
 
   const reviewHistory = useMemo(() => {
     const allVersions = data?.lab?.worldVersions ?? [];
@@ -327,6 +336,18 @@ export default function MemoryWorldLab() {
       if (event.key === 'p') {
         event.preventDefault();
         updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus');
+        return;
+      }
+
+      if (layoutMode === 'focus' && event.key === 'w') {
+        event.preventDefault();
+        setSourcesPanelOpen((current) => !current);
+        return;
+      }
+
+      if (layoutMode === 'focus' && event.key === 'i') {
+        event.preventDefault();
+        setInspectorPanelOpen((current) => !current);
       }
     }
 
@@ -366,6 +387,24 @@ export default function MemoryWorldLab() {
           >
             {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
           </button>
+          {layoutMode === 'focus' && (
+            <>
+              <button
+                type="button"
+                className={`memory-world-lab__button ${sourcesPanelOpen ? 'memory-world-lab__button--active' : ''}`}
+                onClick={() => setSourcesPanelOpen((current) => !current)}
+              >
+                World Sources
+              </button>
+              <button
+                type="button"
+                className={`memory-world-lab__button ${inspectorPanelOpen ? 'memory-world-lab__button--active' : ''}`}
+                onClick={() => setInspectorPanelOpen((current) => !current)}
+              >
+                Review Panel
+              </button>
+            </>
+          )}
           <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
             Open Preview
           </a>
@@ -408,7 +447,7 @@ export default function MemoryWorldLab() {
 
       {!loading && !error && data && (
         <div className="memory-world-lab__grid">
-          <aside className="memory-world-lab__sidebar">
+          <aside className={`memory-world-lab__sidebar ${layoutMode === 'focus' ? 'memory-world-lab__overlay-panel' : ''} ${sourcesPanelOpen ? 'is-open' : ''}`}>
             <div className="memory-world-lab__panel-header">
               <h2>World Sources</h2>
               <span>{candidates.length} candidates</span>
@@ -465,6 +504,15 @@ export default function MemoryWorldLab() {
                 </button>
               ))}
             </div>
+            {layoutMode === 'focus' && (
+              <button
+                type="button"
+                className="memory-world-lab__overlay-close"
+                onClick={() => setSourcesPanelOpen(false)}
+              >
+                Close
+              </button>
+            )}
           </aside>
 
           <section className="memory-world-lab__preview-panel">
@@ -507,7 +555,7 @@ export default function MemoryWorldLab() {
             <div className="memory-world-lab__preview-meta">
               <span>{effectiveSource}</span>
               <span>{view}</span>
-              </div>
+            </div>
             </div>
 
             <div className="memory-world-lab__preview-shell">
@@ -520,7 +568,7 @@ export default function MemoryWorldLab() {
             </div>
           </section>
 
-          <aside className="memory-world-lab__inspector">
+          <aside className={`memory-world-lab__inspector ${layoutMode === 'focus' ? 'memory-world-lab__overlay-panel' : ''} ${inspectorPanelOpen ? 'is-open' : ''}`}>
             <div className="memory-world-lab__panel-header">
               <h2>Grade This World</h2>
               {saveMessage && <span className="memory-world-lab__save-message">{saveMessage}</span>}
@@ -682,6 +730,9 @@ export default function MemoryWorldLab() {
                 <span>R raw</span>
                 <span>A archive</span>
                 <span>F favorite</span>
+                <span>P preview mode</span>
+                <span>W worlds panel</span>
+                <span>I review panel</span>
                 <span>Cmd/Ctrl+Enter save</span>
               </div>
             </div>
@@ -701,6 +752,15 @@ export default function MemoryWorldLab() {
                 </ul>
               )}
             </div>
+            {layoutMode === 'focus' && (
+              <button
+                type="button"
+                className="memory-world-lab__overlay-close"
+                onClick={() => setInspectorPanelOpen(false)}
+              >
+                Close
+              </button>
+            )}
           </aside>
         </div>
       )}

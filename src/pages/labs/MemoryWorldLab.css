@@ -564,6 +564,18 @@
   color: rgba(244, 239, 229, 0.62);
 }
 
+.memory-world-lab__overlay-close {
+  display: none;
+  margin-top: 0.9rem;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f4efe5;
+  font: inherit;
+  cursor: pointer;
+}
+
 @media (max-width: 1360px) {
   .memory-world-lab__grid {
     grid-template-areas:
@@ -618,14 +630,141 @@
   width: min(2440px, calc(100vw - 2rem));
 }
 
+.memory-world-lab--focus {
+  height: 100vh;
+  padding: 0.9rem;
+  overflow: hidden;
+}
+
+.memory-world-lab--focus .memory-world-lab__status-strip {
+  display: none;
+}
+
+.memory-world-lab--focus .memory-world-lab__header {
+  position: relative;
+  z-index: 24;
+  margin-bottom: 0.8rem;
+}
+
 .memory-world-lab--focus .memory-world-lab__grid {
-  grid-template-areas:
-    'preview preview'
-    'sources inspector';
-  grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.1fr);
+  display: block;
+  position: relative;
+  width: calc(100vw - 1.8rem);
+  max-width: none;
+}
+
+.memory-world-lab--focus .memory-world-lab__preview-panel {
+  position: relative;
+  padding: 0;
+  border-radius: 1.35rem;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(4, 6, 10, 0.9);
 }
 
 .memory-world-lab--focus .memory-world-lab__preview-shell {
-  min-height: clamp(78vh, calc(100vh - 215px), 90vh);
-  height: clamp(78vh, calc(100vh - 215px), 90vh);
+  min-height: calc(100vh - 110px);
+  height: calc(100vh - 110px);
+  border: 0;
+  border-radius: 1.35rem;
+}
+
+.memory-world-lab--focus .memory-world-lab__preview-toolbar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 6;
+  padding: 0.7rem 0.85rem;
+  border-radius: 1.1rem;
+  background: linear-gradient(180deg, rgba(7, 10, 17, 0.9), rgba(7, 10, 17, 0.66));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  align-items: flex-start;
+}
+
+.memory-world-lab--focus .memory-world-lab__toolbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-world-lab--focus .memory-world-lab__preview-meta {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.memory-world-lab--focus .memory-world-lab__overlay-panel {
+  position: fixed;
+  top: 6.25rem;
+  bottom: 1rem;
+  z-index: 20;
+  width: min(430px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  overflow: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.memory-world-lab--focus .memory-world-lab__sidebar.memory-world-lab__overlay-panel {
+  left: 1rem;
+  transform: translateX(calc(-100% - 1.5rem));
+}
+
+.memory-world-lab--focus .memory-world-lab__inspector.memory-world-lab__overlay-panel {
+  right: 1rem;
+  transform: translateX(calc(100% + 1.5rem));
+}
+
+.memory-world-lab--focus .memory-world-lab__overlay-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.memory-world-lab--focus .memory-world-lab__overlay-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 980px) {
+  .memory-world-lab--focus {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__grid {
+    display: grid;
+    width: 100%;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__preview-panel {
+    padding: 0.8rem;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__preview-toolbar {
+    position: static;
+    margin-bottom: 0.8rem;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__preview-shell {
+    min-height: 62vh;
+    height: 62vh;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__overlay-panel {
+    position: static;
+    width: 100%;
+    max-width: none;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .memory-world-lab--focus .memory-world-lab__overlay-close {
+    display: none;
+  }
 }
