@@ -13,6 +13,18 @@ function formatGrade(value) {
   return typeof value === 'number' ? value.toFixed(1) : EMPTY_VALUE;
 }
 
+function formatDateTime(value) {
+  if (!value) return EMPTY_VALUE;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return EMPTY_VALUE;
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function buildPreviewUrl(sceneId, source, viewMode) {
   const params = new URLSearchParams();
   params.set('lab', '1');
@@ -152,8 +164,10 @@ export default function MemoryWorldLab() {
   const previewUrl = buildPreviewUrl(sceneId, effectiveSource, view);
   const externalUrl = `${window.location.origin}${previewUrl}`;
   const sourcePhotoUrl = buildAssetUrl(sceneId, data?.scene?.source?.photo);
-  const subjectVersionCount = data?.lab?.subjectVersions?.length ?? 0;
-  const latestSubjectVersion = data?.lab?.subjectVersions?.[0] ?? null;
+  const subjectVersions = data?.lab?.subjectVersions ?? [];
+  const subjectVersionCount = subjectVersions.length;
+  const latestSubjectVersion = subjectVersions[0] ?? null;
+  const currentSubjectVersion = subjectVersions.find((entry) => entry.isCurrent) ?? latestSubjectVersion;
   const sam3d = data?.lab?.sam3d ?? null;
   const activeCandidateId = effectiveSource.startsWith('candidate:')
     ? effectiveSource.slice('candidate:'.length)
@@ -171,7 +185,7 @@ export default function MemoryWorldLab() {
     setLabel(selectedReview?.latestLabel ?? buildDefaultLabel(effectiveSource));
     setNotes(selectedReview?.latestNotes ?? '');
     setSaveMessage('');
-  }, [effectiveSource, selectedReview?.favorite, selectedReview?.latestGrade, selectedReview?.latestLabel, selectedReview?.latestNotes]);
+  }, [sceneId, effectiveSource, selectedReview]);
 
   const reviewHistory = useMemo(() => {
     const allVersions = data?.lab?.worldVersions ?? [];
@@ -583,13 +597,55 @@ export default function MemoryWorldLab() {
             </div>
 
             <div className="memory-world-lab__detail-card">
-              <h3>Subject Track</h3>
-              <p>{subjectVersionCount} tracked subject versions for this scene.</p>
-              {latestSubjectVersion && (
-                <div className="memory-world-lab__status-list">
-                  <span>{latestSubjectVersion.label}</span>
-                  <span>{latestSubjectVersion.backend}</span>
-                  <span>{latestSubjectVersion.mode}</span>
+              <div className="memory-world-lab__detail-header">
+                <h3>Subject Track</h3>
+                <span>{subjectVersionCount} versions</span>
+              </div>
+              <p>
+                {currentSubjectVersion
+                  ? `Current subject: ${currentSubjectVersion.label} via ${currentSubjectVersion.backend}.`
+                  : 'No tracked subject versions for this scene yet.'}
+              </p>
+              {subjectVersions.length > 0 && (
+                <div className="memory-world-lab__subject-list">
+                  {subjectVersions.map((version) => {
+                    const metrics = version.meta ?? {};
+                    const bbox = Array.isArray(metrics.bbox)
+                      ? metrics.bbox.map((value) => Math.round(Number(value))).join(', ')
+                      : null;
+
+                    return (
+                      <article
+                        key={version.versionId}
+                        className={`memory-world-lab__subject-card ${version.isCurrent ? 'is-current' : ''}`}
+                      >
+                        {version.previewUrl && (
+                          <div className="memory-world-lab__subject-preview">
+                            <img src={version.previewUrl} alt={`${version.label} subject preview`} loading="lazy" />
+                          </div>
+                        )}
+                        <div className="memory-world-lab__subject-body">
+                          <div className="memory-world-lab__subject-topline">
+                            <strong>{version.label}</strong>
+                            {version.isCurrent && <span>current</span>}
+                          </div>
+                          <div className="memory-world-lab__status-list">
+                            <span>{version.backend}</span>
+                            <span>{version.mode}</span>
+                            <span>{version.supportMode}</span>
+                          </div>
+                          <div className="memory-world-lab__subject-meta">
+                            <span>{formatDateTime(version.createdAt)}</span>
+                            {typeof metrics.vertexCount === 'number' && <span>{metrics.vertexCount.toLocaleString()} verts</span>}
+                            {typeof metrics.faceCount === 'number' && <span>{metrics.faceCount.toLocaleString()} faces</span>}
+                            {bbox && <span>bbox {bbox}</span>}
+                            {metrics.previewMode && <span>{metrics.previewMode}</span>}
+                          </div>
+                          <p>{version.notes || 'No notes recorded.'}</p>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -598,7 +654,7 @@ export default function MemoryWorldLab() {
               <h3>Shortcuts</h3>
               <div className="memory-world-lab__status-list">
                 <span>1-0 grade</span>
-                <span>J/K or ←/→ switch candidate</span>
+                <span>J/K or Left/Right switch candidate</span>
                 <span>R raw</span>
                 <span>A archive</span>
                 <span>F favorite</span>

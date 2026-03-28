@@ -391,6 +391,20 @@
   font-size: 0.92rem;
 }
 
+.memory-world-lab__detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.memory-world-lab__detail-header span {
+  color: rgba(244, 239, 229, 0.62);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .memory-world-lab__detail-card p,
 .memory-world-lab__detail-card code {
   margin: 0;
@@ -424,6 +438,76 @@
   background: rgba(255, 255, 255, 0.05);
   color: rgba(244, 239, 229, 0.72);
   font-size: 0.8rem;
+}
+
+.memory-world-lab__subject-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.memory-world-lab__subject-card {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 0.8rem;
+  padding: 0.75rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.memory-world-lab__subject-card.is-current {
+  border-color: rgba(117, 158, 255, 0.42);
+  background: rgba(117, 158, 255, 0.08);
+}
+
+.memory-world-lab__subject-preview {
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  aspect-ratio: 1 / 1;
+}
+
+.memory-world-lab__subject-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memory-world-lab__subject-body {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.memory-world-lab__subject-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.memory-world-lab__subject-topline span {
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 239, 229, 0.72);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.memory-world-lab__subject-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: rgba(244, 239, 229, 0.58);
+  font-size: 0.78rem;
+}
+
+.memory-world-lab__subject-meta span {
+  white-space: nowrap;
 }
 
 .memory-world-lab__history {
@@ -479,6 +563,10 @@
   }
 
   .memory-world-lab__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .memory-world-lab__subject-card {
     grid-template-columns: 1fr;
   }
 }

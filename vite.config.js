@@ -21,6 +21,10 @@ function safeReadJson(filePath) {
   }
 }
 
+function stripAnsi(value = '') {
+  return String(value).replace(/\u001b\[[0-9;]*m/g, '').trim()
+}
+
 function readRequestBody(req) {
   return new Promise((resolveBody, rejectBody) => {
     const chunks = []
@@ -93,10 +97,15 @@ function getSam3dStatus() {
       encoding: 'utf8',
       windowsHide: true,
     })
-    const output = (whoami.stdout || whoami.stderr || '').trim()
+    const output = stripAnsi(whoami.stdout || whoami.stderr || '')
     const missingAuth = /not logged in|no token|invalid user token/i.test(output)
     loggedIn = whoami.status === 0 && !missingAuth
-    account = loggedIn ? output.split('\n').find(Boolean)?.trim() || null : null
+    const accountLine = loggedIn
+      ? output.split('\n').map((line) => line.trim()).find((line) => /^user:/i.test(line))
+      : null
+    account = accountLine
+      ? accountLine.replace(/^user:\s*/i, '').trim()
+      : (loggedIn ? output.split('\n').find(Boolean)?.trim() || null : null)
     authMessage = output || (loggedIn ? 'Authenticated locally' : authMessage)
   }
 
@@ -132,6 +141,7 @@ function collectMemoryWorldLabScene(sceneId) {
   if (!meta) {
     throw new Error(`Scene meta not found: ${metaPath}`)
   }
+  const currentSubjectMeta = safeReadJson(join(sceneDir, 'subject.meta.json'))
 
   const selection = meta?.world?.selection ?? meta?.source?.worldSelection ?? safeReadJson(candidateScoresPath) ?? null
   const versionsIndex = safeReadJson(versionsIndexPath) ?? { versions: [] }
@@ -195,7 +205,23 @@ function collectMemoryWorldLabScene(sceneId) {
       selection,
       candidates,
       worldVersions: Array.isArray(versionsIndex.versions) ? versionsIndex.versions : [],
-      subjectVersions: Array.isArray(subjectVersionsIndex.versions) ? subjectVersionsIndex.versions : [],
+      subjectVersions: (Array.isArray(subjectVersionsIndex.versions) ? subjectVersionsIndex.versions : []).map((entry, index) => {
+        const subjectVersionDir = join(sceneDir, 'subject-versions', entry.versionId)
+        const subjectMeta = safeReadJson(join(subjectVersionDir, 'subject.meta.json'))
+        const previewPath = join(subjectVersionDir, 'subject.preview.png')
+        const isCurrent = currentSubjectMeta && subjectMeta
+          ? JSON.stringify(currentSubjectMeta) === JSON.stringify(subjectMeta)
+          : index === 0
+
+        return {
+          ...entry,
+          previewUrl: existsSync(previewPath)
+            ? `/memory/${sanitizedSceneId}/subject-versions/${entry.versionId}/subject.preview.png`
+            : null,
+          meta: subjectMeta,
+          isCurrent,
+        }
+      }),
       sam3d: getSam3dStatus(),
     },
   }
