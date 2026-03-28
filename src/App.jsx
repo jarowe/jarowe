@@ -35,6 +35,7 @@ const Starseed = lazyRetry(() => import('./pages/Starseed'));
 const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
 const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
 const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
+const MemoryWorldLab = lazyRetry(() => import('./pages/labs/MemoryWorldLab'));
 const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
 const CapsuleShell = lazyRetry(() => import('./pages/CapsuleShell'));
 const MemoryArchiveScene = lazyRetry(() => import('./pages/MemoryArchiveScene'));
@@ -227,6 +228,9 @@ function AppContent() {
   const isReleaseContext = isReleaseRoute || isTakeoverHome || isAliasRelease;
   const isStarseedRoute = location.pathname.startsWith('/starseed');
   const isMemoryArchiveRoute = location.pathname.startsWith('/archive');
+  const isMemoryWorldLabRoute = location.pathname.startsWith('/starseed/labs/memory-worlds');
+  const isLabEmbed = new URLSearchParams(location.search).get('lab') === '1';
+  const hideSiteChrome = isLabEmbed || isMemoryWorldLabRoute;
 
   // Chrome rules — only apply when in release context
   const chrome = isReleaseContext ? takeover.chrome : {};
@@ -331,9 +335,9 @@ function AppContent() {
       <HolidayBodyClass disabled={!!(isReleaseContext && chrome.disableHolidayBodyFx)} />
 
       {/* Site chrome — hidden per campaign chrome rules */}
-      {!chrome.hideNavbar && !isStarseedRoute && !isMemoryArchiveRoute && <Navbar />}
-      {!chrome.hideGameOverlay && !isMemoryArchiveRoute && <GameOverlay />}
-      {!chrome.hideGlobalPlayer && <GlobalPlayer />}
+      {!hideSiteChrome && !chrome.hideNavbar && !isStarseedRoute && !isMemoryArchiveRoute && <Navbar />}
+      {!hideSiteChrome && !chrome.hideGameOverlay && !isMemoryArchiveRoute && <GameOverlay />}
+      {!hideSiteChrome && !chrome.hideGlobalPlayer && <GlobalPlayer />}
 
       <main className="main-content">
         <Routes>
@@ -411,6 +415,16 @@ function AppContent() {
           <Route path="/starseed/labs/canvas" element={
             <Suspense fallback={<LazyFallback label="Loading Canvas..." />}>
               <LabsCanvas />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/memory-worlds" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/memory-worlds/:sceneId" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
             </Suspense>
           } />
           <Route path="/universe" element={
