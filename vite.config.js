@@ -124,6 +124,13 @@ function getSam3dStatus() {
   }
 }
 
+function inferWorldFamily(meta, candidate = null) {
+  return candidate?.family
+    || meta?.world?.generationFamily
+    || meta?.source?.worldGenerationFamily
+    || (meta?.source?.generationMode === 'single-image-world-model' ? 'pano-first' : null)
+}
+
 function collectMemoryWorldLabScene(sceneId) {
   const sanitizedSceneId = sanitizeSceneId(sceneId)
   if (!sanitizedSceneId) {
@@ -173,6 +180,8 @@ function collectMemoryWorldLabScene(sceneId) {
       return {
         id: candidateId,
         existsOnDisk: candidateDirs.includes(candidateId),
+        family: inferWorldFamily(meta, candidate),
+        familyLabel: candidate?.familyLabel ?? null,
         seed: candidate?.seed ?? null,
         prompt: candidate?.prompt ?? null,
         score: candidate?.score ?? null,
@@ -197,6 +206,7 @@ function collectMemoryWorldLabScene(sceneId) {
       description: meta.description,
       selectedCandidateId,
       favoriteVersionId,
+      worldGenerationFamily: inferWorldFamily(meta, null),
       world: meta.world ?? null,
       source: meta.source ?? null,
       currentReview: versionSummary.get('current:current') ?? null,

@@ -21,6 +21,10 @@ node pipeline/generate-memory-world.mjs syros-cave --generator marble
 # Force a fresh run and overwrite normalized world outputs
 node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
 
+# Compare world families deliberately
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --hero --candidates 6 --families pano-first,camera-guided
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --hero --candidates 4 --families pano-first,structured-anchor
+
 # Register or generate a subject 3D asset with version snapshots
 node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "current proxy baseline"
 ```
@@ -95,6 +99,28 @@ set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --o
 # Then run the dedicated generator
 node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
 ```
+
+World families:
+
+- `pano-first`: current WorldGen/Marble-like pano completion path
+- `camera-guided`: trajectory-aware branch intended for Stable Virtual Camera / VistaDream-style experiments
+- `structured-anchor`: branch for scenes where layout and landmark preservation should dominate
+
+CLI controls:
+
+```bash
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --family pano-first
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --families pano-first,camera-guided --candidates 6
+```
+
+Family-specific command hooks:
+
+```bash
+set WORLD_MODEL_CAMERA_GUIDED_COMMAND=python tools\\run_camera_guided_world.py --input "{primary}" --output "{worldDir}" --family "{worldFamily}"
+set WORLD_MODEL_STRUCTURED_COMMAND=python tools\\run_structured_world.py --input "{primary}" --output "{worldDir}" --family "{worldFamily}"
+```
+
+If no family-specific command is configured, the pipeline falls back to the default world-model backend and still records the requested family in the grading metadata.
 
 ### Windows + WSL WorldGen
 

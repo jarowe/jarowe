@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True, help="Absolute path to the target world directory")
     parser.add_argument("--generated-views", dest="generated_views", default=None, help="Optional directory for generated support views")
     parser.add_argument("--scene-id", dest="scene_id", default=None)
+    parser.add_argument("--world-family", dest="world_family", default=os.environ.get("WORLD_MODEL_FAMILY", "pano-first"))
     parser.add_argument("--prompt", default="", help="Optional conditioning prompt")
     parser.add_argument("--resolution", type=int, default=int(os.environ.get("WORLD_MODEL_RESOLUTION", "1600")))
     parser.add_argument("--low-vram", action="store_true")
@@ -153,6 +154,7 @@ def run_worldgen(args: argparse.Namespace) -> int:
         f"subject_input={args.subject_input or ''}\n"
         f"mask={args.mask or ''}\n"
         f"output={output_path}\n"
+        f"world_family={args.world_family or ''}\n"
         f"resolution={args.resolution}\n"
         f"use_sharp={use_sharp}\n"
         f"inpaint_bg={inpaint_bg}\n"

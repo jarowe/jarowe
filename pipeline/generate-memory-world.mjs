@@ -72,6 +72,25 @@ const WORLD_QUALITY_PROFILES = {
     runtimePreviewSplatTarget: 1200000,
   },
 };
+const DEFAULT_WORLD_FAMILY = 'pano-first';
+const WORLD_FAMILY_ALIASES = new Map([
+  ['pano', 'pano-first'],
+  ['pano-first', 'pano-first'],
+  ['worldgen', 'pano-first'],
+  ['camera', 'camera-guided'],
+  ['camera-guided', 'camera-guided'],
+  ['guided-camera', 'camera-guided'],
+  ['multi-view', 'camera-guided'],
+  ['multiview', 'camera-guided'],
+  ['structured', 'structured-anchor'],
+  ['structured-anchor', 'structured-anchor'],
+  ['anchor-layout', 'structured-anchor'],
+]);
+const WORLD_FAMILY_LABELS = {
+  'pano-first': 'Pano First',
+  'camera-guided': 'Camera Guided',
+  'structured-anchor': 'Structured Anchor',
+};
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -87,6 +106,8 @@ function parseArgs() {
   let qualityProfile = null;
   let candidates = null;
   let seed = null;
+  let worldFamily = null;
+  let worldFamilies = null;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -112,6 +133,16 @@ function parseArgs() {
     }
     if (arg === '--prompt') {
       prompt = args[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (arg === '--family') {
+      worldFamily = args[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (arg === '--families') {
+      worldFamilies = args[index + 1] ?? null;
       index += 1;
       continue;
     }
@@ -175,6 +206,8 @@ function parseArgs() {
       seed: Number.isFinite(seed) ? seed : null,
       resolution: Number.isFinite(resolution) ? resolution : null,
       prompt,
+      worldFamily,
+      worldFamilies,
       useSharp,
       inpaintBg,
       lowVram,
@@ -213,13 +246,55 @@ function resolveWorldQualityProfileName(meta, worldModelOptions = {}) {
   return 'draft';
 }
 
+function normalizeWorldFamily(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+  return WORLD_FAMILY_ALIASES.get(normalized) || null;
+}
+
+function parseWorldFamilies(value) {
+  return String(value || '')
+    .split(',')
+    .map((entry) => normalizeWorldFamily(entry))
+    .filter(Boolean);
+}
+
+function slugifyCandidatePart(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function resolveWorldModelOptions(meta, worldModelOptions = {}) {
   const qualityProfile = resolveWorldQualityProfileName(meta, worldModelOptions);
   const profileDefaults = WORLD_QUALITY_PROFILES[qualityProfile] ?? WORLD_QUALITY_PROFILES.draft;
+  const metaConfiguredFamilies = Array.isArray(meta?.source?.worldGenerationFamilies)
+    ? meta.source.worldGenerationFamilies.join(',')
+    : meta?.source?.worldGenerationFamilies;
+  const requestedFamilies = [
+    ...parseWorldFamilies(worldModelOptions.worldFamilies),
+    ...parseWorldFamilies(metaConfiguredFamilies),
+  ];
+  const singleRequestedFamily = normalizeWorldFamily(
+    worldModelOptions.worldFamily
+    || meta?.source?.worldGenerationFamily
+    || process.env.WORLD_MODEL_FAMILY,
+  );
+  const worldFamilies = [...new Set([
+    ...(requestedFamilies.length ? requestedFamilies : []),
+    ...(singleRequestedFamily ? [singleRequestedFamily] : []),
+  ])];
+  const resolvedFamilies = worldFamilies.length ? worldFamilies : [DEFAULT_WORLD_FAMILY];
 
   return {
     ...worldModelOptions,
     qualityProfile,
+    worldFamily: resolvedFamilies[0],
+    worldFamilies: resolvedFamilies,
     candidates: Number.isFinite(worldModelOptions.candidates) ? clamp(Math.floor(worldModelOptions.candidates), 1, 8) : 1,
     seed: Number.isFinite(worldModelOptions.seed) ? Math.floor(worldModelOptions.seed) : 42,
     resolution: Number.isFinite(worldModelOptions.resolution) ? worldModelOptions.resolution : profileDefaults.resolution,
@@ -622,6 +697,37 @@ function buildCompactEnvironmentPromptSeed(meta, basePrompt) {
   );
 }
 
+function buildWorldFamilyPromptVariants(worldFamily, compactSeed, landmarkPhrase) {
+  if (worldFamily === 'camera-guided') {
+    return [
+      `${compactSeed}. Empty environment. Stable camera travel with coherent left, right, and rear continuity. Strong orbit parallax. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Generate a navigable surrounding world from multiple implied camera paths. No front wall. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Prioritize side-angle plausibility, rear continuation, and view-consistent shoreline topology. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Favor multi-view consistency over source-front fidelity. Open flanks, readable horizon, coherent return path. No people. ${landmarkPhrase}`,
+    ];
+  }
+
+  if (worldFamily === 'structured-anchor') {
+    return [
+      `${compactSeed}. Empty environment. Preserve landmark structure and layout continuity. Build explorable space around the anchor with no broken planes. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Respect the strongest geometric anchors, openings, and support surfaces while completing surrounding space. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Prioritize coherent structural layout, grounded walkable surfaces, and stable topology around the landmark. No people. ${landmarkPhrase}`,
+      `${compactSeed}. Empty environment. Build surrounding depth while keeping the anchor readable from multiple angles. No floating fragments. No people. ${landmarkPhrase}`,
+    ];
+  }
+
+  return [
+    `${compactSeed}. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Clear foreground, midground, and far horizon separation. No dominant frontal sheet. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Stable orbit views, side openings, and coherent surrounding topology. No floating fragments. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Strong near-ground parallax, open left and right escape paths, believable rear continuation. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Surrounding world should wrap behind the camera with readable side bays and no vertical sheet. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Preserve grounded terrain under the viewer, readable distant space, and coherent off-axis exploration. No people. ${landmarkPhrase}`,
+    `${compactSeed}. Empty environment. Favor explorable depth and side continuity over photo-front fidelity. Avoid bowls, voids, and front walls. No people. ${landmarkPhrase}`,
+  ];
+}
+
 function buildWorldModelCandidateConfigs(meta, worldModelOptions = {}) {
   const resolvedOptions = resolveWorldModelOptions(meta, worldModelOptions);
   const candidateCount = resolvedOptions.candidates ?? 1;
@@ -636,23 +742,23 @@ function buildWorldModelCandidateConfigs(meta, worldModelOptions = {}) {
   const landmarkPhrase = /\b(cave|bell|frame|arch|door|window|tree|rock)\b/i.test(fallbackBase)
     ? 'Preserve the landmark anchor.'
     : 'Preserve the strongest foreground anchor.';
-  const promptVariants = [
-    `${compactSeed}. Empty environment. Open walkable foreground. Layered depth. Clear horizon. No front wall. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Side and rear world continuity. Open coastline around viewer. No closed bowl. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Clear foreground, midground, and far horizon separation. No dominant frontal sheet. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Stable orbit views, side openings, and coherent surrounding topology. No floating fragments. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Strong near-ground parallax, open left and right escape paths, believable rear continuation. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Surrounding world should wrap behind the camera with readable side bays and no vertical sheet. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Preserve grounded terrain under the viewer, readable distant space, and coherent off-axis exploration. No people. ${landmarkPhrase}`,
-    `${compactSeed}. Empty environment. Favor explorable depth and side continuity over photo-front fidelity. Avoid bowls, voids, and front walls. No people. ${landmarkPhrase}`,
-  ];
   const seeds = [resolvedOptions.seed ?? 42, 1337, 2026, 31415, 27182, 424242, 515151, 777777];
+  const families = resolvedOptions.worldFamilies?.length ? resolvedOptions.worldFamilies : [DEFAULT_WORLD_FAMILY];
+  const familyOrdinals = new Map();
 
-  return Array.from({ length: candidateCount }, (_, index) => ({
-    id: `candidate-${String(index + 1).padStart(2, '0')}`,
-    seed: seeds[index] ?? (resolvedOptions.seed ?? 42) + index * 97,
-    prompt: promptVariants[index % promptVariants.length],
-  }));
+  return Array.from({ length: candidateCount }, (_, index) => {
+    const family = families[index % families.length];
+    const familyIndex = familyOrdinals.get(family) ?? 0;
+    familyOrdinals.set(family, familyIndex + 1);
+    const promptVariants = buildWorldFamilyPromptVariants(family, compactSeed, landmarkPhrase);
+    return {
+      id: `${slugifyCandidatePart(family)}-${String(familyIndex + 1).padStart(2, '0')}`,
+      family,
+      familyLabel: WORLD_FAMILY_LABELS[family] ?? family,
+      seed: seeds[index] ?? (resolvedOptions.seed ?? 42) + index * 97,
+      prompt: promptVariants[familyIndex % promptVariants.length],
+    };
+  });
 }
 
 function shouldUseWorldgenBootstrapInpaint() {
@@ -1333,6 +1439,12 @@ function scoreWorldPly(plyPath) {
   if (!positions.length) {
     return {
       score: 0,
+      bestViewScore: 0,
+      orbitScore: 0,
+      averageYawScore: 0,
+      minYawScore: 0,
+      scoreStdDev: 1,
+      trajectoryConsistency: 0,
       occupancyRatio: 0,
       depthCoverage: 0,
       depthEntropy: 0,
@@ -1362,6 +1474,13 @@ function scoreWorldPly(plyPath) {
 
   let bestYawDegrees = 0;
   let bestMetrics = baseMetrics;
+  const yawEvaluations = [{
+    yawDegrees: 0,
+    score: baseMetrics.score,
+    occupancyRatio: baseMetrics.occupancyRatio,
+    frontSheetPenalty: baseMetrics.frontSheetPenalty,
+    frontalWallPenalty: baseMetrics.frontalWallPenalty,
+  }];
 
   for (const yawDegrees of yawCandidates) {
     if (yawDegrees === 0) continue;
@@ -1372,16 +1491,46 @@ function scoreWorldPly(plyPath) {
       (yawDegrees * Math.PI) / 180,
     );
     const metrics = computeWorldMetricsFromPositions(rotated);
+    yawEvaluations.push({
+      yawDegrees,
+      score: metrics.score,
+      occupancyRatio: metrics.occupancyRatio,
+      frontSheetPenalty: metrics.frontSheetPenalty,
+      frontalWallPenalty: metrics.frontalWallPenalty,
+    });
     if (metrics.score > bestMetrics.score) {
       bestYawDegrees = yawDegrees;
       bestMetrics = metrics;
     }
   }
 
+  const yawScores = yawEvaluations.map(entry => entry.score);
+  const averageYawScore = yawScores.reduce((sum, value) => sum + value, 0) / yawScores.length;
+  const minYawScore = Math.min(...yawScores);
+  const scoreVariance = yawScores.reduce((sum, value) => sum + (value - averageYawScore) ** 2, 0) / yawScores.length;
+  const scoreStdDev = Math.sqrt(scoreVariance);
+  const trajectoryConsistency = clamp(1 - scoreStdDev / 0.18, 0, 1);
+  const orbitScore = clamp(
+    averageYawScore * 0.6
+      + minYawScore * 0.25
+      + trajectoryConsistency * 0.15,
+    0,
+    1,
+  );
+  const finalScore = clamp(bestMetrics.score * 0.58 + orbitScore * 0.42, 0, 1);
+
   return {
     ...bestMetrics,
+    score: finalScore,
+    bestViewScore: bestMetrics.score,
+    orbitScore,
+    averageYawScore,
+    minYawScore,
+    scoreStdDev,
+    trajectoryConsistency,
     preferredYawDegrees: normalizeAngleDegrees(bestYawDegrees),
     evaluatedYawCount: yawCandidates.length,
+    yawEvaluations,
   };
 }
 
@@ -1819,9 +1968,31 @@ function buildWorldModelAssetsResult(worldDir, meta, bundle, worldModelInputs, r
     },
     environmentBootstrap: worldModelInputs.environmentBootstrap,
     worldGenerationProfile: resolvedWorldModelOptions.qualityProfile,
+    worldGenerationFamily: resolvedWorldModelOptions.worldFamily ?? DEFAULT_WORLD_FAMILY,
+    worldGenerationFamilies: resolvedWorldModelOptions.worldFamilies ?? [resolvedWorldModelOptions.worldFamily ?? DEFAULT_WORLD_FAMILY],
     runtimePreviewSplatTarget: resolvedWorldModelOptions.runtimePreviewSplatTarget,
     worldSelection: scoring ?? undefined,
   };
+}
+
+function resolveFamilySpecificWorldModelCommand(worldFamily) {
+  if (worldFamily === 'camera-guided') {
+    return process.env.WORLD_MODEL_CAMERA_GUIDED_COMMAND
+      || process.env.CAMERA_GUIDED_WORLD_COMMAND
+      || process.env.STABLE_VIRTUAL_CAMERA_WORLD_COMMAND
+      || '';
+  }
+  if (worldFamily === 'structured-anchor') {
+    return process.env.WORLD_MODEL_STRUCTURED_COMMAND
+      || process.env.STRUCTURED_WORLD_COMMAND
+      || '';
+  }
+  if (worldFamily === 'pano-first') {
+    return process.env.WORLD_MODEL_PANO_FIRST_COMMAND
+      || process.env.PANO_FIRST_WORLD_COMMAND
+      || '';
+  }
+  return '';
 }
 
 function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
@@ -1853,11 +2024,15 @@ function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
     prompt: synthesizedPrompt,
     seed: resolvedWorldModelOptions.seed,
     resolution: resolvedWorldModelOptions.resolution,
+    worldFamily: resolvedWorldModelOptions.worldFamily,
     useSharp: resolvedWorldModelOptions.useSharp,
     inpaintBg: resolvedWorldModelOptions.inpaintBg,
     lowVram: resolvedWorldModelOptions.lowVram,
   };
+  const familySpecificCommand = resolveFamilySpecificWorldModelCommand(resolvedWorldModelOptions.worldFamily);
+  const usingDedicatedFamilyCommand = Boolean(familySpecificCommand);
   const worldModelCommand =
+    familySpecificCommand ||
     process.env.SINGLE_IMAGE_WORLD_COMMAND ||
     process.env.WORLD_MODEL_COMMAND ||
     buildDefaultWorldModelCommand(templateVariables);
@@ -1869,7 +2044,7 @@ function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
         'or set WORLD_MODEL_BACKEND=worldgen to use the local backend wrapper.',
         'On Windows, the default path now prefers a WSL backend if available.',
         'Supported placeholders:',
-        '  {input} {primary} {bootstrap} {subjectInput} {mask} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson}',
+        '  {input} {primary} {bootstrap} {subjectInput} {mask} {output} {worldDir} {sceneDir} {sceneId} {bundleDir} {sourceDir} {generatedDir} {bundleJson} {worldFamily}',
       ].join('\n'),
     );
   }
@@ -1900,6 +2075,7 @@ function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
       prompt: synthesizedPrompt,
       seed: resolvedWorldModelOptions.seed,
       resolution: resolvedWorldModelOptions.resolution,
+      worldFamily: resolvedWorldModelOptions.worldFamily,
       useSharp: resolvedWorldModelOptions.useSharp,
       inpaintBg: resolvedWorldModelOptions.inpaintBg,
       lowVram: resolvedWorldModelOptions.lowVram,
@@ -1908,7 +2084,12 @@ function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
       ? expandCommandTemplate(worldModelCommand, commandVariables)
       : worldModelCommand;
 
-    console.log(`\n[World Model] Running: ${command}\n`);
+    if (!usingDedicatedFamilyCommand && resolvedWorldModelOptions.worldFamily !== DEFAULT_WORLD_FAMILY) {
+      console.warn(
+        `[World Model] No dedicated command configured for "${resolvedWorldModelOptions.worldFamily}". Falling back to the default backend for this family.`,
+      );
+    }
+    console.log(`\n[World Model] Running (${resolvedWorldModelOptions.worldFamily}): ${command}\n`);
     const result = runShellCommand(command);
     if (result.stdout?.trim()) console.log(result.stdout.trim());
     if (result.stderr?.trim()) console.log(result.stderr.trim());
@@ -1926,6 +2107,7 @@ function executeSingleImageWorldModelRun(inputPhoto, worldDir, options) {
     const scorePath = join(worldDir, 'scene.ply');
     const scoring = existsSync(scorePath)
       ? {
+        worldFamily: resolvedWorldModelOptions.worldFamily,
         prompt: synthesizedPrompt,
         seed: resolvedWorldModelOptions.seed,
         metrics: scoreWorldPly(scorePath),
@@ -1974,6 +2156,8 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
       ...options,
       worldModelOptions: {
         ...resolvedWorldModelOptions,
+        worldFamily: candidate.family,
+        worldFamilies: [candidate.family],
         prompt: candidate.prompt,
         seed: candidate.seed,
         candidates: 1,
@@ -1981,6 +2165,8 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
     });
     candidateResults.push({
       id: candidate.id,
+      family: candidate.family,
+      familyLabel: candidate.familyLabel,
       prompt: candidate.prompt,
       seed: candidate.seed,
       worldDir: candidateWorldDir,
@@ -2018,8 +2204,11 @@ async function runSingleImageWorldModel(inputPhoto, worldDir, options) {
     sceneId,
     selectedCandidate: winner.id,
     selectedScore: winner.score,
+    selectedFamily: winner.family,
     candidates: candidateResults.map(candidate => ({
       id: candidate.id,
+      family: candidate.family,
+      familyLabel: candidate.familyLabel,
       seed: candidate.seed,
       prompt: candidate.prompt,
       score: candidate.score,
@@ -2044,6 +2233,12 @@ function updateMetaWithAssets(meta, assets) {
   meta.source.generated = assets.generated || meta.source.generated || TODAY;
   if (assets.worldGenerationProfile) {
     meta.source.worldGenerationProfile = assets.worldGenerationProfile;
+  }
+  if (assets.worldGenerationFamily) {
+    meta.source.worldGenerationFamily = assets.worldGenerationFamily;
+  }
+  if (Array.isArray(assets.worldGenerationFamilies) && assets.worldGenerationFamilies.length) {
+    meta.source.worldGenerationFamilies = [...assets.worldGenerationFamilies];
   }
   if (assets.generationMode) {
     meta.source.generationMode = assets.generationMode;
@@ -2077,6 +2272,7 @@ function updateMetaWithAssets(meta, assets) {
     bounds: assets.bounds ?? null,
     runtimePreviewSplatTarget: assets.runtimePreviewSplatTarget ?? existingWorld.runtimePreviewSplatTarget ?? null,
     generationProfile: assets.worldGenerationProfile ?? existingWorld.generationProfile ?? null,
+    generationFamily: assets.worldGenerationFamily ?? existingWorld.generationFamily ?? null,
     selection: assets.worldSelection ?? existingWorld.selection ?? null,
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
@@ -2129,6 +2325,7 @@ function buildWorldModelArgumentList(variables = {}) {
   if (variables.subjectInput) args.push(['--subject-input', variables.subjectInput]);
   if (variables.mask) args.push(['--mask', variables.mask]);
   if (variables.prompt) args.push(['--prompt', variables.prompt]);
+  if (variables.worldFamily) args.push(['--world-family', variables.worldFamily]);
   if (Number.isFinite(variables.seed)) args.push(['--seed', `${variables.seed}`]);
   if (Number.isFinite(variables.resolution)) args.push(['--resolution', `${variables.resolution}`]);
   if (variables.useSharp === true) args.push(['--use-sharp', null]);
@@ -2173,7 +2370,17 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
 }
 
 function buildDefaultWorldModelCommand(variables = {}) {
-  const backend = (process.env.WORLD_MODEL_BACKEND || 'worldgen').trim().toLowerCase();
+  const backend = (
+    (variables.worldFamily === 'camera-guided'
+      ? process.env.WORLD_MODEL_CAMERA_GUIDED_BACKEND
+      : variables.worldFamily === 'structured-anchor'
+        ? process.env.WORLD_MODEL_STRUCTURED_BACKEND
+        : variables.worldFamily === 'pano-first'
+          ? process.env.WORLD_MODEL_PANO_FIRST_BACKEND
+          : '')
+    || process.env.WORLD_MODEL_BACKEND
+    || 'worldgen'
+  ).trim().toLowerCase();
   if (!backend || !existsSync(LOCAL_WORLD_MODEL_WRAPPER)) {
     return '';
   }
@@ -2417,7 +2624,7 @@ async function main() {
   const { sceneId, generator: generatorKey, force, worldModelOptions } = parseArgs();
 
   if (!sceneId) {
-    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--quality draft|hero|ultra] [--hero] [--ultra] [--candidates <n>] [--seed <n>] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
+    console.log('Usage: node pipeline/generate-memory-world.mjs <scene-id> [--generator sharp|expanded|world-model|trellis|marble] [--force] [--quality draft|hero|ultra] [--hero] [--ultra] [--family pano-first|camera-guided|structured-anchor] [--families <csv>] [--candidates <n>] [--seed <n>] [--resolution <px>] [--prompt <text>] [--use-sharp|--no-sharp] [--inpaint-bg|--no-inpaint-bg] [--subject-erased-bootstrap|--no-subject-erased-bootstrap] [--low-vram]');
     console.log('\nAvailable generators:');
     for (const [key, generator] of Object.entries(GENERATORS)) {
       console.log(`  ${key.padEnd(8)} - ${generator.description}`);

@@ -13,6 +13,14 @@ function formatGrade(value) {
   return typeof value === 'number' ? value.toFixed(1) : EMPTY_VALUE;
 }
 
+function formatFamilyLabel(value, fallback = EMPTY_VALUE) {
+  if (!value) return fallback;
+  return String(value)
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function formatDateTime(value) {
   if (!value) return EMPTY_VALUE;
   const date = new Date(value);
@@ -186,7 +194,9 @@ export default function MemoryWorldLab() {
 
   const selectedReview = selectedCandidate?.review
     ?? (effectiveSource === 'current' ? currentReview : null);
-  const selectedPrompt = selectedCandidate?.prompt ?? data?.scene?.source?.environmentWorldModelPrompt ?? data?.scene?.source?.worldModelPrompt ?? '';
+  const activeWorldSummary = selectedCandidate
+    ?? (effectiveSource === 'current' || effectiveSource === 'selected-candidate' ? metaSelectedCandidate : null);
+  const selectedPrompt = activeWorldSummary?.prompt ?? data?.scene?.source?.environmentWorldModelPrompt ?? data?.scene?.source?.worldModelPrompt ?? '';
   const previewUrl = buildPreviewUrl(sceneId, effectiveSource, view);
   const archiveSceneUrl = buildArchiveSceneUrl(sceneId, effectiveSource);
   const capsuleUrl = buildCapsuleUrl(sceneId, effectiveSource);
@@ -203,6 +213,8 @@ export default function MemoryWorldLab() {
     ? effectiveSource.slice('candidate:'.length)
     : data?.scene?.selectedCandidateId ?? null;
   const activeCandidateIndex = candidates.findIndex((candidate) => candidate.id === activeCandidateId);
+  const activeWorldFamilyLabel = activeWorldSummary?.familyLabel
+    ?? formatFamilyLabel(data?.scene?.worldGenerationFamily || data?.scene?.world?.generationFamily, '');
 
   const [grade, setGrade] = useState(selectedReview?.latestGrade ?? '');
   const [favorite, setFavorite] = useState(Boolean(selectedReview?.favorite));
@@ -476,6 +488,7 @@ export default function MemoryWorldLab() {
           <article className="memory-world-lab__status-card">
             <span className="memory-world-lab__status-label">Selected Candidate</span>
             <strong>{data?.scene?.selectedCandidateId || 'None'}</strong>
+            <span className="memory-world-lab__status-meta">{activeWorldFamilyLabel}</span>
           </article>
           <article className="memory-world-lab__status-card">
             <span className="memory-world-lab__status-label">Favorite World Version</span>
@@ -525,7 +538,7 @@ export default function MemoryWorldLab() {
                 <span>{formatGrade(currentReview?.latestGrade)}</span>
               </div>
               <div className="memory-world-lab__source-meta">
-                <span>Live default world</span>
+                <span>{activeWorldFamilyLabel || 'Live default world'}</span>
                 {data.scene.favoriteVersionId && <span>favorite saved</span>}
               </div>
             </button>
@@ -541,7 +554,7 @@ export default function MemoryWorldLab() {
                   <span>{data.scene.selectedCandidateId}</span>
                 </div>
                 <div className="memory-world-lab__source-meta">
-                  <span>Meta-selected winner</span>
+                  <span>{metaSelectedCandidate?.familyLabel || 'Meta-selected winner'}</span>
                   <span>{formatScore(metaSelectedCandidate?.score)}</span>
                 </div>
               </button>
@@ -560,7 +573,7 @@ export default function MemoryWorldLab() {
                     <span>{formatScore(candidate.score)}</span>
                   </div>
                   <div className="memory-world-lab__source-meta">
-                    <span>{candidate.review?.favorite ? 'favorite' : candidate.isSelected ? 'selected' : 'candidate'}</span>
+                    <span>{candidate.familyLabel || formatFamilyLabel(candidate.family, candidate.review?.favorite ? 'favorite' : candidate.isSelected ? 'selected' : 'candidate')}</span>
                     <span>grade {formatGrade(candidate.review?.bestGrade)}</span>
                   </div>
                 </button>
@@ -665,6 +678,7 @@ export default function MemoryWorldLab() {
                     </div>
                     <div className="memory-world-lab__preview-meta">
                       <span>{effectiveSource}</span>
+                      <span>{activeWorldFamilyLabel}</span>
                       <span>{view}</span>
                     </div>
                   </div>
@@ -709,6 +723,7 @@ export default function MemoryWorldLab() {
                 </div>
                 <div className="memory-world-lab__preview-meta">
                   <span>{effectiveSource}</span>
+                  <span>{activeWorldFamilyLabel}</span>
                   <span>{view}</span>
                 </div>
               </div>
@@ -733,7 +748,11 @@ export default function MemoryWorldLab() {
             <div className="memory-world-lab__metrics">
               <div>
                 <span>Machine score</span>
-                <strong>{formatScore(selectedCandidate?.score ?? data?.scene?.world?.selection?.selectedScore)}</strong>
+                <strong>{formatScore(activeWorldSummary?.score ?? data?.scene?.world?.selection?.selectedScore)}</strong>
+              </div>
+              <div>
+                <span>Orbit score</span>
+                <strong>{formatScore(activeWorldSummary?.metrics?.orbitScore)}</strong>
               </div>
               <div>
                 <span>Best human grade</span>
@@ -741,8 +760,13 @@ export default function MemoryWorldLab() {
               </div>
               <div>
                 <span>Preferred yaw</span>
-                <strong>{getCandidatePreferredYaw(selectedCandidate) ?? EMPTY_VALUE}</strong>
+                <strong>{getCandidatePreferredYaw(activeWorldSummary) ?? EMPTY_VALUE}</strong>
               </div>
+            </div>
+
+            <div className="memory-world-lab__detail-card">
+              <h3>World Family</h3>
+              <p>{activeWorldFamilyLabel || 'Not recorded for this world yet.'}</p>
             </div>
 
             <label className="memory-world-lab__field">
