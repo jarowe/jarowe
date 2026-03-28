@@ -90,6 +90,7 @@ export default function MemoryWorldLab() {
   const [saveMessage, setSaveMessage] = useState('');
   const [sourcesPanelOpen, setSourcesPanelOpen] = useState(false);
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
+  const [focusHudOpen, setFocusHudOpen] = useState(false);
 
   const source = searchParams.get('source') || 'selected-candidate';
   const view = searchParams.get('view') === 'archive' ? 'archive' : 'raw';
@@ -191,10 +192,9 @@ export default function MemoryWorldLab() {
   }, [sceneId, effectiveSource, selectedReview]);
 
   useEffect(() => {
-    if (layoutMode !== 'focus') {
-      setSourcesPanelOpen(false);
-      setInspectorPanelOpen(false);
-    }
+    setSourcesPanelOpen(false);
+    setInspectorPanelOpen(false);
+    setFocusHudOpen(layoutMode !== 'focus');
   }, [layoutMode, sceneId]);
 
   const reviewHistory = useMemo(() => {
@@ -278,6 +278,39 @@ export default function MemoryWorldLab() {
     navigate(`/starseed/labs/memory-worlds/${nextSceneId}?source=selected-candidate&view=${view}&layout=${layoutMode}`);
   }
 
+  function toggleFocusHud() {
+    setFocusHudOpen((current) => {
+      const next = !current;
+      if (!next) {
+        setSourcesPanelOpen(false);
+        setInspectorPanelOpen(false);
+      }
+      return next;
+    });
+  }
+
+  function toggleSourcesPanel() {
+    setFocusHudOpen(true);
+    setSourcesPanelOpen((current) => {
+      const next = !current;
+      if (next) {
+        setInspectorPanelOpen(false);
+      }
+      return next;
+    });
+  }
+
+  function toggleInspectorPanel() {
+    setFocusHudOpen(true);
+    setInspectorPanelOpen((current) => {
+      const next = !current;
+      if (next) {
+        setSourcesPanelOpen(false);
+      }
+      return next;
+    });
+  }
+
   useEffect(() => {
     function onKeyDown(event) {
       const activeElement = document.activeElement;
@@ -339,15 +372,29 @@ export default function MemoryWorldLab() {
         return;
       }
 
+      if (layoutMode === 'focus' && event.key === 'h') {
+        event.preventDefault();
+        toggleFocusHud();
+        return;
+      }
+
+      if (layoutMode === 'focus' && event.key === 'Escape') {
+        event.preventDefault();
+        setSourcesPanelOpen(false);
+        setInspectorPanelOpen(false);
+        setFocusHudOpen(false);
+        return;
+      }
+
       if (layoutMode === 'focus' && event.key === 'w') {
         event.preventDefault();
-        setSourcesPanelOpen((current) => !current);
+        toggleSourcesPanel();
         return;
       }
 
       if (layoutMode === 'focus' && event.key === 'i') {
         event.preventDefault();
-        setInspectorPanelOpen((current) => !current);
+        toggleInspectorPanel();
       }
     }
 
@@ -357,81 +404,67 @@ export default function MemoryWorldLab() {
 
   return (
     <div className={`memory-world-lab ${layoutMode === 'focus' ? 'memory-world-lab--focus' : 'memory-world-lab--review'}`}>
-      <header className="memory-world-lab__header">
-        <div className="memory-world-lab__title">
-          <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
-          <h1>{data?.scene?.title || 'Memory World Lab'}</h1>
-          <p>{data?.scene?.subtitle || 'Track candidates, preview them, and save grades without losing the thread.'}</p>
-        </div>
-        <div className="memory-world-lab__header-actions">
-          <label className="memory-world-lab__scene-select">
-            <span>Scene</span>
-            <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
-              {catalog.map((scene) => (
-                <option key={scene.id} value={scene.id}>
-                  {scene.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Link to="/starseed/labs" className="memory-world-lab__link">
-            Back to Labs
-          </Link>
-          <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
-            Refresh
-          </button>
-          <button
-            type="button"
-            className={`memory-world-lab__button ${layoutMode === 'focus' ? 'memory-world-lab__button--active' : ''}`}
-            onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
-          >
-            {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
-          </button>
-          {layoutMode === 'focus' && (
-            <>
-              <button
-                type="button"
-                className={`memory-world-lab__button ${sourcesPanelOpen ? 'memory-world-lab__button--active' : ''}`}
-                onClick={() => setSourcesPanelOpen((current) => !current)}
-              >
-                World Sources
-              </button>
-              <button
-                type="button"
-                className={`memory-world-lab__button ${inspectorPanelOpen ? 'memory-world-lab__button--active' : ''}`}
-                onClick={() => setInspectorPanelOpen((current) => !current)}
-              >
-                Review Panel
-              </button>
-            </>
-          )}
-          <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
-            Open Preview
-          </a>
-        </div>
-      </header>
+      {layoutMode !== 'focus' && (
+        <header className="memory-world-lab__header">
+          <div className="memory-world-lab__title">
+            <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
+            <h1>{data?.scene?.title || 'Memory World Lab'}</h1>
+            <p>{data?.scene?.subtitle || 'Track candidates, preview them, and save grades without losing the thread.'}</p>
+          </div>
+          <div className="memory-world-lab__header-actions">
+            <label className="memory-world-lab__scene-select">
+              <span>Scene</span>
+              <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
+                {catalog.map((scene) => (
+                  <option key={scene.id} value={scene.id}>
+                    {scene.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Link to="/starseed/labs" className="memory-world-lab__link">
+              Back to Labs
+            </Link>
+            <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
+              Refresh
+            </button>
+            <button
+              type="button"
+              className={`memory-world-lab__button ${layoutMode === 'focus' ? 'memory-world-lab__button--active' : ''}`}
+              onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
+            >
+              {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
+            </button>
+            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
+              Open Preview
+            </a>
+          </div>
+        </header>
+      )}
 
-      <section className="memory-world-lab__status-strip">
-        <article className="memory-world-lab__status-card">
-          <span className="memory-world-lab__status-label">Selected Candidate</span>
-          <strong>{data?.scene?.selectedCandidateId || 'None'}</strong>
-        </article>
-        <article className="memory-world-lab__status-card">
-          <span className="memory-world-lab__status-label">Favorite World Version</span>
-          <strong>{data?.scene?.favoriteVersionId || 'Not set'}</strong>
-        </article>
-        <article className="memory-world-lab__status-card">
-          <span className="memory-world-lab__status-label">SAM3D Local Status</span>
-          <strong>{sam3d?.loggedIn ? `Logged in as ${sam3d.account}` : 'HF login required locally'}</strong>
-          <span className="memory-world-lab__status-meta">
-            {sam3d?.ready
-              ? 'Ready for subject generation'
-              : sam3d?.hasCheckpoint && sam3d?.hasMhrModel
-                ? 'Models downloaded, auth still needed'
-                : 'Checkpoints not downloaded yet'}
-          </span>
-        </article>
-      </section>
+      {layoutMode !== 'focus' && (
+        <section className="memory-world-lab__status-strip">
+          <article className="memory-world-lab__status-card">
+            <span className="memory-world-lab__status-label">Selected Candidate</span>
+            <strong>{data?.scene?.selectedCandidateId || 'None'}</strong>
+          </article>
+          <article className="memory-world-lab__status-card">
+            <span className="memory-world-lab__status-label">Favorite World Version</span>
+            <strong>{data?.scene?.favoriteVersionId || 'Not set'}</strong>
+          </article>
+          <article className="memory-world-lab__status-card">
+            <span className="memory-world-lab__status-label">SAM3D Local Status</span>
+            <strong>{sam3d?.loggedIn ? `Logged in as ${sam3d.account}` : 'HF login required locally'}</strong>
+            <span className="memory-world-lab__status-meta">
+              {sam3d?.ready
+                ? 'Ready for subject generation'
+                : sam3d?.hasCheckpoint && sam3d?.hasMhrModel
+                  ? 'Models downloaded, auth still needed'
+                  : 'Checkpoints not downloaded yet'}
+            </span>
+          </article>
+        </section>
+      )}
 
       {loading && (
         <div className="memory-world-lab__loading">
@@ -516,47 +549,138 @@ export default function MemoryWorldLab() {
           </aside>
 
           <section className="memory-world-lab__preview-panel">
-            <div className="memory-world-lab__preview-toolbar">
-              <div className="memory-world-lab__toolbar-left">
-                <div className="memory-world-lab__toggle-group">
-                  <button
-                    type="button"
-                    className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
-                    onClick={() => updateSearch(effectiveSource, 'raw')}
-                  >
-                    Raw World
-                  </button>
-                  <button
-                    type="button"
-                    className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
-                    onClick={() => updateSearch(effectiveSource, 'archive')}
-                  >
-                    Archive Composite
-                  </button>
-                </div>
-              <div className="memory-world-lab__toggle-group">
-                <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
-                  Prev
-                  </button>
-                  <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
-                    Next
-                </button>
-              </div>
-              <div className="memory-world-lab__toggle-group">
+            {layoutMode === 'focus' ? (
+              <>
                 <button
                   type="button"
-                  className={`memory-world-lab__toggle ${layoutMode === 'focus' ? 'is-active' : ''}`}
-                  onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
+                  className={`memory-world-lab__focus-toggle ${focusHudOpen ? 'is-open' : ''}`}
+                  onClick={() => toggleFocusHud()}
                 >
-                  {layoutMode === 'focus' ? 'Preview Focused' : 'Preview Standard'}
+                  {focusHudOpen ? 'Hide Controls' : 'Show Controls'}
                 </button>
+                <div className={`memory-world-lab__focus-hud ${focusHudOpen ? 'is-open' : ''}`}>
+                  <div className="memory-world-lab__focus-scene">
+                    <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
+                    <strong>{data.scene.title}</strong>
+                    <small>{data.scene.subtitle}</small>
+                  </div>
+                  <div className="memory-world-lab__focus-actions">
+                    <label className="memory-world-lab__scene-select">
+                      <span>Scene</span>
+                      <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
+                        {catalog.map((scene) => (
+                          <option key={scene.id} value={scene.id}>
+                            {scene.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <Link to="/starseed/labs" className="memory-world-lab__link">
+                      Back to Labs
+                    </Link>
+                    <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
+                      Refresh
+                    </button>
+                    <button
+                      type="button"
+                      className="memory-world-lab__button"
+                      onClick={() => updateSearch(effectiveSource, view, 'review')}
+                    >
+                      Review Layout
+                    </button>
+                    <button
+                      type="button"
+                      className={`memory-world-lab__button ${sourcesPanelOpen ? 'memory-world-lab__button--active' : ''}`}
+                      onClick={() => toggleSourcesPanel()}
+                    >
+                      World Sources
+                    </button>
+                    <button
+                      type="button"
+                      className={`memory-world-lab__button ${inspectorPanelOpen ? 'memory-world-lab__button--active' : ''}`}
+                      onClick={() => toggleInspectorPanel()}
+                    >
+                      Review Panel
+                    </button>
+                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
+                      Open Preview
+                    </a>
+                  </div>
+                  <div className="memory-world-lab__focus-bar">
+                    <div className="memory-world-lab__toggle-group">
+                      <button
+                        type="button"
+                        className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
+                        onClick={() => updateSearch(effectiveSource, 'raw')}
+                      >
+                        Raw World
+                      </button>
+                      <button
+                        type="button"
+                        className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
+                        onClick={() => updateSearch(effectiveSource, 'archive')}
+                      >
+                        Archive Composite
+                      </button>
+                    </div>
+                    <div className="memory-world-lab__toggle-group">
+                      <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
+                        Prev
+                      </button>
+                      <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
+                        Next
+                      </button>
+                    </div>
+                    <div className="memory-world-lab__preview-meta">
+                      <span>{effectiveSource}</span>
+                      <span>{view}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="memory-world-lab__preview-toolbar">
+                <div className="memory-world-lab__toolbar-left">
+                  <div className="memory-world-lab__toggle-group">
+                    <button
+                      type="button"
+                      className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
+                      onClick={() => updateSearch(effectiveSource, 'raw')}
+                    >
+                      Raw World
+                    </button>
+                    <button
+                      type="button"
+                      className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
+                      onClick={() => updateSearch(effectiveSource, 'archive')}
+                    >
+                      Archive Composite
+                    </button>
+                  </div>
+                  <div className="memory-world-lab__toggle-group">
+                    <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
+                      Prev
+                    </button>
+                    <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
+                      Next
+                    </button>
+                  </div>
+                  <div className="memory-world-lab__toggle-group">
+                    <button
+                      type="button"
+                      className={`memory-world-lab__toggle ${layoutMode === 'focus' ? 'is-active' : ''}`}
+                      onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
+                    >
+                      {layoutMode === 'focus' ? 'Preview Focused' : 'Preview Standard'}
+                    </button>
+                  </div>
+                </div>
+                <div className="memory-world-lab__preview-meta">
+                  <span>{effectiveSource}</span>
+                  <span>{view}</span>
+                </div>
               </div>
-            </div>
-            <div className="memory-world-lab__preview-meta">
-              <span>{effectiveSource}</span>
-              <span>{view}</span>
-            </div>
-            </div>
+            )}
 
             <div className="memory-world-lab__preview-shell">
               <iframe
@@ -733,6 +857,8 @@ export default function MemoryWorldLab() {
                 <span>P preview mode</span>
                 <span>W worlds panel</span>
                 <span>I review panel</span>
+                <span>H hide or show controls</span>
+                <span>Esc clear overlays</span>
                 <span>Cmd/Ctrl+Enter save</span>
               </div>
             </div>
