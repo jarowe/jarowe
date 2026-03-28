@@ -82,11 +82,36 @@ def bbox_from_mask(masks):
     return np.array([[float(xs.min()), float(ys.min()), float(xs.max()), float(ys.max())]], dtype=np.float32)
 
 
-def export_subject_mesh(outputs, faces, output_dir: Path, person_index: int) -> dict:
+def write_fallback_preview(input_path: Path, output_dir: Path, person: dict) -> str | None:
+    import cv2
+    import numpy as np
+
+    image = cv2.imread(str(input_path), cv2.IMREAD_COLOR)
+    if image is None:
+        return None
+
+    bbox = np.asarray(person["bbox"], dtype=np.float32)
+    x0, y0, x1, y1 = bbox.tolist()
+    height, width = image.shape[:2]
+    pad_x = max((x1 - x0) * 0.18, 24.0)
+    pad_y = max((y1 - y0) * 0.18, 24.0)
+    left = max(int(np.floor(x0 - pad_x)), 0)
+    top = max(int(np.floor(y0 - pad_y)), 0)
+    right = min(int(np.ceil(x1 + pad_x)), width)
+    bottom = min(int(np.ceil(y1 + pad_y)), height)
+    crop = image[top:bottom, left:right]
+    if crop.size == 0:
+        return None
+
+    preview = cv2.resize(crop, (512, 512), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(str(output_dir / "subject.preview.png"), preview)
+    return "photo-crop"
+
+
+def export_subject_mesh(outputs, faces, output_dir: Path, person_index: int, input_path: Path) -> dict:
     import cv2
     import numpy as np
     import trimesh
-    from sam_3d_body.visualization.renderer import Renderer
 
     if not outputs:
         raise RuntimeError("SAM 3D Body returned no people for this image")
@@ -102,15 +127,23 @@ def export_subject_mesh(outputs, faces, output_dir: Path, person_index: int) -> 
     mesh.apply_transform(rot_y)
     mesh.export(output_dir / "subject.glb")
 
-    renderer = Renderer(focal_length=float(person["focal_length"]), faces=faces.copy())
-    preview = renderer.render_rgba(
-        vertices=vertices,
-        cam_t=camera_translation,
-        mesh_base_color=(0.93, 0.9, 0.82),
-        scene_bg_color=(0, 0, 0),
-        render_res=[512, 512],
-    )
-    cv2.imwrite(str(output_dir / "subject.preview.png"), preview.astype(np.uint8))
+    preview_mode = None
+    try:
+        from sam_3d_body.visualization.renderer import Renderer
+
+        renderer = Renderer(focal_length=float(person["focal_length"]), faces=faces.copy())
+        preview = renderer.render_rgba(
+            vertices=vertices,
+            cam_t=camera_translation,
+            mesh_base_color=(0.93, 0.9, 0.82),
+            scene_bg_color=(0, 0, 0),
+            render_res=[512, 512],
+        )
+        cv2.imwrite(str(output_dir / "subject.preview.png"), preview.astype(np.uint8))
+        preview_mode = "mesh-render"
+    except Exception as error:  # noqa: BLE001
+        print(f"Preview renderer unavailable, using fallback photo crop: {error}")
+        preview_mode = write_fallback_preview(input_path, output_dir, person)
 
     result = {
         "personIndex": person_index,
@@ -120,6 +153,7 @@ def export_subject_mesh(outputs, faces, output_dir: Path, person_index: int) -> 
         "vertexCount": int(vertices.shape[0]),
         "faceCount": int(faces.shape[0]),
         "usedMaskConditioning": person.get("mask") is not None,
+        "previewMode": preview_mode,
     }
     with open(output_dir / "subject.meta.json", "w", encoding="utf-8") as handle:
         json.dump(result, handle, indent=2)
@@ -214,7 +248,7 @@ def main() -> int:
         bbox_thr=args.bbox_thresh,
         use_mask=use_mask,
     )
-    subject_meta = export_subject_mesh(results, estimator.faces, output_dir, args.person_index)
+    subject_meta = export_subject_mesh(results, estimator.faces, output_dir, args.person_index, input_path)
 
     summary = {
         "backend": "sam3d-body",

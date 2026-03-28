@@ -140,14 +140,14 @@
       "supportMode": "mesh-fill"
     },
     "pointCloud": null,
-    "preview": null,
+    "preview": "subject.preview.png",
     "provenance": {
-      "backend": "existing",
-      "generated": "2026-03-27",
+      "backend": "sam3d-body",
+      "generated": "2026-03-28",
       "photo": "photo.jpg",
       "mask": "mask.png",
-      "label": "mesh proxy baseline",
-      "notes": "registered current subject mesh as baseline before SAM3D"
+      "label": "sam3d-body-v1",
+      "notes": "first direct Meta subject attempt"
     }
   },
   "narrative": [
