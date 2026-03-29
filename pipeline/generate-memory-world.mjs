@@ -794,7 +794,6 @@ function buildEnvironmentBootstrapImage(sceneDir, worldDir, inputPhoto, meta, wo
         process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen'),
       );
       const bashCommand = [
-        `source ${getDefaultWorldModelWslVenv()}/bin/activate`,
         `export WORLDGEN_ROOT=${shellQuoteBash(worldgenRoot)}`,
         [
           getDefaultWorldModelWslPython(),
@@ -2379,7 +2378,6 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
     ? [`export VISTADREAM_ROOT=${shellQuoteBash(backendRoot)}`]
     : [`export WORLDGEN_ROOT=${shellQuoteBash(backendRoot)}`];
   const bashCommand = [
-    `source ${getDefaultWorldModelWslVenv(backend)}/bin/activate`,
     ...backendExports,
     [
       getDefaultWorldModelWslPython(backend),

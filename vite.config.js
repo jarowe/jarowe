@@ -138,6 +138,10 @@ function probeWsl(command) {
   }
 }
 
+function getWslEnvPythonPath(wslEnvPath) {
+  return `${wslEnvPath}/bin/python`
+}
+
 function getVistaDreamStatus() {
   const requiredAssets = {
     depthPro: join(VISTADREAM_REPO_ROOT, 'tools', 'DepthPro', 'checkpoints', 'depth_pro.pt'),
@@ -161,13 +165,14 @@ function getVistaDreamStatus() {
   let torchCudaExecOk = false
   let torchCudaMessage = null
   if (process.platform === 'win32') {
-    const envProbe = probeWsl(`test -d ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)} && echo READY || echo MISSING`)
+    const wslPythonPath = getWslEnvPythonPath(VISTADREAM_DEFAULT_WSL_VENV)
+    const envProbe = probeWsl(`test -x ${JSON.stringify(wslPythonPath)} && echo READY || echo MISSING`)
     hasWslEnv = /\bREADY\b/i.test(envProbe.output)
     if (hasWslEnv) {
-      const pythonProbe = probeWsl(`source ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)}/bin/activate && python --version`)
+      const pythonProbe = probeWsl(`${JSON.stringify(wslPythonPath)} --version`)
       wslPythonVersion = pythonProbe.ok ? pythonProbe.output : null
       const torchProbe = probeWsl(
-        `source ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)}/bin/activate && python -W ignore - <<'PY'
+        `${JSON.stringify(wslPythonPath)} -W ignore - <<'PY'
 import torch
 print(f"TORCH={torch.__version__}")
 print(f"CUDA={torch.version.cuda or 'none'}")
