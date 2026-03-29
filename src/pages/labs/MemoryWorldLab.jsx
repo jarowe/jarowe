@@ -855,6 +855,7 @@ export default function MemoryWorldLab() {
               <h3>Camera-Guided Backend</h3>
               <p>{vistaDream?.message || 'VistaDream status unavailable.'}</p>
               <div className="memory-world-lab__status-list">
+                <span>WSL: {vistaDream?.wslReachable ? 'reachable' : 'hung'}</span>
                 <span>Repo: {vistaDream?.hasRepo ? 'present' : 'missing'}</span>
                 <span>WSL env: {vistaDream?.hasWslEnv ? 'ready' : 'missing'}</span>
                 <span>Weights: {vistaDream?.hasWeights ? 'present' : 'missing'}</span>
@@ -871,11 +872,28 @@ export default function MemoryWorldLab() {
                 <span>LCM: {vistaDream?.lcm ? 'ok' : 'missing'}</span>
                 <span>Fooocus: {vistaDream?.fooocusCheckpoint && vistaDream?.fooocusInpaint && vistaDream?.fooocusPrompt ? 'ok' : 'partial'}</span>
               </div>
+              <div className="memory-world-lab__status-list">
+                <span>Detectron2: {vistaDream?.detectron2Ok ? 'ok' : 'missing'}</span>
+                <span>OneFormer import: {vistaDream?.oneFormerImportOk ? 'ok' : 'blocked'}</span>
+                {vistaDream?.distro && <span>Distro: {vistaDream.distro}</span>}
+              </div>
               {vistaDream?.torchCudaMessage && (
                 <p>{vistaDream.torchCudaMessage}</p>
               )}
+              {vistaDream?.detectron2Message && (
+                <p>{vistaDream.detectron2Message}</p>
+              )}
+              {vistaDream?.oneFormerImportMessage && (
+                <p>{vistaDream.oneFormerImportMessage}</p>
+              )}
+              {vistaDream?.importProbeMessage && (
+                <p>{vistaDream.importProbeMessage}</p>
+              )}
               {vistaDream?.wslVenv && (
                 <code>{vistaDream.wslVenv}</code>
+              )}
+              {vistaDream?.provisionCommand && (
+                <code>{vistaDream.provisionCommand}</code>
               )}
             </div>
 

@@ -133,7 +133,7 @@ VistaDream on this repo is expected to run from Linux/WSL. The pipeline will loo
 ```bash
 VISTADREAM_ROOT=/mnt/c/dev/jarowe/_experiments/VistaDream
 VISTADREAM_WSL_VENV=$HOME/.venvs/vistadream
-VISTADREAM_WSL_PYTHON=python
+VISTADREAM_WSL_PYTHON=$HOME/.venvs/vistadream/bin/python
 ```
 
 The `vistadream` backend wrapper writes:
@@ -149,12 +149,36 @@ Readiness requirements before `camera-guided` can actually generate:
 - `_experiments/VistaDream/download_weights.sh` run successfully
 - required checkpoints present under the VistaDream repo
 - a PyTorch build that can actually execute on the local GPU
+- `detectron2` installed into the VistaDream env
+- the OneFormer `MultiScaleDeformableAttention` op compiled successfully
 
 The WSL commands call the env's Python directly instead of assuming `source .../bin/activate`, so either a standard `venv` or a micromamba-style env works as long as `{env}/bin/python` exists.
 
-Until that env exists, the camera-guided family is now a real backend target with explicit readiness failures, not a fake label.
+The dev lab now probes more than just repo+weights. It also surfaces:
 
-On this machine, the current VistaDream env does execute on the GPU once the env's Python is invoked directly. The remaining local blocker is model weights, not basic CUDA execution.
+- WSL reachability
+- torch/CUDA execution
+- `detectron2` availability
+- OneFormer import / CUDA-op readiness
+
+Blackwell / RTX 5090 note:
+
+- treat VistaDream as a Blackwell rebuild, not a legacy PyTorch 2.1 env
+- use a current cu128 PyTorch wheel set, then rebuild `detectron2` and the OneFormer op against that stack
+
+Provisioning command from Windows:
+
+```bash
+node pipeline/provision-vistadream-blackwell.mjs
+```
+
+Underlying WSL script:
+
+```bash
+bash pipeline/provision_vistadream_blackwell_wsl.sh
+```
+
+If the lab reports `WSL is unavailable or hung`, fix the WSL service state first and then rerun the provisioning command.
 
 ### Windows + WSL WorldGen
 

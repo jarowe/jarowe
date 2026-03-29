@@ -14,6 +14,7 @@ const SAM3D_VENV_PYTHON = join(ROOT, '.venv-sam3d-body', 'Scripts', 'python.exe'
 const SAM3D_VENV_HF = join(ROOT, '.venv-sam3d-body', 'Scripts', 'hf.exe')
 const VISTADREAM_REPO_ROOT = join(ROOT, '_experiments', 'VistaDream')
 const VISTADREAM_DEFAULT_WSL_VENV = process.env.VISTADREAM_WSL_VENV || '$HOME/.venvs/vistadream'
+const WORLD_MODEL_WSL_DISTRO = process.env.WORLD_MODEL_WSL_DISTRO || 'Ubuntu'
 
 function safeReadJson(filePath) {
   try {
@@ -126,15 +127,25 @@ function getSam3dStatus() {
   }
 }
 
-function probeWsl(command) {
-  const result = spawnSync('wsl.exe', ['bash', '-lc', command], {
+function toWslPath(filePath) {
+  const normalized = String(resolve(filePath)).replace(/\\/g, '/')
+  const driveMatch = normalized.match(/^([A-Za-z]):(.*)$/)
+  if (!driveMatch) return normalized
+  return `/mnt/${driveMatch[1].toLowerCase()}${driveMatch[2]}`
+}
+
+function probeWsl(command, timeout = 15000) {
+  const result = spawnSync('wsl.exe', ['-d', WORLD_MODEL_WSL_DISTRO, '--', 'bash', '-lc', command], {
     cwd: ROOT,
     encoding: 'utf8',
     windowsHide: true,
+    timeout,
   })
   return {
     ok: result.status === 0,
     output: stripAnsi(result.stdout || result.stderr || ''),
+    timedOut: result.error?.code === 'ETIMEDOUT',
+    status: result.status,
   }
 }
 
@@ -159,16 +170,25 @@ function getVistaDreamStatus() {
   const hasWeights = Object.values(assetFlags).every(Boolean)
 
   let hasWslEnv = false
+  let wslReachable = process.platform !== 'win32'
   let wslPythonVersion = null
   let torchVersion = null
   let torchCudaVersion = null
   let torchCudaExecOk = false
   let torchCudaMessage = null
+  let detectron2Ok = false
+  let detectron2Message = null
+  let oneFormerImportOk = false
+  let oneFormerImportMessage = null
+  let importProbeMessage = null
   if (process.platform === 'win32') {
     const wslPythonPath = getWslEnvPythonPath(VISTADREAM_DEFAULT_WSL_VENV)
     const envProbe = probeWsl(`test -x ${JSON.stringify(wslPythonPath)} && echo READY || echo MISSING`)
+    wslReachable = envProbe.ok || /\bREADY\b|\bMISSING\b/i.test(envProbe.output)
     hasWslEnv = /\bREADY\b/i.test(envProbe.output)
-    if (hasWslEnv) {
+    if (envProbe.timedOut) {
+      importProbeMessage = 'WSL probe timed out'
+    } else if (hasWslEnv) {
       const pythonProbe = probeWsl(`${JSON.stringify(wslPythonPath)} --version`)
       wslPythonVersion = pythonProbe.ok ? pythonProbe.output : null
       const torchProbe = probeWsl(
@@ -195,34 +215,95 @@ PY`,
       } else if (!torchProbe.ok) {
         torchCudaMessage = 'Torch probe failed'
       }
+
+      const vistaDreamWslRoot = toWslPath(VISTADREAM_REPO_ROOT)
+      const importProbe = probeWsl(
+        `cd ${JSON.stringify(vistaDreamWslRoot)} && ${JSON.stringify(wslPythonPath)} -W ignore - <<'PY'
+import os
+import sys
+
+def emit(key, value):
+    print(f"{key}={value}")
+
+try:
+    import detectron2
+    emit("DETECTRON2_OK", 1)
+except Exception as exc:
+    emit("DETECTRON2_ERR", str(exc).replace("\\n", " "))
+
+try:
+    from ops.sky import Sky_Seg_Tool  # noqa: F401
+    emit("ONEFORMER_IMPORT_OK", 1)
+except Exception as exc:
+    emit("ONEFORMER_IMPORT_ERR", str(exc).replace("\\n", " "))
+PY`,
+        20000,
+      )
+
+      if (importProbe.output) {
+        const lines = importProbe.output
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+        detectron2Ok = lines.some((line) => line === 'DETECTRON2_OK=1')
+        detectron2Message = lines.find((line) => line.startsWith('DETECTRON2_ERR='))?.slice('DETECTRON2_ERR='.length) || null
+        oneFormerImportOk = lines.some((line) => line === 'ONEFORMER_IMPORT_OK=1')
+        oneFormerImportMessage = lines.find((line) => line.startsWith('ONEFORMER_IMPORT_ERR='))?.slice('ONEFORMER_IMPORT_ERR='.length) || null
+      } else if (importProbe.timedOut) {
+        importProbeMessage = 'VistaDream import probe timed out'
+      } else if (!importProbe.ok) {
+        importProbeMessage = 'VistaDream import probe failed'
+      }
     }
   } else {
     hasWslEnv = true
+    detectron2Ok = true
+    oneFormerImportOk = true
   }
 
   let message = 'Ready for camera-guided generation'
   if (!hasRepo) {
     message = 'VistaDream repo missing'
+  } else if (!wslReachable) {
+    message = 'WSL is unavailable or hung'
   } else if (!hasWslEnv) {
     message = 'VistaDream WSL env missing'
-  } else if (torchVersion && !torchCudaExecOk) {
-    message = 'VistaDream torch stack cannot execute on this GPU'
   } else if (!hasWeights) {
     message = 'VistaDream weights missing'
+  } else if (torchVersion && !torchCudaExecOk) {
+    message = 'VistaDream torch stack cannot execute on this GPU'
+  } else if (!detectron2Ok) {
+    message = 'VistaDream detectron2 stack missing'
+  } else if (!oneFormerImportOk) {
+    message = 'VistaDream OneFormer CUDA op/import stack is not ready'
   }
 
   return {
     hasRepo,
+    wslReachable,
     hasWslEnv,
     hasWeights,
-    ready: hasRepo && hasWslEnv && hasWeights && (!torchVersion || torchCudaExecOk),
+    ready: hasRepo
+      && wslReachable
+      && hasWslEnv
+      && hasWeights
+      && (!torchVersion || torchCudaExecOk)
+      && detectron2Ok
+      && oneFormerImportOk,
     message,
+    provisionCommand: 'node pipeline/provision-vistadream-blackwell.mjs',
+    distro: WORLD_MODEL_WSL_DISTRO,
     wslVenv: VISTADREAM_DEFAULT_WSL_VENV,
     wslPythonVersion,
     torchVersion,
     torchCudaVersion,
     torchCudaExecOk,
     torchCudaMessage,
+    detectron2Ok,
+    detectron2Message,
+    oneFormerImportOk,
+    oneFormerImportMessage,
+    importProbeMessage,
     ...assetFlags,
   }
 }
