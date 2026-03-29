@@ -215,6 +215,8 @@ def run_vistadream(_: argparse.Namespace) -> int:
         )
         return 6
 
+    previous_cwd = Path.cwd()
+    os.chdir(vistadream_root)
     sys.path.insert(0, str(vistadream_root))
 
     try:
@@ -225,6 +227,7 @@ def run_vistadream(_: argparse.Namespace) -> int:
         from pipe.c2f_recons import Pipeline
         from pipe.cfgs import load_cfg
     except Exception as exc:  # pragma: no cover - dependency discovery path
+        os.chdir(previous_cwd)
         print(
             "[vistadream] Failed to import VistaDream dependencies.\n"
             f"VistaDream root: {vistadream_root}\n"
@@ -298,9 +301,7 @@ def run_vistadream(_: argparse.Namespace) -> int:
     config_path = working_dir / "config.generated.yaml"
     OmegaConf.save(config=cfg, f=str(config_path))
 
-    previous_cwd = Path.cwd()
     try:
-        os.chdir(vistadream_root)
         pipeline = Pipeline(cfg)
         pipeline()
     finally:

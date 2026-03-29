@@ -2315,15 +2315,21 @@ function getDefaultWorldModelWslVenv(backend = 'worldgen') {
     || '$HOME/.venvs/worldgen312';
 }
 
+function getWslEnvPythonPath(wslVenv) {
+  const trimmed = String(wslVenv || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return 'python';
+  return `${trimmed}/bin/python`;
+}
+
 function getDefaultWorldModelWslPython(backend = 'worldgen') {
   if (backend === 'vistadream') {
     return process.env.VISTADREAM_WSL_PYTHON
       || process.env.WORLD_MODEL_CAMERA_GUIDED_WSL_PYTHON
-      || 'python';
+      || getWslEnvPythonPath(getDefaultWorldModelWslVenv('vistadream'));
   }
   return process.env.WORLD_MODEL_WSL_PYTHON
     || process.env.WORLDGEN_WSL_PYTHON
-    || 'python';
+    || getWslEnvPythonPath(getDefaultWorldModelWslVenv('worldgen'));
 }
 
 function getDefaultWorldModelBackendRoot(backend = 'worldgen') {
