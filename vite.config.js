@@ -156,12 +156,40 @@ function getVistaDreamStatus() {
 
   let hasWslEnv = false
   let wslPythonVersion = null
+  let torchVersion = null
+  let torchCudaVersion = null
+  let torchCudaExecOk = false
+  let torchCudaMessage = null
   if (process.platform === 'win32') {
     const envProbe = probeWsl(`test -d ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)} && echo READY || echo MISSING`)
     hasWslEnv = /\bREADY\b/i.test(envProbe.output)
     if (hasWslEnv) {
       const pythonProbe = probeWsl(`source ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)}/bin/activate && python --version`)
       wslPythonVersion = pythonProbe.ok ? pythonProbe.output : null
+      const torchProbe = probeWsl(
+        `source ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)}/bin/activate && python -W ignore - <<'PY'
+import torch
+print(f"TORCH={torch.__version__}")
+print(f"CUDA={torch.version.cuda or 'none'}")
+try:
+    torch.randn(2).cuda()
+    print("CUDA_OK=1")
+except Exception as exc:
+    print(f"CUDA_ERR={str(exc).replace(chr(10), ' ')}")
+PY`,
+      )
+      if (torchProbe.output) {
+        const lines = torchProbe.output
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+        torchVersion = lines.find((line) => line.startsWith('TORCH='))?.slice('TORCH='.length) || null
+        torchCudaVersion = lines.find((line) => line.startsWith('CUDA='))?.slice('CUDA='.length) || null
+        torchCudaExecOk = lines.some((line) => line === 'CUDA_OK=1')
+        torchCudaMessage = lines.find((line) => line.startsWith('CUDA_ERR='))?.slice('CUDA_ERR='.length) || null
+      } else if (!torchProbe.ok) {
+        torchCudaMessage = 'Torch probe failed'
+      }
     }
   } else {
     hasWslEnv = true
@@ -172,6 +200,8 @@ function getVistaDreamStatus() {
     message = 'VistaDream repo missing'
   } else if (!hasWslEnv) {
     message = 'VistaDream WSL env missing'
+  } else if (torchVersion && !torchCudaExecOk) {
+    message = 'VistaDream torch stack cannot execute on this GPU'
   } else if (!hasWeights) {
     message = 'VistaDream weights missing'
   }
@@ -180,10 +210,14 @@ function getVistaDreamStatus() {
     hasRepo,
     hasWslEnv,
     hasWeights,
-    ready: hasRepo && hasWslEnv && hasWeights,
+    ready: hasRepo && hasWslEnv && hasWeights && (!torchVersion || torchCudaExecOk),
     message,
     wslVenv: VISTADREAM_DEFAULT_WSL_VENV,
     wslPythonVersion,
+    torchVersion,
+    torchCudaVersion,
+    torchCudaExecOk,
+    torchCudaMessage,
     ...assetFlags,
   }
 }

@@ -148,8 +148,11 @@ Readiness requirements before `camera-guided` can actually generate:
 - Linux/WSL Python env matching VistaDream's stack
 - `_experiments/VistaDream/download_weights.sh` run successfully
 - required checkpoints present under the VistaDream repo
+- a PyTorch build that can actually execute on the local GPU
 
 Until that env exists, the camera-guided family is now a real backend target with explicit readiness failures, not a fake label.
+
+On this machine specifically, the RTX 5090 exposes another constraint: VistaDream's pinned `torch 2.1` stack installs, but CUDA execution fails with `no kernel image is available for execution on the device`. Treat that as a real blocker for local generation until the VistaDream stack is ported to a newer PyTorch/CUDA combo that supports `sm_120`.
 
 ### Windows + WSL WorldGen
 

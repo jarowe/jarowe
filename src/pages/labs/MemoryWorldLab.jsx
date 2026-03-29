@@ -861,11 +861,19 @@ export default function MemoryWorldLab() {
                 {vistaDream?.wslPythonVersion && <span>{vistaDream.wslPythonVersion}</span>}
               </div>
               <div className="memory-world-lab__status-list">
+                <span>Torch: {vistaDream?.torchVersion || 'not probed'}</span>
+                <span>CUDA: {vistaDream?.torchCudaVersion || 'unknown'}</span>
+                <span>GPU exec: {vistaDream?.torchCudaExecOk ? 'ok' : 'blocked'}</span>
+              </div>
+              <div className="memory-world-lab__status-list">
                 <span>DepthPro: {vistaDream?.depthPro ? 'ok' : 'missing'}</span>
                 <span>OneFormer: {vistaDream?.oneFormer ? 'ok' : 'missing'}</span>
                 <span>LCM: {vistaDream?.lcm ? 'ok' : 'missing'}</span>
                 <span>Fooocus: {vistaDream?.fooocusCheckpoint && vistaDream?.fooocusInpaint && vistaDream?.fooocusPrompt ? 'ok' : 'partial'}</span>
               </div>
+              {vistaDream?.torchCudaMessage && (
+                <p>{vistaDream.torchCudaMessage}</p>
+              )}
               {vistaDream?.wslVenv && (
                 <code>{vistaDream.wslVenv}</code>
               )}
