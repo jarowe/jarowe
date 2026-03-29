@@ -2305,12 +2305,33 @@ function getDefaultWorldModelWslDistro() {
   return process.env.WORLD_MODEL_WSL_DISTRO || 'Ubuntu';
 }
 
-function getDefaultWorldModelWslVenv() {
-  return process.env.WORLD_MODEL_WSL_VENV || '$HOME/.venvs/worldgen312';
+function getDefaultWorldModelWslVenv(backend = 'worldgen') {
+  if (backend === 'vistadream') {
+    return process.env.VISTADREAM_WSL_VENV
+      || process.env.WORLD_MODEL_CAMERA_GUIDED_WSL_VENV
+      || '$HOME/.venvs/vistadream';
+  }
+  return process.env.WORLD_MODEL_WSL_VENV
+    || process.env.WORLDGEN_WSL_VENV
+    || '$HOME/.venvs/worldgen312';
 }
 
-function getDefaultWorldModelWslPython() {
-  return process.env.WORLD_MODEL_WSL_PYTHON || 'python';
+function getDefaultWorldModelWslPython(backend = 'worldgen') {
+  if (backend === 'vistadream') {
+    return process.env.VISTADREAM_WSL_PYTHON
+      || process.env.WORLD_MODEL_CAMERA_GUIDED_WSL_PYTHON
+      || 'python';
+  }
+  return process.env.WORLD_MODEL_WSL_PYTHON
+    || process.env.WORLDGEN_WSL_PYTHON
+    || 'python';
+}
+
+function getDefaultWorldModelBackendRoot(backend = 'worldgen') {
+  if (backend === 'vistadream') {
+    return process.env.VISTADREAM_ROOT || join(ROOT, '_experiments', 'VistaDream');
+  }
+  return process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen');
 }
 
 function buildWorldModelArgumentList(variables = {}) {
@@ -2339,9 +2360,7 @@ function buildWorldModelArgumentList(variables = {}) {
 
 function buildDefaultWorldModelWslCommand(backend, variables = {}) {
   const wrapperPath = toWslPath(LOCAL_WORLD_MODEL_WRAPPER);
-  const worldgenRoot = toWslPath(
-    process.env.WORLDGEN_ROOT || join(ROOT, '_experiments', 'WorldGen'),
-  );
+  const backendRoot = toWslPath(getDefaultWorldModelBackendRoot(backend));
   const worldModelArgs = buildWorldModelArgumentList({
     ...variables,
     backend,
@@ -2356,11 +2375,14 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
   })
     .map(([flag, value]) => value == null ? flag : `${flag} ${shellQuoteBash(value)}`)
     .join(' ');
+  const backendExports = backend === 'vistadream'
+    ? [`export VISTADREAM_ROOT=${shellQuoteBash(backendRoot)}`]
+    : [`export WORLDGEN_ROOT=${shellQuoteBash(backendRoot)}`];
   const bashCommand = [
-    `source ${getDefaultWorldModelWslVenv()}/bin/activate`,
-    `export WORLDGEN_ROOT=${shellQuoteBash(worldgenRoot)}`,
+    `source ${getDefaultWorldModelWslVenv(backend)}/bin/activate`,
+    ...backendExports,
     [
-      getDefaultWorldModelWslPython(),
+      getDefaultWorldModelWslPython(backend),
       shellQuoteBash(wrapperPath),
       worldModelArgs,
     ].join(' '),
@@ -2372,7 +2394,7 @@ function buildDefaultWorldModelWslCommand(backend, variables = {}) {
 function buildDefaultWorldModelCommand(variables = {}) {
   const backend = (
     (variables.worldFamily === 'camera-guided'
-      ? process.env.WORLD_MODEL_CAMERA_GUIDED_BACKEND
+      ? process.env.WORLD_MODEL_CAMERA_GUIDED_BACKEND || 'vistadream'
       : variables.worldFamily === 'structured-anchor'
         ? process.env.WORLD_MODEL_STRUCTURED_BACKEND
         : variables.worldFamily === 'pano-first'

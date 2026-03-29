@@ -12,6 +12,8 @@ const SAM3D_REPO_ROOT = join(ROOT, '_experiments', 'sam-3d-body')
 const SAM3D_CHECKPOINT_ROOT = join(SAM3D_REPO_ROOT, 'checkpoints', 'sam-3d-body-dinov3')
 const SAM3D_VENV_PYTHON = join(ROOT, '.venv-sam3d-body', 'Scripts', 'python.exe')
 const SAM3D_VENV_HF = join(ROOT, '.venv-sam3d-body', 'Scripts', 'hf.exe')
+const VISTADREAM_REPO_ROOT = join(ROOT, '_experiments', 'VistaDream')
+const VISTADREAM_DEFAULT_WSL_VENV = process.env.VISTADREAM_WSL_VENV || '$HOME/.venvs/vistadream'
 
 function safeReadJson(filePath) {
   try {
@@ -124,6 +126,68 @@ function getSam3dStatus() {
   }
 }
 
+function probeWsl(command) {
+  const result = spawnSync('wsl.exe', ['bash', '-lc', command], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    windowsHide: true,
+  })
+  return {
+    ok: result.status === 0,
+    output: stripAnsi(result.stdout || result.stderr || ''),
+  }
+}
+
+function getVistaDreamStatus() {
+  const requiredAssets = {
+    depthPro: join(VISTADREAM_REPO_ROOT, 'tools', 'DepthPro', 'checkpoints', 'depth_pro.pt'),
+    oneFormer: join(VISTADREAM_REPO_ROOT, 'tools', 'OneFormer', 'checkpoints', 'coco_pretrain_1280x1280_150_16_dinat_l_oneformer_ade20k_160k.pth'),
+    lcm: join(VISTADREAM_REPO_ROOT, 'tools', 'StableDiffusion', 'lcm_ckpt', 'pytorch_lora_weights.safetensors'),
+    fooocusCheckpoint: join(VISTADREAM_REPO_ROOT, 'tools', 'Fooocus', 'models', 'checkpoints', 'juggernautXL_v8Rundiffusion.safetensors'),
+    fooocusInpaint: join(VISTADREAM_REPO_ROOT, 'tools', 'Fooocus', 'models', 'inpaint', 'inpaint_v26.fooocus.patch'),
+    fooocusPrompt: join(VISTADREAM_REPO_ROOT, 'tools', 'Fooocus', 'models', 'prompt_expansion', 'fooocus_expansion', 'pytorch_model.bin'),
+  }
+
+  const hasRepo = existsSync(VISTADREAM_REPO_ROOT)
+  const assetFlags = Object.fromEntries(
+    Object.entries(requiredAssets).map(([key, filePath]) => [key, existsSync(filePath)]),
+  )
+  const hasWeights = Object.values(assetFlags).every(Boolean)
+
+  let hasWslEnv = false
+  let wslPythonVersion = null
+  if (process.platform === 'win32') {
+    const envProbe = probeWsl(`test -d ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)} && echo READY || echo MISSING`)
+    hasWslEnv = /\bREADY\b/i.test(envProbe.output)
+    if (hasWslEnv) {
+      const pythonProbe = probeWsl(`source ${JSON.stringify(VISTADREAM_DEFAULT_WSL_VENV)}/bin/activate && python --version`)
+      wslPythonVersion = pythonProbe.ok ? pythonProbe.output : null
+    }
+  } else {
+    hasWslEnv = true
+  }
+
+  let message = 'Ready for camera-guided generation'
+  if (!hasRepo) {
+    message = 'VistaDream repo missing'
+  } else if (!hasWslEnv) {
+    message = 'VistaDream WSL env missing'
+  } else if (!hasWeights) {
+    message = 'VistaDream weights missing'
+  }
+
+  return {
+    hasRepo,
+    hasWslEnv,
+    hasWeights,
+    ready: hasRepo && hasWslEnv && hasWeights,
+    message,
+    wslVenv: VISTADREAM_DEFAULT_WSL_VENV,
+    wslPythonVersion,
+    ...assetFlags,
+  }
+}
+
 function inferWorldFamily(meta, candidate = null) {
   return candidate?.family
     || meta?.world?.generationFamily
@@ -233,6 +297,7 @@ function collectMemoryWorldLabScene(sceneId) {
         }
       }),
       sam3d: getSam3dStatus(),
+      vistaDream: getVistaDreamStatus(),
     },
   }
 }

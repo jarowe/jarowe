@@ -7,6 +7,7 @@ pipeline/generate-memory-world.mjs.
 
 Current supported backends:
 - worldgen
+- vistadream
 
 This script intentionally keeps backend-specific imports inside each runner
 so `--help` works even when the heavy dependencies are not installed.
@@ -15,7 +16,9 @@ so `--help` works even when the heavy dependencies are not installed.
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -34,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scene-id", dest="scene_id", default=None)
     parser.add_argument("--world-family", dest="world_family", default=os.environ.get("WORLD_MODEL_FAMILY", "pano-first"))
     parser.add_argument("--prompt", default="", help="Optional conditioning prompt")
+    parser.add_argument("--seed", type=int, default=int(os.environ.get("WORLD_MODEL_SEED", "42")))
     parser.add_argument("--resolution", type=int, default=int(os.environ.get("WORLD_MODEL_RESOLUTION", "1600")))
     parser.add_argument("--low-vram", action="store_true")
     parser.add_argument("--use-sharp", action="store_true", default=os.environ.get("WORLDGEN_USE_SHARP", "1") != "0")
@@ -76,6 +80,7 @@ def run_worldgen(args: argparse.Namespace) -> int:
         from worldgen import WorldGen
         from worldgen.pano_depth import pred_depth
         from worldgen.pano_inpaint import build_inpaint_model, inpaint_pano
+        from worldgen.pano_gen import gen_pano_fill_image
         from worldgen.pano_sharp import predict_equirectangular
         from worldgen.utils.general_utils import map_image_to_pano, resize_img
     except Exception as exc:  # pragma: no cover - dependency discovery path
@@ -120,15 +125,31 @@ def run_worldgen(args: argparse.Namespace) -> int:
 
     image = Image.open(image_path).convert("RGB")
 
-    pano_image = world.generate_pano(prompt=args.prompt or "", image=image)
+    resized_image = resize_img(image)
+    predictions = pred_depth(world.depth_model, resized_image)
+    pano_cond_img, cond_mask = map_image_to_pano(predictions, device=world.device)
+    pano_image = gen_pano_fill_image(
+        world.pano_gen_model,
+        image=pano_cond_img,
+        mask=cond_mask,
+        prompt=args.prompt or "",
+        seed=args.seed,
+        height=args.resolution // 2,
+        width=args.resolution,
+    )
+
+    map_height, map_width = pano_cond_img.height, pano_cond_img.width
+    pano_image = pano_image.resize((map_width, map_height))
+    pano_cond_img_np = np.array(pano_cond_img)
+    cond_mask_np = np.array(cond_mask) / 255.0
+    pano_image = np.array(pano_image) * cond_mask_np[:, :, None] + pano_cond_img_np * (1 - cond_mask_np[:, :, None])
+    pano_image = Image.fromarray(pano_image.astype(np.uint8))
 
     if should_clean_subject_from_pano(args):
         mask_path = Path(args.mask).resolve()
         mask_image = Image.open(mask_path).convert("L").resize(image.size, Image.Resampling.BILINEAR)
-        resized_image = resize_img(image)
         resized_mask = mask_image.resize(resized_image.size, Image.Resampling.BILINEAR)
 
-        predictions = pred_depth(world.depth_model, resized_image)
         mask_array = np.array(resized_mask)
         mask_rgb = np.repeat(mask_array[:, :, None], 3, axis=2)
         mask_predictions = {
@@ -155,6 +176,7 @@ def run_worldgen(args: argparse.Namespace) -> int:
         f"mask={args.mask or ''}\n"
         f"output={output_path}\n"
         f"world_family={args.world_family or ''}\n"
+        f"seed={args.seed}\n"
         f"resolution={args.resolution}\n"
         f"use_sharp={use_sharp}\n"
         f"inpaint_bg={inpaint_bg}\n"
@@ -164,12 +186,181 @@ def run_worldgen(args: argparse.Namespace) -> int:
 
 
 def run_vistadream(_: argparse.Namespace) -> int:
-    print(
-        "[vistadream] Backend wrapper not implemented yet.\n"
-        "VistaDream remains a candidate, but WorldGen is the first concrete backend wired into this pipeline.",
-        file=sys.stderr,
+    args = _
+    vistadream_root = Path(os.environ.get("VISTADREAM_ROOT", ROOT / "_experiments" / "VistaDream")).resolve()
+    if not (vistadream_root / "demo.py").exists():
+        print(
+            "[vistadream] Could not find the local VistaDream checkout.\n"
+            f"Expected: {vistadream_root}\n"
+            "Set VISTADREAM_ROOT to a valid VistaDream repository root.",
+            file=sys.stderr,
+        )
+        return 5
+
+    required_assets = {
+        "DepthPro": vistadream_root / "tools" / "DepthPro" / "checkpoints" / "depth_pro.pt",
+        "OneFormer": vistadream_root / "tools" / "OneFormer" / "checkpoints" / "coco_pretrain_1280x1280_150_16_dinat_l_oneformer_ade20k_160k.pth",
+        "LCM": vistadream_root / "tools" / "StableDiffusion" / "lcm_ckpt" / "pytorch_lora_weights.safetensors",
+        "Fooocus checkpoint": vistadream_root / "tools" / "Fooocus" / "models" / "checkpoints" / "juggernautXL_v8Rundiffusion.safetensors",
+        "Fooocus inpaint": vistadream_root / "tools" / "Fooocus" / "models" / "inpaint" / "inpaint_v26.fooocus.patch",
+        "Fooocus prompt expansion": vistadream_root / "tools" / "Fooocus" / "models" / "prompt_expansion" / "fooocus_expansion" / "pytorch_model.bin",
+    }
+    missing_assets = [f"{name}: {path}" for name, path in required_assets.items() if not path.exists()]
+    if missing_assets:
+        print(
+            "[vistadream] Required pretrained assets are missing.\n"
+            "Run `_experiments/VistaDream/download_weights.sh` inside a Linux env that can access the repo.\n"
+            + "\n".join(missing_assets),
+            file=sys.stderr,
+        )
+        return 6
+
+    sys.path.insert(0, str(vistadream_root))
+
+    try:
+        import torch
+        from PIL import Image
+        from omegaconf import OmegaConf
+        from ops.utils import save_ply
+        from pipe.c2f_recons import Pipeline
+        from pipe.cfgs import load_cfg
+    except Exception as exc:  # pragma: no cover - dependency discovery path
+        print(
+            "[vistadream] Failed to import VistaDream dependencies.\n"
+            f"VistaDream root: {vistadream_root}\n"
+            "VistaDream expects a Linux GPU environment close to its documented stack (Python 3.10, CUDA, PyTorch 2.1).\n"
+            "Set WORLD_MODEL_CAMERA_GUIDED_BACKEND=vistadream and run through a configured Linux/WSL env.\n"
+            f"Import error: {exc}",
+            file=sys.stderr,
+        )
+        return 7
+
+    ensure_dir(args.output)
+    ensure_dir(args.generated_views)
+
+    image_path = Path(args.input).resolve()
+    if not image_path.exists():
+        print(f"[vistadream] Input image not found: {image_path}", file=sys.stderr)
+        return 8
+
+    output_dir = Path(args.output).resolve()
+    working_dir = output_dir / "vistadream"
+    working_dir.mkdir(parents=True, exist_ok=True)
+    input_copy_path = working_dir / "color.png"
+
+    Image.open(image_path).convert("RGB").save(input_copy_path)
+
+    base_cfg_path = Path(
+        os.environ.get("VISTADREAM_BASE_CFG", vistadream_root / "pipe" / "cfgs" / "basic.yaml"),
+    ).resolve()
+    if not base_cfg_path.exists():
+        print(f"[vistadream] Base config not found: {base_cfg_path}", file=sys.stderr)
+        return 9
+
+    cfg = load_cfg(str(base_cfg_path))
+    cfg.scene.input.rgb = input_copy_path.as_posix()
+    cfg.scene.input.resize_long_edge = int(
+        os.environ.get(
+            "VISTADREAM_INPUT_LONG_EDGE",
+            str(max(512, min(768, int(args.resolution * 0.4)))),
+        ),
     )
-    return 5
+    cfg.scene.outpaint.seed = int(args.seed)
+    cfg.scene.traj.traj_type = os.environ.get("VISTADREAM_TRAJ_TYPE", "spiral")
+    cfg.scene.traj.n_sample = int(
+        os.environ.get("VISTADREAM_TRAJ_SAMPLES", "8" if args.low_vram else "12"),
+    )
+    cfg.scene.traj.near_percentage = int(os.environ.get("VISTADREAM_TRAJ_NEAR_PERCENTAGE", "8"))
+    cfg.scene.traj.far_percentage = int(
+        os.environ.get(
+            "VISTADREAM_TRAJ_FAR_PERCENTAGE",
+            "86" if args.world_family == "structured-anchor" else "92",
+        ),
+    )
+    cfg.scene.traj.traj_forward_ratio = float(
+        os.environ.get(
+            "VISTADREAM_TRAJ_FORWARD_RATIO",
+            "0.38" if args.world_family == "structured-anchor" else "0.45",
+        ),
+    )
+    cfg.scene.traj.traj_backward_ratio = float(
+        os.environ.get(
+            "VISTADREAM_TRAJ_BACKWARD_RATIO",
+            "0.62" if args.world_family == "structured-anchor" else "0.55",
+        ),
+    )
+    cfg.scene.mcs.steps = int(os.environ.get("VISTADREAM_MCS_STEPS", "8" if args.low_vram else "10"))
+    cfg.scene.mcs.n_view = int(os.environ.get("VISTADREAM_MCS_N_VIEW", "4" if args.low_vram else "8"))
+    cfg.scene.mcs.gsopt_iters = int(
+        os.environ.get("VISTADREAM_MCS_GSOPT_ITERS", "128" if args.low_vram else "256"),
+    )
+
+    config_path = working_dir / "config.generated.yaml"
+    OmegaConf.save(config=cfg, f=str(config_path))
+
+    previous_cwd = Path.cwd()
+    try:
+        os.chdir(vistadream_root)
+        pipeline = Pipeline(cfg)
+        pipeline()
+    finally:
+        os.chdir(previous_cwd)
+
+    scene_pth_path = working_dir / "scene.pth"
+    if not scene_pth_path.exists():
+        print(
+            "[vistadream] VistaDream finished without producing scene.pth.\n"
+            f"Expected: {scene_pth_path}",
+            file=sys.stderr,
+        )
+        return 10
+
+    scene = torch.load(scene_pth_path, map_location="cpu")
+    output_ply_path = output_dir / "scene.ply"
+    save_ply(scene, str(output_ply_path))
+
+    artifact_copies = {
+        working_dir / "scene.pth": output_dir / "scene.vistadream.pth",
+        working_dir / "video_rgb.mp4": output_dir / "vistadream.video_rgb.mp4",
+        working_dir / "video_dpt.mp4": output_dir / "vistadream.video_dpt.mp4",
+        config_path: output_dir / "vistadream.config.generated.yaml",
+    }
+    for source_path, target_path in artifact_copies.items():
+        if source_path.exists():
+            shutil.copy2(source_path, target_path)
+
+    metadata = {
+        "sceneId": args.scene_id or None,
+        "worldFamily": args.world_family or None,
+        "prompt": args.prompt or None,
+        "seed": int(args.seed),
+        "resolution": int(args.resolution),
+        "input": str(image_path),
+        "workingDir": str(working_dir),
+        "config": str(output_dir / "vistadream.config.generated.yaml"),
+        "scenePth": str(output_dir / "scene.vistadream.pth"),
+        "output": str(output_ply_path),
+    }
+    (output_dir / "scene.vistadream.meta.json").write_text(
+        json.dumps(metadata, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    print(
+        "[vistadream] Generated scene.ply\n"
+        f"scene_id={args.scene_id or ''}\n"
+        f"input={image_path}\n"
+        f"subject_input={args.subject_input or ''}\n"
+        f"mask={args.mask or ''}\n"
+        f"output={output_ply_path}\n"
+        f"world_family={args.world_family or ''}\n"
+        f"seed={args.seed}\n"
+        f"resolution={args.resolution}\n"
+        f"config={output_dir / 'vistadream.config.generated.yaml'}\n"
+        f"scene_pth={output_dir / 'scene.vistadream.pth'}\n"
+        f"prompt={args.prompt}"
+    )
+    return 0
 
 
 def main() -> int:

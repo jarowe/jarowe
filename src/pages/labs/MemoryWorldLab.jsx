@@ -209,6 +209,7 @@ export default function MemoryWorldLab() {
   const latestSubjectVersion = subjectVersions[0] ?? null;
   const currentSubjectVersion = subjectVersions.find((entry) => entry.isCurrent) ?? latestSubjectVersion;
   const sam3d = data?.lab?.sam3d ?? null;
+  const vistaDream = data?.lab?.vistaDream ?? null;
   const activeCandidateId = effectiveSource.startsWith('candidate:')
     ? effectiveSource.slice('candidate:'.length)
     : data?.scene?.selectedCandidateId ?? null;
@@ -848,6 +849,26 @@ export default function MemoryWorldLab() {
             <div className="memory-world-lab__detail-card">
               <h3>Prompt</h3>
               <p>{selectedPrompt || 'No prompt metadata recorded for this source.'}</p>
+            </div>
+
+            <div className="memory-world-lab__detail-card">
+              <h3>Camera-Guided Backend</h3>
+              <p>{vistaDream?.message || 'VistaDream status unavailable.'}</p>
+              <div className="memory-world-lab__status-list">
+                <span>Repo: {vistaDream?.hasRepo ? 'present' : 'missing'}</span>
+                <span>WSL env: {vistaDream?.hasWslEnv ? 'ready' : 'missing'}</span>
+                <span>Weights: {vistaDream?.hasWeights ? 'present' : 'missing'}</span>
+                {vistaDream?.wslPythonVersion && <span>{vistaDream.wslPythonVersion}</span>}
+              </div>
+              <div className="memory-world-lab__status-list">
+                <span>DepthPro: {vistaDream?.depthPro ? 'ok' : 'missing'}</span>
+                <span>OneFormer: {vistaDream?.oneFormer ? 'ok' : 'missing'}</span>
+                <span>LCM: {vistaDream?.lcm ? 'ok' : 'missing'}</span>
+                <span>Fooocus: {vistaDream?.fooocusCheckpoint && vistaDream?.fooocusInpaint && vistaDream?.fooocusPrompt ? 'ok' : 'partial'}</span>
+              </div>
+              {vistaDream?.wslVenv && (
+                <code>{vistaDream.wslVenv}</code>
+              )}
             </div>
 
             <div className="memory-world-lab__detail-card">

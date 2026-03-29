@@ -122,6 +122,35 @@ set WORLD_MODEL_STRUCTURED_COMMAND=python tools\\run_structured_world.py --input
 
 If no family-specific command is configured, the pipeline falls back to the default world-model backend and still records the requested family in the grading metadata.
 
+Current backend defaults:
+
+- `pano-first` -> `worldgen`
+- `structured-anchor` -> `worldgen` unless overridden
+- `camera-guided` -> `vistadream`
+
+VistaDream on this repo is expected to run from Linux/WSL. The pipeline will look for:
+
+```bash
+VISTADREAM_ROOT=/mnt/c/dev/jarowe/_experiments/VistaDream
+VISTADREAM_WSL_VENV=$HOME/.venvs/vistadream
+VISTADREAM_WSL_PYTHON=python
+```
+
+The `vistadream` backend wrapper writes:
+
+- `scene.ply`
+- `scene.vistadream.pth`
+- `vistadream.config.generated.yaml`
+- `scene.vistadream.meta.json`
+
+Readiness requirements before `camera-guided` can actually generate:
+
+- Linux/WSL Python env matching VistaDream's stack
+- `_experiments/VistaDream/download_weights.sh` run successfully
+- required checkpoints present under the VistaDream repo
+
+Until that env exists, the camera-guided family is now a real backend target with explicit readiness failures, not a fake label.
+
 ### Windows + WSL WorldGen
 
 On this machine, the practical `WorldGen` path is `Windows pipeline -> WSL Ubuntu -> Linux GPU env`.
