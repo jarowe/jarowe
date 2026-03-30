@@ -37,9 +37,38 @@ node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "cur
 | World Model | Mixed / local | Best single-image world path | External tools + local GPU |
 | TRELLIS | MIT | High | Local GPU |
 | SHARP | Research | High nearby-view draft | Local GPU |
-| Marble | Commercial | Highest | API key |
+| Marble | Commercial | Highest | API key ($1.26/world Plus, $0.18/world Mini) |
 
 ## Generator Tiers
+
+### Marble (Ceiling Reference)
+
+World Labs Marble API. Produces the highest-quality 3D worlds from a single image.
+Use this as the quality ceiling reference to grade open-source candidates against.
+
+```bash
+# Set your API key (get at https://platform.worldlabs.ai/)
+set MARBLE_API_KEY=your-key
+
+# Generate a ceiling-reference world
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+
+# Use the mini model (faster, cheaper, lower quality)
+set MARBLE_MODEL=Marble 0.1-mini
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+
+# Control splat density (100k for mobile, 500k for web, full_res for max quality)
+set MARBLE_SPLAT_TIER=full_res
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+```
+
+Output:
+- `scene.spz` — runtime splat at the chosen tier (100k/500k/full_res)
+- `scene.source.spz` — full-res splat (if runtime tier was not full_res)
+- `collider.glb` — collision mesh
+- `scene.pano.png` — equirectangular panorama
+- `scene.preview.png` — thumbnail
+- `marble.meta.json` — provenance (world ID, model, seed, prompt, download URLs)
 
 ### Expanded
 

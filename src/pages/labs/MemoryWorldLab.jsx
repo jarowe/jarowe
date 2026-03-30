@@ -210,6 +210,7 @@ export default function MemoryWorldLab() {
   const currentSubjectVersion = subjectVersions.find((entry) => entry.isCurrent) ?? latestSubjectVersion;
   const sam3d = data?.lab?.sam3d ?? null;
   const vistaDream = data?.lab?.vistaDream ?? null;
+  const marble = data?.lab?.marble ?? null;
   const activeCandidateId = effectiveSource.startsWith('candidate:')
     ? effectiveSource.slice('candidate:'.length)
     : data?.scene?.selectedCandidateId ?? null;
@@ -504,6 +505,15 @@ export default function MemoryWorldLab() {
                 : sam3d?.hasCheckpoint && sam3d?.hasMhrModel
                   ? 'Models downloaded, auth still needed'
                   : 'Checkpoints not downloaded yet'}
+            </span>
+          </article>
+          <article className="memory-world-lab__status-card">
+            <span className="memory-world-lab__status-label">Marble API</span>
+            <strong>{marble?.ready ? 'Ready' : 'API key needed'}</strong>
+            <span className="memory-world-lab__status-meta">
+              {marble?.ready
+                ? `${marble.model} / ${marble.splatTier}`
+                : 'Ceiling-reference world generation'}
             </span>
           </article>
         </section>
@@ -849,6 +859,23 @@ export default function MemoryWorldLab() {
             <div className="memory-world-lab__detail-card">
               <h3>Prompt</h3>
               <p>{selectedPrompt || 'No prompt metadata recorded for this source.'}</p>
+            </div>
+
+            <div className="memory-world-lab__detail-card">
+              <h3>Marble (World Labs)</h3>
+              <p>{marble?.message || 'Marble status unavailable.'}</p>
+              <div className="memory-world-lab__status-list">
+                <span>API Key: {marble?.hasApiKey ? 'set' : 'missing'}</span>
+                <span>Backend: {marble?.hasBackend ? 'ready' : 'missing'}</span>
+                <span>Model: {marble?.model}</span>
+                <span>Splat tier: {marble?.splatTier}</span>
+              </div>
+              {marble?.ready && (
+                <code>node pipeline/generate-memory-world.mjs {sceneId} --generator marble --force</code>
+              )}
+              {!marble?.hasApiKey && (
+                <code>set MARBLE_API_KEY=your-key-from-platform.worldlabs.ai</code>
+              )}
             </div>
 
             <div className="memory-world-lab__detail-card">

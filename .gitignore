@@ -51,8 +51,16 @@ pipeline/__pycache__/
 public/memory/*/world/*.ply
 public/memory/*/world/*.spz
 public/memory/*/world/*.glb
+public/memory/*/world/*.ksplat
+public/memory/*/world/candidates/
 public/memory/*/world/versions/
 public/memory/*/subject-versions/
+public/memory/*/world/.marble-done
+public/memory/*/world/marble.meta.json
+public/memory/*/world/scene.pano.png
+public/memory/*/world/scene.pano.*.png
+public/memory/*/world/scene.preview.png
+public/memory/*/world/bootstrap.environment*.png
 
 # Editor directories and files
 .vscode/*

@@ -2633,15 +2633,72 @@ const GENERATORS = {
 
   marble: {
     name: 'Marble',
-    description: 'World Labs Marble export registration',
-    requirements: 'Manual export or API integration',
-    async run() {
-      throw new Error(
-        [
-          '[Marble] API integration is not implemented in this repo yet.',
-          'Export the assets externally into public/memory/{scene-id}/world and rerun this script to register them.',
-        ].join('\n'),
-      );
+    description: 'World Labs Marble API — ceiling-reference world generation',
+    requirements: 'MARBLE_API_KEY env var (get at https://platform.worldlabs.ai/)',
+    async run(photoPath, worldDir, { sceneId, meta, worldModelOptions }) {
+      const apiKey = process.env.MARBLE_API_KEY;
+      if (!apiKey) {
+        throw new Error(
+          '[Marble] MARBLE_API_KEY is not set.\n'
+          + 'Get an API key at https://platform.worldlabs.ai/ and set it:\n'
+          + '  set MARBLE_API_KEY=your-key',
+        );
+      }
+
+      const marbleBackend = join(__dirname, 'run_marble_backend.mjs');
+      const model = process.env.MARBLE_MODEL || 'Marble 0.1-plus';
+      const splatTier = process.env.MARBLE_SPLAT_TIER || '500k';
+      const prompt = worldModelOptions?.prompt
+        || meta?.source?.environmentWorldModelPrompt
+        || meta?.source?.worldModelPrompt
+        || '';
+      const seed = worldModelOptions?.seed ?? 42;
+
+      const cmdArgs = [
+        marbleBackend,
+        '--input', photoPath,
+        '--output', worldDir,
+        '--scene-id', sceneId || '',
+        '--prompt', prompt,
+        '--seed', String(seed),
+        '--splat-tier', splatTier,
+        '--model', model,
+        '--name', `${meta?.title || sceneId} - ${TODAY}`,
+      ];
+
+      console.log(`[Marble] Generating via API (model: ${model}, tier: ${splatTier})...`);
+      const result = spawnSync(process.execPath, cmdArgs, {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: 'inherit',
+        env: { ...process.env },
+        timeout: 600000, // 10 minute timeout
+      });
+
+      if (result.status !== 0) {
+        throw new Error(
+          `[Marble] Backend exited with code ${result.status}.\n`
+          + (result.stderr?.trim() || ''),
+        );
+      }
+
+      const assets = normalizeGeneratedWorldAssets(worldDir);
+      if (!assets.splat) {
+        throw new Error('[Marble] API completed but no splat asset was produced.');
+      }
+
+      return {
+        ...assets,
+        generationMode: 'marble-api',
+        worldGenerationFamily: 'marble',
+        provenance: {
+          tier: 'marble-api',
+          anchorGenerator: 'marble',
+          reconstruction: 'marble',
+          model,
+          splatTier,
+        },
+      };
     },
   },
 };

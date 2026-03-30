@@ -16,6 +16,21 @@ const VISTADREAM_REPO_ROOT = join(ROOT, '_experiments', 'VistaDream')
 const VISTADREAM_DEFAULT_WSL_VENV = process.env.VISTADREAM_WSL_VENV || '$HOME/.venvs/vistadream'
 const WORLD_MODEL_WSL_DISTRO = process.env.WORLD_MODEL_WSL_DISTRO || 'Ubuntu'
 
+function getMarbleStatus() {
+  const apiKey = process.env.MARBLE_API_KEY
+  const backendScript = join(ROOT, 'pipeline', 'run_marble_backend.mjs')
+  return {
+    ready: !!apiKey && existsSync(backendScript),
+    hasApiKey: !!apiKey,
+    hasBackend: existsSync(backendScript),
+    model: process.env.MARBLE_MODEL || 'Marble 0.1-plus',
+    splatTier: process.env.MARBLE_SPLAT_TIER || '500k',
+    message: apiKey
+      ? 'Marble API ready'
+      : 'Set MARBLE_API_KEY in .env.local (get at https://platform.worldlabs.ai/)',
+  }
+}
+
 function safeReadJson(filePath) {
   try {
     return existsSync(filePath) ? JSON.parse(readFileSync(filePath, 'utf8')) : null
@@ -418,6 +433,7 @@ function collectMemoryWorldLabScene(sceneId) {
       }),
       sam3d: getSam3dStatus(),
       vistaDream: getVistaDreamStatus(),
+      marble: getMarbleStatus(),
     },
   }
 }

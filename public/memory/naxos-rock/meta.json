@@ -8,8 +8,8 @@
     "photo": "photo.jpg",
     "depth": null,
     "mask": "mask.png",
-    "generator": "world-model",
-    "generated": "2026-03-27",
+    "generator": "marble",
+    "generated": "2026-03-30",
     "worldGenerationProfile": "hero",
     "postDate": "May 08, 2024 6:52 am",
     "worldModelPrompt": "Seated boy in a bright blue hoodie on a granite rock at a golden-hour Naxos shoreline, preserve him clearly as the main subject, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
@@ -20,7 +20,7 @@
       "/images/Instagram/media/posts/202405/17917063217823264.jpg",
       "/images/Instagram/media/posts/202405/18122780437357613.jpg"
     ],
-    "generationMode": "single-image-world-model",
+    "generationMode": "marble-api",
     "worldFramingAnalysis": {
       "subjectCropArea": 0.095,
       "subjectCropHeight": 0.405,
@@ -291,17 +291,18 @@
         }
       ]
     },
-    "favoriteWorldVersion": "2026-03-28-014346720z--cand-05-open-right-lab-review"
+    "favoriteWorldVersion": "2026-03-28-014346720z--cand-05-open-right-lab-review",
+    "worldGenerationFamily": "marble"
   },
   "world": {
-    "splat": "world/scene.runtime.ksplat",
-    "sourceSplat": "world/scene.ply",
+    "splat": "world/scene.spz",
+    "sourceSplat": null,
     "presentationMode": "anchor",
     "mesh": null,
-    "collider": null,
-    "format": "ksplat",
-    "splatCount": 900000,
-    "sourceSplatCount": 2097152,
+    "collider": "world/collider.glb",
+    "format": "spz",
+    "splatCount": null,
+    "sourceSplatCount": null,
     "bounds": null,
     "transform": {
       "position": [
@@ -322,10 +323,11 @@
       ]
     },
     "provenance": {
-      "tier": "world-model-fused",
-      "anchorGenerator": "source-photo",
-      "reconstruction": "single-image-world-model",
-      "viewCount": 1
+      "tier": "marble-api",
+      "anchorGenerator": "marble",
+      "reconstruction": "marble",
+      "model": "Marble 0.1-plus",
+      "splatTier": "500k"
     },
     "runtimePreviewSplatTarget": 900000,
     "generationProfile": "hero",
@@ -565,7 +567,8 @@
         }
       ]
     },
-    "favoriteVersion": "2026-03-28-014346720z--cand-05-open-right-lab-review"
+    "favoriteVersion": "2026-03-28-014346720z--cand-05-open-right-lab-review",
+    "generationFamily": "marble"
   },
   "fallback": {
     "type": "photo-preview",
