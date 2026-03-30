@@ -333,7 +333,7 @@ function SuperSplatWorldFrame({
 // ---------------------------------------------------------------------------
 // SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
 // ---------------------------------------------------------------------------
-function SplatWorld({ splatUrl, transform, onLoaded, onError }) {
+function SplatWorld({ splatUrl, transform, onLoaded, onError, onProgress }) {
   const { scene } = useThree();
   const viewerRef = useRef(null);
 
@@ -358,16 +358,26 @@ function SplatWorld({ splatUrl, transform, onLoaded, onError }) {
         const resolvedUrl = resolveAsset(splatUrl);
         console.log('[WorldMemoryRenderer] Loading splat:', resolvedUrl);
 
-        await dropIn.addSplatScene(resolvedUrl, {
+        const sceneOptions = {
           splatAlphaRemovalThreshold: getAlphaRemovalThreshold(resolvedUrl),
           showLoadingUI: false,
           position: transform?.position,
           rotation: transform?.rotation,
           scale: transform?.scale,
-        });
+        };
+
+        // Wire progress callback if the viewer supports it
+        if (onProgress) {
+          sceneOptions.onProgress = (percent, label) => {
+            onProgress(percent, label);
+          };
+        }
+
+        await dropIn.addSplatScene(resolvedUrl, sceneOptions);
 
         if (!disposed) {
           console.log('[WorldMemoryRenderer] Splat loaded');
+          onProgress?.(100, 'complete');
           onLoaded?.();
         }
       } catch (err) {
@@ -392,7 +402,7 @@ function SplatWorld({ splatUrl, transform, onLoaded, onError }) {
         viewerRef.current = null;
       }
     };
-  }, [splatUrl, scene, onLoaded, onError]);
+  }, [splatUrl, scene, onLoaded, onError, onProgress]);
 
   return null;
 }
@@ -3094,15 +3104,15 @@ function WorldExploreControls({ target = [0, 0, 0], startPosition = [0, 0, 5] })
       ref={controlsRef}
       makeDefault
       enableDamping
-      dampingFactor={0.08}
-      rotateSpeed={0.45}
-      zoomSpeed={0.8}
-      panSpeed={0.55}
-      minDistance={Math.max(0.35, startDistance * 0.15)}
-      maxDistance={Math.max(14, startDistance * 6)}
-      maxPolarAngle={Math.PI * 0.92}
-      minPolarAngle={0.08}
-      screenSpacePanning={false}
+      dampingFactor={0.12}
+      rotateSpeed={0.8}
+      zoomSpeed={1.2}
+      panSpeed={0.8}
+      minDistance={Math.max(0.2, startDistance * 0.08)}
+      maxDistance={Math.max(20, startDistance * 8)}
+      maxPolarAngle={Math.PI * 0.95}
+      minPolarAngle={0.05}
+      screenSpacePanning
     />
   );
 }
@@ -3492,6 +3502,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const location = useLocation();
   const [splatLoaded, setSplatLoaded] = useState(false);
   const [splatError, setSplatError] = useState(null);
+  const [splatLoadProgress, setSplatLoadProgress] = useState(0);
   const [meta, setMeta] = useState(null);
   const [metaLoaded, setMetaLoaded] = useState(false);
   const [editorState, setEditorState] = useState(null);
@@ -3595,7 +3606,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   }, [metaLoaded, hasSplat, splatLoaded, onAwakeningComplete, directAccess]);
 
   // Handle splat load callbacks
-  const handleSplatLoaded = useCallback(() => setSplatLoaded(true), []);
+  const handleSplatLoaded = useCallback(() => { setSplatLoadProgress(100); setSplatLoaded(true); }, []);
+  const handleSplatProgress = useCallback((percent) => { if (typeof percent === 'number') setSplatLoadProgress(Math.round(percent)); }, []);
   const handleSplatError = useCallback((msg) => {
     console.warn('[WorldMemoryRenderer] Splat error, continuing with particles only:', msg);
     setSplatError(msg);
@@ -3882,6 +3894,7 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             transform={effectiveWorldTransform}
             onLoaded={handleSplatLoaded}
             onError={handleSplatError}
+            onProgress={handleSplatProgress}
           />
 
           {!rawWorldMode
@@ -4010,8 +4023,10 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
               />
             )}
             <div className="memory-loading">
-              <div className="memory-loading-spinner" />
-              <span>Loading world...</span>
+              <div style={{ width: '180px', height: '4px', background: 'rgba(255,255,255,0.15)', borderRadius: '2px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                <div style={{ width: `${splatLoadProgress}%`, height: '100%', background: 'rgba(255,255,255,0.7)', borderRadius: '2px', transition: 'width 0.3s ease' }} />
+              </div>
+              <span>{splatLoadProgress > 0 && splatLoadProgress < 100 ? `Loading world... ${splatLoadProgress}%` : 'Loading world...'}</span>
             </div>
           </>
         )}
