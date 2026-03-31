@@ -1,12 +1,11 @@
 /**
  * WorldMemoryRenderer — Gaussian splat world + dream particle overlay
  *
- * Combines a DropInViewer (from @mkkellogg/gaussian-splats-3d) as the base
- * layer with ambient dream particles, atmospheric fog, and postprocessing.
- *
- * The DropInViewer is a THREE.Group that hooks into R3F's render loop via
- * onBeforeRender, so it shares the same WebGLRenderer and Scene — no
- * extra canvas or context needed.
+ * Uses Spark.js (@sparkjsdev/spark) for splat rendering. SparkRenderer
+ * extends THREE.Mesh and SplatMesh extends THREE.Object3D, both added to
+ * the R3F scene via <primitive>. Spark shares the same WebGLRenderer —
+ * no extra canvas or context needed. Built-in DOF replaces the R3F
+ * postprocessing DepthOfField pass for better quality and lower GPU cost.
  *
  * Falls back to MeshMemoryRenderer when no splat URL is available.
  *
@@ -28,7 +27,6 @@ import { useLocation } from 'react-router-dom';
 import {
   EffectComposer,
   Bloom,
-  DepthOfField,
   Vignette,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
@@ -37,6 +35,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import { OrbitControls } from '@react-three/drei';
+import { SparkRenderer as _SparkRenderer, SplatMesh as _SplatMesh } from '@sparkjsdev/spark';
 import FlightCamera from './particleMemory/FlightCamera';
 import { CinematicCamera } from '../pages/CapsuleShell';
 
@@ -288,6 +287,7 @@ function getAlphaRemovalThreshold(splatUrl) {
   return normalized.endsWith('.ply') ? 1 : 5;
 }
 
+// LEGACY: SuperSplatWorldFrame — iframe-based viewer, kept as fallback option
 function SuperSplatWorldFrame({
   splatUrl,
   cameraPosition,
@@ -331,7 +331,105 @@ function SuperSplatWorldFrame({
 }
 
 // ---------------------------------------------------------------------------
-// SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
+// SparkSplatWorld — loads a gaussian splat via Spark.js (SparkRenderer + SplatMesh)
+// ---------------------------------------------------------------------------
+function SparkSplatWorld({ splatUrl, transform, onLoaded, onError, onProgress }) {
+  const { gl, scene } = useThree();
+  const sparkRef = useRef(null);
+  const splatRef = useRef(null);
+
+  // Create SparkRenderer once per canvas lifecycle
+  const sparkRenderer = useMemo(() => {
+    const sr = new _SparkRenderer({
+      renderer: gl,
+      maxStdDev: Math.sqrt(8),
+      minAlpha: 0.01,
+      blurAmount: 0.0,
+      // DOF — replaces R3F postprocessing DepthOfField
+      focalDistance: 3.0,
+      apertureAngle: 0.015,
+    });
+    sparkRef.current = sr;
+    return sr;
+  }, [gl]);
+
+  // Create SplatMesh when URL changes
+  useEffect(() => {
+    if (!splatUrl) return;
+    let disposed = false;
+
+    const resolvedUrl = resolveAsset(splatUrl);
+    console.log('[SparkSplatWorld] Loading splat:', resolvedUrl);
+    onProgress?.(5, 'downloading');
+
+    const mesh = new _SplatMesh({
+      url: resolvedUrl,
+      onLoad: (loadedMesh) => {
+        if (disposed) return;
+        console.log('[SparkSplatWorld] Splat loaded —', loadedMesh.packedSplats?.numSplats ?? '?', 'splats');
+        onProgress?.(100, 'complete');
+        onLoaded?.();
+      },
+    });
+
+    // Apply transform
+    if (transform?.position) {
+      const p = transform.position;
+      mesh.position.set(
+        Array.isArray(p) ? p[0] : p.x ?? 0,
+        Array.isArray(p) ? p[1] : p.y ?? 0,
+        Array.isArray(p) ? p[2] : p.z ?? 0,
+      );
+    }
+    if (transform?.scale) {
+      const s = transform.scale;
+      mesh.scale.set(
+        Array.isArray(s) ? s[0] : s.x ?? 1,
+        Array.isArray(s) ? s[1] : s.y ?? 1,
+        Array.isArray(s) ? s[2] : s.z ?? 1,
+      );
+    }
+    if (transform?.rotation) {
+      const r = transform.rotation;
+      if (Array.isArray(r) && r.length === 4) {
+        // quaternion [w, x, y, z] or [x, y, z, w] — meta.json uses [w, x, y, z]
+        mesh.quaternion.set(r[1], r[2], r[3], r[0]);
+      }
+    }
+
+    splatRef.current = mesh;
+    scene.add(mesh);
+
+    // Handle load errors via the initialized promise
+    mesh.initialized.catch((err) => {
+      if (disposed) return;
+      console.error('[SparkSplatWorld] Splat load failed:', err);
+      onError?.(err.message || 'Failed to load splat');
+    });
+
+    return () => {
+      disposed = true;
+      scene.remove(mesh);
+      try { mesh.dispose(); } catch { /* ignore */ }
+      splatRef.current = null;
+    };
+  }, [splatUrl, scene, transform, onLoaded, onError, onProgress]);
+
+  // Cleanup SparkRenderer on unmount
+  useEffect(() => {
+    return () => {
+      if (sparkRef.current) {
+        scene.remove(sparkRef.current);
+        sparkRef.current = null;
+      }
+    };
+  }, [scene]);
+
+  return <primitive object={sparkRenderer} />;
+}
+
+// ---------------------------------------------------------------------------
+// LEGACY: SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
 // ---------------------------------------------------------------------------
 function SplatWorld({ splatUrl, transform, onLoaded, onError, onProgress }) {
   const { scene } = useThree();
@@ -407,6 +505,7 @@ function SplatWorld({ splatUrl, transform, onLoaded, onError, onProgress }) {
   return null;
 }
 
+// LEGACY: StandaloneWorldViewer — mkkellogg standalone Viewer, kept as fallback option
 function StandaloneWorldViewer({
   splatUrl,
   cameraPosition,
@@ -3016,7 +3115,7 @@ function WorldAtmosphere({ fogColor = '#0a0a12', radius = 30.0 }) {
 }
 
 // ---------------------------------------------------------------------------
-// WorldPostProcessing — Bloom + DOF + Vignette
+// WorldPostProcessing — Bloom + Vignette (DOF removed — handled by SparkRenderer)
 // ---------------------------------------------------------------------------
 function WorldPostProcessing({
   archiveMode = false,
@@ -3024,21 +3123,6 @@ function WorldPostProcessing({
   standaloneWorld = false,
   focusIntensity = 0,
 }) {
-  const baseFocusDistance = chapterMode
-    ? 0.015
-    : standaloneWorld
-      ? 0.015
-      : 0.02;
-  const dofFocusDistance = THREE.MathUtils.lerp(baseFocusDistance, 0.008, focusIntensity);
-  const baseFocalLength = chapterMode
-    ? 0.012
-    : standaloneWorld
-      ? 0.01
-      : 0.04;
-  const dofFocalLength = THREE.MathUtils.lerp(baseFocalLength, chapterMode ? 0.022 : 0.018, focusIntensity);
-  const dofBokehScale = archiveMode
-    ? (chapterMode ? 0.2 : standaloneWorld ? 0.08 : 1.0) + focusIntensity * (chapterMode ? 0.75 : 0.52)
-    : 1.5;
   const bloomIntensity = (standaloneWorld && archiveMode ? 0.22 : 0.35) + focusIntensity * 0.08;
   return (
     <EffectComposer disableNormalPass frameBufferType={HalfFloatType}>
@@ -3049,11 +3133,7 @@ function WorldPostProcessing({
         radius={0.35}
         mipmapBlur
       />
-      <DepthOfField
-        focusDistance={dofFocusDistance}
-        focalLength={dofFocalLength}
-        bokehScale={dofBokehScale}
-      />
+      {/* DOF is now handled natively by SparkRenderer (focalDistance + apertureAngle) */}
       <Vignette
         eskil={false}
         offset={0.25}
@@ -3377,9 +3457,9 @@ function WorldScene({
 
   return (
     <>
-      {/* Layer 1: Gaussian splat world */}
+      {/* Layer 1: Gaussian splat world (Spark.js) */}
       {splatUrl && (
-        <SplatWorld
+        <SparkSplatWorld
           splatUrl={splatUrl}
           transform={worldTransform}
           onLoaded={onSplatLoaded}
@@ -3888,8 +3968,8 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
             gl.setClearColor('#000000');
           }}
         >
-          {/* Layer 1: Gaussian splat world via DropInViewer */}
-          <SplatWorld
+          {/* Layer 1: Gaussian splat world via Spark.js */}
+          <SparkSplatWorld
             splatUrl={splatUrl}
             transform={effectiveWorldTransform}
             onLoaded={handleSplatLoaded}
