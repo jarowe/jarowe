@@ -27,15 +27,15 @@
       "recommendedPresentationMode": "chapter"
     },
     "expansion": {
-      "strategy": "learned-scene-expansion",
-      "stage": "world-model-fused",
-      "bundle": "world/view-bundle.json",
+      "strategy": "marble-api",
+      "stage": "marble-api",
+      "bundle": null,
       "sourceViewCount": 1,
       "generatedViewCount": 0,
       "totalViewCount": 1,
-      "anchorGenerator": "source-photo",
-      "viewSynthesizer": "world-model",
-      "fusionEngine": "world-model",
+      "anchorGenerator": "marble-api",
+      "viewSynthesizer": "marble-api",
+      "fusionEngine": "marble-api",
       "compositeViewCount": 1,
       "environmentBootstrap": {
         "strategy": "subject-erased-environment-bootstrap",

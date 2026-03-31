@@ -2259,6 +2259,11 @@ function updateMetaWithAssets(meta, assets) {
     meta.source.worldSelection = assets.worldSelection;
   }
   const existingWorld = meta.world ?? {};
+  // Family isolation: if generation family changes, clear stale state from the old family.
+  // This prevents world-model selection/candidate data from leaking into Marble-promoted scenes.
+  const familyChanged = assets.worldGenerationFamily
+    && existingWorld.generationFamily
+    && assets.worldGenerationFamily !== existingWorld.generationFamily;
   meta.world = {
     ...existingWorld,
     splat: assets.splat,
@@ -2272,10 +2277,18 @@ function updateMetaWithAssets(meta, assets) {
     runtimePreviewSplatTarget: assets.runtimePreviewSplatTarget ?? existingWorld.runtimePreviewSplatTarget ?? null,
     generationProfile: assets.worldGenerationProfile ?? existingWorld.generationProfile ?? null,
     generationFamily: assets.worldGenerationFamily ?? existingWorld.generationFamily ?? null,
-    selection: assets.worldSelection ?? existingWorld.selection ?? null,
+    // Clear selection when family changes — old candidate data is from a different generation pipeline
+    selection: familyChanged ? null : (assets.worldSelection ?? existingWorld.selection ?? null),
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };
+  // Also clear stale expansion state when family changes
+  if (familyChanged && meta.source?.expansion) {
+    meta.source.expansion.stage = assets.expansion?.stage ?? assets.worldGenerationFamily;
+    meta.source.expansion.viewSynthesizer = assets.expansion?.viewSynthesizer ?? assets.worldGenerationFamily;
+    meta.source.expansion.fusionEngine = assets.expansion?.fusionEngine ?? assets.worldGenerationFamily;
+    meta.source.expansion.strategy = assets.expansion?.strategy ?? assets.worldGenerationFamily;
+  }
 }
 
 function runShellCommand(command, cwd = ROOT) {

@@ -3724,9 +3724,12 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const presentationMode = meta?.world?.presentationMode
     ?? (meta?.world?.sharedSceneId ? 'chapter' : 'anchor');
   const chapterPresentation = presentationMode === 'chapter' || Boolean(meta?.world?.sharedSceneId);
+  // Standalone anchor world: any real generated world (world-model, marble, sharp, etc.)
+  // Not limited to world-model-fused — Marble scenes use 'marble-api' tier
+  const ANCHOR_ELIGIBLE_TIERS = ['world-model-fused', 'marble-api', 'sharp', 'trellis'];
   const standaloneAnchorWorld = presentationMode === 'anchor'
     && !meta?.world?.sharedSceneId
-    && meta?.world?.provenance?.tier === 'world-model-fused';
+    && ANCHOR_ELIGIBLE_TIERS.includes(meta?.world?.provenance?.tier);
   const clusterPrimaryImage = (standaloneAnchorWorld || chapterPresentation || meta?.source?.postImages?.length)
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
