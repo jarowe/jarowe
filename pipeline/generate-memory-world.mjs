@@ -2282,6 +2282,11 @@ function updateMetaWithAssets(meta, assets) {
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };
+  // Also clear stale source-level selection/favorite when family changes
+  if (familyChanged) {
+    meta.source.worldSelection = null;
+    meta.source.favoriteWorldVersion = null;
+  }
   // Also clear stale expansion state when family changes
   if (familyChanged && meta.source?.expansion) {
     meta.source.expansion.stage = assets.expansion?.stage ?? assets.worldGenerationFamily;

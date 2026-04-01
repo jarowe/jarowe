@@ -349,7 +349,11 @@ function collectMemoryWorldLabScene(sceneId) {
   }
   const currentSubjectMeta = safeReadJson(join(sceneDir, 'subject.meta.json'))
 
-  const selection = meta?.world?.selection ?? meta?.source?.worldSelection ?? safeReadJson(candidateScoresPath) ?? null
+  // Only use source-level world-model selection data if the active family is still world-model
+  const activeFamily = meta?.world?.generationFamily ?? meta?.source?.worldGenerationFamily
+  const selectionFamilyValid = !activeFamily || activeFamily === 'world-model' || activeFamily === 'pano-first'
+  const sourceSelection = selectionFamilyValid ? meta?.source?.worldSelection : null
+  const selection = meta?.world?.selection ?? sourceSelection ?? safeReadJson(candidateScoresPath) ?? null
   const versionsIndex = safeReadJson(versionsIndexPath) ?? { versions: [] }
   const subjectVersionsIndex = safeReadJson(subjectVersionsIndexPath) ?? { versions: [] }
   const versionSummary = summarizeVersions(Array.isArray(versionsIndex.versions) ? versionsIndex.versions : [])
@@ -369,7 +373,8 @@ function collectMemoryWorldLabScene(sceneId) {
   )
 
   const selectedCandidateId = selection?.selectedCandidate ?? null
-  const favoriteVersionId = meta?.world?.favoriteVersion ?? meta?.source?.favoriteWorldVersion ?? null
+  const sourceFavorite = selectionFamilyValid ? meta?.source?.favoriteWorldVersion : null
+  const favoriteVersionId = meta?.world?.favoriteVersion ?? sourceFavorite ?? null
 
   const candidateMap = new Map((selection?.candidates ?? []).map((candidate) => [candidate.id, candidate]))
   const candidates = candidateIds

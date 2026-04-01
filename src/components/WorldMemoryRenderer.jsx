@@ -199,21 +199,6 @@ function sampleGlobalAudioBands(targetArray) {
   };
 }
 
-function createSuperSplatSettingsDataUrl({ position, target, fov }) {
-  const settings = {
-    background: { color: [0, 0, 0] },
-    camera: {
-      fov,
-      position,
-      target,
-      startAnim: 'none',
-      animTrack: '',
-    },
-    animTracks: [],
-  };
-  return `data:application/json,${encodeURIComponent(JSON.stringify(settings))}`;
-}
-
 function normalizeWorldTransform(transform) {
   if (!transform) return null;
   const position = Array.isArray(transform.position) && transform.position.length === 3
@@ -279,55 +264,6 @@ function cloneVec4(value, fallback = [0, 0, 1, 1]) {
     return [x, y, z, w];
   }
   return [...fallback];
-}
-
-function getAlphaRemovalThreshold(splatUrl) {
-  if (!splatUrl) return 1;
-  const normalized = splatUrl.split('?')[0];
-  return normalized.endsWith('.ply') ? 1 : 5;
-}
-
-// LEGACY: SuperSplatWorldFrame — iframe-based viewer, kept as fallback option
-function SuperSplatWorldFrame({
-  splatUrl,
-  cameraPosition,
-  cameraTarget,
-  cameraFov,
-  onLoaded,
-}) {
-  const src = useMemo(() => {
-    const viewerBase = `${BASE}vendor/supersplat-viewer/index.html`;
-    const params = new URLSearchParams();
-    params.set('content', resolveAsset(splatUrl));
-    params.set(
-      'settings',
-      createSuperSplatSettingsDataUrl({
-        position: cameraPosition,
-        target: cameraTarget,
-        fov: cameraFov,
-      }),
-    );
-    params.set('aa', '1');
-    params.set('gpusort', '1');
-    return `${viewerBase}?${params.toString()}`;
-  }, [cameraFov, cameraPosition, cameraTarget, splatUrl]);
-
-  return (
-    <iframe
-      title="Memory world"
-      src={src}
-      className="memory-splat-frame"
-      allow="fullscreen; xr-spatial-tracking"
-      onLoad={onLoaded}
-      style={{
-        width: '100%',
-        height: '100%',
-        border: 0,
-        display: 'block',
-        background: '#000',
-      }}
-    />
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -426,168 +362,6 @@ function SparkSplatWorld({ splatUrl, transform, onLoaded, onError, onProgress })
   }, [scene]);
 
   return <primitive object={sparkRenderer} />;
-}
-
-// ---------------------------------------------------------------------------
-// LEGACY: SplatWorld — loads a gaussian splat via DropInViewer (THREE.Group)
-// ---------------------------------------------------------------------------
-function SplatWorld({ splatUrl, transform, onLoaded, onError, onProgress }) {
-  const { scene } = useThree();
-  const viewerRef = useRef(null);
-
-  useEffect(() => {
-    let disposed = false;
-    let dropIn = null;
-
-    async function init() {
-      try {
-        const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
-        if (disposed) return;
-
-        dropIn = new GaussianSplats3D.DropInViewer({
-          dynamicScene: false,
-          sharedMemoryForWorkers: false,
-          progressiveLoad: true,
-        });
-
-        viewerRef.current = dropIn;
-        scene.add(dropIn);
-
-        const resolvedUrl = resolveAsset(splatUrl);
-        console.log('[WorldMemoryRenderer] Loading splat:', resolvedUrl);
-
-        const sceneOptions = {
-          splatAlphaRemovalThreshold: getAlphaRemovalThreshold(resolvedUrl),
-          showLoadingUI: false,
-          position: transform?.position,
-          rotation: transform?.rotation,
-          scale: transform?.scale,
-        };
-
-        // Wire progress callback if the viewer supports it
-        if (onProgress) {
-          sceneOptions.onProgress = (percent, label) => {
-            onProgress(percent, label);
-          };
-        }
-
-        await dropIn.addSplatScene(resolvedUrl, sceneOptions);
-
-        if (!disposed) {
-          console.log('[WorldMemoryRenderer] Splat loaded');
-          onProgress?.(100, 'complete');
-          onLoaded?.();
-        }
-      } catch (err) {
-        console.error('[WorldMemoryRenderer] Splat load failed:', err);
-        if (!disposed) {
-          onError?.(err.message || 'Failed to load splat');
-        }
-      }
-    }
-
-    // Small delay to let the R3F canvas fully initialize
-    const timer = setTimeout(init, 300);
-
-    return () => {
-      disposed = true;
-      clearTimeout(timer);
-      if (dropIn) {
-        scene.remove(dropIn);
-        try {
-          dropIn.viewer?.dispose();
-        } catch { /* ignore */ }
-        viewerRef.current = null;
-      }
-    };
-  }, [splatUrl, scene, onLoaded, onError, onProgress]);
-
-  return null;
-}
-
-// LEGACY: StandaloneWorldViewer — mkkellogg standalone Viewer, kept as fallback option
-function StandaloneWorldViewer({
-  splatUrl,
-  cameraPosition,
-  cameraTarget,
-  transform,
-  onLoaded,
-  onError,
-}) {
-  const containerRef = useRef(null);
-  const viewerRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !splatUrl) return;
-
-    let disposed = false;
-
-    async function initViewer() {
-      try {
-        const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d');
-        if (disposed || !containerRef.current) return;
-
-        if (viewerRef.current) {
-          try {
-            viewerRef.current.dispose();
-          } catch {
-            // ignore viewer cleanup issues on hot reload
-          }
-          viewerRef.current = null;
-        }
-
-        const viewer = new GaussianSplats3D.Viewer({
-          cameraUp: [0, 1, 0],
-          initialCameraPosition: cameraPosition,
-          initialCameraLookAt: cameraTarget,
-          rootElement: containerRef.current,
-          selfDrivenMode: true,
-          useBuiltInControls: true,
-          dynamicScene: false,
-          sharedMemoryForWorkers: false,
-          progressiveLoad: true,
-        });
-        viewerRef.current = viewer;
-
-        const resolvedUrl = resolveAsset(splatUrl);
-        console.log('[WorldMemoryRenderer] Loading splat:', resolvedUrl);
-
-        await viewer.addSplatScene(resolvedUrl, {
-          splatAlphaRemovalThreshold: getAlphaRemovalThreshold(resolvedUrl),
-          showLoadingUI: false,
-          position: transform?.position,
-          rotation: transform?.rotation,
-          scale: transform?.scale,
-        });
-
-        if (!disposed) {
-          console.log('[WorldMemoryRenderer] Splat loaded');
-          onLoaded?.();
-        }
-      } catch (err) {
-        console.error('[WorldMemoryRenderer] Splat load failed:', err);
-        if (!disposed) {
-          onError?.(err.message || 'Failed to load splat');
-        }
-      }
-    }
-
-    const timer = setTimeout(initViewer, 300);
-    return () => {
-      disposed = true;
-      clearTimeout(timer);
-      if (viewerRef.current) {
-        try {
-          viewerRef.current.dispose();
-        } catch {
-          // ignore viewer cleanup issues on hot reload
-        }
-        viewerRef.current = null;
-      }
-    };
-  }, [cameraPosition, cameraTarget, onError, onLoaded, splatUrl, transform]);
-
-  return <div ref={containerRef} className="memory-splat-container" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -3724,12 +3498,11 @@ const WorldMemoryRenderer = forwardRef(function WorldMemoryRenderer(
   const presentationMode = meta?.world?.presentationMode
     ?? (meta?.world?.sharedSceneId ? 'chapter' : 'anchor');
   const chapterPresentation = presentationMode === 'chapter' || Boolean(meta?.world?.sharedSceneId);
-  // Standalone anchor world: any real generated world (world-model, marble, sharp, etc.)
-  // Not limited to world-model-fused — Marble scenes use 'marble-api' tier
-  const ANCHOR_ELIGIBLE_TIERS = ['world-model-fused', 'marble-api', 'sharp', 'trellis'];
+  // Anchor world: has a real generated world (any tier) + anchor presentation + not shared
+  const hasRealGeneratedWorld = Boolean(meta?.world?.provenance?.tier);
   const standaloneAnchorWorld = presentationMode === 'anchor'
     && !meta?.world?.sharedSceneId
-    && ANCHOR_ELIGIBLE_TIERS.includes(meta?.world?.provenance?.tier);
+    && hasRealGeneratedWorld;
   const clusterPrimaryImage = (standaloneAnchorWorld || chapterPresentation || meta?.source?.postImages?.length)
     ? (scene.previewImage ?? scene.photoUrl)
     : null;
