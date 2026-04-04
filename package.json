@@ -23,7 +23,6 @@
     "@gsap/react": "^2.1.2",
     "@milkdown/crepe": "^7.19.0",
     "@milkdown/react": "^7.19.0",
-    "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@playcanvas/splat-transform": "^1.10.2",
     "@playcanvas/supersplat-viewer": "^1.18.3",
     "@react-three/drei": "^10.7.7",
