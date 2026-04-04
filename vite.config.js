@@ -457,7 +457,14 @@ function listMemoryWorldLabScenes() {
         id: entry.name,
         title: meta.title || entry.name,
         subtitle: meta.subtitle || '',
-        selectedCandidateId: meta?.world?.selection?.selectedCandidate ?? meta?.source?.worldSelection?.selectedCandidate ?? null,
+        selectedCandidateId: (() => {
+          // Family-aware: only use world-model selection data if the active family is world-model
+          const activeFamily = meta?.world?.generationFamily ?? meta?.source?.worldGenerationFamily;
+          const isWorldModelFamily = !activeFamily || activeFamily === 'world-model' || activeFamily === 'pano-first';
+          if (meta?.world?.selection?.selectedCandidate) return meta.world.selection.selectedCandidate;
+          if (isWorldModelFamily && meta?.source?.worldSelection?.selectedCandidate) return meta.source.worldSelection.selectedCandidate;
+          return null;
+        })(),
       }
     })
     .filter(Boolean)

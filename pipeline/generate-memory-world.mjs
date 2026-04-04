@@ -2277,8 +2277,9 @@ function updateMetaWithAssets(meta, assets) {
     runtimePreviewSplatTarget: assets.runtimePreviewSplatTarget ?? existingWorld.runtimePreviewSplatTarget ?? null,
     generationProfile: assets.worldGenerationProfile ?? existingWorld.generationProfile ?? null,
     generationFamily: assets.worldGenerationFamily ?? existingWorld.generationFamily ?? null,
-    // Clear selection when family changes — old candidate data is from a different generation pipeline
+    // Clear selection + favoriteVersion when family changes — old candidate data is from a different pipeline
     selection: familyChanged ? null : (assets.worldSelection ?? existingWorld.selection ?? null),
+    favoriteVersion: familyChanged ? null : (assets.favoriteVersion ?? existingWorld.favoriteVersion ?? null),
     transform: assets.transform ?? existingWorld.transform ?? null,
     provenance: assets.provenance ?? existingWorld.provenance ?? null,
   };

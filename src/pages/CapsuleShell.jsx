@@ -32,94 +32,7 @@ function resolveAsset(path, isRemote) {
   return `${BASE}${path.replace(/^\//, '')}`;
 }
 
-// ---------------------------------------------------------------------------
-// SplatRenderer — Gaussian splat viewer (extracted from MemoryPortal)
-// ---------------------------------------------------------------------------
-function SplatRenderer({ scene, onLoaded, onError }) {
-  const containerRef = useRef(null);
-  const viewerRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    let disposed = false;
-
-    async function initViewer() {
-      if (disposed || !containerRef.current) return;
-
-      try {
-        const GaussianSplats3D = await import(
-          '@mkkellogg/gaussian-splats-3d'
-        );
-        if (disposed) return;
-
-        // Clean up any previous viewer
-        if (viewerRef.current) {
-          try {
-            viewerRef.current.dispose();
-          } catch {}
-          viewerRef.current = null;
-        }
-
-        const viewer = new GaussianSplats3D.Viewer({
-          cameraUp: [0, 1, 0],
-          initialCameraPosition: [
-            scene.cameraPosition.x,
-            scene.cameraPosition.y,
-            scene.cameraPosition.z,
-          ],
-          initialCameraLookAt: [
-            scene.cameraTarget.x,
-            scene.cameraTarget.y,
-            scene.cameraTarget.z,
-          ],
-          rootElement: containerRef.current,
-          selfDrivenMode: true,
-          useBuiltInControls: true,
-          dynamicScene: false,
-          // Avoid SharedArrayBuffer requirement (needs COOP/COEP headers)
-          sharedMemoryForWorkers: false,
-          progressiveLoad: true,
-        });
-        viewerRef.current = viewer;
-
-        const splatPath = resolveAsset(scene.splatUrl, scene.splatIsRemote);
-        console.log('[CapsuleShell] Loading splat:', splatPath);
-
-        await viewer.addSplatScene(splatPath, {
-          splatAlphaRemovalThreshold: 5,
-          showLoadingUI: true,
-        });
-
-        if (!disposed) {
-          console.log('[CapsuleShell] Splat loaded successfully');
-          onLoaded();
-        }
-      } catch (err) {
-        console.error('[CapsuleShell] Splat failed:', err);
-        if (!disposed) {
-          onError(err.message || 'Failed to load 3D scene');
-        }
-      }
-    }
-
-    // 600ms delay — let any previous WebGL contexts (globe) fully release
-    const timer = setTimeout(initViewer, 600);
-
-    return () => {
-      disposed = true;
-      clearTimeout(timer);
-      if (viewerRef.current) {
-        try {
-          viewerRef.current.dispose();
-        } catch {}
-        viewerRef.current = null;
-      }
-    };
-  }, [scene, onLoaded, onError]);
-
-  return <div ref={containerRef} className="memory-splat-container" />;
-}
+// SplatRenderer removed — all splat scenes now route through WorldMemoryRenderer (Spark.js)
 
 // ---------------------------------------------------------------------------
 // Displaced Mesh Shaders
@@ -1080,7 +993,7 @@ export default function CapsuleShell() {
   // Priority: world-memory (splat world) > particle-memory > displaced-mesh > splat > fallback
   const renderMode = scene.renderMode || 'splat';
   let showWorldMemory = false;
-  let showSplat = false;
+  // showSplat removed — all splat scenes route through WorldMemoryRenderer
   let showDisplaced = false;
   let showParticleMemory = false;
   let showFallback = false;
@@ -1089,15 +1002,13 @@ export default function CapsuleShell() {
     // Still checking capabilities — show loading state
   } else if (tier === 'parallax') {
     showFallback = true;
-  } else if (renderMode === 'world-memory' || scene.splatUrl) {
-    // New priority: scenes with splatUrl or world-memory renderMode use WorldMemoryRenderer
+  } else if (renderMode === 'world-memory' || renderMode === 'splat' || scene.splatUrl) {
+    // All splat-based scenes (world-memory, splat, splatUrl) use WorldMemoryRenderer (Spark)
     showWorldMemory = true;
   } else if (renderMode === 'particle-memory') {
     showParticleMemory = true;
   } else if (renderMode === 'displaced-mesh') {
     showDisplaced = true;
-  } else if (renderMode === 'splat') {
-    showSplat = true;
   } else {
     // Unknown renderMode — graceful fallback
     showFallback = true;
@@ -1130,13 +1041,7 @@ export default function CapsuleShell() {
         </React.Suspense>
       )}
 
-      {showSplat && (
-        <SplatRenderer
-          scene={scene}
-          onLoaded={handleSplatLoaded}
-          onError={handleSplatError}
-        />
-      )}
+      {/* SplatRenderer removed — splat scenes now route through WorldMemoryRenderer */}
 
       {showDisplaced && (
         <DisplacedMeshRenderer
@@ -1185,12 +1090,7 @@ export default function CapsuleShell() {
           <span>Checking device capabilities...</span>
         </div>
       )}
-      {showSplat && !loaded && !loadError && (
-        <div className="memory-loading">
-          <div className="memory-loading-spinner" />
-          <span>Loading memory...</span>
-        </div>
-      )}
+      {/* showSplat loading state removed — handled by WorldMemoryRenderer */}
 
       {/* === Chrome (always visible) === */}
       <div className="memory-back">
