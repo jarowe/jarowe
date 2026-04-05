@@ -13,6 +13,10 @@ function formatGrade(value) {
   return typeof value === 'number' ? value.toFixed(1) : EMPTY_VALUE;
 }
 
+function formatWeightedComposite(value) {
+  return typeof value === 'number' ? value.toFixed(2) : EMPTY_VALUE;
+}
+
 function formatFamilyLabel(value, fallback = EMPTY_VALUE) {
   if (!value) return fallback;
   return String(value)
@@ -39,10 +43,6 @@ function buildPreviewUrl(sceneId, source, viewMode) {
 
   if (source?.startsWith('candidate:')) {
     params.set('candidate', source.slice('candidate:'.length));
-  } else if (source === 'selected-candidate') {
-    // The selected candidate already lives in meta/world selection.
-  } else if (source === 'current') {
-    // Current promoted world uses the default route contract.
   }
 
   if (viewMode === 'archive') {
@@ -50,28 +50,6 @@ function buildPreviewUrl(sceneId, source, viewMode) {
   }
 
   params.set('raw', '1');
-  return `/memory/${sceneId}?${params.toString()}`;
-}
-
-function buildArchiveSceneUrl(sceneId, source) {
-  const params = new URLSearchParams();
-  params.set('lab', '1');
-
-  if (source?.startsWith('candidate:')) {
-    params.set('candidate', source.slice('candidate:'.length));
-  }
-
-  return `/archive/${sceneId}?${params.toString()}`;
-}
-
-function buildCapsuleUrl(sceneId, source) {
-  const params = new URLSearchParams();
-  params.set('lab', '1');
-
-  if (source?.startsWith('candidate:')) {
-    params.set('candidate', source.slice('candidate:'.length));
-  }
-
   return `/memory/${sceneId}?${params.toString()}`;
 }
 
@@ -93,17 +71,78 @@ function buildAssetUrl(sceneId, assetPath) {
   return `/memory/${sceneId}/${assetPath}`;
 }
 
-function extractSelectedCandidateSource(scene) {
-  return scene?.selectedCandidateId ? `candidate:${scene.selectedCandidateId}` : 'current';
+function getQualityThreshold(weightedComposite) {
+  if (typeof weightedComposite !== 'number') return null;
+  if (weightedComposite >= 4.0) return { label: 'Hero quality', className: 'is-hero' };
+  if (weightedComposite >= 3.0) return { label: 'Shippable', className: 'is-shippable' };
+  return { label: 'Below threshold', className: 'is-below' };
 }
 
-function getCandidatePreferredYaw(candidate) {
-  if (!candidate?.metrics) return null;
+/* ── Rubric dimension scoring component ── */
+function RubricScoring({
+  rubricDimensions,
+  dimensionScores,
+  onDimensionChange,
+  weightedComposite,
+  rawComposite,
+}) {
+  const threshold = getQualityThreshold(weightedComposite);
+
   return (
-    candidate.metrics.preferredYawDegrees
-    ?? candidate.metrics.bestYawDegrees
-    ?? candidate.metrics.bestFacingYawDegrees
-    ?? null
+    <div className="memory-world-lab__rubric-section">
+      <h3>5-Dimension Rubric</h3>
+
+      {rubricDimensions.map((dim) => {
+        const currentScore = dimensionScores[dim.key] ?? null;
+        const anchorText = currentScore && dim.anchors?.[currentScore - 1]
+          ? dim.anchors[currentScore - 1]
+          : dim.description || '';
+
+        return (
+          <div key={dim.key} className="memory-world-lab__rubric-dimension">
+            <div className="memory-world-lab__rubric-dimension-header">
+              <span>{dim.label}</span>
+              <span className="memory-world-lab__rubric-weight">
+                {Math.round(dim.weight * 100)}%
+              </span>
+            </div>
+            <div className="memory-world-lab__rubric-chips">
+              {[1, 2, 3, 4, 5].map((score) => (
+                <button
+                  key={score}
+                  type="button"
+                  className={`memory-world-lab__rubric-chip ${currentScore === score ? 'is-active' : ''}`}
+                  onClick={() => onDimensionChange(dim.key, currentScore === score ? null : score)}
+                  title={dim.anchors?.[score - 1] ?? `Score ${score}`}
+                >
+                  {score}
+                </button>
+              ))}
+            </div>
+            <div className="memory-world-lab__rubric-anchor">
+              {anchorText}
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="memory-world-lab__rubric-composite">
+        <div>
+          <span>Weighted</span>
+          <strong>{formatWeightedComposite(weightedComposite)}</strong>
+        </div>
+        <div>
+          <span>Raw</span>
+          <strong>{rawComposite ?? EMPTY_VALUE} / 25</strong>
+        </div>
+      </div>
+
+      {threshold && (
+        <div className={`memory-world-lab__rubric-threshold ${threshold.className}`}>
+          {threshold.label} (weighted {formatWeightedComposite(weightedComposite)})
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -118,30 +157,31 @@ export default function MemoryWorldLab() {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-  const [sourcesPanelOpen, setSourcesPanelOpen] = useState(false);
-  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false);
-  const [focusHudOpen, setFocusHudOpen] = useState(false);
+  const [rubricDimensions, setRubricDimensions] = useState([]);
 
   const source = searchParams.get('source') || 'selected-candidate';
   const view = searchParams.get('view') === 'archive' ? 'archive' : 'raw';
-  const layoutMode = searchParams.get('layout') === 'focus' ? 'focus' : 'review';
+
+  // ── Rubric dimension scores (local state) ──
+  const [dimensionScores, setDimensionScores] = useState({});
 
   async function fetchScenePayload(nextSceneId) {
-    const [sceneResponse, catalogResponse] = await Promise.all([
+    const [sceneResponse, catalogResponse, rubricResponse] = await Promise.all([
       fetch(`/__memory-lab/scene/${nextSceneId}`, { cache: 'no-store' }),
       fetch('/__memory-lab/scenes', { cache: 'no-store' }),
+      fetch('/__memory-lab/rubric', { cache: 'no-store' }),
     ]);
 
     if (!sceneResponse.ok) {
       throw new Error(`Memory World Lab API returned HTTP ${sceneResponse.status}`);
     }
-    if (!catalogResponse.ok) {
-      throw new Error(`Memory World Lab catalog returned HTTP ${catalogResponse.status}`);
-    }
+
+    const rubricData = rubricResponse.ok ? await rubricResponse.json() : null;
 
     return {
       scene: await sceneResponse.json(),
       catalog: await catalogResponse.json(),
+      rubric: rubricData,
     };
   }
 
@@ -156,6 +196,9 @@ export default function MemoryWorldLab() {
         if (!cancelled) {
           setData(payload.scene);
           setCatalog(payload.catalog?.scenes ?? []);
+          if (payload.rubric?.dimensions) {
+            setRubricDimensions(payload.rubric.dimensions);
+          }
         }
       } catch (nextError) {
         if (!cancelled) {
@@ -198,44 +241,65 @@ export default function MemoryWorldLab() {
     ?? (effectiveSource === 'current' || effectiveSource === 'selected-candidate' ? metaSelectedCandidate : null);
   const selectedPrompt = activeWorldSummary?.prompt ?? data?.scene?.source?.environmentWorldModelPrompt ?? data?.scene?.source?.worldModelPrompt ?? '';
   const previewUrl = buildPreviewUrl(sceneId, effectiveSource, view);
-  const archiveSceneUrl = buildArchiveSceneUrl(sceneId, effectiveSource);
-  const capsuleUrl = buildCapsuleUrl(sceneId, effectiveSource);
-  const externalUrl = `${window.location.origin}${previewUrl}`;
-  const archiveExternalUrl = `${window.location.origin}${archiveSceneUrl}`;
-  const capsuleExternalUrl = `${window.location.origin}${capsuleUrl}`;
   const sourcePhotoUrl = buildAssetUrl(sceneId, data?.scene?.source?.photo);
-  const subjectVersions = data?.lab?.subjectVersions ?? [];
-  const subjectVersionCount = subjectVersions.length;
-  const latestSubjectVersion = subjectVersions[0] ?? null;
-  const currentSubjectVersion = subjectVersions.find((entry) => entry.isCurrent) ?? latestSubjectVersion;
-  const sam3d = data?.lab?.sam3d ?? null;
-  const vistaDream = data?.lab?.vistaDream ?? null;
-  const marble = data?.lab?.marble ?? null;
+  const activeWorldFamilyLabel = activeWorldSummary?.familyLabel
+    ?? formatFamilyLabel(data?.scene?.worldGenerationFamily || data?.scene?.world?.generationFamily, '');
   const activeCandidateId = effectiveSource.startsWith('candidate:')
     ? effectiveSource.slice('candidate:'.length)
     : data?.scene?.selectedCandidateId ?? null;
   const activeCandidateIndex = candidates.findIndex((candidate) => candidate.id === activeCandidateId);
-  const activeWorldFamilyLabel = activeWorldSummary?.familyLabel
-    ?? formatFamilyLabel(data?.scene?.worldGenerationFamily || data?.scene?.world?.generationFamily, '');
 
   const [grade, setGrade] = useState(selectedReview?.latestGrade ?? '');
   const [favorite, setFavorite] = useState(Boolean(selectedReview?.favorite));
   const [label, setLabel] = useState(buildDefaultLabel(effectiveSource));
   const [notes, setNotes] = useState(selectedReview?.latestNotes ?? '');
 
+  // Sync form state when source changes
   useEffect(() => {
     setGrade(selectedReview?.latestGrade ?? '');
     setFavorite(Boolean(selectedReview?.favorite));
     setLabel(selectedReview?.latestLabel ?? buildDefaultLabel(effectiveSource));
     setNotes(selectedReview?.latestNotes ?? '');
     setSaveMessage('');
-  }, [sceneId, effectiveSource, selectedReview]);
 
-  useEffect(() => {
-    setSourcesPanelOpen(false);
-    setInspectorPanelOpen(false);
-    setFocusHudOpen(layoutMode !== 'focus');
-  }, [layoutMode, sceneId]);
+    // Restore rubric scores from latest review if available
+    const latestRubric = selectedReview?.latestRubric;
+    if (latestRubric) {
+      const restored = {};
+      for (const dim of rubricDimensions) {
+        if (typeof latestRubric[dim.key] === 'number') {
+          restored[dim.key] = latestRubric[dim.key];
+        }
+      }
+      setDimensionScores(restored);
+    } else {
+      setDimensionScores({});
+    }
+  }, [sceneId, effectiveSource, selectedReview, rubricDimensions]);
+
+  // ── Compute composites from local dimension scores ──
+  const { weightedComposite, rawComposite, scoredCount } = useMemo(() => {
+    let weighted = 0;
+    let totalWeight = 0;
+    let raw = 0;
+    let count = 0;
+
+    for (const dim of rubricDimensions) {
+      const val = dimensionScores[dim.key];
+      if (typeof val === 'number' && val >= 1 && val <= 5) {
+        weighted += val * dim.weight;
+        totalWeight += dim.weight;
+        raw += val;
+        count += 1;
+      }
+    }
+
+    return {
+      weightedComposite: totalWeight > 0 ? Math.round((weighted / totalWeight) * 100) / 100 : null,
+      rawComposite: count > 0 ? raw : null,
+      scoredCount: count,
+    };
+  }, [dimensionScores, rubricDimensions]);
 
   const reviewHistory = useMemo(() => {
     const allVersions = data?.lab?.worldVersions ?? [];
@@ -253,6 +317,9 @@ export default function MemoryWorldLab() {
     });
   }, [data?.lab?.worldVersions, data?.scene?.selectedCandidateId, effectiveSource]);
 
+  // ── Existing grades from meta.json ──
+  const existingGrades = data?.scene?.grades;
+
   async function refresh() {
     setLoading(true);
     setError(null);
@@ -260,6 +327,9 @@ export default function MemoryWorldLab() {
       const payload = await fetchScenePayload(sceneId);
       setData(payload.scene);
       setCatalog(payload.catalog?.scenes ?? []);
+      if (payload.rubric?.dimensions) {
+        setRubricDimensions(payload.rubric.dimensions);
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : 'Unknown Memory World Lab error');
     } finally {
@@ -283,6 +353,7 @@ export default function MemoryWorldLab() {
           notes,
           grade: grade === '' ? null : Number(grade),
           favorite,
+          dimensions: scoredCount > 0 ? dimensionScores : undefined,
         }),
       });
       const payload = await response.json();
@@ -298,11 +369,22 @@ export default function MemoryWorldLab() {
     }
   }
 
-  function updateSearch(nextSource, nextView = view, nextLayout = layoutMode) {
+  function handleDimensionChange(key, value) {
+    setDimensionScores((prev) => {
+      const next = { ...prev };
+      if (value === null) {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
+  }
+
+  function updateSearch(nextSource, nextView = view) {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('source', nextSource);
     nextParams.set('view', nextView);
-    nextParams.set('layout', nextLayout);
     setSearchParams(nextParams, { replace: true });
   }
 
@@ -315,42 +397,10 @@ export default function MemoryWorldLab() {
 
   function handleSceneChange(nextSceneId) {
     if (!nextSceneId || nextSceneId === sceneId) return;
-    navigate(`/starseed/labs/memory-worlds/${nextSceneId}?source=selected-candidate&view=${view}&layout=${layoutMode}`);
+    navigate(`/starseed/labs/memory-worlds/${nextSceneId}?source=selected-candidate&view=${view}`);
   }
 
-  function toggleFocusHud() {
-    setFocusHudOpen((current) => {
-      const next = !current;
-      if (!next) {
-        setSourcesPanelOpen(false);
-        setInspectorPanelOpen(false);
-      }
-      return next;
-    });
-  }
-
-  function toggleSourcesPanel() {
-    setFocusHudOpen(true);
-    setSourcesPanelOpen((current) => {
-      const next = !current;
-      if (next) {
-        setInspectorPanelOpen(false);
-      }
-      return next;
-    });
-  }
-
-  function toggleInspectorPanel() {
-    setFocusHudOpen(true);
-    setInspectorPanelOpen((current) => {
-      const next = !current;
-      if (next) {
-        setSourcesPanelOpen(false);
-      }
-      return next;
-    });
-  }
-
+  // Keyboard shortcuts
   useEffect(() => {
     function onKeyDown(event) {
       const activeElement = document.activeElement;
@@ -362,162 +412,86 @@ export default function MemoryWorldLab() {
         return;
       }
 
-      if (isTypingTarget) {
-        return;
-      }
-
-      if (/^[1-9]$/.test(event.key)) {
-        setGrade(Number(event.key));
-        return;
-      }
-
-      if (event.key === '0') {
-        setGrade(10);
-        return;
-      }
+      if (isTypingTarget) return;
 
       if (event.key === 'j' || event.key === 'ArrowLeft') {
         event.preventDefault();
         jumpCandidate(-1);
         return;
       }
-
       if (event.key === 'k' || event.key === 'ArrowRight') {
         event.preventDefault();
         jumpCandidate(1);
         return;
       }
-
       if (event.key === 'r') {
         event.preventDefault();
         updateSearch(effectiveSource, 'raw');
         return;
       }
-
       if (event.key === 'a') {
         event.preventDefault();
         updateSearch(effectiveSource, 'archive');
         return;
       }
-
       if (event.key === 'f') {
         event.preventDefault();
         setFavorite((current) => !current);
-        return;
-      }
-
-      if (event.key === 'p') {
-        event.preventDefault();
-        updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus');
-        return;
-      }
-
-      if (layoutMode === 'focus' && event.key === 'h') {
-        event.preventDefault();
-        toggleFocusHud();
-        return;
-      }
-
-      if (layoutMode === 'focus' && event.key === 'Escape') {
-        event.preventDefault();
-        setSourcesPanelOpen(false);
-        setInspectorPanelOpen(false);
-        setFocusHudOpen(false);
-        return;
-      }
-
-      if (layoutMode === 'focus' && event.key === 'w') {
-        event.preventDefault();
-        toggleSourcesPanel();
-        return;
-      }
-
-      if (layoutMode === 'focus' && event.key === 'i') {
-        event.preventDefault();
-        toggleInspectorPanel();
       }
     }
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [candidates, effectiveSource, activeCandidateIndex, grade, label, notes, favorite, saving, sceneId, view, layoutMode]);
+  }, [candidates, effectiveSource, activeCandidateIndex, grade, label, notes, favorite, saving, sceneId, view]);
 
   return (
-    <div className={`memory-world-lab ${layoutMode === 'focus' ? 'memory-world-lab--focus' : 'memory-world-lab--review'}`}>
-      {layoutMode !== 'focus' && (
-        <header className="memory-world-lab__header">
-          <div className="memory-world-lab__title">
-            <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
-            <h1>{data?.scene?.title || 'Memory World Lab'}</h1>
-            <p>{data?.scene?.subtitle || 'Track candidates, preview them, and save grades without losing the thread.'}</p>
-          </div>
-          <div className="memory-world-lab__header-actions">
-            <label className="memory-world-lab__scene-select">
-              <span>Scene</span>
-              <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
-                {catalog.map((scene) => (
-                  <option key={scene.id} value={scene.id}>
-                    {scene.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Link to="/starseed/labs" className="memory-world-lab__link">
-              Back to Labs
-            </Link>
-            <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
-              Refresh
-            </button>
-            <button
-              type="button"
-              className={`memory-world-lab__button ${layoutMode === 'focus' ? 'memory-world-lab__button--active' : ''}`}
-              onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
-            >
-              {layoutMode === 'focus' ? 'Review Layout' : 'Focus Preview'}
-            </button>
-            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
-              Open Archive Scene
-            </a>
-            <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
-              Open Capsule
-            </a>
-          </div>
-        </header>
-      )}
+    <div className="memory-world-lab">
+      <header className="memory-world-lab__header">
+        <div className="memory-world-lab__title">
+          <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
+          <h1>{data?.scene?.title || 'Memory World Lab'}</h1>
+          <p>{data?.scene?.subtitle || 'Track candidates, preview, and grade with the 5-dimension rubric.'}</p>
+        </div>
+        <div className="memory-world-lab__header-actions">
+          <label className="memory-world-lab__scene-select">
+            <span>Scene</span>
+            <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
+              {catalog.map((scene) => (
+                <option key={scene.id} value={scene.id}>
+                  {scene.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Link to="/starseed/labs" className="memory-world-lab__link">
+            Back to Labs
+          </Link>
+          <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
+            Refresh
+          </button>
+        </div>
+      </header>
 
-      {layoutMode !== 'focus' && (
-        <section className="memory-world-lab__status-strip">
-          <article className="memory-world-lab__status-card">
-            <span className="memory-world-lab__status-label">Selected Candidate</span>
-            <strong>{data?.scene?.selectedCandidateId || 'None'}</strong>
-            <span className="memory-world-lab__status-meta">{activeWorldFamilyLabel}</span>
-          </article>
-          <article className="memory-world-lab__status-card">
-            <span className="memory-world-lab__status-label">Favorite World Version</span>
-            <strong>{data?.scene?.favoriteVersionId || 'Not set'}</strong>
-          </article>
-          <article className="memory-world-lab__status-card">
-            <span className="memory-world-lab__status-label">SAM3D Local Status</span>
-            <strong>{sam3d?.loggedIn ? `Logged in as ${sam3d.account}` : 'HF login required locally'}</strong>
-            <span className="memory-world-lab__status-meta">
-              {sam3d?.ready
-                ? 'Ready for subject generation'
-                : sam3d?.hasCheckpoint && sam3d?.hasMhrModel
-                  ? 'Models downloaded, auth still needed'
-                  : 'Checkpoints not downloaded yet'}
-            </span>
-          </article>
-          <article className="memory-world-lab__status-card">
-            <span className="memory-world-lab__status-label">Marble API</span>
-            <strong>{marble?.ready ? 'Ready' : 'API key needed'}</strong>
-            <span className="memory-world-lab__status-meta">
-              {marble?.ready
-                ? `${marble.model} / ${marble.splatTier}`
-                : 'Ceiling-reference world generation'}
-            </span>
-          </article>
-        </section>
-      )}
+      <section className="memory-world-lab__status-strip">
+        <article className="memory-world-lab__status-card">
+          <span className="memory-world-lab__status-label">Selected Candidate</span>
+          <strong>{data?.scene?.selectedCandidateId || 'None'}</strong>
+          <span className="memory-world-lab__status-meta">{activeWorldFamilyLabel}</span>
+        </article>
+        <article className="memory-world-lab__status-card">
+          <span className="memory-world-lab__status-label">Favorite Version</span>
+          <strong>{data?.scene?.favoriteVersionId || 'Not set'}</strong>
+        </article>
+        <article className="memory-world-lab__status-card">
+          <span className="memory-world-lab__status-label">Rubric Evaluations</span>
+          <strong>{existingGrades?.evaluations?.length ?? 0} recorded</strong>
+          <span className="memory-world-lab__status-meta">
+            {existingGrades?.winner
+              ? `Winner: ${existingGrades.winner.family} (${formatWeightedComposite(existingGrades.winner.weightedComposite)})`
+              : 'No winner declared'}
+          </span>
+        </article>
+      </section>
 
       {loading && (
         <div className="memory-world-lab__loading">
@@ -533,7 +507,8 @@ export default function MemoryWorldLab() {
 
       {!loading && !error && data && (
         <div className="memory-world-lab__grid">
-          <aside className={`memory-world-lab__sidebar ${layoutMode === 'focus' ? 'memory-world-lab__overlay-panel' : ''} ${sourcesPanelOpen ? 'is-open' : ''}`}>
+          {/* ── Sources sidebar ── */}
+          <aside className="memory-world-lab__sidebar">
             <div className="memory-world-lab__panel-header">
               <h2>World Sources</h2>
               <span>{candidates.length} candidates</span>
@@ -584,161 +559,58 @@ export default function MemoryWorldLab() {
                     <span>{formatScore(candidate.score)}</span>
                   </div>
                   <div className="memory-world-lab__source-meta">
-                    <span>{candidate.familyLabel || formatFamilyLabel(candidate.family, candidate.review?.favorite ? 'favorite' : candidate.isSelected ? 'selected' : 'candidate')}</span>
-                    <span>grade {formatGrade(candidate.review?.bestGrade)}</span>
+                    <span>
+                      {candidate.familyLabel || formatFamilyLabel(
+                        candidate.family,
+                        candidate.review?.favorite ? 'favorite' : candidate.isSelected ? 'selected' : 'candidate',
+                      )}
+                    </span>
+                    <span>
+                      {candidate.review?.bestWeightedComposite
+                        ? `wc ${formatWeightedComposite(candidate.review.bestWeightedComposite)}`
+                        : `grade ${formatGrade(candidate.review?.bestGrade)}`}
+                    </span>
                   </div>
                 </button>
               ))}
             </div>
-            {layoutMode === 'focus' && (
-              <button
-                type="button"
-                className="memory-world-lab__overlay-close"
-                onClick={() => setSourcesPanelOpen(false)}
-              >
-                Close
-              </button>
-            )}
           </aside>
 
+          {/* ── Preview panel ── */}
           <section className="memory-world-lab__preview-panel">
-            {layoutMode === 'focus' ? (
-              <>
-                <button
-                  type="button"
-                  className={`memory-world-lab__focus-toggle ${focusHudOpen ? 'is-open' : ''}`}
-                  onClick={() => toggleFocusHud()}
-                >
-                  {focusHudOpen ? 'Hide Controls' : 'Show Controls'}
-                </button>
-                <div className={`memory-world-lab__focus-hud ${focusHudOpen ? 'is-open' : ''}`}>
-                  <div className="memory-world-lab__focus-scene">
-                    <span className="memory-world-lab__eyebrow">Dev Memory World Lab</span>
-                    <strong>{data.scene.title}</strong>
-                    <small>{data.scene.subtitle}</small>
-                  </div>
-                  <div className="memory-world-lab__focus-actions">
-                    <label className="memory-world-lab__scene-select">
-                      <span>Scene</span>
-                      <select value={sceneId} onChange={(event) => handleSceneChange(event.target.value)}>
-                        {catalog.map((scene) => (
-                          <option key={scene.id} value={scene.id}>
-                            {scene.title}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <Link to="/starseed/labs" className="memory-world-lab__link">
-                      Back to Labs
-                    </Link>
-                    <button type="button" className="memory-world-lab__button" onClick={() => refresh()} disabled={loading}>
-                      Refresh
-                    </button>
-                    <button
-                      type="button"
-                      className="memory-world-lab__button"
-                      onClick={() => updateSearch(effectiveSource, view, 'review')}
-                    >
-                      Review Layout
-                    </button>
-                    <button
-                      type="button"
-                      className={`memory-world-lab__button ${sourcesPanelOpen ? 'memory-world-lab__button--active' : ''}`}
-                      onClick={() => toggleSourcesPanel()}
-                    >
-                      World Sources
-                    </button>
-                    <button
-                      type="button"
-                      className={`memory-world-lab__button ${inspectorPanelOpen ? 'memory-world-lab__button--active' : ''}`}
-                      onClick={() => toggleInspectorPanel()}
-                    >
-                      Review Panel
-                    </button>
-                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
-                      Open Archive Scene
-                    </a>
-                    <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
-                      Open Capsule
-                    </a>
-                  </div>
-                  <div className="memory-world-lab__focus-bar">
-                    <div className="memory-world-lab__toggle-group">
-                      <button
-                        type="button"
-                        className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
-                        onClick={() => updateSearch(effectiveSource, 'raw')}
-                      >
-                        Raw World
-                      </button>
-                      <button
-                        type="button"
-                        className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
-                        onClick={() => updateSearch(effectiveSource, 'archive')}
-                      >
-                        Archive Composite
-                      </button>
-                    </div>
-                    <div className="memory-world-lab__toggle-group">
-                      <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
-                        Prev
-                      </button>
-                      <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
-                        Next
-                      </button>
-                    </div>
-                    <div className="memory-world-lab__preview-meta">
-                      <span>{effectiveSource}</span>
-                      <span>{activeWorldFamilyLabel}</span>
-                      <span>{view}</span>
-                    </div>
-                  </div>
+            <div className="memory-world-lab__preview-toolbar">
+              <div className="memory-world-lab__toolbar-left">
+                <div className="memory-world-lab__toggle-group">
+                  <button
+                    type="button"
+                    className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
+                    onClick={() => updateSearch(effectiveSource, 'raw')}
+                  >
+                    Raw World
+                  </button>
+                  <button
+                    type="button"
+                    className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
+                    onClick={() => updateSearch(effectiveSource, 'archive')}
+                  >
+                    Archive Composite
+                  </button>
                 </div>
-              </>
-            ) : (
-              <div className="memory-world-lab__preview-toolbar">
-                <div className="memory-world-lab__toolbar-left">
-                  <div className="memory-world-lab__toggle-group">
-                    <button
-                      type="button"
-                      className={`memory-world-lab__toggle ${view === 'raw' ? 'is-active' : ''}`}
-                      onClick={() => updateSearch(effectiveSource, 'raw')}
-                    >
-                      Raw World
-                    </button>
-                    <button
-                      type="button"
-                      className={`memory-world-lab__toggle ${view === 'archive' ? 'is-active' : ''}`}
-                      onClick={() => updateSearch(effectiveSource, 'archive')}
-                    >
-                      Archive Composite
-                    </button>
-                  </div>
-                  <div className="memory-world-lab__toggle-group">
-                    <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
-                      Prev
-                    </button>
-                    <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
-                      Next
-                    </button>
-                  </div>
-                  <div className="memory-world-lab__toggle-group">
-                    <button
-                      type="button"
-                      className={`memory-world-lab__toggle ${layoutMode === 'focus' ? 'is-active' : ''}`}
-                      onClick={() => updateSearch(effectiveSource, view, layoutMode === 'focus' ? 'review' : 'focus')}
-                    >
-                      {layoutMode === 'focus' ? 'Preview Focused' : 'Preview Standard'}
-                    </button>
-                  </div>
-                </div>
-                <div className="memory-world-lab__preview-meta">
-                  <span>{effectiveSource}</span>
-                  <span>{activeWorldFamilyLabel}</span>
-                  <span>{view}</span>
+                <div className="memory-world-lab__toggle-group">
+                  <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(-1)} disabled={candidates.length === 0}>
+                    Prev
+                  </button>
+                  <button type="button" className="memory-world-lab__toggle" onClick={() => jumpCandidate(1)} disabled={candidates.length === 0}>
+                    Next
+                  </button>
                 </div>
               </div>
-            )}
+              <div className="memory-world-lab__preview-meta">
+                <span>{effectiveSource}</span>
+                <span>{activeWorldFamilyLabel}</span>
+                <span>{view}</span>
+              </div>
+            </div>
 
             <div className="memory-world-lab__preview-shell">
               <iframe
@@ -750,7 +622,8 @@ export default function MemoryWorldLab() {
             </div>
           </section>
 
-          <aside className={`memory-world-lab__inspector ${layoutMode === 'focus' ? 'memory-world-lab__overlay-panel' : ''} ${inspectorPanelOpen ? 'is-open' : ''}`}>
+          {/* ── Inspector panel ── */}
+          <aside className="memory-world-lab__inspector">
             <div className="memory-world-lab__panel-header">
               <h2>Grade This World</h2>
               {saveMessage && <span className="memory-world-lab__save-message">{saveMessage}</span>}
@@ -762,23 +635,29 @@ export default function MemoryWorldLab() {
                 <strong>{formatScore(activeWorldSummary?.score ?? data?.scene?.world?.selection?.selectedScore)}</strong>
               </div>
               <div>
-                <span>Orbit score</span>
-                <strong>{formatScore(activeWorldSummary?.metrics?.orbitScore)}</strong>
-              </div>
-              <div>
                 <span>Best human grade</span>
                 <strong>{formatGrade(selectedReview?.bestGrade)}</strong>
               </div>
               <div>
-                <span>Preferred yaw</span>
-                <strong>{getCandidatePreferredYaw(activeWorldSummary) ?? EMPTY_VALUE}</strong>
+                <span>Best weighted</span>
+                <strong>{formatWeightedComposite(selectedReview?.bestWeightedComposite)}</strong>
+              </div>
+              <div>
+                <span>Family</span>
+                <strong>{activeWorldFamilyLabel || EMPTY_VALUE}</strong>
               </div>
             </div>
 
-            <div className="memory-world-lab__detail-card">
-              <h3>World Family</h3>
-              <p>{activeWorldFamilyLabel || 'Not recorded for this world yet.'}</p>
-            </div>
+            {/* ── 5-Dimension Rubric Scoring ── */}
+            {rubricDimensions.length > 0 && (
+              <RubricScoring
+                rubricDimensions={rubricDimensions}
+                dimensionScores={dimensionScores}
+                onDimensionChange={handleDimensionChange}
+                weightedComposite={weightedComposite}
+                rawComposite={rawComposite}
+              />
+            )}
 
             <label className="memory-world-lab__field">
               <span>Review Label</span>
@@ -786,7 +665,7 @@ export default function MemoryWorldLab() {
             </label>
 
             <div className="memory-world-lab__field">
-              <span>Quick Grade</span>
+              <span>Legacy Grade (0-10)</span>
               <div className="memory-world-lab__grade-row">
                 {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
                   <button
@@ -829,22 +708,7 @@ export default function MemoryWorldLab() {
               {saving ? 'Saving...' : 'Save Review'}
             </button>
 
-            <div className="memory-world-lab__detail-card">
-              <h3>Route Guide</h3>
-              <p>Lab route: review and grade versions. Archive scene: cinematic thread view. Capsule: direct memory route for the same scene.</p>
-              <div className="memory-world-lab__route-actions">
-                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={archiveExternalUrl} target="_blank" rel="noreferrer">
-                  Open Archive Scene
-                </a>
-                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={capsuleExternalUrl} target="_blank" rel="noreferrer">
-                  Open Capsule
-                </a>
-                <a className="memory-world-lab__button memory-world-lab__button--ghost" href={externalUrl} target="_blank" rel="noreferrer">
-                  Open Current Preview
-                </a>
-              </div>
-            </div>
-
+            {/* ── Reference photo ── */}
             <div className="memory-world-lab__detail-card">
               <h3>Reference Photo</h3>
               {sourcePhotoUrl ? (
@@ -856,183 +720,63 @@ export default function MemoryWorldLab() {
               )}
             </div>
 
+            {/* ── Prompt ── */}
             <div className="memory-world-lab__detail-card">
               <h3>Prompt</h3>
               <p>{selectedPrompt || 'No prompt metadata recorded for this source.'}</p>
             </div>
 
-            <div className="memory-world-lab__detail-card">
-              <h3>Marble (World Labs)</h3>
-              <p>{marble?.message || 'Marble status unavailable.'}</p>
-              <div className="memory-world-lab__status-list">
-                <span>API Key: {marble?.hasApiKey ? 'set' : 'missing'}</span>
-                <span>Backend: {marble?.hasBackend ? 'ready' : 'missing'}</span>
-                <span>Model: {marble?.model}</span>
-                <span>Splat tier: {marble?.splatTier}</span>
-              </div>
-              {marble?.ready && (
-                <code>node pipeline/generate-memory-world.mjs {sceneId} --generator marble --force</code>
-              )}
-              {!marble?.hasApiKey && (
-                <code>set MARBLE_API_KEY=your-key-from-platform.worldlabs.ai</code>
-              )}
-            </div>
-
-            <div className="memory-world-lab__detail-card">
-              <h3>Camera-Guided Backend</h3>
-              <p>{vistaDream?.message || 'VistaDream status unavailable.'}</p>
-              <div className="memory-world-lab__status-list">
-                <span>WSL: {vistaDream?.wslReachable ? 'reachable' : 'hung'}</span>
-                <span>Repo: {vistaDream?.hasRepo ? 'present' : 'missing'}</span>
-                <span>WSL env: {vistaDream?.hasWslEnv ? 'ready' : 'missing'}</span>
-                <span>Weights: {vistaDream?.hasWeights ? 'present' : 'missing'}</span>
-                {vistaDream?.wslPythonVersion && <span>{vistaDream.wslPythonVersion}</span>}
-              </div>
-              <div className="memory-world-lab__status-list">
-                <span>Torch: {vistaDream?.torchVersion || 'not probed'}</span>
-                <span>CUDA: {vistaDream?.torchCudaVersion || 'unknown'}</span>
-                <span>GPU exec: {vistaDream?.torchCudaExecOk ? 'ok' : 'blocked'}</span>
-              </div>
-              <div className="memory-world-lab__status-list">
-                <span>DepthPro: {vistaDream?.depthPro ? 'ok' : 'missing'}</span>
-                <span>OneFormer: {vistaDream?.oneFormer ? 'ok' : 'missing'}</span>
-                <span>LCM: {vistaDream?.lcm ? 'ok' : 'missing'}</span>
-                <span>Fooocus: {vistaDream?.fooocusCheckpoint && vistaDream?.fooocusInpaint && vistaDream?.fooocusPrompt ? 'ok' : 'partial'}</span>
-              </div>
-              <div className="memory-world-lab__status-list">
-                <span>Detectron2: {vistaDream?.detectron2Ok ? 'ok' : 'missing'}</span>
-                <span>OneFormer import: {vistaDream?.oneFormerImportOk ? 'ok' : 'blocked'}</span>
-                {vistaDream?.distro && <span>Distro: {vistaDream.distro}</span>}
-              </div>
-              {vistaDream?.torchCudaMessage && (
-                <p>{vistaDream.torchCudaMessage}</p>
-              )}
-              {vistaDream?.detectron2Message && (
-                <p>{vistaDream.detectron2Message}</p>
-              )}
-              {vistaDream?.oneFormerImportMessage && (
-                <p>{vistaDream.oneFormerImportMessage}</p>
-              )}
-              {vistaDream?.importProbeMessage && (
-                <p>{vistaDream.importProbeMessage}</p>
-              )}
-              {vistaDream?.wslVenv && (
-                <code>{vistaDream.wslVenv}</code>
-              )}
-              {vistaDream?.provisionCommand && (
-                <code>{vistaDream.provisionCommand}</code>
-              )}
-            </div>
-
-            <div className="memory-world-lab__detail-card">
-              <h3>SAM3D</h3>
-              <p>{sam3d?.authMessage || 'SAM3D status unavailable.'}</p>
-              <div className="memory-world-lab__status-list">
-                <span>Env: {sam3d?.hasEnv ? 'ready' : 'missing'}</span>
-                <span>Repo: {sam3d?.hasRepo ? 'present' : 'missing'}</span>
-                <span>Checkpoint: {sam3d?.hasCheckpoint ? 'present' : 'missing'}</span>
-                <span>MHR: {sam3d?.hasMhrModel ? 'present' : 'missing'}</span>
-              </div>
-              {!sam3d?.loggedIn && (
-                <code>{sam3d?.loginCommand}</code>
-              )}
-            </div>
-
-            <div className="memory-world-lab__detail-card">
-              <div className="memory-world-lab__detail-header">
-                <h3>Subject Track</h3>
-                <span>{subjectVersionCount} versions</span>
-              </div>
-              <p>
-                {currentSubjectVersion
-                  ? `Current subject: ${currentSubjectVersion.label} via ${currentSubjectVersion.backend}.`
-                  : 'No tracked subject versions for this scene yet.'}
-              </p>
-              {subjectVersions.length > 0 && (
-                <div className="memory-world-lab__subject-list">
-                  {subjectVersions.map((version) => {
-                    const metrics = version.meta ?? {};
-                    const bbox = Array.isArray(metrics.bbox)
-                      ? metrics.bbox.map((value) => Math.round(Number(value))).join(', ')
-                      : null;
-
-                    return (
-                      <article
-                        key={version.versionId}
-                        className={`memory-world-lab__subject-card ${version.isCurrent ? 'is-current' : ''}`}
-                      >
-                        {version.previewUrl && (
-                          <div className="memory-world-lab__subject-preview">
-                            <img src={version.previewUrl} alt={`${version.label} subject preview`} loading="lazy" />
-                          </div>
-                        )}
-                        <div className="memory-world-lab__subject-body">
-                          <div className="memory-world-lab__subject-topline">
-                            <strong>{version.label}</strong>
-                            {version.isCurrent && <span>current</span>}
-                          </div>
-                          <div className="memory-world-lab__status-list">
-                            <span>{version.backend}</span>
-                            <span>{version.mode}</span>
-                            <span>{version.supportMode}</span>
-                          </div>
-                          <div className="memory-world-lab__subject-meta">
-                            <span>{formatDateTime(version.createdAt)}</span>
-                            {typeof metrics.vertexCount === 'number' && <span>{metrics.vertexCount.toLocaleString()} verts</span>}
-                            {typeof metrics.faceCount === 'number' && <span>{metrics.faceCount.toLocaleString()} faces</span>}
-                            {bbox && <span>bbox {bbox}</span>}
-                            {metrics.previewMode && <span>{metrics.previewMode}</span>}
-                          </div>
-                          <p>{version.notes || 'No notes recorded.'}</p>
-                        </div>
-                      </article>
-                    );
-                  })}
+            {/* ── Existing rubric evaluations ── */}
+            {existingGrades?.evaluations?.length > 0 && (
+              <div className="memory-world-lab__detail-card">
+                <div className="memory-world-lab__detail-header">
+                  <h3>Rubric History</h3>
+                  <span>{existingGrades.evaluations.length} evaluations</span>
                 </div>
-              )}
-            </div>
-
-            <div className="memory-world-lab__detail-card">
-              <h3>Shortcuts</h3>
-              <div className="memory-world-lab__status-list">
-                <span>1-0 grade</span>
-                <span>J/K or Left/Right switch candidate</span>
-                <span>R raw</span>
-                <span>A archive</span>
-                <span>F favorite</span>
-                <span>P preview mode</span>
-                <span>W worlds panel</span>
-                <span>I review panel</span>
-                <span>H hide or show controls</span>
-                <span>Esc clear overlays</span>
-                <span>Cmd/Ctrl+Enter save</span>
+                <ul className="memory-world-lab__history">
+                  {existingGrades.evaluations.slice(-8).reverse().map((ev, i) => (
+                    <li key={`${ev.date}-${ev.family}-${i}`}>
+                      <strong>{formatFamilyLabel(ev.family)} -- wc {formatWeightedComposite(ev.weightedComposite)}</strong>
+                      <span>{ev.date}</span>
+                      <small>{ev.notes || 'No notes'}</small>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
 
+            {/* ── Review History ── */}
             <div className="memory-world-lab__detail-card">
-              <h3>Review History</h3>
+              <h3>Version History</h3>
               {reviewHistory.length === 0 && <p>No saved reviews for this source yet.</p>}
               {reviewHistory.length > 0 && (
                 <ul className="memory-world-lab__history">
                   {reviewHistory.slice(0, 8).map((entry) => (
                     <li key={entry.versionId}>
                       <strong>{entry.label}</strong>
-                      <span>{formatGrade(entry.grade)}</span>
+                      <span>
+                        {entry.rubric?.weightedComposite
+                          ? `wc ${formatWeightedComposite(entry.rubric.weightedComposite)}`
+                          : formatGrade(entry.grade)}
+                      </span>
                       <small>{entry.notes || 'No notes'}</small>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            {layoutMode === 'focus' && (
-              <button
-                type="button"
-                className="memory-world-lab__overlay-close"
-                onClick={() => setInspectorPanelOpen(false)}
-              >
-                Close
-              </button>
-            )}
+
+            {/* ── Shortcuts ── */}
+            <div className="memory-world-lab__detail-card">
+              <h3>Shortcuts</h3>
+              <div className="memory-world-lab__status-list">
+                <span>J/K or Left/Right switch candidate</span>
+                <span>R raw</span>
+                <span>A archive</span>
+                <span>F favorite</span>
+                <span>Cmd/Ctrl+Enter save</span>
+              </div>
+            </div>
           </aside>
         </div>
       )}

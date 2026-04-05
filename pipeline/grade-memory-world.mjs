@@ -29,6 +29,52 @@ const VERSION_FILES = [
   'scene.pano.subject-mask.png',
 ];
 
+/* ── Rubric dimension weights (from GRADING-RUBRIC.md B.5) ── */
+export const RUBRIC_DIMENSIONS = [
+  { key: 'worldCoherence',       flag: 'coherence',   label: 'World Coherence',         weight: 0.25 },
+  { key: 'explorationRange',     flag: 'exploration',  label: 'Exploration Range',       weight: 0.15 },
+  { key: 'subjectPreservation',  flag: 'subject',      label: 'Subject Preservation',    weight: 0.25 },
+  { key: 'artifactSeverity',     flag: 'artifacts',    label: 'Artifact Severity',       weight: 0.15 },
+  { key: 'emotionalRead',        flag: 'emotion',      label: 'Emotional Read',          weight: 0.20 },
+];
+
+export const RUBRIC_VERSION = '2026-04-04';
+
+/**
+ * Compute the weighted composite from dimension scores.
+ * Each dimension is 1-5. Returns a 1.00-5.00 weighted score.
+ */
+export function computeWeightedComposite(dimensions) {
+  let weighted = 0;
+  let totalWeight = 0;
+  for (const dim of RUBRIC_DIMENSIONS) {
+    const value = dimensions[dim.key];
+    if (typeof value === 'number' && value >= 1 && value <= 5) {
+      weighted += value * dim.weight;
+      totalWeight += dim.weight;
+    }
+  }
+  if (totalWeight === 0) return null;
+  // Normalize in case not all dimensions were scored
+  return Math.round((weighted / totalWeight) * 100) / 100;
+}
+
+/**
+ * Compute the raw composite (sum of all scored dimensions).
+ */
+export function computeComposite(dimensions) {
+  let sum = 0;
+  let count = 0;
+  for (const dim of RUBRIC_DIMENSIONS) {
+    const value = dimensions[dim.key];
+    if (typeof value === 'number' && value >= 1 && value <= 5) {
+      sum += value;
+      count += 1;
+    }
+  }
+  return count > 0 ? sum : null;
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   let sceneId = null;
@@ -37,6 +83,10 @@ function parseArgs() {
   let notes = null;
   let grade = null;
   let favorite = false;
+  let compare = false;
+
+  // Rubric dimension scores
+  const dimensions = {};
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -66,6 +116,22 @@ function parseArgs() {
     }
     if (arg === '--favorite') {
       favorite = true;
+      continue;
+    }
+    if (arg === '--compare') {
+      compare = true;
+      continue;
+    }
+
+    // Parse rubric dimension flags
+    const dimDef = RUBRIC_DIMENSIONS.find((d) => arg === `--${d.flag}`);
+    if (dimDef) {
+      const val = Number.parseInt(args[index + 1] ?? '', 10);
+      if (val >= 1 && val <= 5) {
+        dimensions[dimDef.key] = val;
+      }
+      index += 1;
+      continue;
     }
   }
 
@@ -76,6 +142,8 @@ function parseArgs() {
     notes,
     grade: Number.isFinite(grade) ? Math.max(0, Math.min(10, grade)) : null,
     favorite,
+    compare,
+    dimensions,
   };
 }
 
@@ -332,9 +400,25 @@ function resolveSource(sceneId, worldDir, meta, sourceFlag) {
 }
 
 function main() {
-  const { sceneId, source, label, notes, grade, favorite } = parseArgs();
+  const { sceneId, source, label, notes, grade, favorite, compare, dimensions } = parseArgs();
   if (!sceneId) {
-    console.log('Usage: node pipeline/grade-memory-world.mjs <scene-id> [--source current|selected-candidate|candidate:<id>] [--label <name>] [--notes <text>] [--grade 0-10] [--favorite]');
+    console.log(`Usage: node pipeline/grade-memory-world.mjs <scene-id> [options]
+
+Options:
+  --source current|selected-candidate|candidate:<id>
+  --label <name>
+  --notes <text>
+  --grade 0-10          Legacy overall grade
+  --favorite            Mark as favorite version
+
+Rubric dimensions (1-5 each):
+  --coherence <1-5>     World Coherence
+  --exploration <1-5>   Exploration Range
+  --subject <1-5>       Subject Preservation
+  --artifacts <1-5>     Artifact Severity
+  --emotion <1-5>       Emotional Read
+
+  --compare             Show comparison summary for all evaluated families`);
     process.exit(1);
   }
 
@@ -348,6 +432,35 @@ function main() {
   const worldDir = join(sceneDir, 'world');
   if (!existsSync(worldDir)) {
     throw new Error(`world directory not found: ${worldDir}`);
+  }
+
+  // ── Compare mode: summarize all evaluations for this scene ──
+  if (compare) {
+    const grades = meta?.world?.grades;
+    if (!grades?.evaluations?.length) {
+      console.log(JSON.stringify({ sceneId, families: [], message: 'No rubric evaluations found.' }, null, 2));
+      process.exit(0);
+    }
+    const families = new Map();
+    for (const ev of grades.evaluations) {
+      const key = ev.family || 'unknown';
+      if (!families.has(key) || (ev.weightedComposite ?? 0) > (families.get(key).weightedComposite ?? 0)) {
+        families.set(key, ev);
+      }
+    }
+    const sorted = [...families.values()].sort((a, b) => (b.weightedComposite ?? 0) - (a.weightedComposite ?? 0));
+    console.log(JSON.stringify({
+      sceneId,
+      families: sorted.map((ev) => ({
+        family: ev.family,
+        weightedComposite: ev.weightedComposite,
+        composite: ev.composite,
+        machineScore: ev.machineScore ?? null,
+        dealBreaker: ev.dealBreaker ?? null,
+      })),
+      winner: grades.winner ?? null,
+    }, null, 2));
+    process.exit(0);
   }
 
   const resolved = resolveSource(sceneId, worldDir, meta, source);
@@ -382,6 +495,11 @@ function main() {
     ?? currentSelection?.candidates?.find(candidate => candidate.id === resolved.sourceId)
     ?? null;
 
+  // ── Compute rubric composites if any dimension was provided ──
+  const hasDimensions = Object.keys(dimensions).length > 0;
+  const weightedComposite = hasDimensions ? computeWeightedComposite(dimensions) : null;
+  const composite = hasDimensions ? computeComposite(dimensions) : null;
+
   const review = {
     versionId,
     createdAt: new Date().toISOString(),
@@ -395,6 +513,12 @@ function main() {
     },
     humanReview: {
       grade,
+      rubric: hasDimensions ? {
+        rubricVersion: RUBRIC_VERSION,
+        ...dimensions,
+        composite,
+        weightedComposite,
+      } : null,
       notes: notes ?? null,
       favorite,
     },
@@ -433,6 +557,7 @@ function main() {
       sourceType: resolved.type,
       sourceId: resolved.sourceId,
       grade,
+      rubric: review.humanReview.rubric ?? null,
       favorite,
       candidateScore: review.generation.candidateScore,
       worldFamily: review.generation.worldFamily,
@@ -444,15 +569,42 @@ function main() {
   ];
   writeJson(indexPath, index);
 
-  if (favorite) {
-    meta.world = {
-      ...(meta.world ?? {}),
-      favoriteVersion: versionId,
-    };
-    meta.source = {
-      ...(meta.source ?? {}),
-      favoriteWorldVersion: versionId,
-    };
+  // ── Update world.grades in meta.json ──
+  if (hasDimensions || favorite) {
+    const worldFamily = review.generation.worldFamily || 'unknown';
+
+    if (hasDimensions) {
+      if (!meta.world) meta.world = {};
+      if (!meta.world.grades) {
+        meta.world.grades = { rubricVersion: RUBRIC_VERSION, evaluations: [], winner: null };
+      }
+
+      const evaluation = {
+        family: worldFamily,
+        date: new Date().toISOString().slice(0, 10),
+        evaluator: 'jared',
+        ...dimensions,
+        composite,
+        weightedComposite,
+        machineScore: machineMetrics?.score ?? null,
+        notes: notes ?? null,
+        dealBreaker: null,
+        versionId,
+      };
+      meta.world.grades.evaluations.push(evaluation);
+    }
+
+    if (favorite) {
+      meta.world = {
+        ...(meta.world ?? {}),
+        favoriteVersion: versionId,
+      };
+      meta.source = {
+        ...(meta.source ?? {}),
+        favoriteWorldVersion: versionId,
+      };
+    }
+
     writeJson(metaPath, meta);
   }
 
@@ -460,6 +612,7 @@ function main() {
     versionId,
     versionDir,
     grade,
+    rubric: review.humanReview.rubric ?? null,
     favorite,
     machineScore: machineMetrics?.score ?? null,
     candidateScore: review.generation.candidateScore,
