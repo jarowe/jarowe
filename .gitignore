@@ -72,3 +72,4 @@ public/memory/*/world/bootstrap.environment*.png
 *.njsproj
 *.sln
 *.sw?
+.venv-sam3d-body/
