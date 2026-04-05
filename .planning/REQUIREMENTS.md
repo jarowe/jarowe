@@ -1,117 +1,96 @@
 # Requirements: jarowe.com
 
-**Defined:** 2026-03-23 (v2.2)
+**Defined:** 2026-04-05 (v2.3)
 **Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
 
-## v2.2 Requirements — Particle Memory Flight
+## v2.3 Requirements — Best World Wins
 
-Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience. Photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio. Flagship scene: syros-cave only.
+Choose the best world-generation family for each hero memory through controlled comparison, then evaluate subject reconstruction paths against the winning world.
 
-**Guardrail:** If tradeoffs appear, protect the particle flight experience (PART-01, FLIGHT-01, DREAM-01/03) before protecting audio polish or wire connection density.
+**Guardrail:** If tradeoffs appear, protect comparison fairness (GRADE-04) and provenance integrity (WORLD-03) before protecting coverage breadth. A fair comparison of two families beats an unfair comparison of three.
 
-### Particle Renderer
+### World Comparison
 
-- [ ] **PART-01**: Photo + depth map sampled into 80K-150K luminous particles placed in 3D — the image is recognizable as a particle field, not a flat texture. Flagship desktop path: `syros-cave` only — one scene proves the renderer
-- [ ] **PART-02**: Selective wire connections link nearby particles with depth-aware density — visible structure between particles, not isolated dots
-- [ ] **PART-03**: Particles have bloom glow, breathing animation, and size variation — the field feels alive, not static
-- [ ] **PART-04**: Tier-adaptive particle count — full (150K), simplified (50K-80K), parallax fallback (CSS, no WebGL)
+- [ ] **WORLD-01**: Controlled comparison set generated for naxos-rock across Marble and WorldGen families with identical source photo
+- [ ] **WORLD-02**: Controlled comparison set generated for syros-cave across Marble and WorldGen families with identical source photo
+- [ ] **WORLD-02a**: Matrix-3D completes at least one benchmark scene successfully (cloud GPU allowed). If operationally viable, expand to second scene in-milestone.
+- [ ] **WORLD-02b**: If Matrix-3D proves non-viable for the comparison, document why it was excluded with specific failure evidence
+- [ ] **WORLD-03**: Every generation run saved with strict provenance -- family, prompt, seed, quality profile, runtime asset format, source/output files, machine score, human grade
 
-### Flight Controller
+### Grading System
 
-- [ ] **FLIGHT-01**: Scroll/trackpad/touch input drives camera position along a 3D spline path — wheel forward = fly deeper into the memory
-- [ ] **FLIGHT-02**: Camera movement has momentum and exponential decay — smooth, not jerky or 1:1 locked to scroll delta
-- [ ] **FLIGHT-03**: Narrative cards and particle cohesion states are driven by normalized progress (0-1), not time — scroll controls the experience pace
-- [ ] **FLIGHT-04**: Progress supports both deliberate scroll-stepping and inertial autopilot drift when input stops — the scene never feels dead, but the user regains control on next scroll
+- [ ] **GRADE-01**: Grading rubric implemented in lab with 5 dimensions (world coherence, exploration range, subject preservation potential, artifact severity, emotional read) scored 1-5 with anchored examples
+- [ ] **GRADE-02**: 7 standardized camera views evaluated per world (start, right-45, right-90, rear-180, overhead, approach, ground)
+- [ ] **GRADE-03**: Family-first lab review with filters, side-by-side candidate context, and winner marking per family and per scene
+- [ ] **GRADE-04**: All family comparisons use the same source image, same review camera set, and as-close-as-possible prompt intent so the comparison is fair
 
-### Dream Portal
+### Subject Path
 
-- [ ] **DREAM-01**: Entry transition dissolves the current page into scattered particles before route change — reality breaks apart, not a UI fade
-- [ ] **DREAM-02**: Tunnel/void phase streams particles past the camera in a directional flow — the visitor falls through a luminous space between worlds
-- [ ] **DREAM-03**: Memory reform phase assembles the particle field from scattered positions into the photo formation — the memory crystallizes from chaos
-- [ ] **DREAM-04**: Exit transition reverses the memory into particles and returns through the same dream grammar as entry — not a different or out-of-band effect
+- [ ] **SUBJ-01**: Current billboard subject path evaluated against depth-warped billboard and SAM 3D Objects on the winning world family -- not against moving targets
+- [ ] **SUBJ-02**: Subject grading criteria defined and applied (depth coherence, parallax correctness, appearance preservation, artifact visibility)
 
-### Soundscape
+### Winner Selection
 
-- [ ] **SOUND-01**: Layered ambient audio (drone, texture, detail) with per-layer volume envelopes driven by scroll progress — audio evolves as you fly deeper
-- [ ] **SOUND-02**: GlobalPlayer ducks on capsule entry, soundscape cross-fades smoothly — no audio gaps or conflicts
+- [ ] **WIN-01**: One locked winning world family per scene with documented evidence (scores, screenshots, notes on why it won)
+- [ ] **WIN-02**: One locked winning subject path per scene with documented evidence
 
-### Integration
+## Exploratory (Non-Blocking)
 
-- [ ] **INTEG-01**: New `renderMode: 'particle-memory'` slots into existing CapsuleShell dispatch — shell, route, narrative overlay, and fallback remain unchanged
-- [ ] **INTEG-02**: Dual position buffers (scattered + photo-sampled) pre-allocated at init — enables dissolve/reform without destructive buffer rewrites
+These are tracked but not required for v2.3 completion. May prove useful for future milestones.
+
+- **EXPLORE-01**: sam3d-body evaluated as body prior / occluder / collider / depth scaffold (not as visible subject solution). Document utility findings regardless of outcome.
 
 ## Future Requirements
 
-Deferred to future milestones. Not in current roadmap.
+Deferred to v2.4+ milestones. Not in current roadmap.
 
-### Memory Capsules v2.3+
-- **CAPSULE-01**: Memory plasma — multi-scene sequencing with flowing transitions between capsules
-- **CAPSULE-02**: Gaussian splat renderer swap (SHARP/CompleteSplat when models mature)
-- **CAPSULE-03**: Client-side depth estimation (WebGPU + Depth Anything V2 ONNX)
-- **CAPSULE-04**: Audio-reactive particle displacement (Web Audio analyser → shader uniforms)
-- **CAPSULE-05**: Multiple flagship scenes (Jace on rocks, family golden hour, etc.)
-- **CAPSULE-06**: GPUComputationRenderer for per-particle physics simulation
-- **CAPSULE-07**: Scene-specific OG preview images with particle snapshot
+### Visual Polish
+- **POLISH-01**: Dream particle effects tuned for winning world family
+- **POLISH-02**: Atmosphere/fog/god-rays layer on winning world
+- **POLISH-03**: Camera choreography and entry transitions refined
+- **POLISH-04**: Soundscape with real ambient audio (not synthesized placeholders)
 
-### Constellation Core
-- **CONST-01**: Scripted narrator engine with 5-tier event-driven narration
-- **CONST-02**: Guided tour (~90 seconds, cinematic, skippable)
+### Loading & Performance
+- **PERF-01**: SPZ compression pipeline for all scenes (<3s load target)
+- **PERF-02**: Two-tier progressive loading (100K preview → full quality)
+- **PERF-03**: Preloading strategy (prefetch on hover, service worker caching)
 
-### Ecosystem Expansion
-- **ECO-01** through **ECO-06**: Starseed Labs standalone, community, subscribers, content pipeline
+### Scale
+- **SCALE-01**: Automated pipeline for new memory content (photo → world → deployed)
+- **SCALE-02**: Memory-to-memory transitions (particles dissolve between worlds)
 
-## Out of Scope (v2.2)
+## Out of Scope (v2.3)
 
 | Feature | Reason |
 |---------|--------|
-| Multiple memory scenes | Prove 1 flagship first; don't dilute |
-| GPU compute particles | Vertex shader handles dissolve/reform; defer GPUComputationRenderer |
-| Displaced-mesh renderer improvements | Wrong primitive — being replaced |
-| OrbitControls / free-roam camera | Experience is scroll-driven on rails |
-| Mobile particle renderer | Desktop hero first; mobile keeps parallax |
-| Soundtrack per scene | Soundscape is ambient layers, not curated tracks |
-| Constellation integration | Phase 13 (v2.1 stretch) — deferred |
+| Renderer cleanup / dead code removal | Done in v2.2 cleanup |
+| Dream effects / atmosphere polish | v2.4 — after world quality locked |
+| Loading optimization beyond fair comparison | v2.4 |
+| New narrative UX | v2.4 |
+| sam3d-body as visible subject solution | Research shows it outputs geometry-only mannequins with no appearance — downgrade from photo billboards for personal memories. Tracked as exploratory for other uses. |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PART-01 | 14 — Particle Field Core | Not started |
-| PART-02 | 14 — Particle Field Core | Not started |
-| PART-03 | 14 — Particle Field Core | Not started |
-| PART-04 | 14 — Particle Field Core | Not started |
-| INTEG-01 | 14 — Particle Field Core | Not started |
-| INTEG-02 | 14 — Particle Field Core | Not started |
-| FLIGHT-01 | 15 — Memory Flight Controller | Not started |
-| FLIGHT-02 | 15 — Memory Flight Controller | Not started |
-| FLIGHT-03 | 15 — Memory Flight Controller | Not started |
-| FLIGHT-04 | 15 — Memory Flight Controller | Not started |
-| DREAM-01 | 16 — Dream Portal Transition | Not started |
-| DREAM-02 | 16 — Dream Portal Transition | Not started |
-| DREAM-03 | 16 — Dream Portal Transition | Not started |
-| DREAM-04 | 16 — Dream Portal Transition | Not started |
-| SOUND-01 | 17 — Memory Soundscape | Not started |
-| SOUND-02 | 17 — Memory Soundscape | Not started |
+| WORLD-01 | TBD | Not started |
+| WORLD-02 | TBD | Not started |
+| WORLD-02a | TBD | Not started |
+| WORLD-02b | TBD | Not started |
+| WORLD-03 | TBD | Not started |
+| GRADE-01 | TBD | Not started |
+| GRADE-02 | TBD | Not started |
+| GRADE-03 | TBD | Not started |
+| GRADE-04 | TBD | Not started |
+| SUBJ-01 | TBD | Not started |
+| SUBJ-02 | TBD | Not started |
+| WIN-01 | TBD | Not started |
+| WIN-02 | TBD | Not started |
 
 **Coverage:**
-- v2.2 requirements: 16 total
-- Mapped to phases: 16/16 (100%)
-- Phase 14: 6 requirements (PART-01/02/03/04, INTEG-01/02)
-- Phase 15: 4 requirements (FLIGHT-01/02/03/04)
-- Phase 16: 4 requirements (DREAM-01/02/03/04)
-- Phase 17: 2 requirements (SOUND-01/02)
-
-## Previous Milestones
-
-### v2.1 (Shipped 2026-03-23)
-20 requirements, all complete (DEPTH-01/02/03/04, SHELL-01/02/03/04, ASSET-01, CINE-01/02/03/04, PORT-01/02/03/04, ARC-01/02/03)
-
-### v2.0.1 (Shipped 2026-03-22)
-5 requirements, all complete (RENDER-01, CONTENT-01, VISUAL-01/02/03)
-
-### v2.0 (Shipped 2026-03-21)
-37 requirements across 6 categories, all complete except STAR-07 (DNS), PORTAL-02 (partial), PORTAL-04 (partial)
+- v2.3 requirements: 13 total
+- Exploratory: 1 (non-blocking)
+- Mapped to phases: 0/13 (roadmap pending)
 
 ---
-*Requirements defined: 2026-03-23 (v2.2)*
-*Last updated: 2026-03-23*
+*Requirements defined: 2026-04-05 (v2.3)*
