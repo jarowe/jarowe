@@ -137,10 +137,17 @@ Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
+### v2.3 Best World Wins (In Progress)
+
+**Milestone Goal:** Establish a rigorous grading and comparison protocol for 3D memory world generation families, enabling data-driven quality decisions.
+
+- [x] **Phase 18: Grading Rubric & Comparison Protocol** - 5-dimension rubric, 7-view camera presets, weighted scoring, winner protocol
+  - [x] 18-02: Camera Presets & Navigation Bar -- 7 camera views (V0-V6), postMessage control, lab UI bar
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7 (v2.0); 18+ (v2.3)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -151,7 +158,9 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 18. Grading Rubric & Protocol | v2.3 | 1/? | In progress | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
+*Updated: 2026-04-05 (v2.3 Best World Wins milestone, Phase 18 plan 02 complete)*
