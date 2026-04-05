@@ -31,6 +31,7 @@ const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
+const MemoryWorldLab = lazyRetry(() => import('./pages/labs/MemoryWorldLab'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -292,6 +293,18 @@ function AppContent() {
           <Route path="/admin/editors" element={
             <Suspense fallback={<LazyFallback label="Loading Editors..." />}>
               <AdminEditors />
+            </Suspense>
+          } />
+
+          {/* ── Memory World Lab routes ── */}
+          <Route path="/starseed/labs/memory-worlds" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/memory-worlds/:sceneId" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
             </Suspense>
           } />
         </Routes>
