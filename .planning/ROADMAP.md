@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 Constellation** - Phases 1-2 (shipped 2026-02-28, Phases 3-6 deferred to future)
 - 🚧 **v2.0 Living World** - Phases 3-7 (in progress)
+- 🚧 **v2.3 Best World Wins** - Phases 18-23 (in progress)
 
 ## Phases
 
@@ -52,6 +53,17 @@ Plans:
 - [ ] **Phase 6: Automation & Retention** - Weather-responsive atmosphere, dynamic OG images, visitor streaks, date-locked easter eggs, Glint-to-Labs handoff, and brainstorm mode
 - [ ] **Phase 7: Immersive Portal** - Gaussian splat memory capsule with portal transition, soundtrack, narrative overlay, and shareable URL
 - [x] **Phase 17: Memory Soundscape** (INSERTED) - Layered soundscape audio for memory capsules with per-instance ducking and CapsuleShell viewer
+
+### v2.3 Best World Wins (In Progress)
+
+**Milestone Goal:** Choose the best world-generation family for each hero memory through controlled comparison, then attach the best subject reconstruction to that winner. Grading rubric, generation batches, Matrix-3D viability test, family-first lab review, subject path evaluation, and locked winner selection.
+
+- [ ] **Phase 18: Grading Rubric & Comparison Protocol** - 5-dimension rubric in lab tooling, CLI integration, 7 standard camera views, comparison summary
+- [ ] **Phase 19: Generation Batches** - Marble + WorldGen batches for naxos-rock and syros-cave with strict provenance
+- [ ] **Phase 20: Matrix-3D Viability Test** - Cloud GPU benchmark, document outcome (viable or excluded)
+- [ ] **Phase 21: Lab Upgrade for Family Review** - Family filters, side-by-side views, winner marking
+- [ ] **Phase 22: Subject Path Evaluation** - Billboard vs depth-warped vs SAM 3D Objects on winning world
+- [ ] **Phase 23: Winner Selection & Lock** - One locked winner per scene (world + subject) with evidence
 
 ## Phase Details
 
@@ -147,11 +159,104 @@ Plans:
 - [x] 17-01 -- useSoundscape hook, memoryScenes data, placeholder audio (bundled into 17-02)
 - [x] 17-02 -- Per-instance capsule ducking in AudioContext, CapsuleShell page, route wiring
 
+### Phase 18: Grading Rubric & Comparison Protocol
+**Goal**: A grading rubric and comparison protocol exist and are wired into the lab tooling, so every world generation can be scored consistently before any comparison runs begin
+**Depends on**: None (foundational phase)
+**Requirements**: GRADE-01, GRADE-02, GRADE-04
+**Success Criteria** (what must be TRUE):
+  1. `grade-memory-world.mjs` accepts `--coherence`, `--exploration`, `--subject`, `--artifacts`, `--emotion` flags (1-5 each) and computes weighted composite automatically
+  2. The 5-dimension rubric with anchored examples is embedded in the grading script's `--help` output or a companion reference file that the lab can display
+  3. Running `grade-memory-world.mjs <scene> --compare` outputs a per-family comparison summary (JSON + stdout) with weighted composites and winner recommendation
+  4. Every evaluation stored in `meta.json` includes `rubricVersion`, all 5 dimension scores, weighted composite, machine score, and evaluator name
+  5. The 7 standard camera views (V0-V6) are documented in the rubric reference and enforced by the comparison protocol checklist
+**Plans**: TBD
+
+Plans:
+- [ ] 18-01: TBD
+- [ ] 18-02: TBD
+
+### Phase 19: Generation Batches
+**Goal**: Controlled comparison sets exist for both hero scenes (naxos-rock, syros-cave) across Marble and WorldGen families, each with strict provenance tracking
+**Depends on**: Phase 18 (rubric must exist before grading runs)
+**Requirements**: WORLD-01, WORLD-02, WORLD-03
+**Success Criteria** (what must be TRUE):
+  1. At least 2 Marble-generated worlds exist for naxos-rock with full provenance records (family, prompt, seed, quality profile, source photo, output files, machine score)
+  2. At least 2 WorldGen-generated worlds exist for naxos-rock with full provenance records using the same source photo as the Marble runs
+  3. At least 2 Marble-generated worlds and 2 WorldGen-generated worlds exist for syros-cave with the same provenance discipline
+  4. Every generation run is versioned via `grade-memory-world.mjs` with a unique versionId, and the raw assets (PLY/SPZ, panorama, config) are preserved in the versions directory
+  5. Prompt intent is documented per-family per-scene so GRADE-04 (fair comparison) can be verified by reviewing the prompt log
+**Plans**: TBD
+
+Plans:
+- [ ] 19-01: TBD
+- [ ] 19-02: TBD
+- [ ] 19-03: TBD
+
+### Phase 20: Matrix-3D Viability Test
+**Goal**: Determine whether Matrix-3D is operationally viable for the comparison matrix by running at least one benchmark scene on a cloud GPU, and document the outcome either way
+**Depends on**: Phase 19 (Marble/WorldGen baselines should exist for comparison context)
+**Requirements**: WORLD-02a, WORLD-02b
+**Success Criteria** (what must be TRUE):
+  1. A cloud GPU instance (Vast.ai, RunPod, or equivalent) has been provisioned and the Matrix-3D pipeline installed successfully, OR a documented failure log explains why installation failed
+  2. At least one scene (syros-cave preferred) has been run through the full Matrix-3D pipeline (pano -> video -> 3D reconstruction), OR a documented failure log explains which stage failed and why
+  3. If successful: the output .ply is versioned via `grade-memory-world.mjs` with full provenance, and a quality assessment (even informal) is recorded against the rubric
+  4. If non-viable: a `MATRIX-3D-EXCLUSION.md` document exists with specific failure evidence (error logs, VRAM limits, build failures, quality screenshots) satisfying WORLD-02b
+  5. Decision recorded: Matrix-3D is either added to the comparison matrix for both scenes or excluded with documented rationale
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01: TBD
+
+### Phase 21: Lab Upgrade for Family Review
+**Goal**: The lab supports family-first review with filters, side-by-side candidate context, and winner marking so Jared can make informed comparison decisions
+**Depends on**: Phase 18 (rubric scores stored), Phase 19 (generation batches to review)
+**Requirements**: GRADE-03
+**Success Criteria** (what must be TRUE):
+  1. The lab can filter candidates by family (Marble, WorldGen, Matrix-3D) and show only candidates from a selected family
+  2. Side-by-side view displays V0 screenshots from two or more families for the same scene, with weighted composite scores visible
+  3. A "Mark Winner" action sets `world.grades.winner` in meta.json with family, rationale, date, and `locked: true`
+  4. The comparison summary (`--compare` output from Phase 18) is accessible from the lab UI or a single CLI command
+**Plans**: TBD
+
+Plans:
+- [ ] 21-01: TBD
+- [ ] 21-02: TBD
+
+### Phase 22: Subject Path Evaluation
+**Goal**: Evaluate subject reconstruction paths (current billboard, depth-warped billboard, SAM 3D Objects) against the winning world family only, with defined grading criteria
+**Depends on**: Phase 21 (winning world family must be selected first)
+**Requirements**: SUBJ-01, SUBJ-02
+**Success Criteria** (what must be TRUE):
+  1. Subject grading criteria are defined and documented: depth coherence, parallax correctness, appearance preservation, artifact visibility (each scored 1-5 with anchor descriptions)
+  2. Current billboard subject is rendered in the winning world for each scene and scored against the subject criteria
+  3. At least one alternative subject path (depth-warped billboard or SAM 3D Objects) is rendered in the winning world and scored against the same criteria
+  4. Side-by-side comparison screenshots exist showing each subject path in the winning world at V0 and V5 (approach) camera positions
+**Plans**: TBD
+
+Plans:
+- [ ] 22-01: TBD
+- [ ] 22-02: TBD
+
+### Phase 23: Winner Selection & Lock
+**Goal**: One locked winning world family and one locked winning subject path per scene, with full evidence trail documenting the decisions
+**Depends on**: Phase 21 (world comparison complete), Phase 22 (subject comparison complete)
+**Requirements**: WIN-01, WIN-02
+**Success Criteria** (what must be TRUE):
+  1. `meta.json` for naxos-rock has `world.grades.winner` with `locked: true`, documented rationale, weighted composite, cost, and alternative family comparison
+  2. `meta.json` for syros-cave has `world.grades.winner` with `locked: true`, documented rationale, weighted composite, cost, and alternative family comparison
+  3. Subject path winner is recorded per scene with documented evidence (scores, comparison screenshots, notes on why it won)
+  4. A `DECISIONS.md` summary exists listing both scene winners (world + subject) with one-paragraph rationale each, suitable for future reference when the pipeline evolves
+**Plans**: TBD
+
+Plans:
+- [ ] 23-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
-Inserted phases (17+) execute independently as needed.
+v2.0 phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+v2.3 phases execute in order: 18 -> 19 -> 20 -> 21 -> 22 -> 23
+Inserted phases (17) execute independently as needed.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -163,8 +268,15 @@ Inserted phases (17+) execute independently as needed.
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
 | 17. Memory Soundscape | v2.0 | 2/2 | Complete | 2026-03-24 |
+| 18. Grading Rubric & Comparison Protocol | v2.3 | 0/? | Not started | - |
+| 19. Generation Batches | v2.3 | 0/? | Not started | - |
+| 20. Matrix-3D Viability Test | v2.3 | 0/? | Not started | - |
+| 21. Lab Upgrade for Family Review | v2.3 | 0/? | Not started | - |
+| 22. Subject Path Evaluation | v2.3 | 0/? | Not started | - |
+| 23. Winner Selection & Lock | v2.3 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
 *Updated: 2026-03-20 (v2.0 Living World milestone added, Phases 3-7)*
 *Updated: 2026-03-24 (Phase 17 Memory Soundscape inserted and completed)*
+*Updated: 2026-04-05 (v2.3 Best World Wins milestone added, Phases 18-23)*

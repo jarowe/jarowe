@@ -73,24 +73,24 @@ Deferred to v2.4+ milestones. Not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WORLD-01 | TBD | Not started |
-| WORLD-02 | TBD | Not started |
-| WORLD-02a | TBD | Not started |
-| WORLD-02b | TBD | Not started |
-| WORLD-03 | TBD | Not started |
-| GRADE-01 | TBD | Not started |
-| GRADE-02 | TBD | Not started |
-| GRADE-03 | TBD | Not started |
-| GRADE-04 | TBD | Not started |
-| SUBJ-01 | TBD | Not started |
-| SUBJ-02 | TBD | Not started |
-| WIN-01 | TBD | Not started |
-| WIN-02 | TBD | Not started |
+| WORLD-01 | 19 (Generation Batches) | Not started |
+| WORLD-02 | 19 (Generation Batches) | Not started |
+| WORLD-02a | 20 (Matrix-3D Viability Test) | Not started |
+| WORLD-02b | 20 (Matrix-3D Viability Test) | Not started |
+| WORLD-03 | 19 (Generation Batches) | Not started |
+| GRADE-01 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| GRADE-02 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| GRADE-03 | 21 (Lab Upgrade for Family Review) | Not started |
+| GRADE-04 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| SUBJ-01 | 22 (Subject Path Evaluation) | Not started |
+| SUBJ-02 | 22 (Subject Path Evaluation) | Not started |
+| WIN-01 | 23 (Winner Selection & Lock) | Not started |
+| WIN-02 | 23 (Winner Selection & Lock) | Not started |
 
 **Coverage:**
 - v2.3 requirements: 13 total
 - Exploratory: 1 (non-blocking)
-- Mapped to phases: 0/13 (roadmap pending)
+- Mapped to phases: 13/13 (100%)
 
 ---
 *Requirements defined: 2026-04-05 (v2.3)*
