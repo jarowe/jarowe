@@ -1,81 +1,66 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Living World
-status: executing
-stopped_at: Phase 17-02 complete. CapsuleShell + useSoundscape + capsule ducking all wired. Build passes.
-last_updated: "2026-03-24T06:44:56.787Z"
-last_activity: 2026-03-24
+milestone: v2.3
+milestone_name: Best World Wins
+status: planning
+stopped_at: Milestone started — defining requirements
+last_updated: "2026-04-05"
+last_activity: 2026-04-05
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 15
-  completed_plans: 16
-  percent: 50
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-20)
+See: .planning/PROJECT.md (updated 2026-04-05)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 17 - Memory Soundscape (inserted phase)
+**Current focus:** v2.3 Best World Wins — world quality comparison matrix
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
-Status: In progress (plan 17-02 done, phase continues)
-Last activity: 2026-03-24
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-05 — Milestone v2.3 started
 
-Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending, phase 17 in progress)
+## Previous Milestones
 
-## v1.0 Summary
-
-Phases 1-2 complete (9 plans, 1.74 hours total execution):
-
-- Phase 1: Constellation Scene (4 plans, complete)
-- Phase 2: Data Pipeline & Privacy (5/6 plans, gap closure pending)
-- Phases 3-6 from v1.0 scope deferred (Narrator, Admin, Automation, Bento Hub)
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 9 (v1.0)
-- Average duration: 11.6 min
-- Total execution time: 1.74 hours
-
-**Recent Trend:**
-
-- Stable (v1.0 baseline established)
+- v2.2 Particle Memory Flight (shipped 2026-03-24): particle-memory system, then pivoted to Gaussian splat worlds via SHARP/Marble. Spark.js renderer, family isolation, cleanup.
+- v2.1 Memory Capsules (shipped 2026-03-23): CapsuleShell, displaced mesh, cinematic camera, soundtrack ducking, experience arc.
+- v2.0 Living World: Starseed Hub, Glint Operator, Labs, Daily Engine, Immersive Portal.
+- v1.0 Constellation (shipped 2026-02-28): constellation scene, data pipeline.
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions logged in PROJECT.md Key Decisions table. Key v2.0 decisions:
+- WorldMemoryRenderer is Spark-only (mkkellogg fully removed)
+- Family isolation enforced in pipeline and lab
+- Anchor semantics derived from provenance existence, not hardcoded tier list
+- 13 dead particle-memory files still on disk (dormant, not blocking)
+- SHARP pipeline working locally (.venv-sharp)
+- Marble API used for naxos-rock and naxos-laugh
+- WorldGen cloned in _experiments/ (same pipeline family as Marble)
 
-- Starseed Hub uses campaign-shell pattern (proven from music takeover)
-- Daily engine before spectacle (retention before acquisition)
-- Anonymous-first auth with Supabase upgrade path
-- Glint bounded tool use, not generic chatbot
+### Research Available
 
-### Pending Todos (from v1.0)
-
-- Re-enable Bloom in production mode
-- Tune node colors (instanceColor blending)
-- Instagram parser selector tuning
-- Populate allowlist.json with real names
+- .planning/research/SINGLE-IMAGE-TO-3D-WORLD-2026.md
+- docs/splat-compression-streaming-research-2026-03-27.md
+- docs/marble-spark-technical-research.md
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: Phase 17-02 complete. CapsuleShell + useSoundscape + capsule ducking all wired. Build passes.
+Last session: 2026-04-05
+Stopped at: Milestone v2.3 started — defining requirements
 Resume file: None

@@ -20,17 +20,17 @@ jarowe.com is a living, daily-pulse world with polished visual cohesion and memo
 - **Memory Capsules (v2.1)** — CapsuleShell with displaced mesh renderer (being replaced), 3-tier GPU detection, parallax fallback, cinematic camera, atmospheric particles, DOF/vignette/grain, color grading, soundtrack ducking, experience arc, narrative glass cards, PortalVFX transitions. Flagship: syros-cave.
 - **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
 
-## Current Milestone: v2.2 Particle Memory Flight
+## Current Milestone: v2.3 Best World Wins
 
-**Goal:** Replace the flagship desktop Memory Capsule renderer with a true particle-memory experience — photos decompose into luminous 3D particle fields you fly through via scroll, with dreamstate portal transitions and progress-reactive audio.
+**Goal:** Choose the best world-generation family for each hero memory through controlled comparison, then attach the best subject reconstruction to that winner.
 
 **Target features:**
-- ParticleMemoryRenderer: photo + depth → 80K-150K luminous particles with selective wire connections and glow
-- MemoryFlightController: scroll/trackpad/touch drives camera through particle field on rails
-- DreamPortalTransition: reality dissolves into particles → tunnel/fall-through → particles reform into memory
-- MemorySoundscape: layered ambient audio that evolves with scroll progress
-- 1 flagship scene (syros-cave), desktop hero path only
-- Parallax fallback preserved for low-end devices
+- Controlled comparison batches for naxos-rock and syros-cave across Marble, WorldGen, Matrix-3D
+- Strict provenance tracking per generation run (family, prompt, seed, quality profile, scores)
+- Grading rubric: world coherence, exploration range, subject preservation potential, artifact severity, emotional read
+- Family-first lab review with filters, side-by-side context, winner marking
+- sam3d-body subject comparison against winning world family only
+- One locked winner per scene with evidence and notes
 
 ## Requirements
 
