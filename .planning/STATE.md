@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Current focus:** Phase 3 - Living Homepage
+**Current focus:** Phase 18 - Grading Rubric Comparison Protocol (complete)
 
 ## Current Position
 
-Phase: 3 of 7 (Living Homepage) -- first phase of v2.0
-Plan: --
-Status: Ready to plan
-Last activity: 2026-03-20 -- v2.0 roadmap created (Phases 3-7, 37 requirements mapped)
+Phase: 18 (Grading Rubric Comparison Protocol) -- memory world quality evaluation
+Plan: 18-01 (complete)
+Status: Phase complete
+Last activity: 2026-04-05 -- Phase 18 grading rubric implemented (5-dimension scoring, lab API, UI)
 
-Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending)
+Progress: [##########..........] 50% (v1.0 phases 1-2 complete, v2.0 phases 3-7 pending, phase 18 inserted + complete)
 
 ## v1.0 Summary
 

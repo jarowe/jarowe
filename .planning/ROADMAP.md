@@ -137,10 +137,24 @@ Plans:
 - [ ] 07-01: TBD
 - [ ] 07-02: TBD
 
+### Phase 18: Grading Rubric Comparison Protocol (INSERTED)
+**Goal**: Implement a 5-dimension rubric scoring system for memory world quality evaluation, with pipeline CLI support, lab API endpoints, and interactive UI
+**Depends on**: Memory world generation pipeline (external)
+**Success Criteria** (what must be TRUE):
+  1. grade-memory-world.mjs accepts 5 dimension flags (coherence, exploration, subject, artifacts, emotion) and computes weighted composite
+  2. vite.config.js lab API serves rubric definitions and accepts dimension scores
+  3. MemoryWorldLab.jsx shows 5-dimension scoring UI with 1-5 chips per dimension
+  4. meta.json world.grades schema stores evaluations with composite scores
+  5. Build passes
+**Plans**: 1 plan (complete)
+
+Plans:
+- [x] 18-01: 5-dimension rubric scoring (pipeline + API + UI)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7 (phase 18 is an inserted utility phase)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -151,6 +165,7 @@ Phases execute in numeric order: 3 -> 4 -> 5 -> 6 -> 7
 | 5. Starseed Hub & Labs | v2.0 | 0/? | Not started | - |
 | 6. Automation & Retention | v2.0 | 0/? | Not started | - |
 | 7. Immersive Portal | v2.0 | 0/? | Not started | - |
+| 18. Grading Rubric | v2.0 | 1/1 | Complete | 2026-04-05 |
 
 ---
 *Roadmap created: 2026-02-27 (v1.0)*
