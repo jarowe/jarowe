@@ -2947,6 +2947,29 @@ function WorldExploreControls({ target = [0, 0, 0], startPosition = [0, 0, 5] })
     }
   }, [camera, startPosition, target]);
 
+  // Listen for postMessage camera commands from the lab (memory-world:set-camera)
+  useEffect(() => {
+    function handleMessage(event) {
+      if (event.data?.type !== 'memory-world:set-camera') return;
+      const { position, target: msgTarget, fov } = event.data;
+      if (position && Array.isArray(position)) {
+        camera.position.set(position[0], position[1], position[2]);
+      }
+      if (msgTarget && Array.isArray(msgTarget) && controlsRef.current) {
+        controlsRef.current.target.set(msgTarget[0], msgTarget[1], msgTarget[2]);
+      }
+      if (typeof fov === 'number') {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+      if (controlsRef.current) controlsRef.current.update();
+      // Send confirmation back
+      window.parent?.postMessage({ type: 'memory-world:camera-ready', preset: event.data.preset }, '*');
+    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [camera]);
+
   const startDistance = useMemo(() => {
     const cam = new THREE.Vector3(startPosition[0], startPosition[1], startPosition[2]);
     const look = new THREE.Vector3(target[0], target[1], target[2]);

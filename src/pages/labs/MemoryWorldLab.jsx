@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CAMERA_PRESETS, buildCameraPresetMessage } from '../../data/cameraPresets';
 import './MemoryWorldLab.css';
 
 const DEFAULT_SCENE_ID = 'naxos-rock';
@@ -158,6 +159,8 @@ export default function MemoryWorldLab() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [rubricDimensions, setRubricDimensions] = useState([]);
+  const [activePreset, setActivePreset] = useState('V0');
+  const iframeRef = useRef(null);
 
   const source = searchParams.get('source') || 'selected-candidate';
   const view = searchParams.get('view') === 'archive' ? 'archive' : 'raw';
@@ -612,8 +615,40 @@ export default function MemoryWorldLab() {
               </div>
             </div>
 
+            {/* Camera preset navigation bar */}
+            <div className="memory-world-lab__camera-presets" style={{ display: 'flex', gap: '0.35rem', padding: '0.4rem 0.6rem', background: 'rgba(10,10,16,0.7)', borderRadius: '8px 8px 0 0' }}>
+              {CAMERA_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  className={`memory-world-lab__preset-btn${activePreset === preset.id ? ' active' : ''}`}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.72rem',
+                    borderRadius: '4px',
+                    border: activePreset === preset.id ? '1px solid rgba(255,255,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                    background: activePreset === preset.id ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    color: activePreset === preset.id ? '#fff' : 'rgba(255,255,255,0.6)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => {
+                    setActivePreset(preset.id);
+                    const sceneCam = data?.scene?.camera ?? { startPosition: [0, 0, 5], startTarget: [0, 0, 0] };
+                    const msg = buildCameraPresetMessage(preset.id, sceneCam);
+                    if (msg && iframeRef.current?.contentWindow) {
+                      iframeRef.current.contentWindow.postMessage(msg, '*');
+                    }
+                  }}
+                  title={preset.description}
+                >
+                  {preset.id}: {preset.label}
+                </button>
+              ))}
+            </div>
+
             <div className="memory-world-lab__preview-shell">
               <iframe
+                ref={iframeRef}
                 key={previewUrl}
                 title={`Memory world preview ${effectiveSource}`}
                 className="memory-world-lab__iframe"

@@ -491,6 +491,14 @@ function runWorldGrade(body) {
   if (Number.isFinite(rawGrade)) args.push('--grade', `${rawGrade}`)
   if (favorite) args.push('--favorite')
 
+  // Forward rubric dimension scores (1-5) to CLI flags
+  const dimMap = { worldCoherence: 'coherence', explorationRange: 'exploration', subjectPreservation: 'subject', artifactSeverity: 'artifacts', emotionalRead: 'emotion' }
+  const dims = body.dimensions || {}
+  for (const [key, flag] of Object.entries(dimMap)) {
+    const val = Number.parseInt(`${dims[key] ?? ''}`, 10)
+    if (val >= 1 && val <= 5) args.push(`--${flag}`, `${val}`)
+  }
+
   const result = spawnSync(process.execPath, args, {
     cwd: ROOT,
     encoding: 'utf8',
@@ -528,6 +536,49 @@ function memoryWorldLabApi() {
 
           if (req.method === 'GET' && url.pathname === '/__memory-lab/scenes') {
             sendJson(res, 200, listMemoryWorldLabScenes())
+            return
+          }
+
+          // Rubric endpoint — serves dimension definitions for the scoring UI
+          if (req.method === 'GET' && url.pathname === '/__memory-lab/rubric') {
+            const { RUBRIC_DIMENSIONS, RUBRIC_VERSION } = await import('./pipeline/grade-memory-world.mjs')
+            const anchors = {
+              worldCoherence: {
+                1: 'Geometry broken — floating surfaces, holes, depth inversions everywhere',
+                3: 'Mostly coherent with some visible seams or depth errors at edges',
+                5: 'Solid geometry throughout — surfaces connect, depth relationships hold, no floaters',
+              },
+              explorationRange: {
+                1: 'Only the front view is usable — any camera movement reveals empty space',
+                3: '45-90 degree orbit is believable, backside is rough but present',
+                5: 'Full 180+ degree exploration with believable backside and overhead',
+              },
+              subjectPreservation: {
+                1: 'Subject area is destroyed — no room for compositing',
+                3: 'Subject space exists but ground/shadow/context is distorted',
+                5: 'Subject context is natural — ground, shadows, surrounding objects all correct',
+              },
+              artifactSeverity: {
+                1: 'Severe artifacts dominate — floating splats, major seams, hallucination errors',
+                3: 'Some visible artifacts but they do not dominate the experience',
+                5: 'Clean — no distracting artifacts visible during normal exploration',
+              },
+              emotionalRead: {
+                1: 'Does not feel like the memory — mood, light, atmosphere are wrong',
+                3: 'Recognizable as the place but the feeling is muted',
+                5: 'Captures the mood perfectly — the person who took this photo would say "yes, that\'s it"',
+              },
+            }
+            sendJson(res, 200, {
+              version: RUBRIC_VERSION,
+              dimensions: RUBRIC_DIMENSIONS.map((d) => ({
+                ...d,
+                anchors: anchors[d.key] || {},
+              })),
+              weights: Object.fromEntries(RUBRIC_DIMENSIONS.map((d) => [d.key, d.weight])),
+              tiebreaker: 'emotionalRead',
+              thresholds: { hero: 4.0, shippable: 3.0 },
+            })
             return
           }
 
