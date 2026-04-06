@@ -413,6 +413,7 @@ function collectMemoryWorldLabScene(sceneId) {
       worldGenerationFamily: inferWorldFamily(meta, null),
       world: meta.world ?? null,
       source: meta.source ?? null,
+      camera: meta.camera ?? null,
       currentReview: versionSummary.get('current:current') ?? null,
     },
     lab: {
