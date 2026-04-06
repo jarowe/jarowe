@@ -2951,7 +2951,9 @@ function WorldExploreControls({ target = [0, 0, 0], startPosition = [0, 0, 5] })
   useEffect(() => {
     function handleMessage(event) {
       if (event.data?.type !== 'memory-world:set-camera') return;
-      const { position, target: msgTarget, fov } = event.data;
+      // Camera data is nested under event.data.camera (from buildCameraPresetMessage)
+      const cam = event.data.camera || event.data;
+      const { position, target: msgTarget, fov } = cam;
       if (position && Array.isArray(position)) {
         camera.position.set(position[0], position[1], position[2]);
       }

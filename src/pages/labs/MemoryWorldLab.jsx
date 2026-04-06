@@ -95,8 +95,9 @@ function RubricScoring({
 
       {rubricDimensions.map((dim) => {
         const currentScore = dimensionScores[dim.key] ?? null;
-        const anchorText = currentScore && dim.anchors?.[currentScore - 1]
-          ? dim.anchors[currentScore - 1]
+        // Anchors are keyed by score (1, 3, 5) not zero-indexed
+        const anchorText = currentScore && dim.anchors?.[currentScore]
+          ? dim.anchors[currentScore]
           : dim.description || '';
 
         return (
@@ -114,7 +115,7 @@ function RubricScoring({
                   type="button"
                   className={`memory-world-lab__rubric-chip ${currentScore === score ? 'is-active' : ''}`}
                   onClick={() => onDimensionChange(dim.key, currentScore === score ? null : score)}
-                  title={dim.anchors?.[score - 1] ?? `Score ${score}`}
+                  title={dim.anchors?.[score] ?? `Score ${score}`}
                 >
                   {score}
                 </button>
@@ -641,7 +642,7 @@ export default function MemoryWorldLab() {
                   }}
                   title={preset.description}
                 >
-                  {preset.id}: {preset.label}
+                  {preset.id}: {preset.name}
                 </button>
               ))}
             </div>
