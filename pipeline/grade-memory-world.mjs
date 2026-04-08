@@ -363,7 +363,8 @@ function scoreWorldPly(plyPath) {
 }
 
 function resolveSource(sceneId, worldDir, meta, sourceFlag) {
-  const currentSelection = meta?.world?.selection ?? meta?.source?.worldSelection ?? null;
+  const candidateScoresPath = join(worldDir, 'candidates', 'scores.json');
+  const currentSelection = meta?.world?.selection ?? meta?.source?.worldSelection ?? safeReadJson(candidateScoresPath) ?? null;
   const explicitCandidate = sourceFlag.startsWith('candidate:') ? sourceFlag.slice('candidate:'.length) : null;
   const selectedCandidateId = currentSelection?.selectedCandidate ?? null;
 
