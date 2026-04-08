@@ -1,740 +1,518 @@
-# Architecture Research
+# Architecture Research — v2.2 Particle Memory Flight
 
-**Domain:** Data-driven interactive personal website with build-time pipeline, 3D constellation, admin dashboard
-**Researched:** 2026-02-27
+**Domain:** Particle-based photo decomposition renderer, scroll-driven camera, dreamstate transitions, and reactive audio — integrated into existing CapsuleShell system
+**Researched:** 2026-03-23
 **Confidence:** HIGH
 
-## System Overview
+---
 
-The JAROWE Constellation architecture integrates five major subsystems into an existing Vite 7 + React 19 + R3F site:
+## Existing System Snapshot
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        CLIENT (Browser)                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────────┐  ┌──────────────────┐       │
-│  │ Bento Hub   │  │ Constellation    │  │ Admin Dashboard  │       │
-│  │ (Existing)  │  │ (R3F Scene)      │  │ (Protected)      │       │
-│  └──────┬──────┘  └────────┬─────────┘  └────────┬─────────┘       │
-│         │                  │                      │                 │
-│         └──────────────────┴──────────────────────┘                 │
-│                            │                                        │
-│                    ┌───────▼──────────┐                             │
-│                    │  Zustand Stores  │                             │
-│                    │  - Constellation │                             │
-│                    │  - Narrator      │                             │
-│                    │  - Discovery     │                             │
-│                    │  - Admin         │                             │
-│                    └───────┬──────────┘                             │
-│                            │                                        │
-├────────────────────────────┴─────────────────────────────────────────┤
-│                      STATIC DATA LAYER                              │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  constellation.json (150+ nodes, edges, layouts, metadata)   │   │
-│  │  Generated at build-time, loaded runtime                     │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │
-┌──────────────────────────────┴──────────────────────────────────────┐
-│                   BUILD-TIME PIPELINE (Node.js)                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  │
-│  │ Parse   │→ │Normalize│→ │ Enrich  │→ │ Connect │→ │  Emit   │  │
-│  │ Exports │  │ Schema  │  │ Signals │  │  Edges  │  │  JSON   │  │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘  │
-│       ▲                                                              │
-│       │                                                              │
-│  ┌────┴──────────────────────────────────────────────────────────┐  │
-│  │  Data Sources: Instagram export (276 files), Carbonmade JSON  │  │
-│  └────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │
-┌──────────────────────────────┴──────────────────────────────────────┐
-│                 SERVERLESS LAYER (Vercel Functions)                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  API Ingest  │  │ Admin Auth   │  │  Cron Jobs   │              │
-│  │  (on-demand) │  │ (Edge Fns)   │  │  (nightly)   │              │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘              │
-│         │                 │                  │                      │
-│  ┌──────▼─────────────────▼──────────────────▼───────┐              │
-│  │  Vercel KV (curation), Blob (media), Edge Config  │              │
-│  └────────────────────────────────────────────────────┘              │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### CapsuleShell (src/pages/CapsuleShell.jsx)
 
-### Component Responsibilities
-
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| **Build Pipeline** | Parse raw exports → generate constellation.json | Node.js scripts in `/scripts/build-data/` |
-| **R3F Constellation** | Render 150+ instanced nodes, handle camera, interactions | React Three Fiber with InstancedMesh |
-| **Narrator Engine** | Event-driven narration (5 tiers: epoch/node/connection/discovery/idle) | State machine with Zustand store |
-| **Admin Dashboard** | Curate nodes, edit narration, manage allowlists | Protected React page with Vercel auth |
-| **Serverless Functions** | API ingest, scheduled pulls, admin mutations | Vercel Edge Functions + Node.js Functions |
-| **State Management** | Global constellation/narrator/discovery state | Zustand stores with persistence |
-| **Existing Site** | Bento Hub, Globe, Music, XP, Cipher, Garden, etc. | Unchanged, continues to function |
-
-## Recommended Project Structure
+The shell is a ~1100-line file containing the page component and all sub-renderers inline. Key architecture:
 
 ```
-jarowe/
-├── scripts/
-│   └── build-data/              # Build-time data pipeline
-│       ├── parse/               # Instagram, Carbonmade parsers
-│       │   ├── instagram.js     # Parses 276-file export
-│       │   └── carbonmade.js    # Parses JSON archive
-│       ├── normalize.js         # Canonical node/edge schema
-│       ├── enrich.js            # Add signals, metadata
-│       ├── connect.js           # Evidence-based edge generation
-│       ├── layout.js            # Double-helix 3D positioning
-│       └── emit.js              # Write public/data/constellation.json
-│
-├── src/
-│   ├── pages/
-│   │   ├── ConstellationPage.jsx    # Main 3D experience
-│   │   └── AdminDashboard.jsx       # Protected curation UI
-│   │
-│   ├── components/
-│   │   ├── constellation/
-│   │   │   ├── ConstellationScene.jsx   # R3F Canvas wrapper
-│   │   │   ├── Nodes.jsx                # InstancedMesh renderer
-│   │   │   ├── Edges.jsx                # Line connections
-│   │   │   ├── Camera.jsx               # Animated camera controls
-│   │   │   ├── DetailPanel.jsx          # Node info overlay
-│   │   │   ├── Timeline.jsx             # Epoch scrubber
-│   │   │   └── GuidedTour.jsx           # Cinematic intro
-│   │   │
-│   │   ├── narrator/
-│   │   │   ├── NarratorEngine.jsx       # Event listener + state machine
-│   │   │   └── NarratorUI.jsx           # Text display component
-│   │   │
-│   │   └── admin/
-│   │       ├── DraftInbox.jsx           # New nodes queue
-│   │       ├── NodeEditor.jsx           # Publish/hide/highlight
-│   │       └── NarrationEditor.jsx      # Edit scripted text
-│   │
-│   ├── stores/
-│   │   ├── constellationStore.js    # Focus, filters, camera mode
-│   │   ├── narratorStore.js         # Current event, narration queue
-│   │   ├── discoveryStore.js        # XP, visited nodes, path memory
-│   │   └── adminStore.js            # Draft inbox, allowlists
-│   │
-│   ├── hooks/
-│   │   ├── useConstellation.js      # Load JSON, manage scene state
-│   │   ├── useNarrator.js           # Event-driven narration triggers
-│   │   └── useDiscovery.js          # Track exploration, award XP
-│   │
-│   └── utils/
-│       ├── constellationData.js     # Load JSON, filter/transform
-│       └── narratorEvents.js        # Event types, priority queue
-│
-├── api/                             # Vercel serverless functions
-│   ├── ingest/
-│   │   └── suno.js                  # Pull Suno tracks on-demand
-│   ├── admin/
-│   │   ├── auth.js                  # Owner authentication
-│   │   ├── publish.js               # Publish/hide nodes
-│   │   └── narration.js             # Update scripted text
-│   └── cron/
-│       └── nightly-ingest.js        # Scheduled platform pulls
-│
-├── public/
-│   └── data/
-│       └── constellation.json       # Build-time generated, runtime loaded
-│
-└── vercel.json                      # Cron schedules, Edge Config
+CapsuleShell (page component)
+├── GPU tier detection via getGpuTier() → 'full' | 'simplified' | 'parallax'
+├── renderMode dispatch (scene.renderMode × tier):
+│   ├── 'displaced-mesh' + full/simplified → DisplacedMeshRenderer
+│   ├── 'splat' + full/simplified → SplatRenderer
+│   ├── any + parallax → ParallaxFallback
+│   └── unknown → ParallaxFallback
+├── Narrative overlay (AnimatePresence cards, gated behind awakening)
+├── Soundtrack (Howl, volume 0 → fade on unmute, cross-fade on exit)
+├── GlobalPlayer ducking (audio.duckForCapsule / restoreFromCapsule)
+├── Experience arc (awakening → hold → recession → exit portal)
+└── PortalVFX (canvas-based portal on exit, phase-driven)
 ```
 
-### Structure Rationale
+**Data flow for current displaced-mesh path:**
+1. `useParams()` → sceneId → `getSceneById(sceneId)` → scene object
+2. `getGpuTier()` → tier state
+3. renderMode × tier → boolean flags (showDisplaced, showSplat, showFallback)
+4. DisplacedMeshRenderer creates own `<Canvas>` with:
+   - DisplacedPlane (ShaderMaterial, depth displacement, color grading)
+   - AtmosphericParticles (dust/bokeh/streaks, tier-adaptive counts)
+   - CinematicCamera (GSAP timeline from keyframes, mouse parallax)
+   - CapsulePostProcessing (DOF, vignette, grain — full tier only)
+   - ArcController (GSAP: depthScale 0→target awakening, target→0 recession + fade)
 
-- **scripts/build-data/**: Node.js pipeline runs at build-time, emits static JSON. Keeps runtime fast and safe.
-- **stores/**: Zustand stores for global state. Zustand chosen over Redux (lighter, simpler) and Context API (performance).
-- **components/constellation/**: R3F scene components. Scene graph mirrors data structure (nodes → InstancedMesh).
-- **api/**: Vercel serverless functions. Hybrid approach: nightly cron + on-demand pulls + admin mutations.
-- **hooks/**: Custom hooks abstract Zustand stores. Components stay clean, stores stay testable.
+**Key callbacks CapsuleShell expects from renderers:**
+- `onRecessionComplete` → triggers exit portal phase sequence
+- `onAwakeningComplete` → unblocks narrative card timers
+- `directAccess` boolean → shortens awakening if no portal preceded
 
-## Architectural Patterns
+### Scene Registry (src/data/memoryScenes.js)
 
-### Pattern 1: Build-Time Truth, Runtime Cinema
-
-**What:** Data pipeline runs at build-time (Node.js), emits static JSON. Runtime loads JSON, renders 3D scene. No dynamic data fetching during navigation.
-
-**When to use:** When data changes infrequently (daily/weekly), privacy enforcement must be deterministic, and performance is critical.
-
-**Trade-offs:**
-- **Pro:** Fast (no API calls), safe (validated at build), predictable (no runtime failures)
-- **Con:** Changes require rebuild/redeploy, not "live" updating
-
-**Example:**
-```typescript
-// scripts/build-data/emit.js (build-time)
-import fs from 'fs';
-
-function emitConstellation(nodes, edges, layout) {
-  const data = {
-    nodes: nodes.map(n => ({ id: n.id, type: n.type, position: layout[n.id], ... })),
-    edges: edges.filter(e => e.weight > THRESHOLD),
-    metadata: { generated: new Date(), nodeCount: nodes.length }
-  };
-
-  fs.writeFileSync('public/data/constellation.json', JSON.stringify(data));
-}
-
-// src/hooks/useConstellation.js (runtime)
-export function useConstellation() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch('/data/constellation.json')
-      .then(r => r.json())
-      .then(setData);
-  }, []);
-
-  return data;
-}
+Current schema per scene entry:
 ```
-
-### Pattern 2: Hybrid Ingest (API + Export + Scheduled)
-
-**What:** Three data ingest modes: (1) Export-based (Instagram 276 files), (2) API-based (Suno, scheduled nightly), (3) On-demand (admin "Pull Now").
-
-**When to use:** When some data sources have APIs (Suno), others don't (Instagram requires export), and you want both automation and manual control.
-
-**Trade-offs:**
-- **Pro:** Reliable (export fallback), automated (nightly cron), flexible (on-demand)
-- **Con:** More complex than single-mode, requires Vercel Pro for cron
-
-**Example:**
-```javascript
-// api/cron/nightly-ingest.js (Vercel cron)
-export default async function handler(req, res) {
-  if (req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const tracks = await fetchSunoAPI();
-  await storeInVercelKV('draft_inbox', tracks);
-
-  // Trigger rebuild via Vercel API
-  await fetch('https://api.vercel.com/v1/deployments', { ... });
-
-  res.json({ ingested: tracks.length });
-}
-
-// vercel.json
 {
-  "crons": [{
-    "path": "/api/cron/nightly-ingest",
-    "schedule": "0 2 * * *"  // 2am UTC daily
-  }]
+  id, title, location, coordinates,
+  renderMode: 'displaced-mesh' | 'splat' | 'parallax',
+  photoUrl, depthMapUrl, depthConfig: { depthScale, depthBias, depthContrast, discardThreshold },
+  splatUrl, splatIsRemote,
+  previewImage, soundtrack,
+  narrative: [{ text, delay }],
+  cameraPosition, cameraTarget,
+  mood: 'warm' | 'cool' | 'golden',
+  cameraKeyframes: [{ position, target, duration, ease, hold }],
+  samMaskUrl,
+  layerSeparation: { foregroundDepthScale, backgroundDepthScale, foregroundDriftSpeed, backgroundDriftSpeed },
+  arc: { awakeningDuration, awakeningEase, awakeningDelay, recessionDuration, recessionEase, recessionDelay, recessionFadeColor },
+  portalEntry: boolean
 }
 ```
 
-### Pattern 3: Instanced Rendering with Data-Driven Scene Graph
+### GPU Capability (src/utils/gpuCapability.js)
 
-**What:** Single InstancedMesh for all nodes (150+), position/color set via instance matrix. Reduces draw calls from 150 to 1.
+3-tier detection: WebGL2 + MAX_TEXTURE_SIZE + deviceMemory + mobile heuristic + low-end GPU blocklist. Synchronous, safe for mount-time call. Returns 'full' | 'simplified' | 'parallax'.
 
-**When to use:** When rendering many similar objects (nodes in graph). Each mesh is a draw call; with 150 nodes, instancing is mandatory for 60fps.
+### PortalVFX (src/components/PortalVFX.jsx)
 
-**Trade-offs:**
-- **Pro:** 90%+ reduction in draw calls, scales to thousands of nodes
-- **Con:** All instances share same geometry/material (node types need color/scale variation via attributes)
+2D canvas-based portal effect with phase state machine: null → seep → gathering → rupture → emerging → residual → null. Draws wobble ring, cosmic interior, particles, shockwave. Used for exit transition in CapsuleShell.
 
-**Example:**
-```jsx
-// src/components/constellation/Nodes.jsx
-import { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+### AudioContext (src/context/AudioContext.jsx)
 
-export function Nodes({ nodes }) {
-  const meshRef = useRef();
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  // Set instance matrices on mount
-  useLayoutEffect(() => {
-    nodes.forEach((node, i) => {
-      dummy.position.set(...node.position);
-      dummy.scale.setScalar(node.scale || 1);
-      dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, dummy.matrix);
-      meshRef.current.setColorAt(i, new THREE.Color(node.color));
-    });
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [nodes, dummy]);
-
-  return (
-    <instancedMesh ref={meshRef} args={[null, null, nodes.length]}>
-      <sphereGeometry args={[1, 16, 16]} />
-      <meshStandardMaterial />
-    </instancedMesh>
-  );
-}
-```
-
-### Pattern 4: Event-Driven Narrator with State Machine
-
-**What:** 5-tier event system (epoch, node, connection, discovery, idle). Events enqueued with priorities, narrator state machine consumes queue.
-
-**When to use:** When narration must respond to user actions (hover node, discover new, timeline scrub) with prioritized, interruptible text.
-
-**Trade-offs:**
-- **Pro:** Decoupled (narrator doesn't know about scene), flexible (easy to add new event types), interruptible (high-priority events override)
-- **Con:** More complex than direct imperative narration
-
-**Example:**
-```javascript
-// src/stores/narratorStore.js (Zustand)
-import create from 'zustand';
-
-export const useNarratorStore = create((set, get) => ({
-  events: [],
-  current: null,
-
-  enqueue: (event) => set((state) => ({
-    events: [...state.events, event].sort((a, b) => b.priority - a.priority)
-  })),
-
-  dequeue: () => set((state) => ({
-    current: state.events[0] || null,
-    events: state.events.slice(1)
-  })),
-
-  interrupt: (event) => set((state) => {
-    if (event.priority > (state.current?.priority || 0)) {
-      return { current: event, events: [state.current, ...state.events].filter(Boolean) };
-    }
-    return state;
-  })
-}));
-
-// src/components/constellation/Nodes.jsx
-function handleNodeHover(node) {
-  useNarratorStore.getState().enqueue({
-    type: 'node',
-    priority: 3,
-    text: node.narration,
-    duration: 5000
-  });
-}
-```
-
-### Pattern 5: Zustand for R3F Scene State (Not React State)
-
-**What:** Use Zustand stores for camera target, focused node, filter mode, timeline position. Read via selectors, mutate outside React render.
-
-**When to use:** In R3F scenes where React state causes unnecessary re-renders. Zustand + selectors prevent re-renders unless specific slice changes.
-
-**Trade-offs:**
-- **Pro:** No re-renders on every camera move, 60fps maintained, clean separation
-- **Con:** More abstraction than useState (but necessary for performance)
-
-**Example:**
-```javascript
-// src/stores/constellationStore.js
-import create from 'zustand';
-
-export const useConstellationStore = create((set) => ({
-  focusedNode: null,
-  cameraTarget: [0, 0, 0],
-  mode: 'life', // 'life' | 'work' | 'ideas'
-
-  setFocus: (node) => set({
-    focusedNode: node,
-    cameraTarget: node.position
-  }),
-
-  setMode: (mode) => set({ mode })
-}));
-
-// src/components/constellation/Camera.jsx
-import { useFrame } from '@react-three/fiber';
-import { useConstellationStore } from '@/stores/constellationStore';
-
-function Camera() {
-  const target = useConstellationStore(state => state.cameraTarget);
-  const cameraRef = useRef();
-
-  useFrame((state, delta) => {
-    // Lerp camera to target (mutable, no React re-render)
-    cameraRef.current.position.lerp(
-      new THREE.Vector3(...target),
-      1 - Math.exp(-5 * delta)
-    );
-  });
-
-  return <perspectiveCamera ref={cameraRef} />;
-}
-```
-
-## Data Flow
-
-### Build-Time Pipeline Flow
-
-```
-Instagram Export (276 files) + Carbonmade JSON
-    ↓
-[Parse] → Raw events array (posts, projects, reels, etc.)
-    ↓
-[Normalize] → Canonical schema (11 node types, 9 edge types)
-    ↓
-[Enrich] → Add signals (co-occurrence, GPS proximity, tag overlap)
-    ↓
-[Connect] → Generate edges with weights, prune below threshold
-    ↓
-[Layout] → Double-helix 3D positions (epoch clustering, seeded)
-    ↓
-[Emit] → public/data/constellation.json (static, versioned)
-```
-
-### Runtime Constellation Flow
-
-```
-Page Load → fetch('/data/constellation.json')
-    ↓
-[useConstellation hook] → Load into Zustand store
-    ↓
-[Mode Filter] → Filter nodes/edges by mode ('life'/'work'/'ideas')
-    ↓
-[R3F Scene] → InstancedMesh renders nodes, LineSegments render edges
-    ↓
-User Hovers Node → Narrator event enqueued (priority 3)
-    ↓
-[NarratorEngine] → Dequeue event, display text, start 5s timer
-    ↓
-User Clicks Node → Focus event (priority 5, interrupts hover)
-    ↓
-[Camera] → Lerp to node position, DetailPanel slides in
-    ↓
-[Discovery] → Check localStorage, if new node → XP +10
-```
-
-### Admin Ingest Flow (On-Demand)
-
-```
-Admin clicks "Pull Suno Tracks Now"
-    ↓
-POST /api/ingest/suno (authenticated via Edge Function)
-    ↓
-[Serverless Function] → Fetch Suno API, parse tracks
-    ↓
-[Vercel KV] → Store in 'draft_inbox' key
-    ↓
-[Admin Dashboard] → Refetch draft inbox, display new tracks
-    ↓
-Admin publishes track → POST /api/admin/publish
-    ↓
-[Vercel Blob] → Upload track metadata (if privacy checks pass)
-    ↓
-[Trigger Rebuild] → Vercel API deployment hook
-    ↓
-[Build Pipeline] → Runs again, emits new constellation.json
-    ↓
-[Site Redeploys] → New track appears as constellation node
-```
-
-### Scheduled Ingest Flow (Nightly Cron)
-
-```
-2am UTC → Vercel cron triggers /api/cron/nightly-ingest
-    ↓
-[Cron Function] → Verify CRON_SECRET from headers
-    ↓
-[API Calls] → Fetch Suno, other platforms (future)
-    ↓
-[Privacy Filter] → Remove minors, redact GPS, check allowlists
-    ↓
-[Vercel KV] → Merge into 'draft_inbox'
-    ↓
-[Optional Auto-Publish] → If configured, publish to Blob
-    ↓
-[Trigger Rebuild] → Vercel API deployment hook
-    ↓
-Next morning: Site has new nodes (if auto-publish enabled)
-```
-
-## Scaling Considerations
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| **0-500 nodes** | Current architecture works perfectly. Single InstancedMesh, JSON under 200KB, loads in <100ms. |
-| **500-2000 nodes** | Add LOD (Level of Detail): render distant nodes as billboards, near nodes as spheres. Add spatial chunking (only render visible epoch clusters). Compress JSON with gzip (Vite does this automatically). |
-| **2000-10000 nodes** | Split constellation.json into epoch chunks (load on-demand as user scrubs timeline). Add Web Worker for edge filtering. Consider edge bundling (group parallel edges into tubes). Add R3F-Perf monitoring. |
-| **10000+ nodes** | Move to octree spatial indexing. Implement streaming: load only visible frustum. Consider WebGPU for compute shaders (edge layout). This is far beyond current scope. |
-
-### Scaling Priorities
-
-1. **First bottleneck (500-1000 nodes):** JSON parse time. **Fix:** Compress with gzip, lazy-load edge data.
-2. **Second bottleneck (1000-2000 nodes):** Draw calls from non-instanced edges. **Fix:** Merge LineSegments into single BufferGeometry.
-3. **Third bottleneck (2000+ nodes):** Camera/raycasting with 2000+ hitboxes. **Fix:** Spatial octree for raycasting, frustum culling.
-
-**Current project (150 nodes):** No bottlenecks. Instancing alone handles this easily.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: React State for Camera Position
-
-**What people do:** Store camera position in useState, update every frame in useFrame
-**Why it's wrong:** Triggers React re-render 60 times/second, kills performance
-**Do this instead:** Use mutable refs or Zustand with frame-loop updates outside React
-
-```javascript
-// ❌ BAD: React state in render loop
-const [cameraPos, setCameraPos] = useState([0, 0, 10]);
-useFrame(() => setCameraPos([x, y, z])); // 60 re-renders/sec
-
-// ✅ GOOD: Mutable ref or Zustand (no re-renders)
-const cameraRef = useRef();
-useFrame(() => {
-  cameraRef.current.position.set(x, y, z);
-});
-```
-
-### Anti-Pattern 2: Individual Meshes for Each Node
-
-**What people do:** Render 150 `<mesh>` components in scene graph
-**Why it's wrong:** 150 draw calls = ~10-15fps on mobile, excessive GPU load
-**Do this instead:** Single InstancedMesh with instance matrices
-
-```javascript
-// ❌ BAD: 150 draw calls
-{nodes.map(node => (
-  <mesh key={node.id} position={node.position}>
-    <sphereGeometry />
-    <meshStandardMaterial />
-  </mesh>
-))}
-
-// ✅ GOOD: 1 draw call
-<instancedMesh args={[null, null, nodes.length]}>
-  <sphereGeometry />
-  <meshStandardMaterial />
-</instancedMesh>
-```
-
-### Anti-Pattern 3: Runtime Data Fetching for Constellation
-
-**What people do:** Fetch Instagram/Carbonmade APIs at page load
-**Why it's wrong:** Slow (network latency), unreliable (API rate limits), unsafe (no privacy validation)
-**Do this instead:** Build-time pipeline with validated static JSON
-
-```javascript
-// ❌ BAD: Runtime API calls
-useEffect(() => {
-  fetch('https://api.instagram.com/...')
-    .then(parseInstagram)
-    .then(generateConstellation);
-}, []);
-
-// ✅ GOOD: Build-time generation
-// scripts/build-data/emit.js runs during `vite build`
-// src/hooks/useConstellation.js loads pre-validated JSON
-```
-
-### Anti-Pattern 4: Coupling Narrator to Scene Components
-
-**What people do:** Pass `setNarration()` callback down through scene graph components
-**Why it's wrong:** Tight coupling, hard to test, narrator can't interrupt or prioritize
-**Do this instead:** Event-driven architecture with Zustand store
-
-```javascript
-// ❌ BAD: Prop drilling narrator callback
-<Nodes nodes={nodes} onHover={(text) => setNarration(text)} />
-
-// ✅ GOOD: Event-driven with store
-function handleHover(node) {
-  useNarratorStore.getState().enqueue({
-    type: 'node',
-    priority: 3,
-    text: node.narration
-  });
-}
-```
-
-### Anti-Pattern 5: Rebuilding on Every Ingest
-
-**What people do:** Trigger build/deploy immediately when new data arrives (e.g., every Suno track)
-**Why it's wrong:** Expensive (Vercel build minutes), slow (5+ min to deploy), noisy (constant deploys)
-**Do this instead:** Batch ingest (nightly cron) + draft inbox (review before publish)
-
-```javascript
-// ❌ BAD: Rebuild on every track
-api.onNewTrack(track => {
-  vercel.deploy(); // Wasteful
-});
-
-// ✅ GOOD: Nightly batch + manual publish
-// Cron runs 2am daily, collects all new tracks
-// Admin reviews draft inbox, publishes when ready
-// Single rebuild per batch
-```
-
-## Integration Points
-
-### External Services
-
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| **Instagram** | Export-based (one-time manual export) | No API access; parse 276-file JSON export at build-time |
-| **Carbonmade** | JSON archive (static file) | Pre-exported archive with 35 projects + blog posts |
-| **Suno** | API-based (scheduled + on-demand) | Nightly cron pulls tracks; admin can trigger manual pull |
-| **Vercel KV** | Read/write via @vercel/kv SDK | Draft inbox, allowlists, curation metadata |
-| **Vercel Blob** | Write-once media storage | Published node media (photos, audio files) |
-| **Vercel Edge Config** | Read-only config (feature flags, public allowlists) | Ultra-low latency global reads for narrator text, mode configs |
-
-### Internal Boundaries
-
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| **Build Pipeline ↔ Site** | Static JSON file | Pipeline emits `constellation.json`, site fetches at runtime |
-| **Admin Dashboard ↔ Serverless** | Authenticated API calls (POST /api/admin/*) | Edge Functions verify owner token before mutations |
-| **Constellation Scene ↔ Narrator** | Zustand events (enqueue/dequeue) | Scene emits events, narrator consumes; no direct coupling |
-| **Existing Site ↔ New Systems** | Shared Zustand stores (XP), shared localStorage | Discovery XP integrates with existing GameOverlay |
-| **Serverless ↔ Build** | Vercel API deployment hook | Cron/admin triggers rebuild via POST to Vercel API |
-
-## Existing Architecture Integration
-
-### Preserving Current Patterns
-
-The existing JAROWE site has proven patterns that must continue:
-
-| Existing Pattern | How New Systems Integrate |
-|------------------|---------------------------|
-| **AudioProvider context** | Constellation mode changes can trigger music playlist shifts (future enhancement) |
-| **GameOverlay XP** | Discovery store calls `GameOverlay.addXp()` on new node visits |
-| **localStorage persistence** | Constellation uses same pattern: `jarowe_constellation_discovered`, `jarowe_constellation_path` |
-| **Lazy-loaded R3F** | ConstellationPage lazy-loads like UniversePage: `React.lazy(() => import('./pages/ConstellationPage'))` |
-| **Globe ShaderMaterial** | Constellation uses same pattern: custom ShaderMaterial via useMemo, uniforms in useRef |
-| **BASE_URL for assets** | Constellation media paths use `import.meta.env.BASE_URL + 'data/media/' + node.media` |
-| **Sound effects (sounds.js)** | Node hover/click triggers `playHoverSound()`, `playClickSound()` |
-| **Bento grid cells** | New "Constellation" cell added to Home.jsx bento grid, links to `/constellation` |
-
-### Shared State Integration
-
-```javascript
-// src/stores/discoveryStore.js (NEW)
-import { useGameOverlay } from '@/components/GameOverlay'; // EXISTING
-
-export const useDiscoveryStore = create((set, get) => ({
-  discovered: JSON.parse(localStorage.getItem('jarowe_constellation_discovered') || '[]'),
-
-  discoverNode: (nodeId) => {
-    const { discovered } = get();
-    if (!discovered.includes(nodeId)) {
-      const newDiscovered = [...discovered, nodeId];
-      localStorage.setItem('jarowe_constellation_discovered', JSON.stringify(newDiscovered));
-
-      // Integrate with existing XP system
-      useGameOverlay.getState().addXp(10, `Discovered: ${nodeId}`);
-
-      set({ discovered: newDiscovered });
-    }
-  }
-}));
-```
-
-## Performance Targets
-
-| Metric | Target | Strategy |
-|--------|--------|----------|
-| **Initial load (constellation.json)** | <200ms | Gzip compression (automatic via Vite), lazy-load media |
-| **First render (150 nodes)** | <16ms (60fps) | InstancedMesh, no individual meshes |
-| **Hover interaction** | <5ms | Raycasting via Three.js (GPU-accelerated) |
-| **Camera animation** | Smooth 60fps | Exponential damping (lerp), no tweens |
-| **Narrator event** | <10ms | Priority queue in Zustand, no DOM thrashing |
-| **Discovery XP** | <2ms | Direct localStorage write, async confetti |
-| **Admin publish** | <3s | Vercel Edge Function, KV write, async rebuild trigger |
-
-## Build Order Dependencies
-
-Suggested implementation sequence to avoid rework:
-
-### Phase 1: Build-Time Foundation
-1. **scripts/build-data/parse/** — Start with Instagram parser (most data)
-2. **scripts/build-data/normalize.js** — Define canonical schema
-3. **scripts/build-data/emit.js** — Emit minimal JSON (nodes only, no edges)
-4. **public/data/constellation.json** — Verify JSON structure
-
-**Validation:** Run `node scripts/build-data/emit.js`, check JSON is valid.
-
-### Phase 2: R3F Scene Rendering
-5. **src/stores/constellationStore.js** — Basic store (focusedNode, mode)
-6. **src/hooks/useConstellation.js** — Load JSON hook
-7. **src/components/constellation/Nodes.jsx** — InstancedMesh renderer
-8. **src/pages/ConstellationPage.jsx** — Canvas wrapper
-
-**Validation:** See 150 nodes in 3D space.
-
-### Phase 3: Interactivity
-9. **src/components/constellation/Camera.jsx** — Animated controls
-10. **src/components/constellation/Edges.jsx** — LineSegments for connections
-11. **scripts/build-data/connect.js** — Edge generation logic
-12. **Rebuild JSON** — Now includes edges
-
-**Validation:** Click node, camera animates to it. See connection lines.
-
-### Phase 4: Narrator Engine
-13. **src/stores/narratorStore.js** — Event queue + state machine
-14. **src/components/narrator/NarratorEngine.jsx** — Event listener
-15. **src/components/narrator/NarratorUI.jsx** — Text display
-16. **src/utils/narratorEvents.js** — Event types, priorities
-
-**Validation:** Hover node, see narration text appear.
-
-### Phase 5: Discovery & XP
-17. **src/stores/discoveryStore.js** — Track visited nodes
-18. **src/hooks/useDiscovery.js** — Integrate with GameOverlay
-19. **Update ConstellationPage** — Call `discoverNode()` on click
-
-**Validation:** Visit new node, see XP +10 in GameOverlay.
-
-### Phase 6: Admin Dashboard (Serverless Required)
-20. **api/admin/auth.js** — Edge Function for owner verification
-21. **api/admin/publish.js** — Publish/hide nodes
-22. **src/pages/AdminDashboard.jsx** — Curation UI
-23. **Vercel KV setup** — Draft inbox storage
-
-**Validation:** Log in, see draft inbox, publish node.
-
-### Phase 7: Scheduled Ingest
-24. **api/ingest/suno.js** — Suno API fetcher
-25. **api/cron/nightly-ingest.js** — Cron function
-26. **vercel.json crons** — Schedule configuration
-27. **scripts/build-data/parse/suno.js** — Suno parser for pipeline
-
-**Validation:** Wait for 2am UTC cron, check Vercel logs, see new tracks in draft inbox.
-
-## Sources
-
-**Vite Architecture:**
-- [Building for Production | Vite](https://vite.dev/guide/build)
-- [VitePress Data Loading](https://vitepress.dev/guide/data-loading)
-- [Vite: The Complete Guide for 2026](https://devtoolbox.dedyn.io/blog/vite-complete-guide)
-
-**React Three Fiber Performance:**
-- [Scaling Performance - React Three Fiber](https://r3f.docs.pmnd.rs/advanced/scaling-performance)
-- [Building Efficient Three.js Scenes: Optimize Performance While Maintaining Quality | Codrops](https://tympanus.net/codrops/2025/02/11/building-efficient-three-js-scenes-optimize-performance-while-maintaining-quality/)
-- [100 Three.js Tips That Actually Improve Performance (2026)](https://www.utsubo.com/blog/threejs-best-practices-100-tips)
-- [From Websites to Games: The Future of React Three Fiber](https://gitnation.com/contents/from-websites-to-games-the-future-of-react-three-fiber)
-
-**State Management:**
-- [React State Management in 2026: Zustand, Jotai, or Redux?](https://viprasol.com/blog/state-management-react-2026/)
-- [State Machines in React](https://mastery.games/post/state-machines-in-react/)
-- [Event-Driven Architecture for Clean React Component Communication](https://dev.to/nicolalc/event-driven-architecture-for-clean-react-component-communication-fph)
-
-**Vercel Infrastructure:**
-- [Vercel Functions](https://vercel.com/docs/functions)
-- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)
-- [Vercel Edge Config](https://vercel.com/docs/storage/edge-config)
-- [How to Actually Use Vercel Edge Config in Production](https://www.buildwithmatija.com/blog/vercel-edge-config-production-guide)
-
-**Hybrid Architecture:**
-- [Static Vs Dynamic Architecture Explained](https://www.restack.io/p/dynamic-vs-static-group-management-answer-architecture-comparison)
-- [Data Engineering Trends 2026 for AI-Driven Enterprises](https://www.trigyn.com/insights/data-engineering-trends-2026-building-foundation-ai-driven-enterprises)
+Global Howler-based music state. Exposes `duckForCapsule()` (Howler.volume → 0.15) and `restoreFromCapsule()` for per-capsule soundtrack coexistence.
 
 ---
-*Architecture research for: JAROWE Constellation*
-*Researched: 2026-02-27*
+
+## Integration Plan: 4 New Modules
+
+### 1. ParticleMemoryRenderer
+
+**Type:** NEW component — `src/components/ParticleMemoryRenderer.jsx`
+**Role:** New renderMode in CapsuleShell. Decomposes photo + depth into 80K-150K luminous 3D particles with selective wire connections and glow.
+
+**Integration with CapsuleShell:**
+- Added as a new branch in the renderMode dispatch (lines 976-993):
+  ```
+  } else if (renderMode === 'particle-memory') {
+    showParticleMemory = true;
+  }
+  ```
+- Must honor the same callback contract: `onRecessionComplete`, `onAwakeningComplete`, `directAccess`
+- Creates its own `<Canvas>` (same pattern as DisplacedMeshRenderer)
+- Does NOT use CinematicCamera — uses MemoryFlightController instead (see below)
+- Does NOT use ArcController — particle awakening/recession is handled internally (particle spawn-in = awakening, particle dissolve = recession)
+
+**Internal architecture:**
+```
+ParticleMemoryRenderer
+├── <Canvas> (own R3F context, unmounts on route exit)
+│   ├── ParticleField (instanced points, 80K-150K)
+│   │   ├── Reads photo texture → samples color per particle
+│   │   ├── Reads depth map → z displacement per particle
+│   │   ├── Reads SAM mask → foreground/background layer separation
+│   │   ├── Selective wire connections (nearest-neighbor within threshold)
+│   │   └── Per-particle glow (additive blending, size attenuation)
+│   ├── MemoryFlightController (scroll-driven camera — see module 2)
+│   ├── PostProcessing (bloom/DOF/vignette — tier-adaptive)
+│   └── Ambient lighting (subtle, mood-colored)
+├── Progress state (0-1 float from MemoryFlightController)
+└── Callback bridge to CapsuleShell
+```
+
+**Data flow:**
+```
+scene.photoUrl ──────→ TextureLoader ──→ color sampling per particle
+scene.depthMapUrl ───→ TextureLoader ──→ z-position per particle
+scene.samMaskUrl ────→ TextureLoader ──→ fg/bg layer assignment
+scene.particleConfig → particle count, connection threshold, glow params
+scroll/touch/wheel ──→ MemoryFlightController ──→ progress (0-1)
+progress ────────────→ camera position on rail
+progress ────────────→ particle opacity/scale envelope
+progress ────────────→ MemorySoundscape layers
+```
+
+**Modified files:**
+- `src/pages/CapsuleShell.jsx` — add renderMode branch, add `showParticleMemory` boolean, render `<ParticleMemoryRenderer>` conditionally
+- `src/data/memoryScenes.js` — add `particleConfig` field to scene schema
+
+### 2. MemoryFlightController
+
+**Type:** NEW component — `src/components/MemoryFlightController.jsx`
+**Role:** Replaces CinematicCamera for particle scenes. Scroll/trackpad/touch drives camera through particle field on a spline rail.
+
+**Why separate from CinematicCamera:**
+CinematicCamera is GSAP-timeline-driven (time-based, looping). MemoryFlightController is progress-driven (0-1 from scroll, non-looping, one-directional with scrub-back). Fundamentally different interaction model.
+
+**Integration:**
+- Used ONLY inside ParticleMemoryRenderer's `<Canvas>`
+- Exposes progress (0-1) upward via callback prop: `onProgressChange(progress)`
+- ParticleMemoryRenderer passes progress to MemorySoundscape and particle opacity envelope
+- Progress also gates narrative cards (replaces the delay-based timing)
+
+**Internal architecture:**
+```
+MemoryFlightController (R3F component, inside Canvas)
+├── Scroll/wheel/touch listener (document-level, normalized)
+├── Progress state (0-1, smoothed with spring/lerp)
+├── Camera spline (CatmullRomCurve3 from scene.flightPath waypoints)
+├── Camera lookAt target spline (separate CatmullRomCurve3)
+├── Mouse/gyro parallax offset (same pattern as CinematicCamera)
+├── useFrame: interpolate camera position/lookAt from progress on splines
+└── Progress callbacks: onProgressChange, onFlightComplete (progress=1)
+```
+
+**Key design decisions:**
+- Progress is clamped [0, 1] — no looping, reaching 1.0 triggers recession
+- Scroll velocity is normalized across wheel/trackpad/touch (deltaY → progress delta)
+- Spring smoothing prevents jerky camera (GSAP or manual lerp in useFrame)
+- Mobile: touch drag vertical = progress, with momentum/deceleration
+- Mouse parallax layered ON TOP of spline position (same 0.05 strength as CinematicCamera)
+
+**Scene registry additions for flight path:**
+```
+flightPath: [
+  { position: {x,y,z}, lookAt: {x,y,z} },  // start (progress=0)
+  { position: {x,y,z}, lookAt: {x,y,z} },  // waypoint
+  { position: {x,y,z}, lookAt: {x,y,z} },  // end (progress=1)
+]
+```
+
+**Modified files:**
+- `src/data/memoryScenes.js` — add `flightPath` array to scene schema
+
+### 3. DreamPortalTransition
+
+**Type:** NEW component — `src/components/DreamPortalTransition.jsx`
+**Role:** Replaces PortalVFX for particle scenes. Reality dissolves into particles → tunnel/fall-through → particles reform into memory.
+
+**Why separate from PortalVFX:**
+PortalVFX is a 2D canvas sling-ring portal (entry and exit). DreamPortalTransition is a 3D R3F particle-based dissolve/reform effect that needs to coordinate with the particle field inside the Canvas. It cannot be a separate 2D canvas overlay — it must share the R3F scene graph.
+
+**Integration with CapsuleShell:**
+- For `renderMode === 'particle-memory'` scenes, CapsuleShell uses DreamPortalTransition INSTEAD of PortalVFX
+- Entry transition: rendered by ParticleMemoryRenderer inside its Canvas (particles spawn from scattered → form photo)
+- Exit transition: reverse (particles dissolve from photo → scatter), then CapsuleShell navigates home
+- Phase state machine similar to PortalVFX but with different phases:
+  ```
+  null → 'dissolve-in' → 'tunnel' → 'reform' → 'settled' → ... → 'dissolve-out' → 'scatter' → null
+  ```
+
+**Internal architecture:**
+```
+DreamPortalTransition (R3F component, inside ParticleMemoryRenderer's Canvas)
+├── Entry: particles start at random positions → GSAP/spring animate to photo positions
+│   ├── 'dissolve-in': screen darkens, particles appear scattered
+│   ├── 'tunnel': camera rushes forward through particle cloud
+│   └── 'reform': particles settle into photo-sampled positions (= awakening complete)
+├── Exit: particles leave photo positions → scatter and fade
+│   ├── 'dissolve-out': particles drift away from positions
+│   └── 'scatter': particles fully dispersed, screen fades (= recession complete)
+└── Callbacks: onEntryComplete (→ CapsuleShell awakening), onExitComplete (→ recession)
+```
+
+**Key insight — shared particle buffer:**
+The dream portal and the particle field are the SAME particles. DreamPortalTransition doesn't create separate particles — it animates the ParticleField's particles between scattered (portal) and photo-sampled (memory) positions. This means:
+- ParticleField stores two position buffers: `scatteredPositions` and `photoPositions`
+- A `morphProgress` uniform (0=scattered, 1=photo-formed) interpolates in the vertex shader
+- DreamPortalTransition controls `morphProgress` via GSAP
+- MemoryFlightController only activates after morphProgress reaches 1.0
+
+**Modified files:**
+- `src/pages/CapsuleShell.jsx` — conditional: use DreamPortalTransition phase management instead of PortalVFX for particle-memory scenes
+
+### 4. MemorySoundscape
+
+**Type:** NEW module — `src/components/MemorySoundscape.jsx`
+**Role:** Layered ambient audio that evolves with scroll progress. Replaces the simple Howl soundtrack for particle scenes.
+
+**Integration:**
+- Rendered as a React component (no DOM output) OUTSIDE the Canvas, as a sibling within ParticleMemoryRenderer or within CapsuleShell
+- Receives `progress` (0-1) from MemoryFlightController
+- Manages its own Howl instances per layer
+- Coordinates with CapsuleShell's existing GlobalPlayer ducking (uses same `audio.duckForCapsule()`)
+
+**Internal architecture:**
+```
+MemorySoundscape (React component, no DOM)
+├── Layer management: 2-4 Howl instances per scene
+│   ├── Base ambient (always playing, volume envelope from progress)
+│   ├── Mid layer (fades in at progress 0.3-0.7)
+│   ├── Detail layer (fades in at progress 0.5-0.9)
+│   └── Climax layer (fades in at progress 0.8-1.0)
+├── Progress-to-volume mapping per layer (configurable envelopes)
+├── Crossfade between layers based on progress
+├── Mute state (inherited from CapsuleShell's muted state)
+└── Cleanup: fade all layers on unmount
+```
+
+**Scene registry additions:**
+```
+soundscape: {
+  layers: [
+    { src: 'memory/syros-cave/ambient-waves.mp3', envelope: [[0, 0.6], [0.5, 0.8], [1, 0.4]] },
+    { src: 'memory/syros-cave/wind.mp3', envelope: [[0, 0], [0.3, 0.5], [0.7, 0.5], [1, 0]] },
+    { src: 'memory/syros-cave/detail-drips.mp3', envelope: [[0, 0], [0.5, 0.3], [0.9, 0.6], [1, 0.2]] },
+    { src: 'memory/syros-cave/climax-choir.mp3', envelope: [[0, 0], [0.8, 0], [0.95, 0.7], [1, 0.5]] },
+  ],
+  masterVolume: 0.7,
+  crossfadeDuration: 0.5,  // seconds
+}
+```
+
+**Key design — envelope interpolation:**
+Each layer has an `envelope` array of `[progress, volume]` control points. MemorySoundscape linearly interpolates between control points based on current progress. This gives full artistic control over when each layer appears/disappears.
+
+**Modified files:**
+- `src/pages/CapsuleShell.jsx` — for particle-memory scenes, render MemorySoundscape instead of the simple Howl soundtrack logic
+- `src/data/memoryScenes.js` — add `soundscape` field to scene schema
+
+---
+
+## Complete Data Flow
+
+```
+User scrolls/swipes
+       │
+       ▼
+MemoryFlightController
+├── normalizes scroll → progress (0-1, spring-smoothed)
+├── interpolates camera on spline rail
+├── calls onProgressChange(progress)
+       │
+       ▼
+ParticleMemoryRenderer
+├── receives progress
+├── updates particle opacity/scale envelope from progress
+├── passes progress to MemorySoundscape
+├── maps progress to narrative card visibility thresholds
+│   (replaces delay-based timing)
+       │
+       ├──────────────────────┐
+       ▼                      ▼
+MemorySoundscape          CapsuleShell
+├── interpolates per-     ├── narrative cards shown at
+│   layer volumes from    │   progress thresholds
+│   progress envelopes    ├── back button triggers
+├── manages Howl          │   recession (dissolve-out)
+│   instances             └── exit portal after recession
+       │
+       ▼
+DreamPortalTransition
+├── entry: morphProgress 0→1 (scattered→formed)
+│   then hands control to MemoryFlightController
+├── exit: morphProgress 1→0 (formed→scattered)
+│   then CapsuleShell navigates home
+```
+
+---
+
+## Scene Registry Schema Additions
+
+New fields added to scene entries for `renderMode: 'particle-memory'`:
+
+```javascript
+{
+  // ... existing fields (id, title, location, etc.) ...
+
+  renderMode: 'particle-memory',  // NEW value
+
+  // NEW: Particle configuration
+  particleConfig: {
+    count: 100000,               // total particles (80K-150K range)
+    connectionThreshold: 0.05,   // max distance for wire connections
+    connectionMaxCount: 3,       // max wires per particle
+    glowIntensity: 0.4,         // per-particle glow strength
+    glowColor: [1.0, 0.95, 0.85], // glow tint
+    pointSize: { min: 1.0, max: 4.0 }, // screen-space point size range
+    layerSeparationGap: 0.3,    // z-gap between fg/bg particle layers
+  },
+
+  // NEW: Flight path (replaces cameraKeyframes for particle scenes)
+  flightPath: [
+    { position: { x: 0, y: 0, z: 5 }, lookAt: { x: 0, y: 0, z: 0 } },
+    { position: { x: 1, y: 0.5, z: 3 }, lookAt: { x: 0.2, y: 0, z: 0 } },
+    { position: { x: -0.5, y: 0.3, z: 2 }, lookAt: { x: 0, y: 0, z: 0 } },
+    { position: { x: 0, y: 0, z: 1.5 }, lookAt: { x: 0, y: 0, z: 0 } },
+  ],
+
+  // NEW: Soundscape (replaces soundtrack for particle scenes)
+  soundscape: {
+    layers: [
+      { src: 'memory/syros-cave/ambient.mp3', envelope: [[0, 0.5], [1, 0.5]] },
+      { src: 'memory/syros-cave/detail.mp3', envelope: [[0, 0], [0.4, 0.3], [0.8, 0.6], [1, 0.2]] },
+    ],
+    masterVolume: 0.7,
+  },
+
+  // NEW: Dream portal config
+  dreamPortal: {
+    scatterRadius: 8.0,         // how far particles scatter during portal
+    entryDuration: 3.0,         // seconds for dissolve-in → reform
+    exitDuration: 2.5,          // seconds for dissolve-out → scatter
+    tunnelSpeed: 2.0,           // camera rush speed during tunnel phase
+  },
+
+  // NEW: Narrative progress thresholds (replaces delay-based timing)
+  narrativeThresholds: [0.1, 0.35, 0.6, 0.85],
+  // Card 0 appears at progress 0.1, card 1 at 0.35, etc.
+
+  // Existing fields still used:
+  // photoUrl, depthMapUrl, samMaskUrl — used for particle sampling
+  // mood — used for color grading / glow tint
+  // previewImage — used for loading state / parallax fallback
+  // portalEntry — still respected (dream portal vs direct access)
+}
+```
+
+**Backward compatibility:** Existing scenes with `renderMode: 'displaced-mesh'` or `'splat'` are unchanged. The new fields are only read when `renderMode === 'particle-memory'`. Parallax fallback still works for low-tier GPUs.
+
+---
+
+## New vs. Modified Files
+
+### New Files (4)
+| File | Purpose |
+|------|---------|
+| `src/components/ParticleMemoryRenderer.jsx` | R3F Canvas + particle field + integration shell |
+| `src/components/MemoryFlightController.jsx` | Scroll-driven camera on spline rail (R3F component) |
+| `src/components/DreamPortalTransition.jsx` | Particle morph between scattered/formed states (R3F component) |
+| `src/components/MemorySoundscape.jsx` | Progress-reactive layered audio (React component, no DOM) |
+
+### Modified Files (3)
+| File | Changes |
+|------|---------|
+| `src/pages/CapsuleShell.jsx` | Add `'particle-memory'` branch to renderMode dispatch; conditionally use DreamPortalTransition phases instead of PortalVFX; conditionally use MemorySoundscape instead of simple Howl; pass progress to narrative threshold logic |
+| `src/data/memoryScenes.js` | Add `particleConfig`, `flightPath`, `soundscape`, `dreamPortal`, `narrativeThresholds` fields; update `syros-cave` entry to `renderMode: 'particle-memory'`; update JSDoc header |
+| `src/utils/gpuCapability.js` | No changes needed — existing 3-tier system works (particle-memory requires 'full', falls to 'simplified' with reduced particle count, falls to 'parallax' on low-end) |
+
+### Unchanged Files
+| File | Reason |
+|------|--------|
+| `src/components/PortalVFX.jsx` | Still used for non-particle scenes (splat, displaced-mesh) |
+| `src/context/AudioContext.jsx` | Ducking API already supports capsule use case |
+| `src/App.jsx` | Route unchanged (`/memory/:sceneId` → CapsuleShell) |
+| `src/pages/MemoryPortal.css` | Shared CSS classes still apply to chrome elements |
+
+---
+
+## Suggested Build Order
+
+### Phase 1: ParticleField Core (no scroll, no portal, no audio)
+
+**Build:** `ParticleMemoryRenderer.jsx` (core particle generation only)
+
+**What it does:**
+- Load photo + depth textures
+- Sample colors and z-positions into Float32 buffers
+- Render as instanced points with color, size attenuation, basic glow
+- Static camera at scene.cameraPosition
+- No scroll, no transitions, no audio
+
+**Why first:**
+- This is the visual foundation everything else depends on
+- Can verify particle quality, performance, and appearance before adding interaction
+- Tests GPU capability limits (80K-150K particles at 60fps)
+
+**Dependencies:** None (reads textures, outputs points)
+
+**Verification:** Navigate to `/memory/syros-cave`, see static particle field of the cave photo
+
+### Phase 2: MemoryFlightController (scroll → camera)
+
+**Build:** `MemoryFlightController.jsx`
+
+**What it does:**
+- Wheel/trackpad/touch listener → normalized progress (0-1)
+- Spring-smoothed progress
+- CatmullRomCurve3 interpolation for camera position + lookAt
+- Mouse/gyro parallax layered on top
+
+**Why second:**
+- Requires ParticleField to exist (otherwise nothing to fly through)
+- Independent of portal and audio — can test camera feel with static particles
+- Progress value is the central data bus that portal and audio will consume
+
+**Dependencies:** ParticleMemoryRenderer (Phase 1)
+
+**Integration point:** Add `onProgressChange` callback prop; ParticleMemoryRenderer passes progress up to CapsuleShell for narrative card thresholds
+
+**Verification:** Scroll through particle field, camera moves on spline, narrative cards appear at progress thresholds
+
+### Phase 3: DreamPortalTransition (entry/exit morph)
+
+**Build:** `DreamPortalTransition.jsx`
+
+**What it does:**
+- Dual position buffers in ParticleField (scattered + photo-sampled)
+- `morphProgress` uniform interpolated in vertex shader
+- Entry: particles scattered → reform into photo (GSAP timeline)
+- Exit: particles formed → scatter and fade
+- Callbacks to CapsuleShell: onEntryComplete (awakening), onExitComplete (recession)
+
+**Why third:**
+- Requires ParticleField's position buffers to exist (Phase 1)
+- Requires MemoryFlightController to know when to activate (after entry complete, Phase 2)
+- Does NOT require audio to function
+
+**Dependencies:** ParticleMemoryRenderer (Phase 1), MemoryFlightController (Phase 2, for activation gating)
+
+**Key modification to Phase 1:** ParticleField must be refactored to store dual position buffers and accept `morphProgress` uniform. This is a planned evolution, not a rewrite.
+
+**Verification:** Enter capsule → particles reform from chaos → scroll becomes active → back button → particles scatter → navigate home
+
+### Phase 4: MemorySoundscape (progress-reactive audio)
+
+**Build:** `MemorySoundscape.jsx`
+
+**What it does:**
+- Create Howl instances per soundscape layer
+- Interpolate volumes from progress using envelope control points
+- Coordinate with CapsuleShell mute state
+- Cleanup on unmount (fade all layers)
+
+**Why last:**
+- Audio is a polish layer, not a structural dependency
+- Requires progress from MemoryFlightController (Phase 2) to be meaningful
+- Can be tested independently by hardcoding progress values
+- No other module depends on it
+
+**Dependencies:** MemoryFlightController (Phase 2, for progress value)
+
+**Integration:** CapsuleShell passes progress and muted state; MemorySoundscape rendered outside Canvas as sibling
+
+**Verification:** Scroll through scene, hear ambient layers fade in/out with progress
+
+---
+
+## Dependency Graph
+
+```
+Phase 1: ParticleMemoryRenderer (core)
+    │
+    ├──→ Phase 2: MemoryFlightController
+    │        │
+    │        ├──→ Phase 3: DreamPortalTransition
+    │        │
+    │        └──→ Phase 4: MemorySoundscape
+    │
+    └──→ Phase 3 (also depends on Phase 1 for dual position buffers)
+```
+
+**Critical path:** Phase 1 → Phase 2 → Phase 3
+**Parallel-safe after Phase 2:** Phase 3 and Phase 4 could theoretically be built in parallel, but Phase 3 modifies ParticleField's buffer structure which Phase 4's envelope testing depends on seeing correctly. Sequential is safer.
+
+---
+
+## Performance Considerations
+
+- **Particle count tiers:** full=150K, simplified=80K, parallax=CSS fallback (no particles)
+- **Connection lines:** Only for full tier; simplified skips wire connections entirely
+- **PostProcessing:** Bloom + DOF + vignette for full tier only; CSS vignette overlay for simplified
+- **DPR:** full=[1,2], simplified=[1,1] (same pattern as DisplacedMeshRenderer)
+- **Buffer allocation:** Float32Array for positions (count × 3), colors (count × 3), sizes (count × 1) — at 150K particles: ~3.6MB GPU memory
+- **Scroll normalization:** Must handle high-resolution trackpad (fractional deltaY) and coarse mouse wheel (large integer deltaY) differently
+
+---
+
+## Open Questions for Build Phase
+
+1. **Wire connections algorithm:** Nearest-neighbor search over 150K particles is O(n²). Need spatial hash grid or KD-tree. Build-time precomputation preferred over runtime.
+2. **Vertex shader morph:** Single shader with `mix(scattered, photo, morphProgress)` or separate materials? Single shader is simpler and avoids material swaps.
+3. **Depth of field focus target:** Should DOF focus follow progress (focus on nearest particles) or stay fixed? Progress-driven is more cinematic.
+4. **Soundscape asset creation:** Need 2-4 ambient audio layers per scene. Source from royalty-free libraries or generate with AI audio tools.
+5. **Simplified tier portal:** Should simplified tier get the dream portal (fewer particles, shorter duration) or skip directly to formed state? Recommend: shortened dream portal (1.5s instead of 3s, 80K particles).

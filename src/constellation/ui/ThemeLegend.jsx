@@ -4,23 +4,31 @@ import { useConstellationStore } from '../store';
 import './ThemeLegend.css';
 
 const THEME_COLORS = {
-  love:        '#f472b6',
-  family:      '#fb923c',
-  fatherhood:  '#fb923c',
-  career:      '#60a5fa',
-  craft:       '#38bdf8',
-  growth:      '#a78bfa',
-  reflection:  '#c084fc',
-  adventure:   '#2dd4bf',
-  travel:      '#2dd4bf',
-  greece:      '#2dd4bf',
-  celebration: '#fbbf24',
-  friendship:  '#818cf8',
-  nature:      '#34d399',
-  food:        '#f97316',
-  nostalgia:   '#d4a574',
-  faith:       '#e2c6ff',
-  home:        '#86efac',
+  love:            '#f472b6',
+  family:          '#fb923c',
+  fatherhood:      '#fb923c',
+  brotherhood:     '#e0915a',
+  marriage:        '#f9a8d4',
+  childhood:       '#fdba74',
+  career:          '#60a5fa',
+  craft:           '#38bdf8',
+  filmmaking:      '#67e8f9',
+  growth:          '#a78bfa',
+  reflection:      '#c084fc',
+  adventure:       '#2dd4bf',
+  travel:          '#2dd4bf',
+  greece:          '#2dd4bf',
+  worldschooling:  '#5eead4',
+  celebration:     '#fbbf24',
+  friendship:      '#818cf8',
+  nature:          '#34d399',
+  food:            '#f97316',
+  nostalgia:       '#d4a574',
+  faith:           '#e2c6ff',
+  home:            '#86efac',
+  health:          '#4ade80',
+  entrepreneurship:'#f59e0b',
+  technology:      '#22d3ee',
 };
 
 /**
@@ -45,7 +53,7 @@ export default function ThemeLegend() {
 
     // Deduplicate aliases: merge travel/greece into adventure, fatherhood into family
     const merged = {};
-    const aliases = { travel: 'adventure', greece: 'adventure', fatherhood: 'family' };
+    const aliases = { travel: 'adventure', greece: 'adventure', worldschooling: 'adventure', fatherhood: 'family', brotherhood: 'family', marriage: 'family', childhood: 'family' };
     for (const [theme, count] of Object.entries(counts)) {
       const canonical = aliases[theme] || theme;
       merged[canonical] = (merged[canonical] || 0) + count;

@@ -214,6 +214,25 @@
     transform: translateY(0);
 }
 
+/* Starseed nav link — cosmic purple accent */
+.starseed-nav-link {
+  color: #a78bfa;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.starseed-nav-link:hover {
+  opacity: 1;
+  color: #c4b5fd;
+}
+
+.starseed-nav-link.active {
+  opacity: 1;
+  color: #a78bfa;
+}
+
 /* Birthday Mode */
 .birthday-brand {
     background: linear-gradient(135deg, #fbbf24, #f472b6, #7c3aed);

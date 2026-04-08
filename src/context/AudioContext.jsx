@@ -207,11 +207,29 @@ export function AudioProvider({ children }) {
         };
     }, []);
 
+    // Listen for glint-action events for music control
+    useEffect(() => {
+        const handleGlintAction = (e) => {
+            const { action, params } = e.detail || {};
+            if (action === 'control_music' && params?.action) {
+                if (params.action === 'play' && !isPlaying) togglePlay();
+                else if (params.action === 'pause' && isPlaying) togglePlay();
+                else if (params.action === 'next') handleNext();
+            }
+        };
+        window.addEventListener('glint-action', handleGlintAction);
+        return () => window.removeEventListener('glint-action', handleGlintAction);
+    }, [isPlaying, togglePlay, handleNext]);
+
     // Track whether the home-page MusicCell is visible (IntersectionObserver)
     const [musicCellVisible, setMusicCellVisible] = useState(true);
 
     // Duck / restore for node-level audio (constellation panel music or unmuted video)
     const duckedRef = useRef(false);
+
+    // Capsule-level ducking — GlobalPlayer fades to 0.15, not silence
+    const capsuleDuckedRef = useRef(false);
+    const preDuckVolumeRef = useRef(null);
     const duckForNodeAudio = () => {
         if (soundRef.current && isPlaying && !duckedRef.current) {
             duckedRef.current = true;
@@ -225,6 +243,31 @@ export function AudioProvider({ children }) {
                 soundRef.current.fade(soundRef.current.volume(), 1.0, 800);
             }
         }
+    };
+
+    // Duck GlobalPlayer for capsule — per-instance fade to 15% over 1.2s
+    // Uses soundRef.current.fade() so soundscape layers are NOT affected
+    const duckForCapsule = () => {
+        if (capsuleDuckedRef.current) return;
+        capsuleDuckedRef.current = true;
+        if (soundRef.current && soundRef.current.playing()) {
+            preDuckVolumeRef.current = soundRef.current.volume();
+            soundRef.current.fade(preDuckVolumeRef.current, 0.15, 1200);
+        } else {
+            // No music playing — flag ducked but skip fade
+            preDuckVolumeRef.current = null;
+        }
+    };
+
+    // Restore GlobalPlayer from capsule duck — per-instance fade back over 1s
+    const restoreFromCapsule = () => {
+        if (!capsuleDuckedRef.current) return;
+        capsuleDuckedRef.current = false;
+        const restoreTo = preDuckVolumeRef.current != null ? preDuckVolumeRef.current : 1.0;
+        if (soundRef.current) {
+            soundRef.current.fade(soundRef.current.volume(), restoreTo, 1000);
+        }
+        preDuckVolumeRef.current = null;
     };
 
     const value = {
@@ -243,6 +286,8 @@ export function AudioProvider({ children }) {
         pausePlayback,
         duckForNodeAudio,
         restoreFromDuck,
+        duckForCapsule,
+        restoreFromCapsule,
         musicCellVisible,
         setMusicCellVisible
     };

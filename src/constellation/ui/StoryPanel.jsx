@@ -20,6 +20,7 @@ import { resolveMediaUrl, getMediaType } from '../media/resolveMediaUrl';
 import { useConstellationStore } from '../store';
 import { useAudio } from '../../context/AudioContext';
 import { TYPE_COLORS, THEME_COLORS } from './DetailPanel';
+import { getPortalSceneId } from '../data/portalScenes';
 import EntityChip from './EntityChip';
 import useNodeConnections from './useNodeConnections';
 import './StoryPanel.css';
@@ -135,6 +136,109 @@ function getProfile(node) {
   return 'C';
 }
 
+/* ─── Hero Parallax Image ─────────────────────────────────────── */
+
+function HeroParallaxImage({ src, alt, onClick }) {
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
+  const idleTimer = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const PARALLAX = 18;
+    const IDLE_DELAY = 2500;
+
+    const handleMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const nx = (e.clientX - rect.left) / rect.width - 0.5;
+      const ny = (e.clientY - rect.top) / rect.height - 0.5;
+
+      if (imgRef.current) {
+        imgRef.current.style.transform =
+          `scale(1.14) translate(${-nx * PARALLAX}px, ${-ny * PARALLAX}px)`;
+        imgRef.current.classList.remove('story-panel__hero-media--idle');
+      }
+
+      clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => {
+        if (imgRef.current) {
+          // Smoothly ease back to center before starting Ken Burns
+          imgRef.current.style.transform = 'scale(1.14) translate(0px, 0px)';
+          setTimeout(() => {
+            if (imgRef.current) {
+              imgRef.current.classList.add('story-panel__hero-media--idle');
+            }
+          }, 800);
+        }
+      }, IDLE_DELAY);
+    };
+
+    const handleLeave = () => {
+      if (imgRef.current) {
+        imgRef.current.style.transform = 'scale(1.08) translate(0px, 0px)';
+        setTimeout(() => {
+          if (imgRef.current) {
+            imgRef.current.classList.add('story-panel__hero-media--idle');
+          }
+        }, 600);
+      }
+    };
+
+    container.addEventListener('mousemove', handleMove);
+    container.addEventListener('mouseleave', handleLeave);
+
+    // Start in idle Ken Burns after a brief delay
+    idleTimer.current = setTimeout(() => {
+      if (imgRef.current) {
+        imgRef.current.classList.add('story-panel__hero-media--idle');
+      }
+    }, 1200);
+
+    return () => {
+      container.removeEventListener('mousemove', handleMove);
+      container.removeEventListener('mouseleave', handleLeave);
+      clearTimeout(idleTimer.current);
+    };
+  }, [src]);
+
+  return (
+    <div ref={containerRef} className="story-panel__hero-parallax">
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        className="story-panel__hero-media story-panel__hero-media--parallax"
+        loading="eager"
+        onClick={onClick}
+        style={{ cursor: 'pointer' }}
+      />
+    </div>
+  );
+}
+
+/* ─── Portal CTA ──────────────────────────────────────────────── */
+
+function PortalCTA({ node, onPortalEnter }) {
+  if (!onPortalEnter || !node) return null;
+  const sceneId = getPortalSceneId(node.id);
+  if (!sceneId) return null;
+
+  return (
+    <motion.button
+      className="story-panel__portal-cta"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }}
+      onClick={() => onPortalEnter(node.id, sceneId)}
+    >
+      <span className="story-panel__portal-icon" aria-hidden="true" />
+      <span className="story-panel__portal-label">Enter this memory</span>
+    </motion.button>
+  );
+}
+
 /* ─── Badges row ───────────────────────────────────────────────── */
 
 function Badges({ node }) {
@@ -217,8 +321,10 @@ function EvidenceItem({ ev }) {
 /* ─── Because section ──────────────────────────────────────────── */
 
 function BecauseSection({ connectionGroups, focusNode }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
+  const setHighlightedEdgeNodeId = useConstellationStore((s) => s.setHighlightedEdgeNodeId);
+  const clearHighlightedEdgeNodeId = useConstellationStore((s) => s.clearHighlightedEdgeNodeId);
 
   const visible = showAll
     ? connectionGroups
@@ -278,6 +384,8 @@ function BecauseSection({ connectionGroups, focusNode }) {
                     '--conn-color': connStyle.text,
                     '--conn-glow': glowOpacity,
                   }}
+                  onMouseEnter={() => setHighlightedEdgeNodeId(group.nodeId, connStyle.text)}
+                  onMouseLeave={() => clearHighlightedEdgeNodeId()}
                 >
                   {/* Strength bar — thicker = stronger connection */}
                   <div
@@ -332,12 +440,73 @@ function BecauseSection({ connectionGroups, focusNode }) {
   );
 }
 
+/* ─── Typewriter description ───────────────────────────────────── */
+
+function TypewriterDescription({ text, nodeId, centered }) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const shouldAnimate = text && text.length > 200;
+
+  useEffect(() => {
+    if (!shouldAnimate) {
+      setDisplayedText(text || '');
+      setIsTyping(false);
+      setIsExpanded(false);
+      return;
+    }
+
+    setDisplayedText('');
+    setIsExpanded(false);
+    setIsTyping(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedText(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 30);
+    return () => clearInterval(interval);
+  }, [nodeId, text, shouldAnimate]);
+
+  if (!text) return null;
+
+  if (!shouldAnimate) {
+    return (
+      <p className={`story-panel__description${centered ? ' story-panel__description--centered' : ''}`}>
+        {text}
+      </p>
+    );
+  }
+
+  return (
+    <div className="story-panel__typewriter">
+      <div className={`story-panel__typewriter-box${isExpanded ? ' story-panel__typewriter-box--expanded' : ''}`}>
+        <p className={`story-panel__description${centered ? ' story-panel__description--centered' : ''}`}>
+          {displayedText}
+          {isTyping && <span className="story-panel__typewriter-cursor">|</span>}
+        </p>
+      </div>
+      {!isExpanded && <div className="story-panel__typewriter-fade" />}
+      {!isExpanded && (
+        <button className="story-panel__typewriter-expand" onClick={() => setIsExpanded(true)}>
+          Read full story
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main StoryPanel ──────────────────────────────────────────── */
 
-export default function StoryPanel() {
+export default function StoryPanel({ onPortalEnter = null }) {
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const focusNode = useConstellationStore((s) => s.focusNode);
   const openLightbox = useConstellationStore((s) => s.openLightbox);
+  const setHighlightedEdgeNodeId = useConstellationStore((s) => s.setHighlightedEdgeNodeId);
+  const clearHighlightedEdgeNodeId = useConstellationStore((s) => s.clearHighlightedEdgeNodeId);
 
   const { node, connectionGroups, entities } = useNodeConnections();
   const scrollRef = useRef(null);
@@ -412,6 +581,18 @@ export default function StoryPanel() {
   useEffect(() => {
     if (!audioSrc) return;
 
+    // If there's a previous audio still fading out, kill it fast
+    // since we're about to start a new track
+    const prevAudioEls = document.querySelectorAll('audio');
+    prevAudioEls.forEach((el) => {
+      if (el._fadeOutId) {
+        clearInterval(el._fadeOutId);
+        el.volume = 0;
+        el.pause();
+        el.src = '';
+      }
+    });
+
     const audio = new Audio(audioSrc);
     audio.loop = true;
     audio.volume = 0;
@@ -450,20 +631,29 @@ export default function StoryPanel() {
     }).catch(() => {});
 
     return () => {
-      // Fade out and cleanup
+      // Detach loop handler from the outgoing audio
       const a = nodeAudioRef.current;
       if (a) {
         a.removeEventListener('timeupdate', onTimeUpdate);
+
+        // Slow fade-out: 3.5s if next node has no audio, fast if it does.
+        // We can't know the next node here, so always start a slow fade.
+        // If the next effect fires with new audioSrc, it will kill this
+        // element fast via a.src = '' when the new audio is ready.
+        const fadeStep = 0.008; // ~3.5s fade at 30ms interval
         let v = a.volume;
-        const fade = setInterval(() => {
-          v = Math.max(v - 0.05, 0);
+        const fadeId = setInterval(() => {
+          v = Math.max(v - fadeStep, 0);
           a.volume = v;
           if (v <= 0) {
-            clearInterval(fade);
+            clearInterval(fadeId);
             a.pause();
             a.src = '';
           }
         }, 30);
+
+        // Store the fade interval so the next effect can kill it fast
+        a._fadeOutId = fadeId;
       }
       nodeAudioRef.current = null;
       restoreFromDuck();
@@ -499,8 +689,78 @@ export default function StoryPanel() {
     }
   }, [nodeAudioMuted, duckForNodeAudio, restoreFromDuck]);
 
+  // ─── Audio prompt (two-tier: hero for first encounter, subtle after) ──
+  const hasVideoMedia = node?.media?.some((item) => getMediaType(item) === 'video') || false;
+  const hasAudioContent = !!audioSrc || hasVideoMedia;
+  const audioPromptLabel = audioLabel || (hasVideoMedia ? 'This moment has audio' : null);
+  const audioPromptCta = audioSrc ? 'Turn on the soundtrack' : 'Unmute this video';
+
+  const [showAudioPrompt, setShowAudioPrompt] = useState(false);
+  const [hasHeardAudio, setHasHeardAudio] = useState(
+    () => sessionStorage.getItem('jarowe_audio_ever_heard') === '1'
+  );
+
+  // Mark as "heard" whenever the user unmutes (by any means)
+  useEffect(() => {
+    if (!nodeAudioMuted && hasAudioContent) {
+      sessionStorage.setItem('jarowe_audio_ever_heard', '1');
+      setHasHeardAudio(true);
+    }
+  }, [nodeAudioMuted, hasAudioContent]);
+
+  useEffect(() => {
+    if (hasAudioContent && nodeAudioMuted) {
+      setShowAudioPrompt(true);
+      const timeout = hasHeardAudio ? 5000 : 8000;
+      const timer = setTimeout(() => setShowAudioPrompt(false), timeout);
+      return () => clearTimeout(timer);
+    }
+    setShowAudioPrompt(false);
+  }, [hasAudioContent, nodeAudioMuted, hasHeardAudio]);
+
+  const handleAudioPromptClick = useCallback(() => {
+    if (audioSrc) {
+      toggleNodeAudio();
+    } else if (videoRef.current) {
+      videoRef.current.muted = false;
+      duckForNodeAudio();
+      setNodeAudioMuted(false);
+      sessionStorage.setItem('jarowe_video_unmuted', '1');
+    }
+    setShowAudioPrompt(false);
+  }, [audioSrc, toggleNodeAudio, duckForNodeAudio]);
+
   // Detect mobile for animation direction
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  // ─── Resizable panel width (desktop only) ─────────────────
+  const [panelWidth, setPanelWidth] = useState(() => {
+    if (typeof window === 'undefined' || window.innerWidth <= 768) return null;
+    const saved = localStorage.getItem('jarowe_story_panel_width');
+    return saved ? Number(saved) : null;
+  });
+  const isResizing = useRef(false);
+
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const onMouseMove = (ev) => {
+      if (!isResizing.current) return;
+      const w = Math.min(Math.max(window.innerWidth - ev.clientX, 320), window.innerWidth * 0.7);
+      setPanelWidth(w);
+    };
+    const onMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      setPanelWidth((w) => {
+        if (w) localStorage.setItem('jarowe_story_panel_width', String(w));
+        return w;
+      });
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   const profile = node ? getProfile(node) : null;
   const media = node?.media || [];
@@ -527,7 +787,15 @@ export default function StoryPanel() {
                   }
                 : undefined
             }
+            style={!isMobile && panelWidth ? { width: panelWidth } : undefined}
           >
+            {/* Resize handle (desktop) */}
+            {!isMobile && (
+              <div className="story-panel__resize-handle" onMouseDown={handleResizeStart}>
+                <div className="story-panel__resize-indicator" />
+              </div>
+            )}
+
             {/* Mobile drag handle */}
             <div className="story-panel__drag-handle" />
 
@@ -573,13 +841,10 @@ export default function StoryPanel() {
                             onVolumeChange={handleVolumeChange}
                           />
                         ) : (
-                          <img
+                          <HeroParallaxImage
                             src={heroUrl}
                             alt={node.title}
-                            className="story-panel__hero-media"
-                            loading="eager"
                             onClick={() => openLightbox(media, heroIdx)}
-                            style={{ cursor: 'pointer' }}
                           />
                         )}
                       </motion.div>
@@ -644,6 +909,45 @@ export default function StoryPanel() {
                     </button>
                   )}
 
+                  <AnimatePresence>
+                    {showAudioPrompt && !hasHeardAudio && (
+                      <motion.button
+                        key="hero-prompt"
+                        className="story-panel__audio-prompt--hero"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <div className="story-panel__audio-eq">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                        <span className="story-panel__audio-prompt-song">
+                          {audioPromptLabel}
+                        </span>
+                        <span className="story-panel__audio-prompt-cta">
+                          <Volume2 size={14} />
+                          {audioPromptCta}
+                        </span>
+                      </motion.button>
+                    )}
+                    {showAudioPrompt && hasHeardAudio && (
+                      <motion.button
+                        key="subtle-prompt"
+                        className="story-panel__audio-prompt"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <Volume2 size={14} />
+                        {audioSrc ? 'This moment has a soundtrack — tap to listen' : 'This video has audio — tap to unmute'}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
                   <div className="story-panel__body">
                     {node.epoch && (
                       <span className="story-panel__epoch">{node.epoch}</span>
@@ -689,17 +993,25 @@ export default function StoryPanel() {
                         <div className="story-panel__chips-label">Connected</div>
                         <div className="story-panel__chips">
                           {entities.map((entity, i) => (
-                            <EntityChip
+                            <div
                               key={`${entity.type}-${entity.label}-${i}`}
-                              type={entity.type}
-                              label={entity.label}
-                              count={entity.count}
-                            />
+                              onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
+                              onMouseLeave={() => clearHighlightedEdgeNodeId()}
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <EntityChip
+                                type={entity.type}
+                                label={entity.label}
+                                count={entity.count}
+                                onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
 
+                    <PortalCTA node={node} onPortalEnter={onPortalEnter} />
                     <BecauseSection
                       connectionGroups={connectionGroups}
                       focusNode={focusNode}
@@ -739,13 +1051,10 @@ export default function StoryPanel() {
                             onVolumeChange={handleVolumeChange}
                           />
                         ) : (
-                          <img
+                          <HeroParallaxImage
                             src={heroUrl}
                             alt={node.title}
-                            className="story-panel__hero-media"
-                            loading="eager"
                             onClick={() => openLightbox(media, heroIdx)}
-                            style={{ cursor: 'pointer' }}
                           />
                         )}
                       </motion.div>
@@ -788,6 +1097,45 @@ export default function StoryPanel() {
                     </button>
                   )}
 
+                  <AnimatePresence>
+                    {showAudioPrompt && !hasHeardAudio && (
+                      <motion.button
+                        key="hero-prompt"
+                        className="story-panel__audio-prompt--hero"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <div className="story-panel__audio-eq">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                        <span className="story-panel__audio-prompt-song">
+                          {audioPromptLabel}
+                        </span>
+                        <span className="story-panel__audio-prompt-cta">
+                          <Volume2 size={14} />
+                          {audioPromptCta}
+                        </span>
+                      </motion.button>
+                    )}
+                    {showAudioPrompt && hasHeardAudio && (
+                      <motion.button
+                        key="subtle-prompt"
+                        className="story-panel__audio-prompt"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        onClick={handleAudioPromptClick}
+                      >
+                        <Volume2 size={14} />
+                        {audioSrc ? 'This moment has a soundtrack — tap to listen' : 'This video has audio — tap to unmute'}
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
                   <div className="story-panel__body">
                     <motion.div
                       initial={{ opacity: 0, y: 12 }}
@@ -816,9 +1164,10 @@ export default function StoryPanel() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, duration: 0.3 }}
                     >
-                      <p className="story-panel__description">
-                        {node.description}
-                      </p>
+                      <TypewriterDescription
+                        text={node.description}
+                        nodeId={node.id}
+                      />
                     </motion.div>
 
                     {/* Gallery grid */}
@@ -865,17 +1214,25 @@ export default function StoryPanel() {
                         <div className="story-panel__chips-label">Connected</div>
                         <div className="story-panel__chips">
                           {entities.map((entity, i) => (
-                            <EntityChip
+                            <div
                               key={`${entity.type}-${entity.label}-${i}`}
-                              type={entity.type}
-                              label={entity.label}
-                              count={entity.count}
-                            />
+                              onMouseEnter={() => entity.nodeId && setHighlightedEdgeNodeId(entity.nodeId, TYPE_COLORS[entity.type]?.text)}
+                              onMouseLeave={() => clearHighlightedEdgeNodeId()}
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <EntityChip
+                                type={entity.type}
+                                label={entity.label}
+                                count={entity.count}
+                                onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
 
+                    <PortalCTA node={node} onPortalEnter={onPortalEnter} />
                     <BecauseSection
                       connectionGroups={connectionGroups}
                       focusNode={focusNode}
@@ -926,9 +1283,11 @@ export default function StoryPanel() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, duration: 0.3 }}
                     >
-                      <p className="story-panel__description story-panel__description--centered">
-                        {node.description}
-                      </p>
+                      <TypewriterDescription
+                        text={node.description}
+                        nodeId={node.id}
+                        centered
+                      />
                     </motion.div>
                   )}
 
@@ -943,6 +1302,7 @@ export default function StoryPanel() {
                             type={entity.type}
                             label={entity.label}
                             count={entity.count}
+                            onClick={entity.nodeId ? () => focusNode(entity.nodeId) : undefined}
                           />
                         ))}
                       </div>

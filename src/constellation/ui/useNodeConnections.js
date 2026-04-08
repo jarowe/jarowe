@@ -74,6 +74,7 @@ export default function useNodeConnections() {
         entityMap.set(key, {
           type: otherNode.type,
           label: otherNode.title,
+          nodeId: otherNode.id,
           count: 0,
         });
       }

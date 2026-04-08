@@ -1,0 +1,486 @@
+# Memory World Generation Pipeline
+
+Converts a memory scene's source image set into a 3D world asset package.
+
+## Quick Start
+
+```bash
+# List available memory scene IDs
+ls public/memory/
+
+# Register existing generated assets or run the default generator
+node pipeline/generate-memory-world.mjs syros-cave
+
+# Run a specific generator tier
+node pipeline/generate-memory-world.mjs syros-cave --generator expanded
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model
+node pipeline/generate-memory-world.mjs syros-cave --generator trellis
+node pipeline/generate-memory-world.mjs syros-cave --generator sharp
+node pipeline/generate-memory-world.mjs syros-cave --generator marble
+
+# Force a fresh run and overwrite normalized world outputs
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+
+# Compare world families deliberately
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --hero --candidates 6 --families pano-first,camera-guided
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --hero --candidates 4 --families pano-first,structured-anchor
+
+# Register or generate a subject 3D asset with version snapshots
+node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "current proxy baseline"
+```
+
+## Supported Generators
+
+| Generator | License | Quality | Setup Cost |
+|-----------|---------|---------|------------|
+| Expanded | Mixed / local | Best orchestration tier | External tools + local GPU |
+| World Model | Mixed / local | Best single-image world path | External tools + local GPU |
+| TRELLIS | MIT | High | Local GPU |
+| SHARP | Research | High nearby-view draft | Local GPU |
+| Marble | Commercial | Highest | API key ($1.26/world Plus, $0.18/world Mini) |
+
+## Generator Tiers
+
+### Marble (Ceiling Reference)
+
+World Labs Marble API. Produces the highest-quality 3D worlds from a single image.
+Use this as the quality ceiling reference to grade open-source candidates against.
+
+```bash
+# Set your API key (get at https://platform.worldlabs.ai/)
+set MARBLE_API_KEY=your-key
+
+# Generate a ceiling-reference world
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+
+# Use the mini model (faster, cheaper, lower quality)
+set MARBLE_MODEL=Marble 0.1-mini
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+
+# Control splat density (100k for mobile, 500k for web, full_res for max quality)
+set MARBLE_SPLAT_TIER=full_res
+node pipeline/generate-memory-world.mjs naxos-rock --generator marble --force
+```
+
+Output:
+- `scene.spz` — runtime splat at the chosen tier (100k/500k/full_res)
+- `scene.source.spz` — full-res splat (if runtime tier was not full_res)
+- `collider.glb` — collision mesh
+- `scene.pano.png` — equirectangular panorama
+- `scene.preview.png` — thumbnail
+- `marble.meta.json` — provenance (world ID, model, seed, prompt, download URLs)
+
+### Expanded
+
+Use SHARP as the identity-preserving anchor pass, then add synthetic or real complementary views before fusing the final world. This is the orchestration tier. For true single-image world completion, point it at a real world-model backend instead of the current local synthetic-depth fallback.
+
+What it does:
+
+1. reads the primary memory photo
+2. adds any `source.postImages` from `meta.json`
+3. optionally runs an external view synthesizer into a temporary bundle
+4. optionally runs an external fusion / reconstruction command
+5. falls back to SHARP if no fused world is produced yet
+
+The pipeline writes a durable `world/view-bundle.json` manifest so each memory records what source views were used.
+
+```bash
+# Bundle + register using existing world assets or SHARP fallback
+node pipeline/generate-memory-world.mjs syros-cave --generator expanded
+
+# Optional external view synthesis step
+set EXPANDED_VIEW_COMMAND=python tools\\synth_views.py --input "{primary}" --output "{generatedDir}"
+
+# Optional external fusion step (for COLMAP/gsplat or another reconstructor)
+set EXPANDED_FUSE_COMMAND=python tools\\fuse_world.py --bundle "{bundleDir}" --output "{worldDir}"
+
+# Optional: if this is a single-image memory and a real world-model backend is configured,
+# Expanded will prefer it automatically over the local synthetic-depth fallback.
+set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --output "{worldDir}" --views "{generatedDir}"
+
+# Then rerun
+node pipeline/generate-memory-world.mjs syros-cave --generator expanded --force
+```
+
+Recommended tiers:
+
+- `single-image draft`: SHARP only
+- `single-image expanded`: SHARP anchor + synthetic complementary views + fused splat world
+- `single-image world model`: learned scene/world completion from one photo + fused splat world
+- `multi-view cluster`: carousel images / real capture bundle + fused splat world
+
+### World Model
+
+Use this when you want the actual Marble-like path from a single image: one source photo goes through a learned world/scene completion backend, which generates complementary views and/or a fused world asset directly.
+
+The pipeline does not hardcode one model. Instead it shells out to a working backend that you configure through environment variables. That keeps the repo neutral while allowing you to swap between candidates like WorldGen, VistaDream, or a future ComfyUI workflow.
+
+```bash
+# Easiest local path: use the bundled backend wrapper with WorldGen
+set WORLD_MODEL_BACKEND=worldgen
+set WORLD_MODEL_PYTHON=py -3.12
+set WORLDGEN_ROOT=C:\dev\jarowe\_experiments\WorldGen
+
+# Or provide a fully custom command yourself
+# Required: point to a working single-image world generator
+set WORLD_MODEL_COMMAND=python tools\\run_world_model.py --input "{primary}" --output "{worldDir}" --views "{generatedDir}"
+
+# Then run the dedicated generator
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+```
+
+World families:
+
+- `pano-first`: current WorldGen/Marble-like pano completion path
+- `camera-guided`: trajectory-aware branch intended for Stable Virtual Camera / VistaDream-style experiments
+- `structured-anchor`: branch for scenes where layout and landmark preservation should dominate
+
+CLI controls:
+
+```bash
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --family pano-first
+node pipeline/generate-memory-world.mjs naxos-rock --generator world-model --families pano-first,camera-guided --candidates 6
+```
+
+Family-specific command hooks:
+
+```bash
+set WORLD_MODEL_CAMERA_GUIDED_COMMAND=python tools\\run_camera_guided_world.py --input "{primary}" --output "{worldDir}" --family "{worldFamily}"
+set WORLD_MODEL_STRUCTURED_COMMAND=python tools\\run_structured_world.py --input "{primary}" --output "{worldDir}" --family "{worldFamily}"
+```
+
+If no family-specific command is configured, the pipeline falls back to the default world-model backend and still records the requested family in the grading metadata.
+
+Current backend defaults:
+
+- `pano-first` -> `worldgen`
+- `structured-anchor` -> `worldgen` unless overridden
+- `camera-guided` -> `vistadream`
+
+VistaDream on this repo is expected to run from Linux/WSL. The pipeline will look for:
+
+```bash
+VISTADREAM_ROOT=/mnt/c/dev/jarowe/_experiments/VistaDream
+VISTADREAM_WSL_VENV=$HOME/.venvs/vistadream
+VISTADREAM_WSL_PYTHON=$HOME/.venvs/vistadream/bin/python
+```
+
+The `vistadream` backend wrapper writes:
+
+- `scene.ply`
+- `scene.vistadream.pth`
+- `vistadream.config.generated.yaml`
+- `scene.vistadream.meta.json`
+
+Readiness requirements before `camera-guided` can actually generate:
+
+- Linux/WSL Python env matching VistaDream's stack
+- `_experiments/VistaDream/download_weights.sh` run successfully
+- required checkpoints present under the VistaDream repo
+- a PyTorch build that can actually execute on the local GPU
+- `detectron2` installed into the VistaDream env
+- the OneFormer `MultiScaleDeformableAttention` op compiled successfully
+
+The WSL commands call the env's Python directly instead of assuming `source .../bin/activate`, so either a standard `venv` or a micromamba-style env works as long as `{env}/bin/python` exists.
+
+The dev lab now probes more than just repo+weights. It also surfaces:
+
+- WSL reachability
+- torch/CUDA execution
+- `detectron2` availability
+- OneFormer import / CUDA-op readiness
+
+Blackwell / RTX 5090 note:
+
+- treat VistaDream as a Blackwell rebuild, not a legacy PyTorch 2.1 env
+- use a current cu128 PyTorch wheel set, then rebuild `detectron2` and the OneFormer op against that stack
+
+Provisioning command from Windows:
+
+```bash
+node pipeline/provision-vistadream-blackwell.mjs
+```
+
+Underlying WSL script:
+
+```bash
+bash pipeline/provision_vistadream_blackwell_wsl.sh
+```
+
+If the lab reports `WSL is unavailable or hung`, fix the WSL service state first and then rerun the provisioning command.
+
+### Windows + WSL WorldGen
+
+On this machine, the practical `WorldGen` path is `Windows pipeline -> WSL Ubuntu -> Linux GPU env`.
+
+The pipeline now supports that directly when you set:
+
+```powershell
+$env:WORLD_MODEL_BACKEND = 'worldgen'
+$env:WORLD_MODEL_WSL_DISTRO = 'Ubuntu'
+$env:WORLD_MODEL_WSL_VENV = '/home/jarowe/.venvs/worldgen312'
+
+node pipeline/generate-memory-world.mjs syros-cave --generator world-model --force
+```
+
+Notes:
+
+- `WORLD_MODEL_USE_WSL` defaults to `1` on Windows
+- `WORLD_MODEL_WSL_VENV` should be the Linux path to the prepared backend env
+- `WORLDGEN_ROOT` is exported into WSL automatically; by default it points at `_experiments/WorldGen`
+- the current hard blocker for image-to-scene WorldGen is still gated access to `black-forest-labs/FLUX.1-Fill-dev`
+- once Hugging Face auth is configured in WSL, the same command should move past model init into real world generation
+
+Supported placeholders in `WORLD_MODEL_COMMAND` / `SINGLE_IMAGE_WORLD_COMMAND`:
+
+- `{input}`: absolute path to the scene's source photo
+- `{primary}`: absolute path to the staged primary input inside the temporary bundle
+- `{output}` / `{worldDir}`: absolute path to `public/memory/{scene-id}/world`
+- `{sceneDir}`: absolute path to the scene directory
+- `{sceneId}`: memory scene id
+- `{bundleDir}`: temporary bundle root
+- `{sourceDir}`: staged source views directory
+- `{generatedDir}`: where the world model can write synthetic views for provenance/debug
+- `{bundleJson}`: destination `world/view-bundle.json`
+
+The command is expected to produce at least one of:
+
+- `scene.ply`
+- `scene.spz`
+- `scene.ksplat`
+- `scene.glb`
+- `collider.glb`
+
+in the target world directory.
+
+### First Concrete Backend: WorldGen
+
+`WorldGen` is the first concrete backend wired into this repo because it is explicitly aimed at single-image image-to-scene generation with `360° free exploration`.
+
+Official source:
+- [WorldGen repo](https://github.com/ZiYang-xie/WorldGen)
+
+The local wrapper is:
+
+```bash
+py -3.12 pipeline/run_single_image_world_backend.py --backend worldgen --input "{primary}" --output "{worldDir}"
+```
+
+The wrapper:
+- resolves the local WorldGen checkout under `_experiments/WorldGen` by default
+- imports `worldgen.WorldGen` directly through the Python API
+- writes `scene.ply` into the target `world/` directory
+
+Important:
+- this still requires a proper Python environment with WorldGen and its dependencies installed
+- WorldGen itself currently depends on gated FLUX weights and a Linux-oriented dependency stack in practice, so wiring the backend is the first step, not the full install
+
+### TRELLIS
+
+Microsoft's single-image-to-3D model. Outputs Gaussian splat (PLY) plus mesh (GLB).
+
+```bash
+# Prerequisites: Python 3.10+, CUDA GPU with 8GB+ VRAM
+pip install git+https://github.com/microsoft/TRELLIS.git
+huggingface-cli download microsoft/TRELLIS-image-large
+
+python -m trellis.generate \
+  --image public/memory/syros-cave/photo.webp \
+  --output public/memory/syros-cave/world/ \
+  --format ply glb
+
+node pipeline/generate-memory-world.mjs syros-cave --generator trellis
+```
+
+### SHARP
+
+Single-image Gaussian splat from Apple ML. This is the fastest open path for draft worlds because it outputs a directly usable `.ply` splat world, but it tops out at nearby-view reconstruction rather than fully convincing free exploration.
+
+```bash
+# Prerequisites: Python 3.10+, CUDA GPU
+python -m venv .venv-sharp
+.venv-sharp\Scripts\python.exe -m pip install git+https://github.com/apple/ml-sharp.git
+
+# Optional: download and pin the checkpoint locally
+curl.exe -k -L https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt -o .models\sharp_2572gikvuh.pt
+
+# The pipeline autodetects:
+#   .venv-sharp\Scripts\sharp.exe
+#   .models\sharp_2572gikvuh.pt
+node pipeline/generate-memory-world.mjs syros-cave --generator sharp
+```
+
+### Marble
+
+Commercial API / export workflow. Best for production-grade worlds if you are okay with an external service.
+
+```bash
+export MARBLE_API_KEY=your_key_here
+node pipeline/generate-memory-world.mjs syros-cave --generator marble
+```
+
+## Subject 3D Pipeline
+
+The subject should not be solved by the same branch that invents the world. Use `generate-subject-3d.mjs` to register or generate a dedicated subject asset, then keep the world generator focused on environment completion.
+
+```bash
+# Register the current local subject.glb into tracked subject metadata + version history
+node pipeline/generate-subject-3d.mjs naxos-rock --backend existing --label "proxy baseline"
+
+# Future SAM 3D Body path
+set SAM3D_BODY_COMMAND=python tools\\run_sam3d_body.py --input "{input}" --mask "{mask}" --output "{output}"
+node pipeline/generate-subject-3d.mjs naxos-rock --backend sam3d-body --label "sam3d body v1"
+```
+
+Local Meta SAM 3D Body path now defaults to:
+
+```bash
+py -3.12 pipeline/run_sam3d_body_backend.py --input "{input}" --mask "{mask}" --output "{output}"
+```
+
+or, if present, the local repo + venv:
+
+```bash
+.\.venv-sam3d-body\Scripts\python.exe pipeline/run_sam3d_body_backend.py --input "{input}" --mask "{mask}" --output "{output}" --repo-root "_experiments/sam-3d-body"
+```
+
+Supported placeholders in `SAM3D_BODY_COMMAND` / `SUBJECT3D_COMMAND`:
+
+- `{input}` source photo path
+- `{mask}` subject mask path
+- `{output}` temporary output directory for generated subject assets
+- `{sceneDir}` scene root directory
+- `{sceneId}` memory scene id
+
+Expected generated outputs:
+
+- `subject.glb` preferred
+- `subject.ply` optional
+- `subject.preview.png` optional
+- `subject.meta.json` optional
+
+Every run snapshots the resulting subject assets into `public/memory/{scene-id}/subject-versions/` and updates `meta.subject3d.provenance` so we can grade and compare subject branches over time.
+
+Current real blocker for first SAM 3D Body inference on this machine:
+
+- the local `sam-3d-body` repo is wired
+- the backend wrapper is implemented
+- the local `.venv-sam3d-body` exists with Hugging Face tooling
+- but Hugging Face auth for `facebook/sam-3d-body-dinov3` is not active, so checkpoint download is still denied until login/access is granted
+
+## Asset Contract
+
+Generated assets go in `public/memory/{scene-id}/world/`:
+
+```text
+world/
+  scene.ply         Gaussian splat in PLY format
+  scene.runtime.ply Runtime-decimated preview asset
+  scene.spz         Optional compressed splat asset
+  scene.ksplat      Optional compressed runtime splat asset for gaussian-splats-3d
+  scene.glb         Optional triangulated mesh fallback
+  collider.glb      Optional simplified collision mesh
+  bounds.json       Optional world bounds metadata
+  view-bundle.json  Source-view provenance for expanded runs
+```
+
+Reviewed snapshots go in `public/memory/{scene-id}/world/versions/`:
+
+```text
+versions/
+  index.json        Scene-level ledger of saved revisions
+  {version-id}/
+    review.json     Human + machine grading snapshot
+    ...linked world assets
+```
+
+## Version Grading
+
+Use the grading tool to freeze the current promoted world or a specific candidate as a named revision:
+
+```bash
+# Save the current promoted world
+node pipeline/grade-memory-world.mjs naxos-rock --label "hero baseline" --grade 7.2 --notes "best open shoreline so far"
+
+# Save the selected auto-picked candidate from the last multi-candidate run
+node pipeline/grade-memory-world.mjs naxos-rock --source selected-candidate --label "candidate winner"
+
+# Save a specific candidate and mark it as the current favorite
+node pipeline/grade-memory-world.mjs naxos-rock --source candidate:candidate-02 --label "wide continuity alt" --grade 8.1 --favorite
+```
+
+Each saved revision records:
+
+- prompt, seed, generator, and quality profile
+- machine world score and geometry metrics when `scene.ply` is available
+- your human grade and notes
+- a stable version id so favorite older attempts stop disappearing during iteration
+
+The pipeline writes these paths into `meta.json` under the `world` key:
+
+```json
+{
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 1179648,
+    "bounds": null
+  }
+}
+```
+
+For expanded or world-model runs, the pipeline also stores generation provenance:
+
+```json
+{
+  "source": {
+    "generationMode": "single-image-world-model",
+    "expansion": {
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 1,
+      "generatedViewCount": 6,
+      "totalViewCount": 7,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model"
+    }
+  },
+  "world": {
+    "provenance": {
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 7
+    }
+  }
+}
+```
+
+## Placing Assets Manually
+
+If you generate assets externally, drop them in the `world/` folder and rerun the pipeline. It normalizes names to `scene.ply` / `scene.glb` and updates `meta.json`.
+
+```bash
+cp ~/Downloads/scene.ply public/memory/syros-cave/world/scene.ply
+node pipeline/generate-memory-world.mjs syros-cave
+```
+
+## Scene Directory Structure
+
+```text
+public/memory/{scene-id}/
+  meta.json       Scene metadata
+  photo.webp      Primary source photo
+  depth.png       Depth map for fallback renderer
+  mask.png        Optional subject mask
+  preview.jpg     Thumbnail
+  world/          Generated 3D assets and provenance manifests
+  views/          Optional local supplemental images for expanded runs
+  audio/          Soundscape layers
+```

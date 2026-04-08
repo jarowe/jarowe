@@ -1,0 +1,115 @@
+.labs-hub-hero {
+  max-width: 700px;
+  margin: 4rem auto 3rem;
+  padding: 0 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.labs-hub-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3rem);
+  background: linear-gradient(135deg, #dbb978 0%, #f0d9a8 40%, #c7956d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.75rem;
+}
+
+.labs-hub-subtitle {
+  font-size: 1.05rem;
+  color: #9999a1;
+  line-height: 1.6;
+}
+
+.labs-hub-grid-section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.labs-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.labs-hub-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.labs-hub-card {
+  background: rgba(219,185,120,0.04);
+  border: 1px solid rgba(219,185,120,0.1);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+
+.labs-hub-card-link:hover .labs-hub-card {
+  border-color: rgba(219,185,120,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(219,185,120,0.08);
+}
+
+.labs-hub-card--disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.labs-hub-card__icon {
+  color: #dbb978;
+  margin-bottom: 1.25rem;
+}
+
+.labs-hub-card__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.labs-hub-card__desc {
+  color: #9999a1;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+.labs-hub-card__status {
+  display: inline-block;
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.6rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 100px;
+}
+
+.labs-hub-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #dbb978;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .labs-hub-hero {
+    margin-top: 2rem;
+  }
+  .labs-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}

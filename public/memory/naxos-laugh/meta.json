@@ -1,0 +1,181 @@
+{
+  "id": "naxos-laugh",
+  "title": "Before The Days Go By",
+  "subtitle": "Naxos, Greece — May 2024",
+  "description": "A closer turn back into the light: Jace laughing on the rocks in Naxos, the joy inside the poem revealed as a chapter inside the stronger shoreline world.",
+  "source": {
+    "type": "instagram-carousel",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": "mask.png",
+    "generator": "marble",
+    "generated": "2026-03-30",
+    "postDate": "May 08, 2024 6:52 am",
+    "worldModelPrompt": "Laughing boy in a bright blue hoodie on pale Naxos rocks, preserve him clearly as the main subject, complete a fully explorable 360 shoreline with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
+    "environmentWorldModelPrompt": "Pale Naxos shoreline rocks under warm Mediterranean light, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and coherent open space where the laughing child will be reintroduced later, preserve non-masked rocks and shoreline structure, no duplicate people, no voids, no floating fragments.",
+    "postImages": [
+      "/images/Instagram/media/posts/202405/18011396732371399.jpg",
+      "/images/Instagram/media/posts/202405/18033946798786712.jpg",
+      "/images/Instagram/media/posts/202405/17917063217823264.jpg",
+      "/images/Instagram/media/posts/202405/18122780437357613.jpg"
+    ],
+    "generationMode": "marble-api",
+    "worldFramingAnalysis": {
+      "subjectCropArea": 0.332,
+      "subjectCropHeight": 0.868,
+      "framingClass": "close-subject",
+      "recommendedPresentationMode": "chapter"
+    },
+    "expansion": {
+      "strategy": "marble-api",
+      "stage": "marble-api",
+      "bundle": null,
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "marble-api",
+      "viewSynthesizer": "marble-api",
+      "fusionEngine": "marble-api",
+      "compositeViewCount": 1,
+      "environmentBootstrap": {
+        "strategy": "subject-erased-environment-bootstrap",
+        "image": "world/bootstrap.environment.png",
+        "subjectInput": "photo.jpg",
+        "mask": "mask.png",
+        "subjectMask": "mask.png",
+        "usedAsWorldInput": true
+      }
+    },
+    "environmentBootstrap": {
+      "strategy": "subject-erased-environment-bootstrap",
+      "image": "world/bootstrap.environment.png",
+      "subjectInput": "photo.jpg",
+      "mask": "mask.png",
+      "subjectMask": "mask.png",
+      "usedAsWorldInput": true
+    },
+    "worldGenerationFamily": "marble"
+  },
+  "world": {
+    "splat": "world/scene.spz",
+    "sourceSplat": null,
+    "sharedSceneId": "naxos-rock",
+    "presentationMode": "chapter",
+    "mesh": null,
+    "collider": "world/collider.glb",
+    "format": "spz",
+    "splatCount": null,
+    "sourceSplatCount": null,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "provenance": {
+      "tier": "marble-api",
+      "anchorGenerator": "marble",
+      "reconstruction": "marble",
+      "model": "Marble 0.1-plus",
+      "splatTier": "500k"
+    },
+    "runtimePreviewSplatTarget": null,
+    "generationProfile": null,
+    "generationFamily": "marble",
+    "selection": null
+  },
+  "fallback": {
+    "type": "photo-preview",
+    "photo": "photo.jpg"
+  },
+  "camera": {
+    "startPosition": [
+      0.14,
+      0.08,
+      5.3
+    ],
+    "startTarget": [
+      0,
+      0.02,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 80
+  },
+  "artDirection": {
+    "subjectCrop": [
+      0.135,
+      0.018,
+      0.382,
+      0.868
+    ]
+  },
+  "subject3d": {
+    "mode": "projected-mesh",
+    "mesh": "subject.glb",
+    "transform": {
+      "position": [
+        0.02,
+        -0.1,
+        0.02
+      ],
+      "scale": [
+        0.66,
+        0.66,
+        0.66
+      ],
+      "rotation": [
+        0,
+        -10,
+        0
+      ],
+      "supportMode": "mesh-fill"
+    },
+    "pointCloud": null,
+    "preview": "subject.preview.png",
+    "provenance": {
+      "backend": "sam3d-body",
+      "generated": "2026-03-28",
+      "photo": "photo.jpg",
+      "mask": "mask.png",
+      "label": "sam3d-body-v1",
+      "notes": "first direct Meta subject attempt"
+    }
+  },
+  "narrative": [
+    {
+      "threshold": 0.16,
+      "text": "Then he turns, laughing, as if the answer had already been there in the light."
+    },
+    {
+      "threshold": 0.46,
+      "text": "Years do pass. Joy is what keeps them from disappearing without a trace."
+    },
+    {
+      "threshold": 0.8,
+      "text": "Every time I come back here, I hear the poem again from inside the moment that made it."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "placeholder-scene",
+    "previous": "naxos-rock",
+    "anchors": []
+  }
+}

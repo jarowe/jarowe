@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Patcher from './pages/Patcher';
@@ -31,6 +31,14 @@ const AdminContent = lazyRetry(() => import('./pages/AdminContent'));
 const AdminCampaigns = lazyRetry(() => import('./pages/AdminCampaigns'));
 const AdminEditors = lazyRetry(() => import('./pages/AdminEditors'));
 const ProfilePage = lazyRetry(() => import('./pages/ProfilePage'));
+const Starseed = lazyRetry(() => import('./pages/Starseed'));
+const Scratchpad = lazyRetry(() => import('./pages/labs/Scratchpad'));
+const LabsCanvas = lazyRetry(() => import('./pages/labs/Canvas'));
+const LabsHub = lazyRetry(() => import('./pages/labs/LabsHub'));
+const MemoryWorldLab = lazyRetry(() => import('./pages/labs/MemoryWorldLab'));
+const CommandPalette = lazyRetry(() => import('./components/CommandPalette'));
+const CapsuleShell = lazyRetry(() => import('./pages/CapsuleShell'));
+const MemoryArchiveScene = lazyRetry(() => import('./pages/MemoryArchiveScene'));
 
 import GameOverlay from './components/GameOverlay';
 import Garden from './pages/Garden';
@@ -45,6 +53,8 @@ import GlobalPlayer from './components/GlobalPlayer';
 import AuthModal from './components/AuthModal';
 import registry from './content/takeovers/registry';
 import { useTakeoverState } from './hooks/useTakeoverState';
+import { setupGlobalViewTransitions } from './utils/viewTransitions';
+import { getSceneById } from './data/memoryScenes';
 
 /* ── Registry-driven lazy page components ──────────────────
  * Created at module level so React.lazy() is called once per page,
@@ -88,6 +98,59 @@ function useTakeoverConfig(entry) {
 const LOADING_STYLE = { color: 'white', padding: '2rem', textAlign: 'center' };
 function LazyFallback({ label = 'Loading...' }) {
   return <div style={LOADING_STYLE}>{label}</div>;
+}
+
+function MemoryRouteFallback({ sceneId }) {
+  const scene = getSceneById(sceneId);
+  const previewUrl = scene?.previewImage || scene?.photoUrl || null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'grid',
+        placeItems: 'center',
+        background: previewUrl
+          ? `linear-gradient(rgba(5, 5, 10, 0.68), rgba(5, 5, 10, 0.82)), url(${previewUrl}) center / cover no-repeat`
+          : 'radial-gradient(circle at center, rgba(22,24,40,0.96), rgba(5,6,12,1))',
+        color: '#fff',
+        textAlign: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backdropFilter: 'blur(10px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'grid',
+          gap: '0.9rem',
+          justifyItems: 'center',
+          padding: '2rem',
+        }}
+      >
+        <div
+          style={{
+            width: '2.6rem',
+            height: '2.6rem',
+            borderRadius: '999px',
+            border: '2px solid rgba(255,255,255,0.18)',
+            borderTopColor: 'rgba(255,255,255,0.9)',
+            animation: 'jarowe-spin 0.9s linear infinite',
+          }}
+        />
+        <div style={{ fontSize: '1.05rem', letterSpacing: '0.03em' }}>Loading Memory...</div>
+      </div>
+      <style>{`@keyframes jarowe-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 }
 
 /* ── TakeoverRoute — registry-driven campaign page wrapper ─ *
@@ -141,9 +204,13 @@ function HolidayBodyClass({ disabled }) {
 /* ── AppContent — route-aware layout with chrome scoping ── */
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const takeover = useTakeoverState();
   const { pausePlayback } = useAudio();
   const prevReleaseRef = useRef(false);
+  const memorySceneId = location.pathname.startsWith('/memory/')
+    ? location.pathname.replace('/memory/', '').split('/')[0]
+    : null;
 
   // Determine if we're in a "release context":
   //   - On any /music/* path (preview/archived routes)
@@ -159,6 +226,11 @@ function AppContent() {
     location.pathname === '/artist' || location.pathname === '/epk';
   const isAliasRelease = isAliasPath && !!takeover.entry;
   const isReleaseContext = isReleaseRoute || isTakeoverHome || isAliasRelease;
+  const isStarseedRoute = location.pathname.startsWith('/starseed');
+  const isMemoryArchiveRoute = location.pathname.startsWith('/archive');
+  const isMemoryWorldLabRoute = location.pathname.startsWith('/starseed/labs/memory-worlds');
+  const isLabEmbed = new URLSearchParams(location.search).get('lab') === '1';
+  const hideSiteChrome = isLabEmbed || isMemoryWorldLabRoute;
 
   // Chrome rules — only apply when in release context
   const chrome = isReleaseContext ? takeover.chrome : {};
@@ -171,14 +243,101 @@ function AppContent() {
     prevReleaseRef.current = isReleaseContext;
   }, [isReleaseContext, pausePlayback]);
 
+  // Global View Transitions -- wraps all <Link> clicks with startViewTransition
+  useEffect(() => {
+    const cleanup = setupGlobalViewTransitions(navigate);
+    return cleanup;
+  }, [navigate]);
+
+  // Dynamic OG meta tags — update per route for SPA navigation
+  useEffect(() => {
+    const path = location.pathname;
+    const OG_BASE = 'https://jarowe.com';
+    const ogImageUrl = `${OG_BASE}/api/og?route=${encodeURIComponent(path)}`;
+
+    // Route-specific titles and descriptions
+    let title = 'jarowe.com | Living World';
+    let description = 'The most alive personal world on the internet';
+    if (path.startsWith('/constellation')) {
+      title = 'Constellation | jarowe.com';
+      description = 'Explore a 3D map of life moments';
+    } else if (path.startsWith('/starseed')) {
+      title = 'Starseed | jarowe.com';
+      description = 'Creative solutions & labs';
+    } else if (path.startsWith('/universe')) {
+      title = 'Universe | jarowe.com';
+      description = 'Explore the universe of ideas';
+    } else if (path.startsWith('/garden')) {
+      title = 'Garden | jarowe.com';
+      description = 'A growing collection of creative work';
+    } else if (path.startsWith('/now')) {
+      title = 'Now | jarowe.com';
+      description = 'What Jared is up to right now';
+    } else if (path.startsWith('/vault')) {
+      title = 'Vault | jarowe.com';
+      description = 'Unlock hidden rewards';
+    } else if (path.startsWith('/memory/')) {
+      const sceneSlug = path.split('/memory/')[1];
+      title = `Memory: ${sceneSlug.replace(/-/g, ' ')} | jarowe.com`;
+      description = 'Step into a volumetric memory -- a place that matters';
+    } else if (path.startsWith('/profile')) {
+      title = 'Profile | jarowe.com';
+      description = 'Your jarowe.com journey';
+    }
+
+    // Helper to set or create a meta tag
+    const setMeta = (attr, key, value) => {
+      let el = document.querySelector(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', value);
+    };
+
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:image', ogImageUrl);
+    setMeta('property', 'og:image:width', '1200');
+    setMeta('property', 'og:image:height', '630');
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'twitter:image', ogImageUrl);
+  }, [location.pathname]);
+
+  // Cmd+K / Ctrl+K opens command palette
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Global action listener for navigation (glint-action events)
+  useEffect(() => {
+    const handleGlintAction = (e) => {
+      const { action, params } = e.detail || {};
+      if (action === 'navigate' && params?.destination) {
+        navigate(params.destination);
+      }
+    };
+    window.addEventListener('glint-action', handleGlintAction);
+    return () => window.removeEventListener('glint-action', handleGlintAction);
+  }, [navigate]);
+
   return (
     <div className="app-container">
       <HolidayBodyClass disabled={!!(isReleaseContext && chrome.disableHolidayBodyFx)} />
 
       {/* Site chrome — hidden per campaign chrome rules */}
-      {!chrome.hideNavbar && <Navbar />}
-      {!chrome.hideGameOverlay && <GameOverlay />}
-      {!chrome.hideGlobalPlayer && <GlobalPlayer />}
+      {!hideSiteChrome && !chrome.hideNavbar && !isStarseedRoute && !isMemoryArchiveRoute && <Navbar />}
+      {!hideSiteChrome && !chrome.hideGameOverlay && !isMemoryArchiveRoute && <GameOverlay />}
+      {!hideSiteChrome && !chrome.hideGlobalPlayer && <GlobalPlayer />}
 
       <main className="main-content">
         <Routes>
@@ -238,6 +397,36 @@ function AppContent() {
           <Route path="/projects/beamy" element={<BeamyProject />} />
           <Route path="/projects/starseed" element={<StarseedProject />} />
           <Route path="/workshop" element={<Workshop />} />
+          <Route path="/starseed" element={
+            <Suspense fallback={<LazyFallback label="Loading Starseed..." />}>
+              <Starseed />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs" element={
+            <Suspense fallback={<LazyFallback label="Loading Labs..." />}>
+              <LabsHub />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/scratchpad" element={
+            <Suspense fallback={<LazyFallback label="Loading Scratchpad..." />}>
+              <Scratchpad />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/canvas" element={
+            <Suspense fallback={<LazyFallback label="Loading Canvas..." />}>
+              <LabsCanvas />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/memory-worlds" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
+            </Suspense>
+          } />
+          <Route path="/starseed/labs/memory-worlds/:sceneId" element={
+            <Suspense fallback={<LazyFallback label="Loading Memory World Lab..." />}>
+              <MemoryWorldLab />
+            </Suspense>
+          } />
           <Route path="/universe" element={
             <Suspense fallback={<LazyFallback label="Loading Universe..." />}>
               <UniversePage />
@@ -255,6 +444,21 @@ function AppContent() {
           <Route path="/constellation/:nodeId" element={
             <Suspense fallback={<LazyFallback label="Loading Constellation..." />}>
               <ConstellationPage />
+            </Suspense>
+          } />
+          <Route path="/memory/:sceneId" element={
+            <Suspense fallback={<MemoryRouteFallback sceneId={memorySceneId} />}>
+              <CapsuleShell />
+            </Suspense>
+          } />
+          <Route path="/archive" element={
+            <Suspense fallback={<MemoryRouteFallback sceneId="syros-cave" />}>
+              <MemoryArchiveScene />
+            </Suspense>
+          } />
+          <Route path="/archive/:sceneId" element={
+            <Suspense fallback={<MemoryRouteFallback sceneId={memorySceneId || 'syros-cave'} />}>
+              <MemoryArchiveScene />
             </Suspense>
           } />
           <Route path="/profile" element={
@@ -297,6 +501,9 @@ function AppContent() {
         </Routes>
       </main>
       <AuthModal />
+      <Suspense fallback={null}>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      </Suspense>
     </div>
   );
 }

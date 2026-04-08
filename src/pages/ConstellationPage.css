@@ -3,7 +3,33 @@
   height: 100vh;
   position: relative;
   overflow: hidden;
-  background: #050505;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(74, 118, 255, 0.08), transparent 42%),
+    radial-gradient(circle at 50% 60%, rgba(181, 97, 255, 0.06), transparent 52%),
+    #04050b;
+}
+
+.constellation-scene-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.8s ease, transform 1s ease;
+  pointer-events: none;
+}
+
+.constellation-scene-ui > * {
+  pointer-events: none;
+}
+
+.constellation-scene-ui--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.constellation-scene-ui--visible > * {
+  pointer-events: auto;
 }
 
 .constellation-loading {
@@ -12,10 +38,91 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.72);
   font-size: 1rem;
   pointer-events: none;
-  z-index: 1;
+  z-index: 40;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(8, 12, 24, 0.12), rgba(4, 6, 12, 0.72) 60%, rgba(2, 3, 7, 0.92) 100%);
+  transition: opacity 1.2s ease, backdrop-filter 1.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.constellation-loading--settling {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+
+.constellation-loading--error {
+  pointer-events: auto;
+}
+
+.constellation-loading__card {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.75rem 1.5rem;
+  border-radius: 22px;
+  background: rgba(7, 10, 18, 0.72);
+  border: 1px solid rgba(168, 200, 255, 0.16);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.constellation-loading__eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(168, 200, 255, 0.72);
+}
+
+.constellation-loading__ring {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(6, 10, 22, 0.96) 0 48%, transparent 49%),
+    conic-gradient(from 0deg, rgba(90, 149, 255, 0.12) 0deg, rgba(90, 149, 255, 0.12) 24deg, rgba(154, 99, 255, 0.72) var(--progress), rgba(255, 255, 255, 0.08) var(--progress));
+  box-shadow:
+    0 0 0 1px rgba(168, 200, 255, 0.08) inset,
+    0 0 28px rgba(99, 155, 255, 0.18);
+}
+
+.constellation-loading__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 1rem + 0.8vw, 1.7rem);
+  font-weight: 600;
+  color: rgba(248, 250, 255, 0.96);
+  letter-spacing: -0.02em;
+}
+
+.constellation-loading__status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(214, 224, 255, 0.68);
+}
+
+.constellation-loading__retry {
+  margin-top: 0.35rem;
+  padding: 0.72rem 1.1rem;
+  border: 1px solid rgba(168, 200, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(84, 123, 255, 0.12);
+  color: rgba(248, 250, 255, 0.92);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.constellation-loading__retry:hover {
+  background: rgba(84, 123, 255, 0.2);
+  border-color: rgba(168, 200, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 /* 2D layout */
@@ -122,4 +229,45 @@
   .constellation-2d-layout__content {
     /* Leave room for bottom-sheet panel if open */
   }
+}
+
+/* DOM-based hover label — replaces 3D Text to avoid WebGL context crashes */
+.constellation-hover-label {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  z-index: 100;
+  background: rgba(10, 10, 20, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 10px;
+  max-width: 280px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.constellation-hover-label__title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #f0f0f0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.constellation-hover-label__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.constellation-hover-label__date {
+  color: rgba(255, 255, 255, 0.45);
 }

@@ -1,0 +1,110 @@
+{
+  "id": "placeholder-scene",
+  "title": "A Place That Matters",
+  "subtitle": "Memory Lane",
+  "description": "A threshold memory held in motion and belonging, used as a connective place in the archive where one important world gives way to the next.",
+  "source": {
+    "type": "single-image",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": "mask.png",
+    "generator": "world-model",
+    "generated": "2026-03-26",
+    "generationMode": "single-image-world-model",
+    "worldModelPrompt": "Smiling bearded man with glasses in a tan jacket in a warm brick restaurant courtyard at night, preserve him clearly in the foreground, complete a fully explorable 360 patio with stair rail, glowing sconces, tables, greenery, and believable architecture, no duplicates, no voids, no floating fragments.",
+    "expansion": {
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model"
+    }
+  },
+  "world": {
+    "splat": "world/scene.runtime.ply",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ply",
+    "splatCount": 294912,
+    "sourceSplatCount": 16515072,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "provenance": {
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 1
+    }
+  },
+  "fallback": {
+    "type": "legacy-splat",
+    "splat": "data/memory-scene.splat"
+  },
+  "camera": {
+    "startPosition": [
+      0.35,
+      0.18,
+      7.2
+    ],
+    "startTarget": [
+      0,
+      0,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 90
+  },
+  "artDirection": {
+    "subjectCrop": [
+      0.22,
+      0.02,
+      0.6,
+      0.96
+    ]
+  },
+  "narrative": [
+    {
+      "threshold": 0.2,
+      "text": "Some places hold more than what you see."
+    },
+    {
+      "threshold": 0.5,
+      "text": "They hold the feeling of being exactly where you belong."
+    },
+    {
+      "threshold": 0.82,
+      "text": "This is one of those places."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "syros-cave",
+    "previous": null,
+    "anchors": []
+  }
+}

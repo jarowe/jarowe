@@ -1,0 +1,559 @@
+/* Animatable custom properties for prism border */
+@property --prism-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --reveal-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.today-rail {
+  grid-column: 1 / -1;
+  padding: 0;
+  margin-bottom: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.today-rail__inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Base card styling -- matches bento-cell hover exactly */
+.today-card {
+  background: rgba(15, 15, 18, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 28px;
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease;
+  cursor: default;
+}
+
+.today-card:hover {
+  transform: translateY(-5px) scale(1.01);
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(124, 58, 237, 0.3) !important;
+  z-index: 10;
+}
+
+/* Card 1: Today State -- highest contrast */
+.today-card--state {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 15, 18, 0.65);
+  box-shadow: 0 0 20px rgba(124, 58, 237, var(--tod-accent-glow-opacity, 0.15));
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.5s ease,
+              border-color 0.5s ease,
+              background 0.5s ease;
+}
+
+/* DAY card hover — matches the holiday banner colors, thin glass edge */
+.today-card--state:hover {
+  border-color: var(--day-accent, #a78bfa) !important;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 0 20px var(--day-glow, rgba(124, 58, 237, 0.12)) !important;
+}
+
+.today-card__date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.today-card__date-icon {
+  color: var(--tod-hero-accent, #a78bfa);
+}
+
+.today-card__holiday {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f0f0f0;
+}
+
+.today-card__emoji {
+  font-size: 1.1rem;
+}
+
+.today-card__greeting {
+  font-size: 0.85rem;
+  color: #9999a1;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Featured Constellation Moment */
+.today-card__moment {
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Blurred media preview — hidden until parent card hover */
+.today-card__moment-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px) saturate(0.6);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: 0;
+}
+
+.today-card__moment-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 10, 30, 0.75) 0%, rgba(15, 10, 30, 0.6) 100%);
+}
+
+.today-card:hover .today-card__moment-bg {
+  opacity: 1;
+}
+
+.today-card:hover .today-card__moment {
+  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(124, 58, 237, 0.1);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.1);
+}
+
+.today-card__moment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: #a78bfa;
+  position: relative;
+  z-index: 1;
+}
+
+.today-card__moment-title {
+  font-size: 0.85rem;
+  color: #e0e0e4;
+  line-height: 1.4;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+.today-card__moment-epoch {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  position: relative;
+  z-index: 1;
+}
+
+/* Explore CTA — special styling */
+.today-card__cta--explore {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(96, 165, 250, 0.08));
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: #c4b5fd;
+  transition: all 0.3s ease;
+}
+
+.today-card__cta--explore:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(96, 165, 250, 0.14));
+  border-color: rgba(124, 58, 237, 0.4);
+  color: #e0d4ff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15);
+  gap: 10px;
+}
+
+/* CTAs */
+.today-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tod-hero-accent, #a78bfa);
+  text-decoration: none;
+  margin-top: auto;
+  padding-top: 0.25rem;
+  transition: color 0.2s ease, gap 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+}
+
+.today-card__cta:hover {
+  gap: 10px;
+}
+
+.today-card__cta--secondary {
+  color: #a78bfa;
+}
+
+.today-card__cta--starseed {
+  color: #a78bfa;
+}
+
+/* Card 2: Glint */
+.today-card--glint {
+  background: rgba(124, 58, 237, 0.04);
+  border-color: rgba(124, 58, 237, 0.08);
+  position: relative;
+}
+
+/* Prism border — thin glass edge with rotating gradient */
+.today-card--glint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--prism-angle),
+    #ff6b6b, #ffa94d, #ffd43b, #69db7c, #4ecdc4, #74c0fc, #b197fc, #f783ac, #ff6b6b
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.today-card--glint-hovered::before {
+  opacity: 0.6;
+  transition: opacity 0.5s ease 0.3s;
+  animation: prism-sweep 3s linear 0.8s infinite;
+}
+
+/* Trim-path feathered sweep — draws border on, then fades out */
+.today-card--glint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--reveal-angle),
+    rgba(255, 255, 255, 0.85) 0deg,
+    rgba(200, 180, 255, 0.5) 25deg,
+    rgba(116, 192, 252, 0.25) 50deg,
+    transparent 70deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.today-card--glint-hovered::after {
+  animation: prism-reveal 0.8s ease-out forwards;
+}
+
+.today-card--glint-hovered {
+  border-color: transparent !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 12px rgba(167, 139, 250, 0.1) !important;
+}
+
+@keyframes prism-sweep {
+  to { --prism-angle: 360deg; }
+}
+
+@keyframes prism-reveal {
+  0%   { --reveal-angle: 0deg;   opacity: 1; }
+  80%  { --reveal-angle: 340deg; opacity: 0.6; }
+  100% { --reveal-angle: 360deg; opacity: 0; }
+}
+
+.today-card__glint-marker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* Journal scroll container — fixed height, clips like movie credits */
+.today-card__glint-journal-scroll {
+  height: calc(0.9rem * 1.5 * 3);
+  overflow: hidden;
+  position: relative;
+}
+
+.today-card__glint-line {
+  font-size: 0.9rem;
+  color: #ccc;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Static mode: line clamp for non-hovered state */
+.today-card__glint-line:not(.typing) {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Typing mode: free-flowing text, scrolls within container */
+.today-card__glint-line.typing {
+  display: block;
+}
+
+/* Blinking cursor */
+.today-card__glint-cursor {
+  color: #a78bfa;
+  font-weight: 300;
+  animation: cursor-blink 0.7s step-end infinite;
+  margin-left: 1px;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Diamond CTA element — idle breathing indicates Glint's presence */
+.today-card__diamond {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  background: linear-gradient(135deg, #a78bfa, #7c3aed, #c084fc);
+  transform: rotate(45deg);
+  border-radius: 2px;
+  flex-shrink: 0;
+  animation: diamond-idle 3s ease-in-out infinite;
+}
+
+@keyframes diamond-idle {
+  0%, 100% {
+    transform: rotate(45deg) scale(1);
+    filter: drop-shadow(0 0 2px rgba(167, 139, 250, 0.3));
+  }
+  50% {
+    transform: rotate(45deg) scale(1.08);
+    filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.5));
+  }
+}
+
+/* Hover: prismatic sparkle with color cycling */
+.today-card--glint-hovered .today-card__diamond {
+  animation: diamond-sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes diamond-sparkle {
+  0%, 100% {
+    transform: rotate(45deg) scale(1);
+    filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.6));
+    background: linear-gradient(135deg, #a78bfa, #7c3aed, #c084fc);
+  }
+  25% {
+    transform: rotate(45deg) scale(1.25);
+    filter: drop-shadow(0 0 8px rgba(255, 169, 77, 0.6));
+    background: linear-gradient(135deg, #ff6b6b, #ffa94d, #ffd43b);
+  }
+  50% {
+    transform: rotate(45deg) scale(1.1);
+    filter: drop-shadow(0 0 8px rgba(78, 205, 196, 0.6));
+    background: linear-gradient(135deg, #4ecdc4, #45b7d1, #74c0fc);
+  }
+  75% {
+    transform: rotate(45deg) scale(1.25);
+    filter: drop-shadow(0 0 8px rgba(247, 131, 172, 0.6));
+    background: linear-gradient(135deg, #b197fc, #f783ac, #ff6b6b);
+  }
+}
+
+/* Card 3: Creative Prompt */
+.today-card--prompt {
+  background: rgba(124, 58, 237, 0.03);
+  border-color: rgba(124, 58, 237, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover artwork background — fades in on hover */
+.today-card--prompt .today-card__artwork {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.today-card--prompt .today-card__artwork::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(15, 15, 18, 0.7) 0%, rgba(15, 15, 18, 0.85) 100%);
+}
+
+.today-card--prompt:hover .today-card__artwork {
+  opacity: 1;
+}
+
+.today-card--prompt > *:not(.today-card__artwork) {
+  position: relative;
+  z-index: 1;
+}
+
+.today-card__mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.today-card__mode-chip[data-mode="write"] {
+  background: rgba(14, 165, 233, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.15);
+}
+
+.today-card__mode-chip[data-mode="sketch"] {
+  background: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.15);
+}
+
+.today-card__mode-chip[data-mode="build"] {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.15);
+}
+
+.today-card__mode-chip[data-mode="dream"] {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.15);
+}
+
+.today-card__prompt-text {
+  font-size: 0.9rem;
+  color: #ddd;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .today-rail__inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .today-card--prompt {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .today-rail {
+    padding: 0 1rem;
+  }
+  .today-rail__inner {
+    grid-template-columns: 1fr;
+  }
+  .today-card--prompt {
+    grid-column: span 1;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .today-card {
+    transition: none;
+  }
+}
+
+/* Keyboard focus */
+.today-card__cta:focus-visible {
+  outline: 2px solid var(--tod-hero-accent, #a78bfa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* GlintFab (bottom-right diamond) reacts when Journal card is hovered */
+html.glint-journal-hovered .glint-fab {
+  animation: fab-journal-react 1s ease-in-out infinite !important;
+  border-color: rgba(167, 139, 250, 0.6) !important;
+}
+
+html.glint-journal-hovered .glint-fab .glint-fab-prism {
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.6))
+         drop-shadow(0 0 16px rgba(56, 189, 248, 0.3)) !important;
+}
+
+@keyframes fab-journal-react {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3), 0 0 40px rgba(167, 139, 250, 0.15);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.5), 0 0 50px rgba(167, 139, 250, 0.25);
+  }
+}
+
+/* Peek character also reacts if visible */
+html.glint-journal-hovered .peek-character {
+  animation: peek-journal-pulse 1.2s ease-in-out infinite !important;
+}
+
+@keyframes peek-journal-pulse {
+  0%, 100% {
+    filter: brightness(1.15) drop-shadow(0 0 8px rgba(167, 139, 250, 0.4));
+  }
+  50% {
+    filter: brightness(1.4) drop-shadow(0 0 16px rgba(167, 139, 250, 0.7));
+  }
+}

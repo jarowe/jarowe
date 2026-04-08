@@ -1,12 +1,29 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import gsap from 'gsap';
-import * as THREE from 'three';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
 
 const TUNNEL_FOV = 100;
 const HELIX_FOV = 60;
+
+function clearCameraOffset(camera) {
+  camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+
+function applyCameraOffset(camera, viewportWidth, viewportHeight, offsetX, offsetY) {
+  const x = Math.round(offsetX);
+  const y = Math.round(offsetY);
+
+  if (Math.abs(x) > 0.5 || Math.abs(y) > 0.5) {
+    camera.setViewOffset(viewportWidth, viewportHeight, x, y, viewportWidth, viewportHeight);
+  } else {
+    camera.clearViewOffset();
+  }
+
+  camera.updateProjectionMatrix();
+}
 
 /**
  * Camera controller for constellation scene.
@@ -18,7 +35,13 @@ const HELIX_FOV = 60;
  * - Auto-orbit pause/resume with idle timer and speed ramp
  * - Tunnel mode: camera inside the helix axis, looking forward
  */
-export default function CameraController({ controlsRef, positions, helixBounds }) {
+export default function CameraController({
+  controlsRef,
+  positions,
+  helixBounds,
+  introEnabled = false,
+  introRef = null,
+}) {
   const { camera } = useThree();
 
   // Store initial camera position on mount
@@ -37,8 +60,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // Tunnel smooth scroll velocity for momentum
   const tunnelVelocity = useRef(0);
 
+  // Helix timeline scroll velocity for smooth momentum
+  const helixScrollVelocity = useRef(0);
+
+  // Flag: true when tunnel useFrame is syncing timelinePosition (not user drag)
+  const tunnelSyncingRef = useRef(false);
+
   // Animated view offset proxy for panel shift
-  const viewOffsetProxy = useRef({ x: 0 });
+  const viewOffsetProxy = useRef({ x: 0, y: 0 });
 
   // Capture initial camera state on mount
   useEffect(() => {
@@ -57,20 +86,110 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     }
   }, [camera, controlsRef]);
 
-  // Helper: start auto-rotate ramp
-  const startAutoRotateRamp = (controls) => {
+  // Helper: start auto-rotate ramp — exponential ease-in for smooth feel
+  function startAutoRotateRamp(controls) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0;
+    if (rampInterval.current) clearInterval(rampInterval.current);
     rampInterval.current = setInterval(() => {
       const target = getCfg('autoRotateSpeed');
-      if (controls.autoRotateSpeed < target) {
-        controls.autoRotateSpeed += 0.015;
+      const diff = target - controls.autoRotateSpeed;
+      if (diff > 0.001) {
+        controls.autoRotateSpeed += diff * 0.04;
       } else {
         controls.autoRotateSpeed = target;
         clearInterval(rampInterval.current);
       }
-    }, 50);
-  };
+    }, 16);
+  }
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls || !introEnabled || !initialCameraPos.current || !initialTarget.current) {
+      return undefined;
+    }
+
+    if (flyTimeline.current) {
+      flyTimeline.current.kill();
+      flyTimeline.current = null;
+    }
+
+    isFlyingRef.current = true;
+    controls.enabled = false;
+    controls.autoRotate = false;
+    if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
+    if (rampInterval.current) clearInterval(rampInterval.current);
+
+    viewOffsetProxy.current.x = 0;
+    viewOffsetProxy.current.y = 0;
+    clearCameraOffset(camera);
+
+    const startCamera = {
+      x: initialCameraPos.current.x * 0.2,
+      y: initialCameraPos.current.y + 26,
+      z: Math.max(initialCameraPos.current.z + 240, 320),
+    };
+    const startTarget = {
+      x: initialTarget.current.x,
+      y: initialTarget.current.y + 12,
+      z: initialTarget.current.z,
+    };
+
+    camera.position.set(startCamera.x, startCamera.y, startCamera.z);
+    controls.target.set(startTarget.x, startTarget.y, startTarget.z);
+    camera.fov = 48;
+    camera.updateProjectionMatrix();
+    controls.update();
+
+    const tl = gsap.timeline({
+      onUpdate: () => controls.update(),
+      onComplete: () => {
+        isFlyingRef.current = false;
+        controls.enabled = true;
+        startAutoRotateRamp(controls);
+      },
+    });
+
+    tl.to(
+      camera.position,
+      {
+        x: initialCameraPos.current.x,
+        y: initialCameraPos.current.y,
+        z: initialCameraPos.current.z,
+        duration: 3.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+    tl.to(
+      controls.target,
+      {
+        x: initialTarget.current.x,
+        y: initialTarget.current.y,
+        z: initialTarget.current.z,
+        duration: 3.2,
+        ease: 'power2.inOut',
+      },
+      0
+    );
+    tl.to(
+      camera,
+      {
+        fov: HELIX_FOV,
+        duration: 2.8,
+        ease: 'power2.out',
+        onUpdate: () => camera.updateProjectionMatrix(),
+      },
+      0
+    );
+
+    flyTimeline.current = tl;
+
+    return () => {
+      tl.kill();
+      controls.enabled = true;
+    };
+  }, [camera, controlsRef, introEnabled]);
 
   // ---- Auto-orbit pause/resume ----
   useEffect(() => {
@@ -115,13 +234,13 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
   // ---- Tunnel mode transitions ----
   const cameraMode = useConstellationStore((s) => s.cameraMode);
-  const tunnelY = useConstellationStore((s) => s.tunnelY);
   const setTunnelY = useConstellationStore((s) => s.setTunnelY);
   const prevCameraMode = useRef('helix');
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls || !helixBounds) return;
+    if (introRef?.current?.active) return;
 
     if (cameraMode === 'tunnel' && prevCameraMode.current === 'helix') {
       // ---- ENTER TUNNEL ----
@@ -150,10 +269,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         },
       });
 
-      // Phase 1: fly to axis center (1s)
+      // Phase 1: fly to tunnel position (Z offset so helix nodes are visible)
+      const tunnelZ = getCfg('tunnelFocusDistance');
       tl.to(
         camera.position,
-        { x: 0, y: startY, z: 0, duration: 1, ease: 'power2.inOut' },
+        { x: 0, y: startY, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
         0
       );
       // Phase 2: look forward along axis
@@ -220,9 +340,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   }, [cameraMode, controlsRef, helixBounds, camera, setTunnelY]);
 
   // ---- Pre-compute sorted helix node list for scroll-to-next ----
+  // Only helix-tier nodes participate in scroll navigation;
+  // particles are focusable via deep-link/click but not scrollable
   const sortedHelixNodes = useMemo(() => {
     if (!positions || positions.length === 0) return [];
-    return [...positions].sort((a, b) => a.y - b.y);
+    return positions.filter((n) => n.tier !== 'particle').sort((a, b) => a.y - b.y);
   }, [positions]);
 
   // Debounce ref for scroll-to-next (prevent rapid-fire scrolling)
@@ -234,20 +356,14 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     if (!controls) return;
 
     const handleWheel = (e) => {
-      const state = useConstellationStore.getState();
-
-      // Tunnel mode: smooth gentle scroll along Y axis
-      if (state.cameraMode === 'tunnel') {
+      if (introRef?.current?.active) {
         e.preventDefault();
-        // Negate: scroll-down (deltaY>0) = move down (lower Y = older)
-        const impulse = -e.deltaY * 0.012;
-        tunnelVelocity.current += impulse;
-        // Clamp max velocity to prevent overshooting
-        tunnelVelocity.current = Math.max(-3, Math.min(3, tunnelVelocity.current));
         return;
       }
 
-      // Helix mode with focused node: scroll-to-next/prev node on the rail
+      const state = useConstellationStore.getState();
+
+      // Focused node in ANY mode: scroll steps to next/prev node on the rail
       if (state.focusedNodeId && sortedHelixNodes.length > 1) {
         e.preventDefault();
 
@@ -271,7 +387,31 @@ export default function CameraController({ controlsRef, positions, helixBounds }
         return;
       }
 
-      // No focus: let default orbit controls handle zoom
+      // Tunnel mode without focus: smooth scroll along Y axis
+      if (state.cameraMode === 'tunnel') {
+        e.preventDefault();
+        const impulse = -e.deltaY * 0.005;
+        tunnelVelocity.current += impulse;
+        tunnelVelocity.current = Math.max(-1.8, Math.min(1.8, tunnelVelocity.current));
+        return;
+      }
+
+      // No focus in helix mode: behavior depends on cursor position.
+      // Center zone (near helix) = scrub timeline. Edge zone = zoom.
+      const rect = controls.domElement.getBoundingClientRect();
+      const cx = (e.clientX - rect.left) / rect.width;  // 0-1 normalized
+      const cy = (e.clientY - rect.top) / rect.height;
+      const distFromCenter = Math.sqrt((cx - 0.5) ** 2 + (cy - 0.5) ** 2);
+      const isCenter = distFromCenter < 0.35;
+
+      if (isCenter) {
+        // Center zone: scrub timeline (scroll down = forward in time = higher Y)
+        e.preventDefault();
+        const impulse = (e.deltaY > 0 ? -1 : 1) * 0.008;
+        helixScrollVelocity.current += impulse;
+        helixScrollVelocity.current = Math.max(-0.06, Math.min(0.06, helixScrollVelocity.current));
+      }
+      // Edge zone: let OrbitControls handle zoom (don't preventDefault)
     };
 
     const canvas = controls.domElement;
@@ -289,6 +429,8 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   // ---- Keyboard navigation: tunnel + focused node stepping ----
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (introRef?.current?.active) return;
+
       const state = useConstellationStore.getState();
 
       // Tunnel mode: gentle Y movement
@@ -327,8 +469,11 @@ export default function CameraController({ controlsRef, positions, helixBounds }
 
   // ---- Smooth tunnel camera follow with momentum ----
   useFrame(() => {
-    const { cameraMode: mode } = useConstellationStore.getState();
-    if (mode !== 'tunnel' || isFlyingRef.current) return;
+    const { cameraMode: mode, focusedNodeId: tunnelFocused } = useConstellationStore.getState();
+    if (mode !== 'tunnel' || isFlyingRef.current || introRef?.current?.active) return;
+    // When a node is focused in tunnel, don't run the scroll loop —
+    // it calls controls.update() which overwrites the lookAt from the focus tween
+    if (tunnelFocused) return;
 
     const controls = controlsRef.current;
     if (!controls) return;
@@ -350,16 +495,50 @@ export default function CameraController({ controlsRef, positions, helixBounds }
     const targetY = useConstellationStore.getState().tunnelY;
     const lerpFactor = 0.08;
 
-    // Smoothly interpolate camera Y — always centered on axis
+    // Smoothly interpolate camera Y — Z offset from axis so nodes are visible
+    const tunnelZ = getCfg('tunnelFocusDistance');
     camera.position.x += (0 - camera.position.x) * lerpFactor;
     camera.position.y += (targetY - camera.position.y) * lerpFactor;
-    camera.position.z += (0 - camera.position.z) * lerpFactor;
+    camera.position.z += (tunnelZ - camera.position.z) * lerpFactor;
 
     controls.target.x += (0 - controls.target.x) * lerpFactor;
     controls.target.y += (targetY + 50 - controls.target.y) * lerpFactor;
-    controls.target.z += (0 - controls.target.z) * lerpFactor;
+    controls.target.z += (tunnelZ - controls.target.z) * lerpFactor;
 
     controls.update();
+
+    // Sync timeline scrubber with tunnel scroll position — but NOT
+    // while the user is dragging the slider (that would overwrite their input).
+    const { timelineDragging } = useConstellationStore.getState();
+    if (helixBounds && !timelineDragging) {
+      const range = helixBounds.maxY - helixBounds.minY;
+      if (range > 0) {
+        const normalized = (targetY - helixBounds.minY) / range;
+        tunnelSyncingRef.current = true;
+        useConstellationStore.getState().setTimelinePosition(
+          Math.max(0, Math.min(1, normalized))
+        );
+      }
+    }
+  });
+
+  // ---- Smooth helix scroll momentum ----
+  useFrame(() => {
+    const { cameraMode: mode, focusedNodeId: focused } = useConstellationStore.getState();
+    if (mode === 'tunnel' || focused || isFlyingRef.current || introRef?.current?.active) {
+      helixScrollVelocity.current = 0;
+      return;
+    }
+
+    if (Math.abs(helixScrollVelocity.current) > 0.0002) {
+      const state = useConstellationStore.getState();
+      const current = state.timelinePosition ?? 0.5;
+      const next = Math.max(0, Math.min(1, current + helixScrollVelocity.current));
+      state.setTimelinePosition(next);
+      helixScrollVelocity.current *= 0.93;
+    } else {
+      helixScrollVelocity.current = 0;
+    }
   });
 
   // ---- Fly-to on focusedNodeId change ----
@@ -368,6 +547,7 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (introRef?.current?.active) return;
 
     // Kill any running fly animation
     if (flyTimeline.current) {
@@ -392,10 +572,17 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
       if (rampInterval.current) clearInterval(rampInterval.current);
 
-      // Camera offset differs: tunnel pulls back wide, helix stays close
-      const dist = mode === 'tunnel' ? 80 : getCfg('focusDistance');
-      const yLift = mode === 'tunnel' ? 12 : getCfg('focusYLift');
-      const camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
+      // Camera positioning differs by mode:
+      // Tunnel: stay on axis, slide to node's Y, look outward at node
+      // Helix: fly to an offset position near the node
+      let camTarget;
+      if (mode === 'tunnel') {
+        camTarget = { x: 0, y: node.y, z: 0 };
+      } else {
+        const dist = getCfg('focusDistance');
+        const yLift = getCfg('focusYLift');
+        camTarget = { x: node.x + dist, y: node.y + yLift, z: node.z + dist };
+      }
 
       // Shorter duration for stepping between nodes, longer for first focus
       const prevNode = prevFocusRef.current;
@@ -403,29 +590,63 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       const duration = isStepping ? getCfg('flyToStepDuration') : getCfg('flyToDuration');
       const ease = isStepping ? 'power3.inOut' : 'power2.inOut';
 
-      // In tunnel mode: re-enable controls temporarily for the fly-out animation
+      // In tunnel mode: just slide along Y to the node's position.
+      // Keep looking straight down the tunnel — don't rotate toward the node.
+      // The node is visible in the tunnel's natural perspective; the StoryPanel
+      // provides the detail view.
       if (mode === 'tunnel') {
-        controls.enabled = true;
+        const tunnelZ = getCfg('tunnelFocusDistance');
+        const tl = gsap.timeline({
+          onUpdate: () => {
+            camera.lookAt(0, camera.position.y + 40, tunnelZ);
+          },
+          onComplete: () => {
+            isFlyingRef.current = false;
+            controls.target.set(0, node.y + 40, tunnelZ);
+          },
+        });
+        tl.to(
+          camera.position,
+          { x: 0, y: node.y, z: tunnelZ, duration, ease },
+          0
+        );
+        flyTimeline.current = tl;
+        prevFocusRef.current = focusedNodeId;
+        useConstellationStore.getState().setTunnelY(node.y);
+        return;
       }
 
       // ---- Shift frustum center so helix appears in the left viewport area ----
-      const isMobileView = window.innerWidth <= 768;
-      if (!isMobileView) {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const panelPx = Math.min(720, Math.max(380, vw * 0.48));
-        const targetOffsetX = panelPx / 2;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isMobileView = vw <= 768;
+      const panelEl = document.querySelector('.story-panel');
+      const panelRect = panelEl?.getBoundingClientRect();
+      const targetOffsetX = isMobileView
+        ? 0
+        : Math.min(
+            (panelRect?.width ?? Math.min(720, Math.max(380, vw * 0.48))) * 0.66,
+            Math.max(120, (vw - (panelRect?.width ?? 0)) * 0.58)
+          );
+      const targetOffsetY = isMobileView
+        ? Math.min((panelRect?.height ?? vh * 0.75) * 0.24, vh * 0.18)
+        : 0;
 
-        gsap.to(viewOffsetProxy.current, {
-          x: targetOffsetX,
-          duration: duration * 0.8,
-          ease,
-          onUpdate: () => {
-            camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
-            camera.updateProjectionMatrix();
-          },
-        });
-      }
+      gsap.to(viewOffsetProxy.current, {
+        x: targetOffsetX,
+        y: targetOffsetY,
+        duration: duration * 0.8,
+        ease,
+        onUpdate: () => {
+          applyCameraOffset(
+            camera,
+            vw,
+            vh,
+            viewOffsetProxy.current.x,
+            viewOffsetProxy.current.y
+          );
+        },
+      });
 
       // In tunnel mode: contract FOV back to normal for the pulled-back view
       if (mode === 'tunnel') {
@@ -468,57 +689,60 @@ export default function CameraController({ controlsRef, positions, helixBounds }
       // Animate view offset back to center
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      if (viewOffsetProxy.current.x > 0) {
+      if (Math.abs(viewOffsetProxy.current.x) > 0.5 || Math.abs(viewOffsetProxy.current.y) > 0.5) {
         gsap.to(viewOffsetProxy.current, {
           x: 0,
+          y: 0,
           duration: 0.8,
           ease: 'power2.inOut',
           onUpdate: () => {
-            if (viewOffsetProxy.current.x > 0.5) {
-              camera.setViewOffset(vw, vh, viewOffsetProxy.current.x, 0, vw, vh);
-            } else {
-              camera.clearViewOffset();
-            }
-            camera.updateProjectionMatrix();
+            applyCameraOffset(
+              camera,
+              vw,
+              vh,
+              viewOffsetProxy.current.x,
+              viewOffsetProxy.current.y
+            );
           },
           onComplete: () => {
-            camera.clearViewOffset();
-            camera.updateProjectionMatrix();
+            clearCameraOffset(camera);
           },
         });
       }
 
       if (mode === 'tunnel') {
-        // Fly back into the tunnel axis, restore wide FOV, disable controls
+        // Fly back into the tunnel using lookAt proxy (not controls.update)
         isFlyingRef.current = true;
         const currentY = useConstellationStore.getState().tunnelY;
+        const tunnelZ = getCfg('tunnelFocusDistance');
+        const lookProxy = {
+          x: controls.target.x,
+          y: controls.target.y,
+          z: controls.target.z,
+        };
 
         const tl = gsap.timeline({
-          onUpdate: () => controls.update(),
+          onUpdate: () => {
+            camera.lookAt(lookProxy.x, lookProxy.y, lookProxy.z);
+          },
           onComplete: () => {
             isFlyingRef.current = false;
+            controls.target.set(0, currentY + 50, tunnelZ);
             controls.enabled = false;
             controls.autoRotate = false;
           },
         });
 
-        // Fly camera back to axis center
         tl.to(
           camera.position,
-          { x: 0, y: currentY, z: 0, duration: 1, ease: 'power2.inOut' },
+          { x: 0, y: currentY, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
           0
         );
-        // Look forward along axis
         tl.to(
-          controls.target,
-          { x: 0, y: currentY + 50, z: 0, duration: 1, ease: 'power2.inOut' },
+          lookProxy,
+          { x: 0, y: currentY + 50, z: tunnelZ, duration: 1, ease: 'power2.inOut' },
           0
         );
-        // Restore wide FOV
-        tl.to(camera, {
-          fov: TUNNEL_FOV, duration: 0.5, ease: 'power2.out',
-          onUpdate: () => camera.updateProjectionMatrix(),
-        }, 0.3);
 
         flyTimeline.current = tl;
         return;
@@ -564,58 +788,73 @@ export default function CameraController({ controlsRef, positions, helixBounds }
   }, [focusedNodeId, positions, camera, controlsRef]);
 
   // ---- Timeline-driven camera ----
+  // Uses smooth lerp for scroll-driven changes, GSAP for click-driven scrubber.
+  // Only activates when timelinePosition actually changes (not every frame).
   const timelinePosition = useConstellationStore((s) => s.timelinePosition);
   const prevTimelineRef = useRef(0);
 
   useEffect(() => {
-    // Skip initial render and tiny changes
     if (Math.abs(timelinePosition - prevTimelineRef.current) < 0.001) return;
     prevTimelineRef.current = timelinePosition;
 
     const controls = controlsRef.current;
     if (!controls || !helixBounds) return;
+    if (introRef?.current?.active || isFlyingRef.current) return;
 
-    // Don't override focus fly-to
     const { focusedNodeId: currentFocus, cameraMode: mode } = useConstellationStore.getState();
-    if (currentFocus) return;
+    // In helix mode, don't move camera while focused (panel is open).
+    // In tunnel mode, allow slider drag to move the tunnel even when focused.
+    if (currentFocus && mode !== 'tunnel') return;
 
+    // Allow 15% overshoot beyond helix bounds so edges don't feel clamped
+    const range = helixBounds.maxY - helixBounds.minY;
+    const padding = range * 0.15;
     const mappedY =
-      helixBounds.minY + timelinePosition * (helixBounds.maxY - helixBounds.minY);
+      (helixBounds.minY - padding) + timelinePosition * (range + padding * 2);
 
     if (mode === 'tunnel') {
-      // In tunnel mode: timeline directly maps to tunnelY
+      if (tunnelSyncingRef.current) {
+        // This update came from the tunnel scroll sync — skip to avoid feedback loop.
+        tunnelSyncingRef.current = false;
+        return;
+      }
+      // User interaction (slider drag or epoch click) — move the tunnel camera.
       useConstellationStore.getState().setTunnelY(mappedY);
+      // Also clear any focused node so the tunnel scroll useFrame resumes
+      if (currentFocus) {
+        useConstellationStore.getState().clearFocus();
+      }
       return;
     }
 
-    // Pause auto-rotate during timeline scrub
+    // Pause auto-rotate during scrub
     controls.autoRotate = false;
     if (autoRotateTimer.current) clearTimeout(autoRotateTimer.current);
 
+    // Zoom in closer when actively scrubbing (70% of landing distance)
+    const scrubZ = (initialCameraPos.current?.z ?? 110) * 0.7;
+
     gsap.to(camera.position, {
-      x: 0,
       y: mappedY,
-      z: 110,
-      duration: 0.3,
-      ease: 'power2.out',
+      z: scrubZ,
+      duration: 0.25,
+      ease: 'power3.out',
+      overwrite: true,
       onUpdate: () => controls.update(),
     });
     gsap.to(controls.target, {
-      x: 0,
       y: mappedY,
-      z: 0,
-      duration: 0.3,
-      ease: 'power2.out',
+      duration: 0.25,
+      ease: 'power3.out',
+      overwrite: true,
     });
 
     // Resume auto-rotate after scrub settles
     autoRotateTimer.current = setTimeout(() => {
       const { focusedNodeId: f } = useConstellationStore.getState();
-      if (!f) {
-        startAutoRotateRamp(controls);
-      }
+      if (!f) startAutoRotateRamp(controls);
     }, 2000);
-  }, [timelinePosition, camera, controlsRef, helixBounds]);
+  }, [timelinePosition, camera, controlsRef, helixBounds, introRef]);
 
   return null;
 }

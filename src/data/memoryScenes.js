@@ -1,0 +1,576 @@
+/**
+ * Memory Capsule — Scene Registry
+ *
+ * Each entry describes a memory capsule: its rendering mode, asset paths,
+ * narrative text, soundtrack, and camera placement.
+ *
+ * renderMode determines which renderer CapsuleShell routes to:
+ *   'particle-memory' → ParticleFieldRenderer (photo + depth → luminous 3D particle field)
+ *   'displaced-mesh'  → DisplacedMeshRenderer (photo + depth map → 3D mesh)
+ *   'splat'           → SplatRenderer (gaussian splats)
+ *   'parallax'        → ParallaxFallback (CSS parallax + Ken Burns)
+ *
+ * particleConfig: { gridParticleCount, edgeBoostEnabled, edgeBoostCount, sobelThreshold,
+ *   breathSpeed, breathAmplitude, baseSize, sizeVariation, maxSize, depthScale, scatteredRadius } | null
+ *
+ * cameraKeyframes: Array<{ position: {x,y,z}, target: {x,y,z}, duration: number (sec),
+ *   ease: string (GSAP ease), hold: number (sec pause at this beat) }> | null
+ * mood: 'warm' | 'cool' | 'golden' | null — color grading preset (Phase 11 CINE-04)
+ * samMaskUrl: string | null — SAM-generated binary mask PNG (white=foreground, black=background)
+ * layerSeparation: { foregroundDepthScale, backgroundDepthScale, foregroundDriftSpeed, backgroundDriftSpeed } | null
+ * arc: { awakeningDuration, awakeningEase, awakeningDelay, recessionDuration, recessionEase, recessionDelay, recessionFadeColor } | null
+ * portalEntry: boolean — whether the scene supports portal entry/exit transitions
+ * flightPath: { keypoints: Array<{x,y,z}>, lookAtKeypoints: Array<{x,y,z}>, fovRange: [number,number] } | null — scroll-driven CatmullRom spline (Phase 15)
+ * narrativeThresholds: Array<{ progress: number, text: string }> | null — progress-based card triggers (Phase 15, replaces time-based delays)
+ */
+
+const scenes = [
+  {
+    id: 'placeholder-scene',
+    title: 'A Place That Matters',
+    location: 'Memory Lane',
+    coordinates: { lat: 0, lng: 0 },
+    renderMode: 'world-memory',
+    // Splat fields
+    splatUrl: null,
+    splatIsRemote: false,
+    // Displaced mesh fields (null for splat scenes)
+    photoUrl: 'memory/placeholder-scene/photo.jpg',
+    depthMapUrl: null,
+    depthConfig: null,
+    // Shared fields
+    previewImage: 'memory/placeholder-scene/photo.jpg',
+    soundtrack: null,
+    narrative: [
+      { text: 'Some places hold more than what you see.', delay: 2000 },
+      {
+        text: 'They hold the feeling of being exactly where you belong.',
+        delay: 6000,
+      },
+      { text: 'This is one of those places.', delay: 11000 },
+    ],
+    // Camera for train scene — slightly elevated, looking along tracks
+    cameraPosition: { x: 0.35, y: 0.18, z: 7.2 },
+    cameraTarget: { x: 0, y: 0, z: 0 },
+    mood: 'cool',
+    cameraKeyframes: null, // splat scenes use their own camera controls
+    // SAM layer separation (not used for splat scenes)
+    samMaskUrl: null,
+    layerSeparation: null,
+    // Experience arc (not used for splat scenes)
+    arc: null,
+    portalEntry: true,
+    particleConfig: null,
+    archiveNode: {
+      cluster: 'thresholds',
+      themes: ['arrival', 'belonging', 'transit'],
+      emotionalTone: 'reflective',
+      nextMemoryIds: ['syros-cave'],
+      previousMemoryIds: ['naxos-laugh'],
+      travelAnchors: {
+        focus: { x: 0, y: 0, z: 0 },
+        depart: { x: 0.12, y: 0.08, z: -1.3 },
+      },
+      narration: {
+        arrival: 'Some places wait for years before they let you back inside them.',
+        explore: 'This one still hums with the ache of becoming.',
+        departure: 'Follow the thread. Another memory is already pulling at the edge of the light.',
+        connective: 'Every place that mattered left a filament behind.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
+  },
+  {
+    id: 'test-capsule',
+    title: 'Test Memory',
+    location: 'Development',
+    coordinates: { lat: 0, lng: 0 },
+    renderMode: 'world-memory',
+    // Displaced mesh fields
+    photoUrl: 'memory/test-capsule/photo.png',
+    depthMapUrl: 'memory/test-capsule/depth.png',
+    depthConfig: {
+      depthScale: 2.0,
+      depthBias: 0.0,
+      depthContrast: 1.0,
+      discardThreshold: 0.15,
+    },
+    // Splat fields (null for displaced-mesh scenes)
+    splatUrl: null,
+    splatIsRemote: false,
+    // Shared fields
+    previewImage: 'memory/test-capsule/preview.jpg',
+    soundtrack: 'memory/test-capsule/soundtrack.mp3',
+    narrative: [
+      {
+        // Card 1: Place — where are we? (appears after awakening, synced to camera beat 2)
+        text: 'The light here is different. It moves like it remembers something too.',
+        delay: 2000,
+      },
+      {
+        // Card 2: Feeling — what does it feel like? (synced to camera beat 3)
+        text: 'Everything slowed down. The boys running ahead, Maria beside me. We were exactly where we were supposed to be.',
+        delay: 6000,
+      },
+      {
+        // Card 3: Meaning — why does it matter? (synced to camera pull-back)
+        text: 'You spend your whole life building toward something. And then one afternoon, you realize you already have it.',
+        delay: 11000,
+      },
+      {
+        // Card 4: Gratitude — the final thought before recession
+        text: 'This is what I want to remember.',
+        delay: 16000,
+      },
+    ],
+    cameraPosition: { x: 0, y: 0, z: 3 },
+    cameraTarget: { x: 0, y: 0, z: 0 },
+    mood: 'warm',
+    // SAM layer separation (ARC-02) — foreground at different depth rhythm than background
+    samMaskUrl: 'memory/test-capsule/mask.png',
+    layerSeparation: {
+      foregroundDepthScale: 1.2,   // foreground displaced at 1.2x depthScale
+      backgroundDepthScale: 0.8,   // background at 0.8x — "looking through a window"
+      foregroundDriftSpeed: 1.0,    // relative drift speed for foreground
+      backgroundDriftSpeed: 0.6,    // slower drift for background — different emotional rhythm
+    },
+    // Experience arc timing (ARC-01, ARC-03)
+    arc: {
+      awakeningDuration: 3.5,       // seconds for depthScale 0→1 (ARC-01)
+      awakeningEase: 'power2.out',  // soft organic ease — "something being remembered"
+      awakeningDelay: 0.5,          // brief pause before depth starts
+      recessionDuration: 3.0,       // seconds for depthScale 1→0 (ARC-03)
+      recessionEase: 'power2.in',   // gentle fade out
+      recessionDelay: 20,           // seconds after mount before recession begins
+      recessionFadeColor: [1.0, 0.98, 0.95], // warm white fade target
+    },
+    cameraKeyframes: [
+      {
+        // Beat 1: Awakening hold — camera still while depth wakes up
+        position: { x: 0, y: 0, z: 3 },
+        target: { x: 0, y: 0, z: 0 },
+        duration: 2,
+        ease: 'power1.out',
+        hold: 0,
+      },
+      {
+        // Beat 2: Slow drift right — card 1 visible at 2s
+        position: { x: 0.4, y: 0.1, z: 2.6 },
+        target: { x: 0.1, y: 0, z: 0 },
+        duration: 4,
+        ease: 'power2.inOut',
+        hold: 0,
+      },
+      {
+        // Beat 3: Gentle pull back + slight rise — card 2 visible at 6s
+        position: { x: -0.2, y: 0.2, z: 2.8 },
+        target: { x: -0.05, y: 0.05, z: 0 },
+        duration: 5,
+        ease: 'sine.inOut',
+        hold: 2,
+      },
+      {
+        // Beat 4: Final settling — card 3 at 11s, card 4 at 16s, then recession
+        position: { x: 0.1, y: 0.05, z: 2.9 },
+        target: { x: 0, y: 0, z: 0 },
+        duration: 4,
+        ease: 'power1.inOut',
+        hold: 3,
+      },
+    ],
+    portalEntry: true,  // supports full portal entry → awakening → recession → portal exit
+    particleConfig: null,
+    archiveNode: {
+      cluster: 'family-chapters',
+      themes: ['family', 'gratitude', 'becoming'],
+      emotionalTone: 'tender',
+      nextMemoryIds: [],
+      previousMemoryIds: [],
+      travelAnchors: {
+        focus: { x: 0, y: 0.08, z: 0 },
+        depart: { x: 0.3, y: 0.18, z: -1.4 },
+      },
+      narration: {
+        arrival: 'Some memories do not ask to be viewed. They ask to be inhabited.',
+        explore: 'This one slows the blood down enough to hear what mattered.',
+        departure: 'There is another chamber past this one. Keep going.',
+        connective: 'The archive is not a shelf. It is a living sequence.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
+  },
+  {
+    id: 'naxos-rock',
+    title: 'Live A Little',
+    location: 'Naxos, Greece — May 2024',
+    coordinates: { lat: null, lng: null },
+    renderMode: 'world-memory',
+    photoUrl: 'memory/naxos-rock/photo.jpg',
+    depthMapUrl: null,
+    depthConfig: null,
+    splatUrl: null,
+    splatIsRemote: false,
+    previewImage: 'memory/naxos-rock/photo.jpg',
+    soundtrack: null,
+    narrative: [
+      {
+        text: 'A boy sits on a perfectly placed rock in a perfectly placed world.',
+        delay: 2000,
+      },
+      {
+        text: 'The sea keeps moving. He stays still long enough for the whole shore to become a thought.',
+        delay: 7000,
+      },
+      {
+        text: 'Sometimes a life changes because someone finally decides to live a little.',
+        delay: 12500,
+      },
+    ],
+    cameraPosition: { x: 0.45, y: 0.16, z: 7.1 },
+    cameraTarget: { x: 0, y: 0.04, z: 0 },
+    mood: 'golden',
+    cameraKeyframes: null,
+    samMaskUrl: null,
+    layerSeparation: null,
+    arc: null,
+    portalEntry: true,
+    particleConfig: null,
+    archiveNode: {
+      cluster: 'naxos-live-a-little',
+      themes: ['family', 'poetry', 'becoming', 'shoreline'],
+      emotionalTone: 'contemplative',
+      nextMemoryIds: ['naxos-laugh'],
+      previousMemoryIds: ['syros-cave'],
+      travelAnchors: {
+        focus: { x: 0, y: 0.04, z: 0 },
+        depart: { x: 0.14, y: 0.12, z: -1.45 },
+      },
+      narration: {
+        arrival: 'He was still enough for the whole shoreline to sound like a thought forming.',
+        explore: 'This is the part of the story where a child becomes a witness to his own life.',
+        departure: 'Stay with him a little longer. The next memory is hiding in the turn of his face.',
+        connective: 'Some memories arrive as scenes. Others arrive as a line of poetry.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
+  },
+  {
+    id: 'naxos-laugh',
+    title: 'Before The Days Go By',
+    location: 'Naxos, Greece — May 2024',
+    coordinates: { lat: null, lng: null },
+    renderMode: 'world-memory',
+    photoUrl: 'memory/naxos-laugh/photo.jpg',
+    depthMapUrl: null,
+    depthConfig: null,
+    splatUrl: null,
+    splatIsRemote: false,
+    previewImage: 'memory/naxos-laugh/photo.jpg',
+    soundtrack: null,
+    narrative: [
+      {
+        text: 'Then he turns, laughing, as if the answer had already been there in the light.',
+        delay: 2000,
+      },
+      {
+        text: 'Years do pass. Joy is what keeps them from disappearing without a trace.',
+        delay: 7000,
+      },
+      {
+        text: 'Every time I come back here, I hear the poem again from inside the moment that made it.',
+        delay: 12500,
+      },
+    ],
+    cameraPosition: { x: 0.28, y: 0.1, z: 6.4 },
+    cameraTarget: { x: 0, y: 0.02, z: 0 },
+    mood: 'golden',
+    cameraKeyframes: null,
+    samMaskUrl: null,
+    layerSeparation: null,
+    arc: null,
+    portalEntry: true,
+    particleConfig: null,
+    archiveNode: {
+      cluster: 'naxos-live-a-little',
+      themes: ['family', 'joy', 'poetry', 'becoming'],
+      emotionalTone: 'radiant',
+      nextMemoryIds: ['placeholder-scene'],
+      previousMemoryIds: ['naxos-rock'],
+      travelAnchors: {
+        focus: { x: 0, y: 0.02, z: 0 },
+        depart: { x: 0.08, y: 0.1, z: -1.1 },
+      },
+      narration: {
+        arrival: 'The archive changes when a face turns back toward you with that much light in it.',
+        explore: 'This is what it means for a life to stop being documentation and become memory.',
+        departure: 'The laughter clears and the thread keeps pulling. Follow it.',
+        connective: 'One memory breathes the next into existence.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
+  },
+  {
+    id: 'syros-cave',
+    title: 'The Cave at the Edge',
+    location: 'Syros, Greece — May 2024',
+    coordinates: { lat: 37.444, lng: 24.942 },
+    renderMode: 'world-memory',
+    // Displaced mesh fields
+    photoUrl: 'memory/syros-cave/photo.webp',
+    depthMapUrl: 'memory/syros-cave/depth.png',
+    depthConfig: {
+      depthScale: 0.32,
+      depthBias: -0.04,
+      depthContrast: 0.76,
+      discardThreshold: 0.07,
+    },
+    // Splat fields (null for displaced-mesh scenes)
+    splatUrl: null,
+    splatIsRemote: false,
+    // Shared fields
+    previewImage: 'memory/syros-cave/preview.jpg',
+    soundtrack: null, // TODO: add soundtrack when available
+    narrative: [
+      {
+        // Card 1: Place — the cave itself
+        text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
+        delay: 2000,
+        threshold: 0.15, // progress-based trigger for particle-memory flight
+      },
+      {
+        // Card 2: Feeling — what it was like to stand there
+        text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
+        delay: 6000,
+        threshold: 0.40,
+      },
+      {
+        // Card 3: Meaning — why this place matters
+        text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
+        delay: 11000,
+        threshold: 0.65,
+      },
+      {
+        // Card 4: Gratitude — the final thought
+        text: 'I found joy here.',
+        delay: 16000,
+        threshold: 0.85,
+      },
+    ],
+    cameraPosition: { x: 0, y: 0.18, z: 3.4 },
+    cameraTarget: { x: 0, y: 0.08, z: 0 },
+    mood: 'warm',
+    // SAM layer separation — cave frame vs sea/sky
+    samMaskUrl: 'memory/syros-cave/mask.png',
+    layerSeparation: {
+      foregroundDepthScale: 0.6,   // near structure breathes, not lunges
+      backgroundDepthScale: 0.2,   // background stays anchored and calm
+      foregroundDriftSpeed: 0.8,
+      backgroundDriftSpeed: 0.5,
+    },
+    // Experience arc
+    arc: {
+      awakeningDuration: 3.5,
+      awakeningEase: 'power2.out',
+      awakeningDelay: 0.5,
+      recessionDuration: 3.0,
+      recessionEase: 'power2.in',
+      recessionDelay: 22,           // slightly longer — let the cave breathe
+      recessionFadeColor: [1.0, 0.98, 0.95],
+    },
+    cameraKeyframes: [
+      {
+        // Beat 1: Awakening hold — still while the cave depth emerges
+        position: { x: 0, y: 0.18, z: 3.4 },
+        target: { x: 0, y: 0.08, z: 0 },
+        duration: 2,
+        ease: 'power1.out',
+        hold: 0,
+      },
+      {
+        // Beat 2: Slow drift toward the bell — card 1 appears
+        position: { x: -0.12, y: 0.14, z: 3.0 },
+        target: { x: -0.03, y: 0.04, z: 0 },
+        duration: 4,
+        ease: 'power2.inOut',
+        hold: 0,
+      },
+      {
+        // Beat 3: Gentle rise to see more of the sea through the opening — card 2
+        position: { x: 0.1, y: 0.28, z: 3.05 },
+        target: { x: 0.03, y: 0.08, z: 0 },
+        duration: 5,
+        ease: 'sine.inOut',
+        hold: 2,
+      },
+      {
+        // Beat 4: Settle back center — card 3 at 11s, card 4 at 16s, then recession
+        position: { x: 0, y: 0.2, z: 3.2 },
+        target: { x: 0, y: 0.08, z: 0 },
+        duration: 4,
+        ease: 'power1.inOut',
+        hold: 3,
+      },
+    ],
+    portalEntry: true,
+    particleConfig: {
+      // Sampling
+      gridParticleCount: 80000,        // base grid particles
+      edgeBoostEnabled: true,          // Sobel edge detection boost
+      edgeBoostCount: 70000,           // max extra particles from edge boost
+      sobelThreshold: 40,              // gradient magnitude threshold (0-255)
+      // Breathing
+      breathSpeed: 0.4,                // wave speed multiplier
+      breathAmplitude: 0.015,          // z-displacement amplitude
+      // Size
+      baseSize: 2.5,                   // base gl_PointSize
+      sizeVariation: 1.5,              // luminance+depth size range
+      maxSize: 25.0,                   // gl_PointSize clamp max
+      // Depth
+      depthScale: 0.35,                // z-displacement from depth
+      // Scattered (Phase 16 pre-allocation)
+      scatteredRadius: 3.5,            // spherical scatter radius
+    },
+    // Flight path — scroll-driven CatmullRom spline through the particle field (Phase 15)
+    flightPath: {
+      // 6 keypoints defining the camera's journey through the cave memory
+      keypoints: [
+        { x: 0, y: 0.2, z: 4.5 },       // 1. Outside — looking at the field from a distance
+        { x: -0.15, y: 0.22, z: 3.2 },   // 2. Approach — drifting toward the cave mouth
+        { x: -0.08, y: 0.18, z: 2.0 },   // 3. Surface — sweeping past the cave entrance
+        { x: 0.05, y: 0.12, z: 0.8 },    // 4. Interior — diving through the particle field
+        { x: 0.12, y: 0.2, z: -0.3 },    // 5. Deepest — emerging on the other side
+        { x: 0, y: 0.25, z: -1.0 },      // 6. Settled — resting beyond, looking back
+      ],
+      // Corresponding look-at targets — what the camera gazes at along the path
+      lookAtKeypoints: [
+        { x: 0, y: 0.08, z: 0.5 },       // 1. Center of the field
+        { x: -0.05, y: 0.08, z: 0.3 },   // 2. Slightly left toward bell
+        { x: 0, y: 0.06, z: -0.2 },      // 3. Through the cave opening
+        { x: 0.02, y: 0.04, z: -0.8 },   // 4. Into the depth
+        { x: 0, y: 0.1, z: -1.5 },       // 5. Beyond
+        { x: 0, y: 0.15, z: -2.0 },      // 6. Far horizon
+      ],
+      // FOV range: [start, minimum at deepest point]
+      fovRange: [50, 40],
+    },
+    // Progress-threshold narrative cards (replaces time-based delays for flight mode)
+    narrativeThresholds: [
+      {
+        progress: 0.15,
+        text: 'The sound of water against stone. A bell that hasn\u2019t rung in years.',
+      },
+      {
+        progress: 0.40,
+        text: 'I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still.',
+      },
+      {
+        progress: 0.65,
+        text: 'You spend your life looking for the door between who you are and who you\u2019re becoming. Sometimes it\u2019s carved from rock.',
+      },
+      {
+        progress: 0.85,
+        text: 'I found joy here.',
+      },
+    ],
+    // Soundscape configuration — three-layer ambient mix (Phase 17)
+    soundscape: {
+      masterVolume: 0.8,
+      masterFadeIn: 2000,
+      masterFadeOut: 3000,
+      layers: [
+        {
+          id: 'drone',
+          label: 'Cave Ambience',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drone.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drone.wav`],
+          volume: 0.5,
+          loop: true,
+          fadeIn: 3000,
+          fadeOut: 4000,
+          delay: 0,
+        },
+        {
+          id: 'texture',
+          label: 'Water Lapping',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-water.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-water.wav`],
+          volume: 0.35,
+          loop: true,
+          fadeIn: 4000,
+          fadeOut: 3000,
+          delay: 1000,
+        },
+        {
+          id: 'detail',
+          label: 'Cave Drips',
+          src: [`${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drips.mp3`, `${import.meta.env.BASE_URL}audio/soundscapes/syros-cave-drips.wav`],
+          volume: 0.2,
+          loop: true,
+          fadeIn: 5000,
+          fadeOut: 2000,
+          delay: 2500,
+        },
+      ],
+    },
+    archiveNode: {
+      cluster: 'greece-worldschooling',
+      themes: ['family', 'threshold', 'wonder', 'becoming'],
+      emotionalTone: 'awe',
+      nextMemoryIds: ['naxos-rock'],
+      previousMemoryIds: [],
+      travelAnchors: {
+        focus: { x: 0, y: 0.08, z: 0 },
+        depart: { x: 0.18, y: 0.24, z: -1.8 },
+      },
+      narration: {
+        arrival: 'The cave held that strange kind of silence that feels older than language.',
+        explore: 'Rock, bell, sea, family, light. The whole chapter folds inward right here.',
+        departure: 'The archive does not end at the edge of this cave. Another memory is already forming in the current.',
+        connective: 'Every memory that survives becomes a doorway to the next.',
+      },
+      voiceProfile: 'jared-archive-v1',
+    },
+  },
+];
+
+export function getSceneById(id) {
+  return scenes.find((s) => s.id === id) || scenes[0];
+}
+
+export function getArchiveScenes() {
+  return scenes.filter((scene) => scene.archiveNode);
+}
+
+export function getDefaultArchiveSceneId() {
+  return 'syros-cave';
+}
+
+export function getSceneNeighbors(id) {
+  const scene = getSceneById(id);
+  const node = scene.archiveNode || {};
+
+  return {
+    nextScenes: (node.nextMemoryIds || []).map((sceneId) => getSceneById(sceneId)),
+    previousScenes: (node.previousMemoryIds || []).map((sceneId) => getSceneById(sceneId)),
+  };
+}
+
+export function getPreferredNeighborSceneId(id, direction = 'next') {
+  const scene = getSceneById(id);
+  const node = scene.archiveNode || {};
+  const ids = direction === 'previous' ? node.previousMemoryIds : node.nextMemoryIds;
+  return ids?.[0] || null;
+}
+
+/**
+ * Returns default depth configuration for displaced-mesh scenes.
+ * Used as a starting point when creating new scene entries.
+ */
+export function getDefaultDepthConfig() {
+  return {
+    depthScale: 2.0,
+    depthBias: 0.0,
+    depthContrast: 1.0,
+    discardThreshold: 0.15,
+  };
+}
+
+export default scenes;

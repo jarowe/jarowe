@@ -1,0 +1,15 @@
+{
+  "personIndex": 0,
+  "detectedPeople": 1,
+  "bbox": [
+    454.0,
+    315.0,
+    672.0,
+    560.0
+  ],
+  "focalLength": 1394.3031005859375,
+  "vertexCount": 18439,
+  "faceCount": 36874,
+  "usedMaskConditioning": true,
+  "previewMode": "photo-crop"
+}

@@ -8415,44 +8415,44 @@
   ],
   "epochs": [
     {
-      "color": "#fbbf24",
-      "end": 2010,
       "id": "early-years",
       "label": "Early Years",
-      "range": "2001-2010",
-      "start": 2001
+      "range": "2001-2004",
+      "color": "#fbbf24",
+      "start": 2001,
+      "end": 2004
     },
     {
-      "color": "#f59e0b",
-      "end": 2014,
       "id": "college",
       "label": "College",
-      "range": "2010-2014",
-      "start": 2010
+      "range": "2004-2008",
+      "color": "#f59e0b",
+      "start": 2004,
+      "end": 2008
     },
     {
-      "color": "#f87171",
-      "end": 2018,
       "id": "career-start",
       "label": "Career Start",
-      "range": "2014-2018",
-      "start": 2014
+      "range": "2008-2014",
+      "color": "#f87171",
+      "start": 2008,
+      "end": 2014
     },
     {
-      "color": "#a78bfa",
-      "end": 2022,
       "id": "growth",
       "label": "Growth",
-      "range": "2018-2022",
-      "start": 2018
+      "range": "2014-2022",
+      "color": "#a78bfa",
+      "start": 2014,
+      "end": 2022
     },
     {
-      "color": "#22d3ee",
-      "end": 2026,
       "id": "present",
       "label": "Present",
       "range": "2022-2026",
-      "start": 2022
+      "color": "#22d3ee",
+      "start": 2022,
+      "end": 2026
     }
   ],
   "nodes": [
@@ -24388,7 +24388,7 @@
       "isHub": false,
       "location": null,
       "media": [
-        "images/boys-selfie.jpg"
+        "images/jace-birth.jpg"
       ],
       "significance": 0.88,
       "size": 0.99,

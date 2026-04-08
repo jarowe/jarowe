@@ -3,6 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { Line } from '@react-three/drei';
 import { useConstellationStore } from '../store';
 import { getCfg } from '../constellationDefaults';
+import { getIntroReveal } from './introMath';
+import { getAmbientEnvelope, randomRange, scheduleAmbientEvent } from './ambientLife';
 
 /** Linear interpolation. */
 function lerp(a, b, t) {
@@ -133,8 +135,9 @@ function StructuralLine({ points, lineKey, onRef }) {
  * - All visual styling (opacity/width/color/dashSize/flowSpeed) read from config
  *   every frame so editor sliders take effect in real-time.
  */
-export default function ConnectionLines({ positions }) {
+export default function ConnectionLines({ positions, introRef = null, reducedMotion = false }) {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
+  const highlightedEdgeNodeId = useConstellationStore((s) => s.highlightedEdgeNodeId);
   const filterEntity = useConstellationStore((s) => s.filterEntity);
   const storeEdges = useConstellationStore((s) => s.edges);
   const storeNodes = useConstellationStore((s) => s.nodes);
@@ -147,8 +150,12 @@ export default function ConnectionLines({ positions }) {
   const focusedNodeIdRef = useRef(focusedNodeId);
   focusedNodeIdRef.current = focusedNodeId;
 
-  const filterEntityRef = useRef(filterEntity);
-  filterEntityRef.current = filterEntity;
+  const highlightedEdgeNodeIdRef = useRef(highlightedEdgeNodeId);
+  highlightedEdgeNodeIdRef.current = highlightedEdgeNodeId;
+
+  const highlightedEdgeColor = useConstellationStore((s) => s.highlightedEdgeColor);
+  const highlightedEdgeColorRef = useRef(highlightedEdgeColor);
+  highlightedEdgeColorRef.current = highlightedEdgeColor;
 
   // Callback for StructuralLine to register itself
   const handleLineRef = useCallback((key, node) => {
@@ -221,6 +228,14 @@ export default function ConnectionLines({ positions }) {
   const filteredNodeIdsRef = useRef(filteredNodeIds);
   filteredNodeIdsRef.current = filteredNodeIds;
 
+  const ambientPulseRef = useRef({
+    active: false,
+    key: null,
+    startTime: 0,
+    duration: 0,
+    nextTime: 0,
+  });
+
   // Build STRUCTURAL line data only — no visual styling.
   // This useMemo only depends on topology (which edges exist, positions, ordering).
   // Visual properties are computed per-frame in useFrame below.
@@ -270,13 +285,15 @@ export default function ConnectionLines({ positions }) {
 
   // Single useFrame that batch-updates ALL line visual properties every frame.
   // Reads getCfg() live so editor slider changes take effect immediately.
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const map = lineRefsMap.current;
     if (map.size === 0) return;
 
     const currentLines = linesRef.current;
     const currentFocused = focusedNodeIdRef.current;
+    const currentHighlighted = highlightedEdgeNodeIdRef.current;
     const currentFiltered = filteredNodeIdsRef.current;
+    const now = state.clock.getElapsedTime();
 
     // Read config values once per frame (not per line)
     const opHelixMin = getCfg('lineOpacityHelixMin');
@@ -295,6 +312,58 @@ export default function ConnectionLines({ positions }) {
     const flowSpeedHL = getCfg('lineFlowSpeedHighlight');
     const dashSize = getCfg('lineDashSize');
     const gapSize = getCfg('lineGapSize');
+    const introOpacity = getIntroReveal(introRef?.current?.progress ?? 1, 0.68, 0.98);
+    const ambientEnabled = getCfg('ambientLifeEnabled') && getCfg('connectionPulseEnabled') && !reducedMotion;
+    const pulseEvent = ambientPulseRef.current;
+    const canRunAmbient = ambientEnabled && !currentFocused && !currentFiltered && introOpacity > 0.98;
+
+    if (!pulseEvent.nextTime) {
+      scheduleAmbientEvent(
+        pulseEvent,
+        now,
+        getCfg('connectionPulseIntervalMin'),
+        getCfg('connectionPulseIntervalMax')
+      );
+    }
+
+    if (canRunAmbient && !pulseEvent.active && now >= pulseEvent.nextTime) {
+      const candidates = currentLines.filter((line) => line.isHelixToHelix);
+      if (candidates.length > 0) {
+        const candidateIndex = Math.floor(randomRange(0, candidates.length));
+        const chosen = candidates[Math.min(candidates.length - 1, candidateIndex)];
+        pulseEvent.active = true;
+        pulseEvent.key = chosen.key;
+        pulseEvent.startTime = now;
+        pulseEvent.duration = getCfg('connectionPulseDuration');
+      } else {
+        scheduleAmbientEvent(
+          pulseEvent,
+          now,
+          getCfg('connectionPulseIntervalMin'),
+          getCfg('connectionPulseIntervalMax')
+        );
+      }
+    } else if (!canRunAmbient) {
+      pulseEvent.active = false;
+      pulseEvent.key = null;
+    }
+
+    let ambientPulseKey = null;
+    let ambientPulseEnvelope = 0;
+    if (pulseEvent.active) {
+      ambientPulseEnvelope = getAmbientEnvelope(now, pulseEvent.startTime, pulseEvent.duration);
+      if (ambientPulseEnvelope <= 0) {
+        pulseEvent.key = null;
+        scheduleAmbientEvent(
+          pulseEvent,
+          now,
+          getCfg('connectionPulseIntervalMin'),
+          getCfg('connectionPulseIntervalMax')
+        );
+      } else {
+        ambientPulseKey = pulseEvent.key;
+      }
+    }
 
     for (const line of currentLines) {
       const entry = map.get(line.key);
@@ -304,19 +373,37 @@ export default function ConnectionLines({ positions }) {
       const w = line.weight;
       let opacity, lineWidth;
       let isHighlighted = false;
+      let overrideColor = null;
+      let localFlowSpeed = flowSpeed;
 
       if (currentFocused) {
         // Focus mode: brighten connected, dim non-connected
         const isConnected =
           line.sourceId === currentFocused || line.targetId === currentFocused;
         if (isConnected) {
-          opacity = line.isHelixToHelix
-            ? lerp(opFocusedMin, opFocusedMax, w)
-            : lerp(0.2, 0.4, w);
-          lineWidth = line.isHelixToHelix
-            ? lerp(wdFocusedMin, wdFocusedMax, w)
-            : lerp(0.5, 1.0, w);
-          isHighlighted = true;
+          if (currentHighlighted) {
+            // Hovering a connection chip — isolate that single edge
+            const isTargetEdge =
+              (line.sourceId === currentFocused && line.targetId === currentHighlighted) ||
+              (line.targetId === currentFocused && line.sourceId === currentHighlighted);
+            if (isTargetEdge) {
+              opacity = lerp(opFocusedMin, opFocusedMax, w) * 1.5;
+              lineWidth = lerp(wdFocusedMin, wdFocusedMax, w) * 1.5;
+              isHighlighted = true;
+              localFlowSpeed = flowSpeedHL;
+              // Use the connection type color from the panel
+              const hlHex = highlightedEdgeColorRef.current;
+              if (hlHex) overrideColor = hexToRgb(hlHex);
+            } else {
+              opacity = lerp(opFocusedMin, opFocusedMax, w) * 0.3;
+              lineWidth = lerp(wdFocusedMin, wdFocusedMax, w) * 0.5;
+            }
+          } else {
+            opacity = lerp(opFocusedMin, opFocusedMax, w);
+            lineWidth = lerp(wdFocusedMin, wdFocusedMax, w);
+            isHighlighted = true;
+            localFlowSpeed = flowSpeedHL;
+          }
         } else {
           opacity = opDim;
           lineWidth = wdDim;
@@ -348,8 +435,14 @@ export default function ConnectionLines({ positions }) {
         }
       }
 
+      if (ambientPulseKey && line.key === ambientPulseKey) {
+        opacity *= 1 + getCfg('connectionPulseOpacityBoost') * ambientPulseEnvelope;
+        lineWidth *= 1 + getCfg('connectionPulseWidthBoost') * ambientPulseEnvelope;
+        localFlowSpeed += getCfg('connectionPulseFlowBoost') * ambientPulseEnvelope;
+      }
+
       // Apply opacity
-      mat.opacity = opacity;
+      mat.opacity = opacity * introOpacity;
 
       // Apply linewidth (LineMaterial uses lowercase 'linewidth')
       mat.linewidth = lineWidth;
@@ -359,12 +452,18 @@ export default function ConnectionLines({ positions }) {
       mat.gapSize = gapSize;
 
       // Apply flow speed as dash offset animation
-      const speed = isHighlighted ? flowSpeedHL : flowSpeed;
-      mat.dashOffset -= speed * delta;
+      mat.dashOffset -= localFlowSpeed * delta;
 
-      // Apply evidence-based color tinting
-      const rgb = computeEdgeColor(line.evidenceType, isHighlighted);
-      mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+      // Apply color: override with type color when hovering, else evidence-based tint
+      if (overrideColor) {
+        mat.color.setRGB(overrideColor[0] * 2.5, overrideColor[1] * 2.5, overrideColor[2] * 2.5);
+      } else {
+        const rgb = computeEdgeColor(line.evidenceType, isHighlighted);
+        const pulseLift = ambientPulseKey && line.key === ambientPulseKey
+          ? 1 + ambientPulseEnvelope * 0.35
+          : 1;
+        mat.color.setRGB(rgb[0] * pulseLift, rgb[1] * pulseLift, rgb[2] * pulseLift);
+      }
     }
   });
 

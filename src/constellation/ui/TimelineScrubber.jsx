@@ -14,7 +14,30 @@ export default function TimelineScrubber() {
 
   const timelinePosition = useConstellationStore((s) => s.timelinePosition);
   const setTimelinePosition = useConstellationStore((s) => s.setTimelinePosition);
+  const setTimelineDragging = useConstellationStore((s) => s.setTimelineDragging);
   const panelOpen = useConstellationStore(selectPanelOpen);
+
+  // In tunnel mode, scrubber must directly set tunnelY (the camera controller
+  // effect has too many guards that block it). This helper handles both modes.
+  const applyTimelinePosition = useCallback((pos) => {
+    setTimelinePosition(pos);
+    const { cameraMode, nodes } = useConstellationStore.getState();
+    if (cameraMode === 'tunnel') {
+      // Compute Y from the helix bounds
+      const helixNodes = nodes.filter((n) => n.tier !== 'particle');
+      if (helixNodes.length > 0) {
+        let minY = Infinity, maxY = -Infinity;
+        for (const n of helixNodes) {
+          if (n.y < minY) minY = n.y;
+          if (n.y > maxY) maxY = n.y;
+        }
+        const range = maxY - minY;
+        const padding = range * 0.15;
+        const mappedY = (minY - padding) + pos * (range + padding * 2);
+        useConstellationStore.getState().setTunnelY(mappedY);
+      }
+    }
+  }, [setTimelinePosition]);
 
   const epochs = useConstellationStore((s) => s.epochs);
 
@@ -85,24 +108,26 @@ export default function TimelineScrubber() {
       if (e.target.closest('.timeline-scrubber__epoch')) return;
       e.preventDefault();
       setDragging(true);
+      setTimelineDragging(true);
       const pos = getPositionFromPointer(e.clientY);
-      setTimelinePosition(pos);
+      applyTimelinePosition(pos);
     },
-    [getPositionFromPointer, setTimelinePosition]
+    [getPositionFromPointer, applyTimelinePosition, setTimelineDragging]
   );
 
   const handlePointerMove = useCallback(
     (e) => {
       if (!dragging) return;
       const pos = getPositionFromPointer(e.clientY);
-      setTimelinePosition(pos);
+      applyTimelinePosition(pos);
     },
     [dragging, getPositionFromPointer, setTimelinePosition]
   );
 
   const handlePointerUp = useCallback(() => {
     setDragging(false);
-  }, []);
+    setTimelineDragging(false);
+  }, [setTimelineDragging]);
 
   // Attach global pointer listeners during drag
   useEffect(() => {
@@ -161,7 +186,7 @@ export default function TimelineScrubber() {
             key={i}
             className="timeline-scrubber__epoch"
             style={{ top: `${(1 - epoch.position) * 100}%` }}
-            onClick={() => setTimelinePosition(epoch.position)}
+            onClick={() => applyTimelinePosition(epoch.position)}
             title={`${epoch.label} (${epoch.range})`}
           >
             <span

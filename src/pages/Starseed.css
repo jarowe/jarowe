@@ -1,0 +1,468 @@
+/* ──────────────────────────────────────────────────────
+   STARSEED — Monochromatic + Iridescence
+   Base: near-black, offwhite, silver-gray
+   Magic: prismatic iridescent shimmer on interaction
+   ────────────────────────────────────────────────────── */
+
+@keyframes iridescent-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%) rotate(15deg); }
+  100% { transform: translateX(200%) rotate(15deg); }
+}
+
+@keyframes border-dance {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.starseed-shell {
+  min-height: 100vh;
+  background: #08080c;
+  color: #e0e0e4;
+  padding-bottom: 4rem;
+}
+
+/* Subtle cool ambient glow — barely visible */
+.starseed-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(120, 100, 255, 0.03), transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 100, 200, 0.02), transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.starseed-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(8,8,12,0.85);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.starseed-escape {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.35rem 0.85rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 100px;
+  font-size: 0.75rem;
+  color: #777;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.starseed-escape:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: #ccc;
+}
+
+.starseed-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.starseed-logo-icon {
+  color: #999;
+  transition: color 0.5s ease;
+}
+
+.starseed-brand:hover .starseed-logo-icon {
+  color: #c084fc;
+}
+
+/* Wordmark: offwhite with iridescent shimmer on hover */
+.starseed-wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  color: #d0d0d4;
+  background: linear-gradient(135deg, #d0d0d4 0%, #e8e8ec 50%, #d0d0d4 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.6s ease;
+}
+
+.starseed-brand:hover .starseed-wordmark {
+  background: linear-gradient(
+    135deg,
+    #ff6b9d 0%, #c084fc 20%, #60a5fa 40%, #34d399 60%, #fbbf24 80%, #ff6b9d 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: iridescent-flow 3s ease infinite;
+}
+
+.starseed-hero {
+  max-width: 800px;
+  margin: 4rem auto 3rem;
+  padding: 0 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero title: clean offwhite, iridescent on hover */
+.starseed-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: #f0f0f4;
+  background: linear-gradient(135deg, #f0f0f4 0%, #c8c8d0 40%, #f0f0f4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  margin-bottom: 1rem;
+  transition: all 0.8s ease;
+}
+
+.starseed-hero:hover .starseed-title {
+  background: linear-gradient(
+    135deg,
+    #e8e8ec 0%, #c084fc 25%, #60a5fa 50%, #34d399 75%, #e8e8ec 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: iridescent-flow 4s ease infinite;
+}
+
+.starseed-subtitle {
+  font-size: 1.15rem;
+  color: #777;
+  line-height: 1.6;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.starseed-projects {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-section-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #888;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.starseed-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* ── Card: Workshop-style with iridescent accents ── */
+.starseed-card {
+  background: rgba(20, 20, 28, 0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 2rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  min-height: 320px;
+  will-change: transform;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Workshop-style bg image — reveals on hover */
+.starseed-card__bg {
+  position: absolute;
+  inset: -5%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 0;
+  transform: translateZ(-20px);
+}
+
+.starseed-card:hover .starseed-card__bg {
+  opacity: 0.2;
+}
+
+/* Iridescent border glow — hidden until hover */
+.starseed-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 21px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255,107,157,0) 0%, rgba(192,132,252,0) 20%,
+    rgba(96,165,250,0) 40%, rgba(52,211,153,0) 60%,
+    rgba(251,191,36,0) 80%, rgba(255,107,157,0) 100%
+  );
+  background-size: 300% 300%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: all 0.5s ease;
+  opacity: 0;
+  z-index: 3;
+}
+
+.starseed-card:hover {
+  background: rgba(24, 24, 34, 0.85);
+  border-color: rgba(192,132,252,0.3);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 40px rgba(192,132,252,0.06);
+}
+
+.starseed-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(255,107,157,0.5) 0%, rgba(192,132,252,0.5) 20%,
+    rgba(96,165,250,0.5) 40%, rgba(52,211,153,0.5) 60%,
+    rgba(251,191,36,0.5) 80%, rgba(255,107,157,0.5) 100%
+  );
+  background-size: 300% 300%;
+  animation: iridescent-flow 3s ease infinite;
+}
+
+.starseed-card__content {
+  position: relative;
+  z-index: 2;
+  transform: translateZ(30px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.starseed-card__icon {
+  color: #888;
+  margin-bottom: 1.5rem;
+  transform: translateZ(20px);
+  transition: color 0.5s ease;
+}
+
+.starseed-card:hover .starseed-card__icon {
+  color: #c084fc;
+}
+
+.starseed-card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: #f4f4f5;
+  margin-bottom: 0.5rem;
+  transform: translateZ(40px);
+}
+
+.starseed-card p {
+  color: #a1a1aa;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+  transform: translateZ(25px);
+}
+
+.starseed-card__tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  transform: translateZ(30px);
+}
+
+.starseed-tag {
+  padding: 0.2rem 0.6rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 100px;
+  font-size: 0.7rem;
+  color: #d4d4d8;
+  letter-spacing: 0.03em;
+}
+
+.starseed-card__launch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #a78bfa;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: color 0.2s ease, gap 0.2s ease;
+  transform: translateZ(35px);
+}
+
+.starseed-card:hover .starseed-card__launch {
+  color: #c4b5fd;
+  gap: 0.75rem;
+}
+
+.starseed-card__status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.65rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  z-index: 2;
+}
+
+.starseed-footer-cta {
+  text-align: center;
+  margin-top: 4rem;
+  padding: 2rem;
+  color: #555;
+  font-size: 0.85rem;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-link {
+  color: #999;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.3s ease;
+}
+
+.starseed-link:hover {
+  color: #c084fc;
+}
+
+/* Disabled card */
+.starseed-card--disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.starseed-card--disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255,255,255,0.06);
+}
+.starseed-card--disabled:hover::before {
+  opacity: 0;
+}
+.starseed-card--disabled:hover::after {
+  animation: none;
+}
+
+/* Contact section */
+.starseed-contact {
+  max-width: 1000px;
+  margin: 4rem auto 0;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.starseed-contact__text {
+  color: #777;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.starseed-contact__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.65rem 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 100px;
+  color: #999;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.starseed-contact__link::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #c084fc, #60a5fa, #34d399);
+  background-size: 200% 200%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.starseed-contact__link:hover {
+  color: #e0e0e4;
+  background: rgba(255,255,255,0.05);
+}
+
+.starseed-contact__link:hover::after {
+  opacity: 1;
+  animation: iridescent-flow 3s ease infinite;
+}
+
+/* Nav link to Labs */
+.starseed-nav-link {
+  font-size: 0.8rem;
+  color: #666;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.3s ease;
+}
+
+.starseed-nav-link:hover {
+  color: #c084fc;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .starseed-hero {
+    margin-top: 2rem;
+  }
+  .starseed-nav {
+    padding: 0.75rem 1rem;
+  }
+  .starseed-project-grid {
+    grid-template-columns: 1fr;
+  }
+}

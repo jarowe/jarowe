@@ -10,6 +10,35 @@
 .holiday-banner {
   position: relative;
   z-index: 25;
+  transition: filter 0.4s ease;
+}
+
+/* DAY card ↔ banner connection — playful glow when DAY card is hovered */
+.holiday-banner--day-hover {
+  animation: banner-connection 1.5s ease-in-out infinite;
+  border-left-width: 3px !important;
+  box-shadow: 0 0 16px var(--hb-glow, rgba(124, 58, 237, 0.2)) !important;
+}
+
+.holiday-banner--day-hover .holiday-banner-emoji,
+.holiday-banner--day-hover .holiday-banner-emoji-hero {
+  animation: banner-emoji-bounce 0.8s ease-in-out infinite !important;
+}
+
+@keyframes banner-connection {
+  0%, 100% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+  50% {
+    filter: brightness(1.25) drop-shadow(0 0 12px var(--hb-glow, rgba(124, 58, 237, 0.3)));
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes banner-emoji-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.15); }
 }
 
 /* ── T1: Smart Toast Strip ── */

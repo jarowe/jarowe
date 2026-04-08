@@ -131,6 +131,7 @@ export default function ConstellationEditor({ parentGui }) {
     const camKeys = [
       'autoRotateSpeed', 'focusedRotateSpeed', 'dampingFactor',
       'flyToDuration', 'flyToStepDuration', 'focusDistance', 'focusYLift',
+      'tunnelFocusDistance',
     ];
     camControllers.push(tracked(camFolder.add(cfg, 'autoRotateSpeed', 0, 2.0, 0.01).name('Auto Rotate Speed')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusedRotateSpeed', 0, 1.0, 0.01).name('Focused Rotate')));
@@ -139,6 +140,7 @@ export default function ConstellationEditor({ parentGui }) {
     camControllers.push(tracked(camFolder.add(cfg, 'flyToStepDuration', 0.2, 3.0, 0.1).name('Step Duration')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusDistance', 10, 120, 1).name('Focus Distance')));
     camControllers.push(tracked(camFolder.add(cfg, 'focusYLift', 0, 30, 0.5).name('Focus Y Lift')));
+    camControllers.push(tracked(camFolder.add(cfg, 'tunnelFocusDistance', 10, 120, 1).name('Tunnel Focus Dist')));
     camFolder.add({ reset: () => resetKeys(camKeys, camControllers) }, 'reset').name('Reset Camera');
     camFolder.close();
 
@@ -243,11 +245,18 @@ export default function ConstellationEditor({ parentGui }) {
     const nodeFolder = gui.addFolder('Nodes');
     const nodeControllers = [];
     const nodeKeys = [
-      'nodeBaseScale', 'nodeBrightnessBase', 'nodeBrightnessRange',
+      'nodeBaseScale', 'milestoneScale', 'projectScale', 'momentScale',
+      'significanceScaleBoost', 'significanceBrightnessBoost',
+      'nodeBrightnessBase', 'nodeBrightnessRange',
       'nodeFocusDim', 'nodeFocusBright', 'nodePulseAmpMin',
       'nodePulseAmpRange', 'nodePulseSpeed', 'nodePhaseSpread',
     ];
     nodeControllers.push(tracked(nodeFolder.add(cfg, 'nodeBaseScale', 0.2, 5.0, 0.1).name('Base Scale')));
+    nodeControllers.push(tracked(nodeFolder.add(cfg, 'milestoneScale', 0.5, 3.0, 0.05).name('Milestone Scale')));
+    nodeControllers.push(tracked(nodeFolder.add(cfg, 'projectScale', 0.5, 3.0, 0.05).name('Project Scale')));
+    nodeControllers.push(tracked(nodeFolder.add(cfg, 'momentScale', 0.5, 3.0, 0.05).name('Moment Scale')));
+    nodeControllers.push(tracked(nodeFolder.add(cfg, 'significanceScaleBoost', 0, 2.0, 0.05).name('Sig. Scale Boost')));
+    nodeControllers.push(tracked(nodeFolder.add(cfg, 'significanceBrightnessBoost', 0, 2.0, 0.05).name('Sig. Bright Boost')));
     nodeControllers.push(tracked(nodeFolder.add(cfg, 'nodeBrightnessBase', 0, 2.0, 0.05).name('Brightness Base')));
     nodeControllers.push(tracked(nodeFolder.add(cfg, 'nodeBrightnessRange', 0, 3.0, 0.05).name('Brightness Range')));
     nodeControllers.push(tracked(nodeFolder.add(cfg, 'nodeFocusDim', 0, 1.0, 0.01).name('Focus Dim')));
@@ -325,6 +334,51 @@ export default function ConstellationEditor({ parentGui }) {
     // ────────────────────────────────────────────
     // 8. Evidence Colors
     // ────────────────────────────────────────────
+    const ambientFolder = gui.addFolder('Ambient Life');
+    const ambientControllers = [];
+    const ambientKeys = [
+      'ambientLifeEnabled',
+      'shootingStarsEnabled', 'shootingStarIntervalMin', 'shootingStarIntervalMax',
+      'shootingStarDuration', 'shootingStarLength', 'shootingStarBrightness',
+      'connectionPulseEnabled', 'connectionPulseIntervalMin', 'connectionPulseIntervalMax',
+      'connectionPulseDuration', 'connectionPulseOpacityBoost', 'connectionPulseWidthBoost',
+      'connectionPulseFlowBoost',
+      'backboneEnergyEnabled', 'backboneEnergyIntervalMin', 'backboneEnergyIntervalMax',
+      'backboneEnergyDuration', 'backboneEnergyBandSize', 'backboneEnergyBoost',
+    ];
+    ambientControllers.push(tracked(ambientFolder.add(cfg, 'ambientLifeEnabled').name('Enabled')));
+
+    const shootingSubfolder = ambientFolder.addFolder('Shooting Stars');
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarsEnabled').name('Enabled')));
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarIntervalMin', 2, 30, 0.5).name('Interval Min')));
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarIntervalMax', 4, 40, 0.5).name('Interval Max')));
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarDuration', 0.2, 2.5, 0.05).name('Duration')));
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarLength', 4, 80, 1).name('Trail Length')));
+    ambientControllers.push(tracked(shootingSubfolder.add(cfg, 'shootingStarBrightness', 0.2, 2.5, 0.05).name('Brightness')));
+    shootingSubfolder.close();
+
+    const pulseSubfolder = ambientFolder.addFolder('Connection Pulses');
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseEnabled').name('Enabled')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseIntervalMin', 4, 40, 0.5).name('Interval Min')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseIntervalMax', 6, 60, 0.5).name('Interval Max')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseDuration', 0.2, 4, 0.05).name('Duration')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseOpacityBoost', 0, 2, 0.05).name('Opacity Boost')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseWidthBoost', 0, 2, 0.05).name('Width Boost')));
+    ambientControllers.push(tracked(pulseSubfolder.add(cfg, 'connectionPulseFlowBoost', 0, 5, 0.1).name('Flow Boost')));
+    pulseSubfolder.close();
+
+    const backboneSubfolder = ambientFolder.addFolder('Backbone Energy');
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyEnabled').name('Enabled')));
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyIntervalMin', 4, 40, 0.5).name('Interval Min')));
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyIntervalMax', 6, 60, 0.5).name('Interval Max')));
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyDuration', 0.4, 5, 0.05).name('Duration')));
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyBandSize', 2, 60, 1).name('Band Size')));
+    ambientControllers.push(tracked(backboneSubfolder.add(cfg, 'backboneEnergyBoost', 0, 2, 0.05).name('Boost')));
+    backboneSubfolder.close();
+
+    ambientFolder.add({ reset: () => resetKeys(ambientKeys, ambientControllers) }, 'reset').name('Reset Ambient');
+    ambientFolder.close();
+
     const colorFolder = gui.addFolder('Evidence Colors');
     const colorControllers = [];
     const colorKeys = ['colorTemporal', 'colorSemantic', 'colorThematic', 'colorNarrative', 'colorSpatial'];
@@ -349,7 +403,7 @@ export default function ConstellationEditor({ parentGui }) {
         const allControllers = [
           ...camControllers, ...dofControllers, ...ppControllers, ...lineControllers,
           ...nodeControllers, ...partControllers, ...helixControllers,
-          ...starControllers, ...colorControllers,
+          ...starControllers, ...ambientControllers, ...colorControllers,
         ];
         for (const c of allControllers) {
           try { c.updateDisplay(); } catch { /* skip */ }

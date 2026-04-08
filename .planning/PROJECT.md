@@ -8,17 +8,29 @@ A living personal world for Jared Rowe (jarowe.com) that serves as "life in webf
 
 jarowe.com is the most alive personal world on the internet — a living place of wonder that turns curiosity into creation, where every visit is different, every interaction has depth, and every creative spark finds its way into the world.
 
-## Current Milestone: v2.0 Living World
+## Current State: v2.1 Memory Capsules — SHIPPED 2026-03-23
 
-**Goal:** Transform jarowe.com from an impressive portfolio into a living, daily-pulse world with an AI operator (Glint), a branded business hub (Starseed), creation tools, and atmospheric intelligence.
+jarowe.com is a living, daily-pulse world with polished visual cohesion and memory capsule infrastructure:
+- **Today Layer** — time-of-day atmosphere, moon phase effects, weather-driven CSS, daily-rotating content
+- **TodayRail → Constellation** — holiday Explore card deep-links T3+ holidays to constellation nodes
+- **Glint Operator** — AI tool use (navigate, launch games, control music, show daily, save ideas), Cmd+K palette; journal entries capped at 2 sentences
+- **Starseed Hub** — warm gold brand identity with per-card gradient backgrounds, Workshop-style depth layering, contact section, Labs creation tools
+- **Starseed Labs** — Milkdown scratchpad + Excalidraw canvas with localStorage persistence
+- **Daily Engine** — visitor streaks with Glint milestones, 5 date-locked easter eggs, dynamic OG previews
+- **Memory Capsules (v2.1)** — CapsuleShell with displaced mesh renderer (being replaced), 3-tier GPU detection, parallax fallback, cinematic camera, atmospheric particles, DOF/vignette/grain, color grading, soundtrack ducking, experience arc, narrative glass cards, PortalVFX transitions. Flagship: syros-cave.
+- **Constellation** — per-instance emissive shader colors (theme-driven, not uniform grey-blue)
+
+## Current Milestone: v2.3 Best World Wins
+
+**Goal:** Choose the best world-generation family for each hero memory through controlled comparison, then attach the best subject reconstruction to that winner.
 
 **Target features:**
-- Today Layer — daily-rotating homepage state with weather, moon, holiday, featured content
-- Glint Operator — bounded tool use (navigate, launch, save), command palette
-- Starseed Hub — branded business showcase replacing Workshop, using campaign-shell pattern, with project cards and client-facing presence
-- Starseed Labs Surface — creation tools (scratchpad, canvas) living under the Starseed umbrella
-- Daily Engine — weather-responsive atmosphere, Glint journal, streaks, progress signal
-- Immersive Portal — one gaussian splat memory capsule with portal transition
+- Controlled comparison batches for naxos-rock and syros-cave across Marble, WorldGen, Matrix-3D
+- Strict provenance tracking per generation run (family, prompt, seed, quality profile, scores)
+- Grading rubric: world coherence, exploration range, subject preservation potential, artifact severity, emotional read
+- Family-first lab review with filters, side-by-side context, winner marking
+- sam3d-body subject comparison against winning world family only
+- One locked winner per scene with evidence and notes
 
 ## Requirements
 
@@ -91,7 +103,7 @@ jarowe.com is the most alive personal world on the internet — a living place o
 - [ ] Existing pages wired into constellation data system
 - [ ] Polish and connect existing pages (Globe, Garden, Vault, Workshop, Now, Universe)
 
-### Out of Scope (v2.0)
+### Out of Scope
 
 <!-- Explicit boundaries for THIS milestone. Captured for future milestones. -->
 
@@ -157,5 +169,22 @@ jarowe.com is the most alive personal world on the internet — a living place o
 | Anonymous-first auth with Supabase upgrade | No login wall. signInAnonymously() → linkIdentity() when there's value to protect. | — Pending |
 | Glint bounded tool use, not generic chatbot | Site-native intelligence with agency inside this world. Constraints make him memorable. | — Pending |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-20 after v2.0 Living World milestone start*
+*Last updated: 2026-03-23 after v2.1 Memory Capsules milestone started*

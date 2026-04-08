@@ -1,0 +1,17 @@
+{
+  "sceneId": "naxos-rock",
+  "strategy": "cluster-fusion",
+  "createdAt": "2026-03-29",
+  "sourceViewCount": 1,
+  "generatedViewCount": 0,
+  "totalViewCount": 1,
+  "anchorSource": "photo.jpg",
+  "views": [
+    {
+      "role": "primary",
+      "kind": "source",
+      "relativePath": "public/memory/naxos-rock/photo.jpg",
+      "stagedFilename": "000-primary.jpg"
+    }
+  ]
+}

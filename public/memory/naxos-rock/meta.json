@@ -1,0 +1,184 @@
+{
+  "id": "naxos-rock",
+  "title": "Live A Little",
+  "subtitle": "Naxos, Greece — May 2024",
+  "description": "Jace on a perfectly placed rock in Naxos, suspended inside the stillness that later became his poem Live a Little.",
+  "source": {
+    "type": "instagram-carousel",
+    "photo": "photo.jpg",
+    "depth": null,
+    "mask": "mask.png",
+    "generator": "marble",
+    "generated": "2026-03-30",
+    "worldGenerationProfile": "hero",
+    "postDate": "May 08, 2024 6:52 am",
+    "worldModelPrompt": "Seated boy in a bright blue hoodie on a granite rock at a golden-hour Naxos shoreline, preserve him clearly as the main subject, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, no duplicates, no voids, no floating fragments.",
+    "environmentWorldModelPrompt": "Golden-hour Naxos shoreline with a granite rock seat as a clear foreground anchor, complete a fully explorable 360 coast with granite shelves, tide pools, wet sand, sea horizon, distant islands, and warm Mediterranean light, preserve non-masked rocks and shoreline structure, leave clean room for the seated subject to be reintroduced later, no duplicate people, no voids, no floating fragments.",
+    "postImages": [
+      "/images/Instagram/media/posts/202405/18011396732371399.jpg",
+      "/images/Instagram/media/posts/202405/18033946798786712.jpg",
+      "/images/Instagram/media/posts/202405/17917063217823264.jpg",
+      "/images/Instagram/media/posts/202405/18122780437357613.jpg"
+    ],
+    "generationMode": "marble-api",
+    "worldFramingAnalysis": {
+      "subjectCropArea": 0.095,
+      "subjectCropHeight": 0.405,
+      "framingClass": "environment-anchor",
+      "recommendedPresentationMode": "anchor"
+    },
+    "expansion": {
+      "strategy": "marble-api",
+      "stage": "marble-api",
+      "bundle": null,
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "marble-api",
+      "viewSynthesizer": "marble-api",
+      "fusionEngine": "marble-api",
+      "compositeViewCount": 1,
+      "environmentBootstrap": {
+        "strategy": "subject-erased-environment-bootstrap",
+        "image": "world/bootstrap.environment.png",
+        "subjectInput": "photo.jpg",
+        "mask": "mask.png",
+        "subjectMask": "mask.png",
+        "usedAsWorldInput": true
+      }
+    },
+    "environmentBootstrap": {
+      "strategy": "subject-erased-environment-bootstrap",
+      "image": "world/bootstrap.environment.png",
+      "subjectInput": "photo.jpg",
+      "mask": "mask.png",
+      "subjectMask": "mask.png",
+      "usedAsWorldInput": true
+    },
+    "worldSelection": null,
+    "favoriteWorldVersion": null,
+    "worldGenerationFamily": "marble"
+  },
+  "world": {
+    "splat": "world/scene.spz",
+    "sourceSplat": null,
+    "presentationMode": "anchor",
+    "mesh": null,
+    "collider": "world/collider.glb",
+    "format": "spz",
+    "splatCount": null,
+    "sourceSplatCount": null,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "provenance": {
+      "tier": "marble-api",
+      "anchorGenerator": "marble",
+      "reconstruction": "marble",
+      "model": "Marble 0.1-plus",
+      "splatTier": "500k"
+    },
+    "runtimePreviewSplatTarget": 900000,
+    "generationProfile": "hero",
+    "selection": null,
+    "favoriteVersion": null,
+    "generationFamily": "marble"
+  },
+  "fallback": {
+    "type": "photo-preview",
+    "photo": "photo.jpg"
+  },
+  "camera": {
+    "startPosition": [
+      0.08,
+      0.16,
+      4.4
+    ],
+    "startTarget": [
+      0.04,
+      0.08,
+      0
+    ],
+    "fov": 48,
+    "near": 0.1,
+    "far": 80
+  },
+  "artDirection": {
+    "subjectCrop": [
+      0.35,
+      0.43,
+      0.235,
+      0.405
+    ]
+  },
+  "subject3d": {
+    "mode": "projected-mesh",
+    "mesh": "subject.glb",
+    "transform": {
+      "position": [
+        0.02,
+        -0.12,
+        0.04
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "supportMode": "mesh-fill"
+    },
+    "pointCloud": null,
+    "preview": "subject.preview.png",
+    "provenance": {
+      "backend": "sam3d-body",
+      "generated": "2026-03-28",
+      "photo": "photo.jpg",
+      "mask": "mask.png",
+      "label": "sam3d-body-v1",
+      "notes": "first direct Meta subject attempt"
+    }
+  },
+  "narrative": [
+    {
+      "threshold": 0.18,
+      "text": "A boy sits on a perfectly placed rock in a perfectly placed world."
+    },
+    {
+      "threshold": 0.48,
+      "text": "The sea keeps moving. He stays still long enough for the whole shore to sound like a thought."
+    },
+    {
+      "threshold": 0.8,
+      "text": "Sometimes a life changes because someone finally decides to live a little."
+    }
+  ],
+  "soundscape": {
+    "layers": []
+  },
+  "transitions": {
+    "next": "naxos-laugh",
+    "previous": "syros-cave",
+    "anchors": []
+  }
+}

@@ -18,9 +18,22 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
     return !!localStorage.getItem(`jarowe_trivia_${getTodayKey()}`);
   });
   const [glintNudge, setGlintNudge] = useState({ active: false, glintX: 0, glintY: 0 });
+  const [dayCardHovered, setDayCardHovered] = useState(false);
   const nudgeTimerRef = useRef(null);
   const bannerRef = useRef(null);
   const factTimerRef = useRef(null);
+
+  // DAY card ↔ banner connection — subtle glow when day card is hovered
+  useEffect(() => {
+    const onHover = () => setDayCardHovered(true);
+    const onUnhover = () => setDayCardHovered(false);
+    window.addEventListener('day-card-hover', onHover);
+    window.addEventListener('day-card-unhover', onUnhover);
+    return () => {
+      window.removeEventListener('day-card-hover', onHover);
+      window.removeEventListener('day-card-unhover', onUnhover);
+    };
+  }, []);
 
   // T3 confetti burst on mount
   useEffect(() => {
@@ -123,7 +136,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
       <>
         <motion.div
           ref={bannerRef}
-          className={`holiday-banner holiday-banner-t1${glintNudge.active ? ' holiday-banner-glint-glow' : ''}`}
+          className={`holiday-banner holiday-banner-t1${glintNudge.active ? ' holiday-banner-glint-glow' : ''}${dayCardHovered ? ' holiday-banner--day-hover' : ''}`}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -193,7 +206,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
       <>
         <motion.div
           ref={bannerRef}
-          className={`holiday-banner holiday-banner-t2 glass-panel${glintNudge.active ? ' holiday-banner-glint-glow' : ''}`}
+          className={`holiday-banner holiday-banner-t2 glass-panel${glintNudge.active ? ' holiday-banner-glint-glow' : ''}${dayCardHovered ? ' holiday-banner--day-hover' : ''}`}
           initial={{ opacity: 0, y: -20, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.4 }}
@@ -250,7 +263,7 @@ export default function HolidayBanner({ onTriviaLaunch, onGameLaunch }) {
     <>
       <motion.div
         ref={bannerRef}
-        className={`holiday-banner holiday-banner-t3 glass-panel${glintNudge.active ? ' holiday-banner-glint-glow' : ''}`}
+        className={`holiday-banner holiday-banner-t3 glass-panel${glintNudge.active ? ' holiday-banner-glint-glow' : ''}${dayCardHovered ? ' holiday-banner--day-hover' : ''}`}
         initial={{ opacity: 0, y: -30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}

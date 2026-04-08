@@ -1,0 +1,357 @@
+.memory-archive {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(46, 54, 92, 0.3), transparent 38%),
+    radial-gradient(circle at bottom, rgba(18, 18, 26, 0.75), rgba(3, 3, 8, 1) 72%);
+  color: #f5f1e8;
+}
+
+.memory-archive__world,
+.memory-archive__fallback {
+  position: absolute;
+  inset: 0;
+}
+
+.memory-archive__fallback {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at center, rgba(18, 18, 28, 0.96), rgba(4, 4, 10, 1));
+}
+
+.memory-archive__fallback-copy {
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 1.1rem 1.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 18, 0.58);
+  backdrop-filter: blur(14px);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.memory-archive__chrome {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.2rem;
+  right: 1.2rem;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+.memory-archive__back {
+  pointer-events: auto;
+}
+
+.memory-archive__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 10, 18, 0.58);
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  backdrop-filter: blur(14px);
+  font-size: 0.88rem;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.memory-archive__back:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(12, 12, 22, 0.72);
+}
+
+.memory-archive__eyebrow {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 14, 0.45);
+  backdrop-filter: blur(12px);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+}
+
+.memory-archive__title-block {
+  justify-self: end;
+  display: grid;
+  gap: 0.2rem;
+  text-align: right;
+  padding: 0.6rem 0.9rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(10, 10, 18, 0.5), rgba(10, 10, 18, 0.24));
+  backdrop-filter: blur(14px);
+}
+
+.memory-archive__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.memory-archive__subtitle,
+.memory-archive__network {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.memory-archive__network {
+  display: inline-flex;
+  gap: 0.6rem;
+}
+
+.memory-archive__monologue {
+  position: absolute;
+  left: 1.6rem;
+  bottom: 8.8rem;
+  z-index: 12;
+  width: min(29rem, calc(100vw - 2.6rem));
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.95rem 1.05rem;
+  border-radius: 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(12, 12, 20, 0.56), rgba(9, 9, 18, 0.34));
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.memory-archive__monologue-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.memory-archive__monologue p {
+  margin: 0;
+  font-size: clamp(1rem, 1.2vw, 1.18rem);
+  line-height: 1.58;
+  color: rgba(250, 247, 241, 0.96);
+}
+
+.memory-archive__travel {
+  position: absolute;
+  left: 50%;
+  bottom: 1.2rem;
+  transform: translateX(-50%);
+  z-index: 12;
+  width: min(32rem, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.6rem 0.72rem 0.68rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(8, 8, 14, 0.54), rgba(7, 8, 16, 0.34));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
+.memory-archive__travel-copy,
+.memory-archive__travel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.memory-archive__travel-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 19.5rem;
+}
+
+.memory-archive__travel-destination {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.memory-archive__travel-destination strong {
+  font-weight: 600;
+}
+
+.memory-archive__travel-meter {
+  height: 0.38rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.memory-archive__travel-meter-fill {
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(116, 184, 255, 0.85), rgba(255, 222, 160, 0.95));
+  box-shadow: 0 0 22px rgba(131, 194, 255, 0.36);
+}
+
+.memory-archive__travel-progress {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.memory-archive__corridor {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.memory-archive__corridor-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.memory-archive__corridor-wash {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(110, 151, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 52% 48%, rgba(255, 226, 170, 0.2), transparent 40%),
+    linear-gradient(180deg, rgba(2, 2, 8, 0.14), rgba(2, 2, 10, 0.7));
+  backdrop-filter: blur(4px);
+}
+
+.memory-archive__corridor-copy {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 8, 16, 0.56);
+  backdrop-filter: blur(18px);
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.96);
+  letter-spacing: 0.03em;
+}
+
+.memory-archive__travel-route {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.memory-archive__travel-meta {
+  display: grid;
+  gap: 0.14rem;
+  align-content: center;
+  min-width: 0;
+}
+
+.memory-archive__travel-meta strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-archive__travel-meta > span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.7rem;
+}
+
+.memory-archive__travel-meta-label {
+  font-size: 0.7rem !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.memory-archive__travel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.12rem;
+}
+
+.memory-archive__travel-tag {
+  padding: 0.14rem 0.34rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.58rem;
+  letter-spacing: 0.03em;
+}
+
+.memory-archive--corridor .memory-archive__chrome,
+.memory-archive--corridor .memory-archive__monologue {
+  opacity: 0.42;
+  filter: blur(2px);
+  transition: opacity 0.24s ease, filter 0.24s ease;
+}
+
+.memory-archive--corridor .memory-archive__travel {
+  opacity: 0.22;
+  transform: translate(-50%, 1.4rem) scale(0.97);
+  filter: blur(3px);
+  transition: opacity 0.28s ease, transform 0.28s ease, filter 0.28s ease;
+}
+
+@media (max-width: 880px) {
+  .memory-archive__chrome {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .memory-archive__title-block {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .memory-archive__monologue {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    bottom: 10rem;
+  }
+
+  .memory-archive__travel {
+    width: calc(100vw - 1.25rem);
+    bottom: 0.7rem;
+  }
+
+  .memory-archive__travel-copy,
+  .memory-archive__travel-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .memory-archive__travel-route {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

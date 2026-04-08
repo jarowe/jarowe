@@ -67,9 +67,20 @@ const useConstellationStore = create((set, get) => ({
   hoveredNodeIdx: null,
   filterEntity: null,
 
+  highlightedEdgeNodeId: null,
+  highlightedEdgeColor: null,
+  setHighlightedEdgeNodeId: (id, color) => set({ highlightedEdgeNodeId: id, highlightedEdgeColor: color || null }),
+  clearHighlightedEdgeNodeId: () => set({ highlightedEdgeNodeId: null, highlightedEdgeColor: null }),
+
   focusNode: (id) => set({ focusedNodeId: id }),
-  clearFocus: () => set({ focusedNodeId: null, filterEntity: null }),
-  setHoveredNode: (idx) => set({ hoveredNodeIdx: idx }),
+  clearFocus: () => set({ focusedNodeId: null, filterEntity: null, highlightedEdgeNodeId: null }),
+  hoveredScreenPos: null,
+  hoveredNodeId: null,
+  setHoveredNode: (idx, screenPos, nodeId) => set({
+    hoveredNodeIdx: idx,
+    hoveredScreenPos: screenPos || null,
+    hoveredNodeId: nodeId || null,
+  }),
   setFilterEntity: (entity) => set({ filterEntity: entity }),
   clearFilter: () => set({ filterEntity: null }),
 
@@ -88,6 +99,8 @@ const useConstellationStore = create((set, get) => ({
   // Timeline scrubber position (0-1 normalized)
   timelinePosition: 0,
   setTimelinePosition: (t) => set({ timelinePosition: t }),
+  timelineDragging: false,
+  setTimelineDragging: (v) => set({ timelineDragging: v }),
 }));
 
 // Selector for panelOpen (derived state)
@@ -98,6 +111,8 @@ if (typeof window !== 'undefined') {
   window.addEventListener('constellation-data-changed', () => {
     useConstellationStore.getState().loadData({ force: true });
   });
+  // Expose store for Playwright tests
+  window.__constellationStore = useConstellationStore;
 }
 
 export { useConstellationStore };

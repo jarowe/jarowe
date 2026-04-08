@@ -408,6 +408,66 @@ const SCROLL_BOTTOM_LINES = [
   { text: "You've seen it all! Or have you? *mysterious sparkle*", expression: 'mischief' },
 ];
 
+// ── Easter Egg Line Pools ──
+
+const EASTER_EGG_LINES = {
+  'full-moon': [
+    { text: "Full moon tonight! Everything feels more... luminous.", expression: 'love' },
+    { text: "The moon is at peak brightness. Like me, but bigger.", expression: 'mischief' },
+    { text: "Full moon energy! Creativity peaks under a full moon.", expression: 'excited' },
+    { text: "Look at that moon glow on the globe!", expression: 'happy' },
+  ],
+  'friday13': [
+    { text: "Friday the 13th... *dims lights*. Just kidding. Or am I?", expression: 'mischief' },
+    { text: "Spooky vibes today! I'm made of light, nothing scares me.", expression: 'happy' },
+    { text: "Friday the 13th! Nothing unlucky about a sentient prism.", expression: 'thinking' },
+  ],
+  'pi-day': [
+    { text: "Happy Pi Day! 3.14159265... I could go on forever.", expression: 'excited' },
+    { text: "Pi Day! Math is the language of the universe.", expression: 'thinking' },
+    { text: "3.14! Circles, ratios, and infinite decimals. My kind of day.", expression: 'happy' },
+  ],
+  'solstice-summer': [
+    { text: "Summer Solstice! Longest day of the year. More light = more me!", expression: 'excited' },
+    { text: "Peak sunshine today! Maximum brightness achieved.", expression: 'happy' },
+    { text: "Solstice vibes! Ancient peoples celebrated this day.", expression: 'love' },
+  ],
+  'solstice-winter': [
+    { text: "Winter Solstice! The longest night. Light returns from here.", expression: 'thinking' },
+    { text: "Darkest night, but the days only get brighter from here.", expression: 'happy' },
+    { text: "Solstice! A time of transformation. I'm into it.", expression: 'curious' },
+  ],
+  'birthday': [
+    { text: "It's the site's birthday! Another year of wonder!", expression: 'excited' },
+    { text: "Happy birthday jarowe.com! *throws confetti*", expression: 'love' },
+    { text: "Birthday mode activated! Can prisms cry happy tears?", expression: 'happy' },
+    { text: "One more trip around the sun for this corner of the internet!", expression: 'excited' },
+  ],
+};
+
+// ── Streak Milestone Lines (for Plan 02 integration) ──
+
+const STREAK_MILESTONE_LINES = {
+  3: [
+    { text: "3-day streak! You're building a habit. I approve.", expression: 'happy' },
+    { text: "Three days in a row! Consistency looks good on you.", expression: 'excited' },
+  ],
+  7: [
+    { text: "One week streak! You're officially dedicated.", expression: 'excited' },
+    { text: "7 days straight! That's commitment. I'm impressed.", expression: 'love' },
+    { text: "A full week! The site practically knows you by name now.", expression: 'happy' },
+  ],
+  14: [
+    { text: "Two-week streak! You're in rare company.", expression: 'love' },
+    { text: "14 days! At this point you're basically a co-owner.", expression: 'mischief' },
+  ],
+  30: [
+    { text: "30-DAY STREAK! You absolute legend. Standing ovation!", expression: 'excited' },
+    { text: "A month straight! I'm genuinely emotional. We're best friends now.", expression: 'love' },
+    { text: "Thirty days! You've visited more than I've been awake. Wait...", expression: 'mischief' },
+  ],
+};
+
 const REACTIVE_POOLS = {
   'first-visit': FIRST_VISIT_WELCOME_LINES,
   'return-hello': RETURN_HELLO_LINES,
@@ -421,6 +481,8 @@ const REACTIVE_POOLS = {
   'idle-nudge': IDLE_NUDGE_LINES,
   'scroll-reaction': SCROLL_BOTTOM_LINES,
   'globe-flight': GLOBE_FLIGHT_LINES,
+  'easter-egg': null, // uses getEasterEggLine
+  'streak-milestone': null, // uses getStreakMilestoneLine
   'periodic': null, // uses ambient line system
 };
 
@@ -432,6 +494,16 @@ export function getReactiveLine(context, data) {
     const line = pick(pool);
     log('Reactive: globe-arrival', region, line.text);
     return line;
+  }
+
+  // Easter egg uses dedicated pool
+  if (context === 'easter-egg' && data?.event) {
+    return getEasterEggLine(data.event);
+  }
+
+  // Streak milestone uses dedicated pool
+  if (context === 'streak-milestone' && data?.milestone) {
+    return getStreakMilestoneLine(data.milestone);
   }
 
   const pool = REACTIVE_POOLS[context];
@@ -453,6 +525,38 @@ export function getReactiveLine(context, data) {
 
   const line = pick(pool);
   log('Reactive:', context, line.text);
+  return line;
+}
+
+/**
+ * Get a random easter egg line for the given event name.
+ * @param {string} eventName - 'full-moon' | 'friday13' | 'pi-day' | 'solstice-summer' | 'solstice-winter' | 'birthday'
+ * @returns {{ text: string, expression: string }}
+ */
+export function getEasterEggLine(eventName) {
+  const pool = EASTER_EGG_LINES[eventName];
+  if (!pool || pool.length === 0) {
+    log('getEasterEggLine: no pool for', eventName);
+    return { text: "Something special is happening today!", expression: 'excited' };
+  }
+  const line = pick(pool);
+  log('EasterEgg:', eventName, line.text);
+  return line;
+}
+
+/**
+ * Get a random streak milestone line for the given milestone count.
+ * @param {number} milestone - 3 | 7 | 14 | 30
+ * @returns {{ text: string, expression: string }}
+ */
+export function getStreakMilestoneLine(milestone) {
+  const pool = STREAK_MILESTONE_LINES[milestone];
+  if (!pool || pool.length === 0) {
+    log('getStreakMilestoneLine: no pool for', milestone);
+    return { text: `${milestone}-day streak! You're on fire!`, expression: 'excited' };
+  }
+  const line = pick(pool);
+  log('StreakMilestone:', milestone, line.text);
   return line;
 }
 

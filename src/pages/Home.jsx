@@ -24,8 +24,14 @@ const BalloonPop = lazy(() => import('../components/BalloonPop'));
 const MakeAWish = lazy(() => import('../components/MakeAWish'));
 const BirthdayUnlock = lazy(() => import('../components/BirthdayUnlock'));
 const BirthdaySlingshot = lazy(() => import('../components/BirthdaySlingshot'));
+import { checkStreak } from '../utils/streaks';
+import { dailyPick } from '../utils/dailySeed';
+import { DAILY_PROMPTS } from '../data/dailyPrompts';
+import { GLINT_JOURNAL_ENTRIES } from '../data/glintJournal';
+import { SCRATCHPAD_KEY } from '../utils/storageKeys';
 import { buildContext, getAmbientLine, getConversationRoot, rerollConversationRoot, getDialogueNode, getReactiveLine, getGlobeArrivalLine } from '../utils/glintBrain';
 import { startGlintAutonomy, stopGlintAutonomy, getGlintAutonomy } from '../utils/glintAutonomy';
+import { getNarration, dispatch as dispatchAction } from '../utils/actionDispatcher';
 import { startTour, endTour, nextChapter, prevChapter, getTourState, isTourActive } from '../utils/globeTour';
 import { getTourChapters, TOTAL_CHAPTERS } from '../data/tourChapters';
 import { useCloudSync } from '../hooks/useCloudSync';
@@ -41,6 +47,13 @@ import './Home.css';
 import * as THREE from 'three';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { GLOBE_DEFAULTS } from '../utils/globeDefaults';
+import { applyTimeOfDay } from '../utils/timeOfDay';
+import { getMoonIllumination } from '../utils/astro';
+import { fetchWeather, applyWeatherAtmosphere, getWeatherUniforms } from '../utils/weather';
+import { checkEasterEggs } from '../utils/easterEggs';
+import TodayRail from '../components/TodayRail';
+import scenes from '../data/memoryScenes';
+import { navigateWithTransition } from '../utils/viewTransitions';
 const Globe = lazy(() => import('react-globe.gl'));
 const GlobeEditor = lazy(() => import('../components/GlobeEditor'));
 const GlintEditor = lazy(() => import('../components/GlintEditor'));
@@ -155,11 +168,27 @@ const arcsData = [
   { startLat: 37.44, startLng: 24.94, endLat: 36.43, endLng: -5.15, color: '#38bdf8' }, // Greece → Spain
 ];
 
+// Memory portal markers on globe — volumetric memory entry points
+const memoryPoints = scenes.map(s => ({
+  lat: s.coordinates.lat,
+  lng: s.coordinates.lng,
+  label: s.title,
+  sceneId: s.id,
+  size: 0.8,
+  color: 'rgba(124, 58, 237, 0.8)',
+}));
+
 export default function Home() {
   const BASE = import.meta.env.BASE_URL;
   const navigate = useNavigate();
   const { isBirthday, age, isMilestone, holiday } = useBirthday();
   const { syncFlags, syncTotalBops } = useCloudSync();
+
+  // Expose holiday to show_daily handler (glint-action)
+  useEffect(() => {
+    window.__currentHoliday = holiday;
+    return () => { window.__currentHoliday = null; };
+  }, [holiday]);
 
   // Birthday mode flow: idle -> balloon-game -> make-wish -> birthday-unlock -> idle
   const [birthdayFlow, setBirthdayFlow] = useState('idle');
@@ -263,6 +292,90 @@ export default function Home() {
     });
     if (mapContainerRef.current) observer.observe(mapContainerRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Time-of-day atmosphere: apply CSS custom properties on mount + refresh every minute
+  useEffect(() => {
+    applyTimeOfDay();
+    const interval = setInterval(() => applyTimeOfDay(), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Weather atmosphere: fetch real weather, apply CSS + globe uniforms (additive on top of tod)
+  const weatherUniformsRef = useRef(null);
+  useEffect(() => {
+    let cancelled = false;
+    let weatherInterval = null;
+
+    const loadWeather = async () => {
+      try {
+        const data = await fetchWeather();
+        if (cancelled) return;
+        applyWeatherAtmosphere(data);
+        // Weather CSS custom properties are now applied — globe GLSL
+        // shader integration deferred to future work (uniforms were set
+        // but shader code never consumed them, so removed dead path)
+        if (false) { // placeholder for future globe shader weather
+        }
+      } catch {
+        // Silent fallback — apply clear-day defaults
+        if (!cancelled) applyWeatherAtmosphere(null);
+      }
+    };
+
+    loadWeather();
+    // Re-fetch every 30 minutes
+    weatherInterval = setInterval(loadWeather, 30 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      if (weatherInterval) clearInterval(weatherInterval);
+    };
+  }, []);
+
+  // Easter egg detection: check on mount, add CSS class, trigger Glint peek
+  const easterEggRef = useRef(null);
+  useEffect(() => {
+    const egg = checkEasterEggs();
+    if (!egg) return;
+    easterEggRef.current = egg;
+    document.body.classList.add(egg.cssClass);
+    // Dispatch easter-egg-detected for autonomy system
+    window.dispatchEvent(new CustomEvent('easter-egg-detected', {
+      detail: { event: egg.event, cssClass: egg.cssClass },
+    }));
+    // Trigger Glint peek after 5s delay with first dialogue line
+    const peekTimer = setTimeout(() => {
+      const line = egg.glintDialogue[0];
+      if (line) {
+        window.__prismExpression = line.expression;
+        window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
+          detail: {
+            autonomous: true,
+            triggerType: 'easter-egg',
+            text: line.text,
+            expression: line.expression,
+            pinned: false,
+            duration: 8000,
+          },
+        }));
+      }
+      // Site birthday also fires confetti
+      if (egg.event === 'birthday') {
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#fbbf24', '#f472b6', '#7c3aed', '#38bdf8', '#22c55e'],
+          scalar: 1.2,
+        });
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(peekTimer);
+      if (egg.cssClass) document.body.classList.remove(egg.cssClass);
+    };
   }, []);
 
   // Callback ref: fires when Globe actually mounts (after lazy load resolves)
@@ -704,7 +817,13 @@ export default function Home() {
     audioPulse: { value: 0 },
     prismPulse: { value: 0.0 },
     introIntensity: { value: 1.0 },
-    sunDir: { value: getSunDirection() }
+    sunDir: { value: getSunDirection() },
+    uMoonIllumination: { value: getMoonIllumination() },
+    // Weather uniforms (updated by weather useEffect)
+    uFogDensity: { value: 0 },
+    uWindSpeed: { value: 0 },
+    uPrecipitation: { value: 0 },
+    uCloudOpacity: { value: 0 },
   });
 
   // All tunable parameters — defaults from globeDefaults.js, editor mutates these in-place
@@ -1481,6 +1600,7 @@ export default function Home() {
               sunDir: globe.customUniforms.sunDir,
               time: globe.customUniforms.time,
               prismPulse: globe.customUniforms.prismPulse,
+              uMoonIllumination: globe.customUniforms.uMoonIllumination,
               prismGlowColor1: { value: new THREE.Vector3(...pg.prismGlowColor1) },
               prismGlowColor2: { value: new THREE.Vector3(...pg.prismGlowColor2) },
               prismGlowColor3: { value: new THREE.Vector3(...pg.prismGlowColor3) },
@@ -1505,6 +1625,7 @@ export default function Home() {
               uniform vec3 sunDir;
               uniform float time;
               uniform float prismPulse;
+              uniform float uMoonIllumination;
               uniform vec3 prismGlowColor1;
               uniform vec3 prismGlowColor2;
               uniform vec3 prismGlowColor3;
@@ -1549,6 +1670,9 @@ export default function Home() {
                 float NdotL = dot(vWorldNormal, sunDir);
                 float sunWrap = 0.5 + NdotL * 0.3;
 
+                // Moon illumination modulates nebula: full moon = 20% brighter, new moon = 40% dimmer
+                float moonFactor = mix(0.6, 1.2, uMoonIllumination);
+
                 // Seamless 3D-projected noise (no atan2 seam)
                 vec3 nPos = normalize(vWorldPos);
                 float t = time * prismGlowSpeed;
@@ -1566,7 +1690,7 @@ export default function Home() {
                 col += prismGlowColor3 * (0.5 + 0.5 * sin(phase + 4.189));
                 col = normalize(col) * length(col) * 0.5;
 
-                float baseIntensity = prismGlowIntensity * 0.3 * sunWrap;
+                float baseIntensity = prismGlowIntensity * 0.3 * sunWrap * moonFactor;
                 float pulseBoost = prismPulse * prismGlowIntensity * bopGlowBoost;
                 float intensity = (baseIntensity + pulseBoost) * fresnel * (0.5 + n2 * 0.5);
 
@@ -2378,6 +2502,7 @@ export default function Home() {
               time: globe.customUniforms.time,
               audioPulse: globe.customUniforms.audioPulse,
               prismPulse: globe.customUniforms.prismPulse,
+              uMoonIllumination: globe.customUniforms.uMoonIllumination,
               pixelRatio: { value: window.devicePixelRatio || 1 },
               mousePos: mouseUniforms,
               starTwinkleBase: { value: pp.starTwinkleBase },
@@ -2450,6 +2575,7 @@ export default function Home() {
             fragmentShader: `
               varying vec3 vColor; varying float vType; varying float vMouseDist;
               uniform float audioPulse; uniform float prismPulse; uniform float time;
+              uniform float uMoonIllumination;
               uniform float mouseRippleRadius;
               uniform float mouseRippleStrength;
               uniform float bopColorShift;
@@ -2458,7 +2584,9 @@ export default function Home() {
                 float ll = length(xy);
                 if(ll>0.5) discard;
                 float glow = (vType>0.5) ? smoothstep(0.5,0.0,ll) : smoothstep(0.5,0.4,ll);
-                float alpha = glow * (0.6 + audioPulse*0.4 + prismPulse*0.3);
+                // Moon illumination modulates particle brightness: full moon = 15% brighter, new moon = 30% dimmer
+                float moonBright = mix(0.7, 1.15, uMoonIllumination);
+                float alpha = glow * (0.6 + audioPulse*0.4 + prismPulse*0.3) * moonBright;
 
                 // Mouse proximity glow - particles near cursor glow brighter
                 float mouseGlow = (vMouseDist < mouseRippleRadius) ? (1.0 - vMouseDist / mouseRippleRadius) * 0.5 * mouseRippleStrength : 0.0;
@@ -2472,7 +2600,7 @@ export default function Home() {
                 vec3 shimmer = mix(vColor, prismatic, prismPulse * bopColorShift);
                 // Mouse makes nearby particles glow white/bright
                 shimmer += vec3(0.3, 0.5, 1.0) * mouseGlow;
-                gl_FragColor = vec4(shimmer*(1.0 + audioPulse*0.8 + prismPulse*0.3 + mouseGlow), alpha + mouseGlow * 0.3);
+                gl_FragColor = vec4(shimmer*(1.0 + audioPulse*0.8 + prismPulse*0.3 + mouseGlow) * moonBright, alpha + mouseGlow * 0.3);
               }
             `,
             transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
@@ -3071,6 +3199,11 @@ export default function Home() {
               const newSunDir = getSunDirection(ep.timeOverrideHour);
               globe.customUniforms.sunDir.value.copy(newSunDir);
               if (globe._sunLight) globe._sunLight.position.copy(newSunDir.clone().multiplyScalar(200));
+
+              // Update moon illumination (changes slowly, once per frame is fine)
+              if (globe.customUniforms.uMoonIllumination) {
+                globe.customUniforms.uMoonIllumination.value = getMoonIllumination();
+              }
 
               // Visibility toggles
               if (globe.cloudMesh) globe.cloudMesh.visible = ep.cloudsVisible;
@@ -3768,7 +3901,7 @@ export default function Home() {
                   // Shift the frustum DOWN so the globe renders centered in the card area, not canvas center.
                   const breakoutPx = ep.globeBreakoutPx || 60;
                   const extraAbove = breakoutPx - 10; // how much more canvas above vs below
-                  const shiftPx = extraAbove / 2; // half the asymmetry
+                  const shiftPx = extraAbove / 2; // half the asymmetry — matches production
                   const dpr = renderer.getPixelRatio();
                   cam.setViewOffset(canvasW, canvasH, 0, Math.round(-shiftPx * dpr), canvasW, canvasH);
 
@@ -3806,6 +3939,14 @@ export default function Home() {
       if (globeCycleTimer.current) clearInterval(globeCycleTimer.current);
       if (globeRef.current?._particleMouseCleanup) globeRef.current._particleMouseCleanup();
       if (isTourActive()) endTour();
+      // Release the globe's WebGL resources (but NOT forceContextLoss —
+      // that races with constellation's context creation and causes crashes)
+      if (globeRef.current) {
+        try {
+          const renderer = globeRef.current.renderer();
+          renderer.dispose();
+        } catch (_) {}
+      }
     };
   }, [globeMounted, startGlobeCycle]);
 
@@ -3871,6 +4012,18 @@ export default function Home() {
 
   // Scroll to top when Home mounts (returning from release page etc.)
   useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // Streak tracking — check once on mount, dispatch milestone event for Glint
+  const streakCountRef = useRef(0);
+  useEffect(() => {
+    const result = checkStreak();
+    streakCountRef.current = result.count;
+    if (result.milestone) {
+      window.dispatchEvent(new CustomEvent('streak-milestone', {
+        detail: { milestone: result.milestone, count: result.count }
+      }));
+    }
+  }, []);
 
   // Birthday confetti entrance
   useEffect(() => {
@@ -4014,6 +4167,50 @@ export default function Home() {
     setHoveredMarker(loc);
     playClickSound();
   }, [activeExpedition]);
+
+  // Memory portal click — navigate to /memory/:sceneId through portal VFX
+  const handleMemoryPointClick = useCallback((point) => {
+    playClickSound();
+
+    // Mark portal entry so CapsuleShell knows this wasn't a direct URL access
+    sessionStorage.setItem('jarowe_portal_entry', '1');
+
+    // Use click coordinates as portal origin (globe marker position)
+    const rect = document.querySelector('.memory-portal-globe')?.getBoundingClientRect?.();
+    // Default to center if globe marker rect unavailable
+    const ox = rect ? `${((rect.left + rect.width / 2) / window.innerWidth) * 100}%` : '50%';
+    const oy = rect ? `${((rect.top + rect.height / 2) / window.innerHeight) * 100}%` : '50%';
+
+    const cfg = window.__prismConfig || {};
+    const gatherMs = cfg.portalGatherMs ?? 500;
+    const seepEnabled = cfg.portalSeepEnabled !== false;
+    const seepDuration = cfg.portalSeepDuration ?? 800;
+    const t0 = seepEnabled ? seepDuration : 0;
+
+    // Start portal VFX
+    setPortalOrigin({ x: ox, y: oy });
+    setPortalPhase('seep');
+
+    // Phase timers
+    const timers = [];
+    const eT = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
+
+    eT(() => setPortalPhase('gathering'), t0);
+
+    // Navigate during rupture — the threshold moment
+    eT(() => {
+      setPortalPhase('rupture');
+      navigateWithTransition(navigate, `/memory/${point.sceneId}`);
+    }, t0 + gatherMs);
+
+    // Clean up portal phase after navigation starts
+    eT(() => setPortalPhase('emerging'), t0 + gatherMs + (cfg.portalRuptureMs ?? 500));
+    eT(() => setPortalPhase('residual'), t0 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900));
+    eT(() => setPortalPhase(null), t0 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900) + (cfg.portalResidualMs ?? 1800));
+
+    // Cleanup on unmount (navigation will unmount Home.jsx)
+    return () => timers.forEach(clearTimeout);
+  }, [navigate]);
 
   // Sync activeExpedition to ref for tour closures
   useEffect(() => { activeExpeditionRef.current = activeExpedition; }, [activeExpedition]);
@@ -5006,13 +5203,11 @@ export default function Home() {
         const errData = await res.json().catch(() => ({}));
         aiLog('API error:', res.status, errData);
 
-        if (errData.fallback) {
-          // Use fallback message
-          const fallbackText = errData.message || "Glint's connection flickered. Let me try the old-fashioned way...";
-          window.__prismExpression = 'curious';
-          setPrismBubble(fallbackText);
-          setAiMessages(prev => [...prev, { role: 'assistant', content: fallbackText, timestamp: Date.now() }]);
-        }
+        // Always show a fallback message on any error (404, 500, fallback flag, etc.)
+        const fallbackText = errData.message || "Hmm, my light's a bit scattered right now... try that again?";
+        window.__prismExpression = 'curious';
+        setPrismBubble(fallbackText);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: fallbackText, timestamp: Date.now() }]);
         setAiStreaming(false);
         setAiStreamText('');
         const aut1 = getGlintAutonomy();
@@ -5026,6 +5221,8 @@ export default function Home() {
       let fullText = '';
       let buffer = '';
       let expressionSet = false;
+      let toolCalls = {};
+      let streamFinishReason = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -5065,8 +5262,63 @@ export default function Home() {
             if (data.error) {
               aiLog('Stream error:', data.error);
             }
+            // Detect tool_calls from API
+            if (data.tool_calls) {
+              for (const tc of data.tool_calls) {
+                toolCalls[tc.name || tc.index || 0] = tc;
+              }
+            }
           } catch { /* skip malformed chunk */ }
         }
+      }
+
+      // Handle tool calls — narration first, then dispatch after delay
+      const toolCallEntries = Object.values(toolCalls);
+      if (toolCallEntries.length > 0) {
+        clearTimeout(safetyTimeout);
+        const tc = toolCallEntries[0]; // Handle first tool call
+        const narr = getNarration(tc.name);
+
+        if (narr) {
+          // Phase 1: Show narration + expression change
+          window.__prismExpression = narr.expression;
+          window.__prismTalking = true;
+          setPrismBubble(narr.text);
+          setAiStreamText('');
+          setAiStreaming(false);
+
+          // Store narration as assistant message
+          setAiMessages(prev => [...prev, { role: 'assistant', content: narr.text, timestamp: Date.now(), toolCall: tc.name }]);
+
+          // Phase 2: Execute action after 500ms narration delay
+          setTimeout(() => {
+            window.__prismTalking = false;
+            let params = {};
+            try { params = JSON.parse(tc.arguments || '{}'); } catch { /* empty params */ }
+            dispatchAction(tc.name, params);
+          }, 500);
+        } else {
+          // Unknown tool — just dispatch immediately
+          setAiStreaming(false);
+          let params = {};
+          try { params = JSON.parse(tc.arguments || '{}'); } catch { /* empty params */ }
+          dispatchAction(tc.name, params);
+        }
+
+        // Reset conversation timeout
+        if (conversationTimeoutRef.current) clearTimeout(conversationTimeoutRef.current);
+        conversationTimeoutRef.current = setTimeout(() => {
+          exitConversation();
+          setAiChatMode(false);
+        }, 60 * 1000);
+
+        playChatReceiveSound();
+        aiLog('Tool call:', tc.name, tc.arguments);
+
+        // Resume autonomy
+        const autTool = getGlintAutonomy();
+        if (autTool) autTool.resume();
+        return; // Skip normal text finalization
       }
 
       // Stream completed — clear safety timeout
@@ -5158,6 +5410,54 @@ export default function Home() {
     if (aut) aut.resume();
   }, []);
 
+  // Listen for glint-action events (from action dispatcher)
+  // Navigation handled globally by App.jsx; music by AudioProvider
+  useEffect(() => {
+    const handleGlintAction = (e) => {
+      const { action, params } = e.detail || {};
+      if (action === 'launch_game' && params?.game_id) {
+        setShowGame(params.game_id);
+      } else if (action === 'show_daily') {
+        // Gather current daily content from data modules (not DOM)
+        const hol = window.__currentHoliday;
+        const parts = [];
+        if (hol?.name) parts.push(`Today is ${hol.name} ${hol.emoji || ''}.`.trim());
+        const journal = dailyPick(GLINT_JOURNAL_ENTRIES, 'journal');
+        if (journal) parts.push(journal);
+        const prompt = dailyPick(DAILY_PROMPTS, 'prompt');
+        if (prompt?.text) parts.push(`Today's creative prompt: "${prompt.text}"`);
+
+        const dailySummary = parts.length > 0
+          ? parts.join(' ')
+          : "The light is quiet today, but that's okay. Sometimes the best days are the ones that surprise you.";
+
+        // Show as Glint bubble
+        window.__prismExpression = 'curious';
+        window.__prismTalking = true;
+        setPrismBubble(dailySummary);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: dailySummary, timestamp: Date.now() }]);
+        setTimeout(() => { window.__prismTalking = false; }, 3000);
+      } else if (action === 'save_idea' && params?.content) {
+        // Append to scratchpad localStorage — NEVER overwrite
+        const existing = localStorage.getItem(SCRATCHPAD_KEY) || '';
+        const timestamp = new Date().toLocaleString();
+        const separator = existing ? '\n\n---\n\n' : '';
+        const newEntry = `${separator}> Saved by Glint on ${timestamp}\n\n${params.content}`;
+        localStorage.setItem(SCRATCHPAD_KEY, existing + newEntry);
+
+        // Show confirmation in Glint bubble
+        window.__prismExpression = 'happy';
+        window.__prismTalking = true;
+        const confirmMsg = "Done! I saved that to your scratchpad. You can find it in Starseed Labs anytime.";
+        setPrismBubble(confirmMsg);
+        setAiMessages(prev => [...prev, { role: 'assistant', content: confirmMsg, timestamp: Date.now() }]);
+        setTimeout(() => { window.__prismTalking = false; }, 3000);
+      }
+    };
+    window.addEventListener('glint-action', handleGlintAction);
+    return () => window.removeEventListener('glint-action', handleGlintAction);
+  }, []);
+
   // FAB click — toggle panel + summon Glint when opening
   const handleFabClick = useCallback(() => {
     if (chatPanelOpen) {
@@ -5189,13 +5489,16 @@ export default function Home() {
     const handleToggle = () => {
       setChatPanelOpen(prev => !prev);
     };
+    const handleGlintOpen = () => openChatPanel();
     window.addEventListener('glint-ai-test', handleTest);
     window.addEventListener('glint-ai-clear', handleClear);
     window.addEventListener('glint-ai-toggle-panel', handleToggle);
+    window.addEventListener('glint-open', handleGlintOpen);
     return () => {
       window.removeEventListener('glint-ai-test', handleTest);
       window.removeEventListener('glint-ai-clear', handleClear);
       window.removeEventListener('glint-ai-toggle-panel', handleToggle);
+      window.removeEventListener('glint-open', handleGlintOpen);
     };
   }, [handleAiChat]);
 
@@ -5206,30 +5509,7 @@ export default function Home() {
     };
   }, []);
 
-  // Ctrl+K to toggle chat panel + summon Glint
-  useEffect(() => {
-    const handleKeys = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        const cfg = window.__prismConfig || {};
-        if (!cfg.aiChatEnabled || !cfg.aiPanelEnabled) return;
-        e.preventDefault();
-        setChatPanelOpen(prev => {
-          const next = !prev;
-          const aut = getGlintAutonomy();
-          if (aut) next ? aut.pause() : aut.resume();
-          // Summon Glint when opening
-          if (next && !peekVisibleRef.current) {
-            window.dispatchEvent(new CustomEvent('trigger-prism-peek', {
-              detail: { context: 'summoned', side: 'left', style: 'portal', duration: 15000, pinned: true }
-            }));
-          }
-          return next;
-        });
-      }
-    };
-    window.addEventListener('keydown', handleKeys);
-    return () => window.removeEventListener('keydown', handleKeys);
-  }, []);
+  // Ctrl+K now handled globally by App.jsx (CommandPalette)
 
   useEffect(() => {
     // Skip the legacy auto-scheduler when autonomy system is active
@@ -6545,6 +6825,13 @@ export default function Home() {
                         obj.userData._mat.opacity = 0.5 + Math.sin(t * 2) * 0.3;
                       }
                     }}
+
+                    pointsData={memoryPoints}
+                    pointColor={d => d.color || '#fff'}
+                    pointAltitude={0.01}
+                    pointRadius={d => d.size || 0.5}
+                    pointLabel={d => d.label}
+                    onPointClick={handleMemoryPointClick}
                   />
                 )}
               </Suspense>
@@ -6692,9 +6979,23 @@ export default function Home() {
                 <Play size={12} fill="currentColor" />
               </button>
             )}
+            {/* Memory Portal entry CTA */}
+            {scenes.length > 0 && !tourCinematic && (
+              <button
+                className="memory-portal-cta"
+                onClick={(e) => { e.stopPropagation(); handleMemoryPointClick({ sceneId: 'syros-cave' }); }}
+                aria-label="Enter Memory Portal"
+              >
+                <span className="portal-glow" />
+                Enter Memory Portal
+              </button>
+            )}
             {/* Liquid glass edge overlay */}
             <div className="liquid-glass-edge" />
           </div>
+
+          {/* Today Rail -- daily living content below hero row */}
+          {!tourCinematic && <TodayRail />}
 
           <div className="bento-cell cell-music">
             <MusicCell onOpenPlayer={() => setShowMusicModal(true)} />
@@ -6712,13 +7013,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* WORKSHOP CELL */}
-          <div className="bento-cell cell-project clickable" onClick={() => navigate('/workshop')}>
-            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.7) contrast(1.1)' }}></div>
-            <div className="featured-badge">Tools & Builds</div>
+          {/* STARSEED CELL */}
+          <div className="bento-cell cell-project clickable" onClick={() => navigate('/starseed')}>
+            <div className="project-image" style={{ backgroundImage: `url(${BASE}images/tools-builds-bg.png)`, filter: 'brightness(0.6) saturate(0.8) sepia(0.15)' }}></div>
+            <div className="featured-badge" style={{ background: 'linear-gradient(135deg, rgba(219,185,120,0.15), rgba(199,149,109,0.1))', color: '#dbb978', borderColor: 'rgba(219,185,120,0.2)' }}>Create</div>
             <div className="bento-content" style={{ zIndex: 1 }}>
-              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>The Workshop</h3>
-              <p style={{ color: '#eee', fontSize: '0.95rem' }}>SD Patcher, BEAMY, & Experiments.</p>
+              <h3 className="project-title" style={{ fontSize: '1.8rem', marginBottom: '0.2rem' }}>Starseed</h3>
+              <p style={{ color: '#eee', fontSize: '0.95rem' }}>Where ideas become real.</p>
             </div>
           </div>
 
@@ -7030,6 +7331,30 @@ export default function Home() {
 
         {/* CINEMATIC PORTAL EFFECTS – Canvas-based */}
         <PortalVFX phase={portalPhase} originX={portalOrigin.x} originY={portalOrigin.y} />
+
+        {/* Dev-only portal test button */}
+        {import.meta.env.DEV && (
+          <button
+            className="memory-portal-test-btn"
+            onClick={() => handleMemoryPointClick({ sceneId: 'syros-cave' })}
+            style={{
+              position: 'fixed',
+              bottom: 16,
+              left: 16,
+              zIndex: 9999,
+              padding: '8px 16px',
+              background: 'rgba(124, 58, 237, 0.8)',
+              color: 'white',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            Test Capsule Portal
+          </button>
+        )}
 
         {/* HIDDEN CHARACTER - always mounted so Canvas never remounts (no lag) */}
         {(() => {
@@ -7477,10 +7802,10 @@ export default function Home() {
 
       {/* DAILY GAME MODAL */}
       <AnimatePresence>
-        {showGame && holiday?.game && (
+        {showGame && (typeof showGame === 'string' || holiday?.game) && (
           <Suspense fallback={null}>
             <GameLauncher
-              gameId={holiday.game}
+              gameId={typeof showGame === 'string' ? showGame : holiday?.game}
               holiday={holiday}
               onClose={() => { setShowGame(false); const aut = getGlintAutonomy(); if (aut) aut.resume(); }}
             />

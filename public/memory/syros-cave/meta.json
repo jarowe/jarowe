@@ -1,0 +1,150 @@
+{
+  "id": "syros-cave",
+  "title": "The Cave at Syros",
+  "subtitle": "Syros, Greece — Summer 2024",
+  "description": "A hidden sea cave on the coast of Syros where the family explored during their three-month worldschooling stay in Greece.",
+  "source": {
+    "type": "single-image",
+    "photo": "photo.webp",
+    "depth": "depth.png",
+    "mask": "mask.png",
+    "environmentMask": "environment-mask.png",
+    "generator": "world-model",
+    "generated": "2026-03-27",
+    "worldGenerationProfile": "hero",
+    "generationMode": "single-image-world-model",
+    "worldModelPrompt": "Sea cave in Syros with a young boy in a blue shirt beside a white bell frame and hanging bronze bell, vivid turquoise water beyond. Fully explorable 360 real-world cave, preserve the photo composition, keep the boy, bell, and bellframe clear focal anchors, complete the surrounding limestone interior, natural depth, cinematic light.",
+    "environmentWorldModelPrompt": "Sea cave in Syros with a white bell frame and hanging bronze bell as clear non-masked anchors and vivid turquoise water beyond. Fully explorable 360 real-world limestone cave with coherent natural depth, complete the surrounding cave interior and coastal opening, preserve the bell and frame, leave clean room for the boy to be reintroduced later, cinematic light, no duplicate people or voids.",
+    "expansion": {
+      "strategy": "learned-scene-expansion",
+      "stage": "world-model-fused",
+      "bundle": "world/view-bundle.json",
+      "sourceViewCount": 1,
+      "generatedViewCount": 0,
+      "totalViewCount": 1,
+      "anchorGenerator": "source-photo",
+      "viewSynthesizer": "world-model",
+      "fusionEngine": "world-model",
+      "compositeViewCount": 4,
+      "environmentBootstrap": {
+        "strategy": "subject-erased-environment-bootstrap",
+        "image": "world/bootstrap.environment.png",
+        "subjectInput": "photo.webp",
+        "mask": "environment-mask.png",
+        "subjectMask": "mask.png",
+        "usedAsWorldInput": true
+      }
+    },
+    "environmentBootstrap": {
+      "strategy": "subject-erased-environment-bootstrap",
+      "image": "world/bootstrap.environment.png",
+      "subjectInput": "photo.webp",
+      "mask": "environment-mask.png",
+      "subjectMask": "mask.png",
+      "usedAsWorldInput": true
+    }
+  },
+  "world": {
+    "splat": "world/scene.ksplat",
+    "sourceSplat": "world/scene.ply",
+    "mesh": null,
+    "collider": null,
+    "format": "ksplat",
+    "splatCount": 850000,
+    "sourceSplatCount": 2097152,
+    "bounds": null,
+    "transform": {
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotation": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "provenance": {
+      "tier": "world-model-fused",
+      "anchorGenerator": "source-photo",
+      "reconstruction": "single-image-world-model",
+      "viewCount": 1
+    },
+    "runtimePreviewSplatTarget": 900000,
+    "generationProfile": "hero",
+    "selection": null
+  },
+  "fallback": {
+    "type": "depth-particles",
+    "photo": "photo.webp",
+    "depth": "depth.png",
+    "particleCount": 300000
+  },
+  "camera": {
+    "startPosition": [
+      0.42,
+      0.12,
+      6.4
+    ],
+    "startTarget": [
+      0.08,
+      0.02,
+      0
+    ],
+    "fov": 52,
+    "near": 0.1,
+    "far": 80
+  },
+  "narrative": [
+    {
+      "threshold": 0.15,
+      "text": "The sound of water against stone. A bell that hasn't rung in years."
+    },
+    {
+      "threshold": 0.4,
+      "text": "I stopped at the edge where dark became light. The boys were somewhere above, climbing. Maria was beside me. And for a moment, everything was still."
+    },
+    {
+      "threshold": 0.65,
+      "text": "You spend your life looking for the door between who you are and who you're becoming. Sometimes it's carved from rock."
+    },
+    {
+      "threshold": 0.85,
+      "text": "I found joy here."
+    }
+  ],
+  "soundscape": {
+    "layers": [
+      {
+        "id": "drone",
+        "src": "audio/drone.ogg",
+        "volume": 0.5,
+        "fadeIn": 3000
+      },
+      {
+        "id": "texture",
+        "src": "audio/water.ogg",
+        "volume": 0.35,
+        "fadeIn": 4000
+      },
+      {
+        "id": "detail",
+        "src": "audio/drips.ogg",
+        "volume": 0.2,
+        "fadeIn": 5000
+      }
+    ]
+  },
+  "transitions": {
+    "next": null,
+    "previous": null,
+    "anchors": []
+  }
+}

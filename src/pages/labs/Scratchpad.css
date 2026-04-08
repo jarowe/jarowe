@@ -1,0 +1,219 @@
+.scratchpad-editor-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Override Milkdown frame theme to match dark palette ── */
+.scratchpad-editor-container .milkdown {
+  --color-background: transparent;
+  --color-surface: rgba(124, 58, 237, 0.04);
+  --color-on-surface: #e0e0e0;
+  --color-primary: #a78bfa;
+  --color-on-primary: #080810;
+  --color-outline: rgba(124, 58, 237, 0.15);
+  --color-secondary: rgba(124, 58, 237, 0.08);
+  color: #e0e0e0;
+  background: transparent;
+}
+
+/* ── ProseMirror editor area ── */
+.scratchpad-editor-container .milkdown .editor,
+.scratchpad-editor-container .milkdown .ProseMirror,
+.scratchpad-editor-container .milkdown [data-milkdown-root] {
+  min-height: 60vh;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #e0e0e0;
+  background: rgba(15, 15, 18, 0.6);
+  border-radius: 12px;
+  caret-color: #a78bfa;
+}
+
+/* ── Headings ── */
+.scratchpad-editor-container .milkdown h1,
+.scratchpad-editor-container .milkdown h2,
+.scratchpad-editor-container .milkdown h3,
+.scratchpad-editor-container .milkdown h4,
+.scratchpad-editor-container .milkdown h5,
+.scratchpad-editor-container .milkdown h6 {
+  color: #f0f0f0;
+}
+
+/* ── Toolbar / menu bar ── */
+.scratchpad-editor-container .milkdown .toolbar,
+.scratchpad-editor-container .milkdown [data-crepe-toolbar],
+.scratchpad-editor-container .milkdown .crepe-toolbar {
+  background: rgba(8, 8, 16, 0.92);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.scratchpad-editor-container .milkdown .toolbar button,
+.scratchpad-editor-container .milkdown [data-crepe-toolbar] button,
+.scratchpad-editor-container .milkdown .crepe-toolbar button {
+  color: #b0b0b8;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.scratchpad-editor-container .milkdown .toolbar button:hover,
+.scratchpad-editor-container .milkdown [data-crepe-toolbar] button:hover,
+.scratchpad-editor-container .milkdown .crepe-toolbar button:hover {
+  color: #a78bfa;
+  background: rgba(124, 58, 237, 0.1);
+}
+
+/* ── Slash menu / dropdown menus ── */
+.scratchpad-editor-container .milkdown [data-crepe-slash],
+.scratchpad-editor-container .milkdown .slash-menu,
+.scratchpad-editor-container .milkdown [role="listbox"],
+.scratchpad-editor-container .milkdown [data-crepe-menu] {
+  background: rgba(12, 12, 20, 0.96);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 10px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  color: #e0e0e0;
+}
+
+.scratchpad-editor-container .milkdown [role="option"]:hover,
+.scratchpad-editor-container .milkdown [role="option"][aria-selected="true"],
+.scratchpad-editor-container .milkdown [data-crepe-slash] [data-active] {
+  background: rgba(124, 58, 237, 0.12);
+  color: #f0f0f0;
+}
+
+/* ── Tooltip / floating toolbar ── */
+.scratchpad-editor-container .milkdown [data-crepe-tooltip],
+.scratchpad-editor-container .milkdown .tooltip,
+.scratchpad-editor-container .milkdown [data-tippy-root] .tippy-box {
+  background: rgba(12, 12, 20, 0.95);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  color: #e0e0e0;
+}
+
+/* ── Selection highlight ── */
+.scratchpad-editor-container .milkdown .ProseMirror ::selection,
+.scratchpad-editor-container .milkdown ::selection {
+  background: rgba(124, 58, 237, 0.3);
+  color: #fff;
+}
+
+/* ── Placeholder text ── */
+.scratchpad-editor-container .milkdown .ProseMirror .is-empty::before,
+.scratchpad-editor-container .milkdown [data-placeholder]::before {
+  color: #555;
+}
+
+/* ── Code blocks (CodeMirror disabled) ── */
+.scratchpad-editor-container .milkdown pre {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.scratchpad-editor-container .milkdown pre code {
+  color: #a78bfa;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+/* ── Inline code ── */
+.scratchpad-editor-container .milkdown code {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  color: #c4b5fd;
+  font-size: 0.88em;
+}
+
+/* ── Links ── */
+.scratchpad-editor-container .milkdown a {
+  color: #a78bfa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.scratchpad-editor-container .milkdown a:hover {
+  color: #c4b5fd;
+}
+
+/* ── Blockquote ── */
+.scratchpad-editor-container .milkdown blockquote {
+  border-left: 3px solid rgba(124, 58, 237, 0.3);
+  padding-left: 1rem;
+  color: #9999a1;
+}
+
+/* ── Horizontal rule ── */
+.scratchpad-editor-container .milkdown hr {
+  border-color: rgba(124, 58, 237, 0.15);
+}
+
+/* ── Tables ── */
+.scratchpad-editor-container .milkdown table {
+  border-color: rgba(124, 58, 237, 0.12);
+}
+
+.scratchpad-editor-container .milkdown th {
+  background: rgba(124, 58, 237, 0.08);
+  color: #e0e0e0;
+  border-color: rgba(124, 58, 237, 0.12);
+}
+
+.scratchpad-editor-container .milkdown td {
+  border-color: rgba(124, 58, 237, 0.08);
+  color: #d0d0d0;
+}
+
+/* ── List markers ── */
+.scratchpad-editor-container .milkdown ul li::marker,
+.scratchpad-editor-container .milkdown ol li::marker {
+  color: #a78bfa;
+}
+
+/* ── Task list checkboxes ── */
+.scratchpad-editor-container .milkdown input[type="checkbox"] {
+  accent-color: #a78bfa;
+}
+
+/* ── Scrollbar ── */
+.scratchpad-editor-container .milkdown ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scratchpad-editor-container .milkdown ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scratchpad-editor-container .milkdown ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.25);
+  border-radius: 4px;
+}
+
+.scratchpad-editor-container .milkdown ::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.45);
+}
+
+/* ── Image nodes ── */
+.scratchpad-editor-container .milkdown img {
+  border-radius: 8px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+@media (max-width: 768px) {
+  .scratchpad-editor-container {
+    padding: 1rem;
+  }
+}

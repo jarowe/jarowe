@@ -10,23 +10,79 @@ import StoryPanel from '../constellation/ui/StoryPanel';
 import MediaLightbox from '../constellation/ui/MediaLightbox';
 import ThemeLegend from '../constellation/ui/ThemeLegend';
 import ViewToggle from '../constellation/ui/ViewToggle';
+import PortalVFX from '../components/PortalVFX';
+import { navigateWithTransition } from '../utils/viewTransitions';
 import './ConstellationPage.css';
 
 const ConstellationEditor = lazy(() => import('../constellation/ConstellationEditor'));
+
+/** Type colors for DOM hover label */
+const HOVER_TYPE_COLORS = {
+  milestone: '#FFD700', person: '#4FC3F7', moment: '#AB47BC',
+  idea: '#66BB6A', project: '#FF7043', place: '#26C6DA', track: '#34d399',
+};
+
+/**
+ * DOM-based hover tooltip — fallback when 3D HoverLabel can't render
+ * (WebGL context lost/degraded). Always renders in the DOM regardless of
+ * WebGL state. The 3D HoverLabel in the Canvas renders on top when healthy,
+ * so this acts as a seamless fallback.
+ */
+function DomHoverLabel() {
+  const hoveredNodeId = useConstellationStore((s) => s.hoveredNodeId);
+  const hoveredScreenPos = useConstellationStore((s) => s.hoveredScreenPos);
+  const nodes = useConstellationStore((s) => s.nodes);
+
+  if (!hoveredNodeId || !nodes || !hoveredScreenPos) {
+    return null;
+  }
+
+  const node = nodes.find((n) => n.id === hoveredNodeId);
+  if (!node) return null;
+  const typeColor = HOVER_TYPE_COLORS[node.type] || '#aaa';
+
+  return (
+    <div
+      className="constellation-hover-label"
+      style={{
+        left: hoveredScreenPos.x,
+        top: hoveredScreenPos.y - 12,
+      }}
+    >
+      <div className="constellation-hover-label__title">{node.title}</div>
+      <div className="constellation-hover-label__meta">
+        <span style={{ color: typeColor }}>{node.type}</span>
+        {node.date && (
+          <span className="constellation-hover-label__date">
+            {new Date(node.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /** Error boundary to catch R3F Canvas crashes gracefully */
 class CanvasErrorBoundary extends Component {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(err) { console.error('Constellation 3D error:', err); }
+  componentDidCatch(err) {
+    console.error('🔴 CanvasErrorBoundary caught:', err.message);
+  }
   render() {
     if (this.state.hasError) {
       return (
-        <div className="constellation-loading">
-          <p>3D scene failed to load.</p>
-          <button onClick={() => this.setState({ hasError: false })} style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-            Retry
-          </button>
+        <div className="constellation-loading constellation-loading--error">
+          <div className="constellation-loading__card">
+            <span className="constellation-loading__eyebrow">Render fault</span>
+            <h2 className="constellation-loading__title">3D scene failed to load.</h2>
+            <p className="constellation-loading__status">
+              The starfield is still alive, but the scene needs a fresh render pass.
+            </p>
+            <button onClick={() => this.setState({ hasError: false })} className="constellation-loading__retry">
+              Retry scene
+            </button>
+          </div>
         </div>
       );
     }
@@ -90,15 +146,96 @@ function AutoDetectPrompt() {
   );
 }
 
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function ConstellationLoadingOverlay({
+  canvasReady,
+  dataLoaded,
+  dataError,
+  introActive,
+  loadingProgress,
+  nodeCount,
+  onRetry,
+}) {
+  if (dataError) {
+    return (
+      <div className="constellation-loading constellation-loading--error">
+        <div className="constellation-loading__card">
+          <span className="constellation-loading__eyebrow">Data fault</span>
+          <h2 className="constellation-loading__title">Constellation data failed to load.</h2>
+          <p className="constellation-loading__status">
+            The scene shell is ready, but the memories and threads did not arrive.
+          </p>
+          <button className="constellation-loading__retry" onClick={onRetry}>
+            Retry load
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const stageCopy = introActive
+    ? 'Opening the archive'
+    : !canvasReady
+      ? 'Stabilizing the viewport'
+      : loadingProgress < 0.34
+        ? 'Indexing memories'
+        : loadingProgress < 0.7
+          ? 'Tracing the threads'
+          : 'Composing the helix';
+
+  const statusCopy = dataLoaded
+    ? `${nodeCount} memories aligned`
+    : `${Math.round(loadingProgress * 100)}%`;
+
+  return (
+    <div className={`constellation-loading${introActive ? ' constellation-loading--settling' : ''}`}>
+      <div className="constellation-loading__card">
+        <span className="constellation-loading__eyebrow">The Constellation</span>
+        <div
+          className="constellation-loading__ring"
+          style={{ '--progress': `${Math.round(loadingProgress * 360)}deg` }}
+        />
+        <h2 className="constellation-loading__title">{stageCopy}</h2>
+        <p className="constellation-loading__status">{statusCopy}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ConstellationPage() {
   const viewMode = useConstellationStore((s) => s.viewMode);
   const dataLoading = useConstellationStore((s) => s.dataLoading);
   const dataLoaded = useConstellationStore((s) => s.dataLoaded);
   const dataError = useConstellationStore((s) => s.dataError);
   const loadData = useConstellationStore((s) => s.loadData);
+  const nodeCount = useConstellationStore((s) => s.nodes.length);
+  const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const [canvasReady, setCanvasReady] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0.08);
   const navigate = useNavigate();
   const { nodeId: urlNodeId } = useParams();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const introPlayedThisSession = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('constellation-intro-played') === 'true';
+  }, []);
 
   // Refs for back-button history state management
   const hasConstellationState = useRef(false);
@@ -225,13 +362,30 @@ export default function ConstellationPage() {
     loadData();
   }, [loadData]);
 
-  // Deep-link: auto-focus node from URL param once data is loaded
+  // Intro plays on every visit. Only skip for deep-links (camera flies
+  // to the specific node instead) and reduced-motion preference.
+  const skipIntro = Boolean(urlNodeId) || prefersReducedMotion;
+
+  useEffect(() => {
+    if (skipIntro) {
+      setIntroComplete(true);
+    }
+  }, [skipIntro]);
+
+  useEffect(() => {
+    if (!dataLoaded) return;
+    if (!skipIntro) return;
+    setIntroComplete(true);
+  }, [dataLoaded, skipIntro]);
+
+  // Deep-link: auto-focus node from URL param once data is loaded.
+  // Fires quickly so the camera fly-to animation plays as the scene
+  // appears — user sees the cinematic swoop into the node.
   const deepLinked = useRef(false);
   useEffect(() => {
     if (urlNodeId && dataLoaded && !deepLinked.current) {
       deepLinked.current = true;
       const focusNode = useConstellationStore.getState().focusNode;
-      // Small delay to let canvas initialize
       requestAnimationFrame(() => focusNode(urlNodeId));
     }
   }, [urlNodeId, dataLoaded]);
@@ -287,8 +441,6 @@ export default function ConstellationPage() {
 
   // ---- Browser back button (popstate) handler ----
   // Push history state when a node is first focused
-  const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
-
   useEffect(() => {
     if (focusedNodeId && !hasConstellationState.current) {
       // First focus: push a history entry so back button can close panel
@@ -305,13 +457,12 @@ export default function ConstellationPage() {
   }, [focusedNodeId]);
 
   useEffect(() => {
-    const handlePopState = (e) => {
+    const handlePopState = () => {
       const state = useConstellationStore.getState();
 
       // Layer 1: If lightbox open -> close lightbox
       if (state.lightboxMedia !== null) {
         state.closeLightbox();
-        // Re-push state so back button still works for panel
         window.history.pushState({ constellation: true }, '');
         return;
       }
@@ -324,59 +475,173 @@ export default function ConstellationPage() {
       }
 
       // Layer 3: Navigate away (let browser handle default back)
-      // Don't prevent -- the default popstate already navigated
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Gate on data loading state
-  if (!dataLoaded && dataLoading) {
-    return (
-      <div className="constellation-page">
-        <div className="constellation-loading">Initializing Constellation...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (dataError) return undefined;
 
-  if (!dataLoaded && dataError) {
-    return (
-      <div className="constellation-page">
-        <div className="constellation-loading">
-          <p>Failed to load constellation data.</p>
-          <button
-            onClick={() => loadData({ force: true })}
-            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
-          >
-            Retry
-          </button>
+    const id = window.setInterval(() => {
+      setLoadingProgress((prev) => {
+        const target = dataLoaded ? 1 : canvasReady ? 0.8 : 0.28;
+        const next = prev + (target - prev) * (dataLoaded ? 0.3 : 0.12);
+        return Math.min(target, next);
+      });
+    }, 80);
+
+    return () => window.clearInterval(id);
+  }, [canvasReady, dataError, dataLoaded]);
+
+  const handleRetry = useCallback(() => {
+    setLoadingProgress(0.08);
+    setIntroComplete(skipIntro);
+    loadData({ force: true });
+  }, [loadData, skipIntro]);
+  const handleIntroComplete = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('constellation-intro-played', 'true');
+    }
+    setIntroComplete(true);
+  }, []);
+
+  // ── Portal transition ──
+  const [portalPhase, setPortalPhase] = useState(null);
+  const [portalOrigin, setPortalOrigin] = useState({ x: '50%', y: '50%' });
+  const portalTimersRef = useRef([]);
+
+  const handlePortalEnter = useCallback((nodeId, sceneId) => {
+    // Compute origin from the focused node's approximate screen position.
+    // The node is shifted left by the frustum offset, so aim for the left-third
+    // of the viewport as a reasonable estimate.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const isMobile = vw <= 768;
+    const originX = isMobile ? '50%' : '33%';
+    const originY = isMobile ? '35%' : '45%';
+    setPortalOrigin({ x: originX, y: originY });
+
+    // Store return path so CapsuleShell can navigate back here
+    sessionStorage.setItem('jarowe_portal_entry', '1');
+    sessionStorage.setItem('jarowe_portal_return', `/constellation/${nodeId}`);
+
+    const cfg = window.__prismConfig || {};
+    const gatherMs = cfg.portalGatherMs ?? 500;
+    const eT = (fn, ms) => {
+      const id = setTimeout(fn, ms);
+      portalTimersRef.current.push(id);
+    };
+
+    setPortalPhase('seep');
+    eT(() => setPortalPhase('gathering'), 300);
+    eT(() => {
+      setPortalPhase('rupture');
+      navigateWithTransition(navigate, `/memory/${sceneId}`);
+    }, 300 + gatherMs);
+    eT(() => setPortalPhase('emerging'), 300 + gatherMs + (cfg.portalRuptureMs ?? 500));
+    eT(() => setPortalPhase('residual'), 300 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900));
+    eT(() => setPortalPhase(null), 300 + gatherMs + (cfg.portalRuptureMs ?? 500) + (cfg.portalEmergeMs ?? 900) + (cfg.portalResidualMs ?? 1800));
+  }, [navigate]);
+
+  // Cleanup portal timers on unmount
+  useEffect(() => () => {
+    portalTimersRef.current.forEach(clearTimeout);
+  }, []);
+
+  // Intro fires when: 3D mode, data ready, canvas ready, not skipped, not yet complete.
+  // The preload may cause dataLoaded to be true before canvasReady — that's fine,
+  // the intro just waits for both conditions before starting.
+  const introExpected = viewMode === '3d'
+    && !dataError
+    && !skipIntro
+    && !introComplete;
+
+  const introActive = introExpected
+    && dataLoaded
+    && canvasReady
+    && !dataError;
+
+  const sceneUiVisible = viewMode === '3d' && dataLoaded && !dataError && !introActive;
+  const show3DOverlay = viewMode === '3d' && (!canvasReady || !dataLoaded || introActive || Boolean(dataError));
+
+  if (viewMode !== '3d') {
+    if (!dataLoaded && dataLoading) {
+      return (
+        <div className="constellation-page">
+          <ConstellationLoadingOverlay
+            canvasReady={canvasReady}
+            dataLoaded={false}
+            dataError={null}
+            introActive={false}
+            loadingProgress={loadingProgress}
+            nodeCount={nodeCount}
+            onRetry={handleRetry}
+          />
         </div>
-      </div>
-    );
+      );
+    }
+
+    if (!dataLoaded && dataError) {
+      return (
+        <div className="constellation-page">
+          <ConstellationLoadingOverlay
+            canvasReady={canvasReady}
+            dataLoaded={false}
+            dataError={dataError}
+            introActive={false}
+            loadingProgress={loadingProgress}
+            nodeCount={nodeCount}
+            onRetry={handleRetry}
+          />
+        </div>
+      );
+    }
   }
 
   return (
     <div className="constellation-page">
       {viewMode === '3d' ? (
         <>
-          {!canvasReady && (
-            <div className="constellation-loading">
-              Initializing Constellation...
-            </div>
-          )}
           {canvasReady && (
             <CanvasErrorBoundary>
-              <ConstellationCanvas />
+              <ConstellationCanvas
+                introEnabled={introActive}
+                introExpected={introExpected}
+                onIntroComplete={handleIntroComplete}
+                reducedMotion={prefersReducedMotion}
+              />
             </CanvasErrorBoundary>
           )}
-          <ViewToggle />
-          <Toolbar />
-          <TimelineScrubber />
-          <ThemeLegend />
-          <StoryPanel />
-          <MediaLightbox />
-          <AutoDetectPrompt />
+          {show3DOverlay && (
+            <ConstellationLoadingOverlay
+              canvasReady={canvasReady}
+              dataLoaded={dataLoaded}
+              dataError={dataError}
+              introActive={introActive}
+              loadingProgress={loadingProgress}
+              nodeCount={nodeCount}
+              onRetry={handleRetry}
+            />
+          )}
+          <div className={`constellation-scene-ui${sceneUiVisible ? ' constellation-scene-ui--visible' : ''}`}>
+            <ViewToggle />
+            <Toolbar />
+            <TimelineScrubber />
+            <ThemeLegend />
+            <DomHoverLabel />
+            <StoryPanel onPortalEnter={handlePortalEnter} />
+            <MediaLightbox />
+            <AutoDetectPrompt />
+          </div>
+          {portalPhase && (
+            <PortalVFX
+              phase={portalPhase}
+              originX={portalOrigin.x}
+              originY={portalOrigin.y}
+            />
+          )}
         </>
       ) : (
         <div className="constellation-2d-layout">

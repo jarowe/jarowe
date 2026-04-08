@@ -1,356 +1,542 @@
-# Feature Research
+# Feature Research: Particle Memory Flight
 
-**Domain:** Data-driven interactive personal website with 3D constellation visualization
-**Researched:** 2026-02-27
-**Confidence:** MEDIUM-HIGH
+**Domain:** Particle-field memory experiences with scroll-driven flight, dreamstate transitions, and reactive audio
+**Researched:** 2026-03-23
+**Confidence:** HIGH
+**Milestone:** v2.2 Particle Memory Flight
+**Reference:** Linkin Park "Lost" music video (pixel formations of memories with wire connections and glow)
+
+---
+
+## How Particle Memory Experiences Work
+
+### The Core Technique: Photo-to-Particle Decomposition
+
+A photograph is decomposed into a field of luminous 3D particles that retain the image's color and spatial structure while revealing depth and form:
+
+1. **Image sampling** -- The source photo is sampled at regular or importance-weighted intervals. Each sample point extracts RGB color, XY position (normalized to scene space), and depth (from the pre-generated depth map). This produces a point cloud where each particle carries its original pixel color and a Z position derived from depth.
+
+2. **Depth extrusion** -- The flat 2D sample grid is extruded into 3D using the depth map. Foreground particles push forward; background particles recede. The result is a volumetric point cloud shaped like the original scene but with visible gaps between particles -- the image becomes a constellation of colored light points suspended in space.
+
+3. **Selective connections** -- A subset of nearby particles are connected by thin wire/line segments. These are not random: connections follow edges, contours, or regions of similar depth. The wires create a skeletal mesh that holds the image together visually while emphasizing its structure. Reference: the Linkin Park "Lost" video uses sparse wire connections between pixel formations to create a holographic memory feel.
+
+4. **Glow and bloom** -- Each particle emits soft light (additive blending + bloom postprocessing). The glow bleeds between nearby particles, creating the illusion of a luminous field rather than discrete dots. Brighter particles (highlights in the photo) glow more intensely.
+
+5. **Scroll-driven camera** -- The camera moves through the particle field on a rail, driven by scroll/trackpad/touch input. The visitor controls pacing but not direction. The flight path is authored per-scene as a spline through the particle volume.
+
+### What the "Lost" Video Does Specifically
+
+The Linkin Park "Lost" video (directed by Joe Hahn, 2023) demonstrates the target aesthetic:
+
+- **Pixel-resolution particles:** Faces and scenes decompose into individual pixel-sized points with original photo color. Not random sparkles -- the image is recognizable from afar but reveals its particle nature up close.
+- **Wire mesh connections:** Thin white/colored lines connect nearby particles, forming a mesh visible at the edges and silhouettes of figures. The wires are sparse (not every particle connected) and follow structural contours.
+- **Depth layering:** Foreground figures are denser and brighter. Background elements are sparser and dimmer. The depth separation is clearly visible as you orbit or fly through.
+- **Dissolve transitions:** Scenes transition by particles dispersing outward (explode/scatter), then reforming into the next image. The scatter-to-reform cycle IS the transition between memories.
+- **Warm glow palette:** Despite being "pixel art," the palette leans warm amber/gold with cool blue accents. The glow creates an emotional temperature.
+- **Camera passes through:** The camera doesn't orbit from outside -- it moves THROUGH the particle field, between layers, giving a sense of flying inside the memory rather than observing it.
+
+### What Makes It Feel Like "Flying Through Memory" vs. a Tech Demo
+
+**Living memory field (the goal):**
+- Particles breathe -- subtle oscillation in position/size/brightness that makes the field feel alive, not static
+- Camera moves THROUGH the field, not around it -- particles pass the viewer on both sides, creating parallax depth
+- Sound reacts to progress -- ambient layers swell, shift, and bloom as you move deeper into the memory
+- Wire connections pulse faintly, like synapses firing in a brain
+- The image is recognizable from a distance but dissolves into individual luminous points as you approach
+- Transitions between memories feel like dreams -- dissolve, drift, reform -- not hard cuts
+- Scroll speed maps to emotional pacing: slow scroll = contemplative drift, fast scroll = rushing through
+- Narrative text appears as part of the field, not overlaid on top
+
+**Tech demo (the trap):**
+- Particles are uniform size and brightness -- looks like a 3D scatter plot, not a memory
+- Camera orbits from a fixed distance -- you observe the field rather than inhabiting it
+- No connections between particles -- looks like a point cloud export, not a living structure
+- Instant transitions -- scene A snaps to scene B with no dream logic
+- No sound response to movement -- silent flight through pixels is just a WebGL demo
+- Too many particles obscure the image -- you can't tell what the photo was
+- Too few particles look broken -- sparse dots floating in space
+- Scroll mapping is 1:1 linear -- no momentum, no easing, no breath
+
+### The Density Sweet Spot
+
+Particle count determines whether the experience reads as "image made of light" or "random scatter":
+
+| Particle Count | Visual Quality | Performance | Verdict |
+|---------------|---------------|-------------|---------|
+| 10K-30K | Too sparse; image unrecognizable except at distance | Trivial | Insufficient |
+| 40K-80K | Image reads clearly; individual particles visible up close; gaps between particles add depth | Good (instanced) | Viable minimum |
+| 80K-150K | Dense enough to read as image at all distances; gaps only visible very close | Needs instancing + LOD | Target range |
+| 150K-300K | Near-pixel fidelity; beautiful but performance-heavy | Needs WebGPU compute or aggressive LOD | Stretch on desktop |
+| 300K+ | Diminishing returns; starts to look like the original photo again | Unrealistic for WebGL2 | Over-budget |
+
+The target is 80K-150K particles for the flagship scene. This allows the image to read clearly from the starting camera position while revealing its particle nature as the camera flies closer.
+
+---
 
 ## Feature Landscape
 
-### Table Stakes (Users Expect These)
+### Table Stakes (Must Have for the Experience to Work)
 
-Features users assume exist. Missing these = product feels incomplete.
+Missing any of these = the particle memory feels broken or incomplete.
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Mobile responsiveness | All modern websites must work on mobile | MEDIUM | Your existing site handles this; constellation needs 3D degradation strategy |
-| Fast initial load (<3s) | Industry standard; users bounce otherwise | MEDIUM | Code-splitting, lazy loading, instanced rendering critical for constellation |
-| Keyboard navigation | Basic accessibility requirement | LOW-MEDIUM | Tab navigation, arrow keys for 3D exploration, skip links |
-| Visual feedback on interaction | Hover states, click feedback expected | LOW | You have this (sounds.js); extend to constellation nodes |
-| Search/filter capability | Users expect to find specific content quickly | MEDIUM | 2D library fallback serves this; constellation needs search overlay |
-| Privacy controls visibility | 2026: users expect transparency about data | LOW | Show privacy tiers visually (icons, colors) on nodes |
-| Graceful loading states | Spinners, progressive reveal, skeleton UI | LOW | Existing lazy loading; constellation needs elegant entrance |
-| Back button / escape routes | Users must feel safe to explore | LOW | You have back-link pills; constellation needs ESC key + UI exit |
-| Persistent state across navigation | Music player, XP progress must not reset | LOW | You have this (AudioProvider, localStorage) |
-| Performance on mid-tier devices | Can't require high-end GPU | HIGH | Instancing, LOD, reduced effects on mobile critical |
+| Feature | Why Required | Complexity | Dependency on Existing System |
+|---------|-------------|------------|-------------------------------|
+| **Photo-to-particle sampling** | Core technique: photo + depth map -> positioned, colored 3D particles | MEDIUM | Reuses existing depth map assets from v2.1 scene registry (`memoryScenes.js`). Needs new sampling logic. |
+| **Instanced particle rendering** | 80K+ particles require InstancedMesh or InstancedBufferGeometry for 60fps | MEDIUM | R3F + THREE.js instancing. Existing `ParticleCloud.jsx` in constellation uses instanced points as reference. |
+| **Scroll-driven camera on rails** | Visitor controls flight pacing via scroll; direction is authored per-scene | MEDIUM-HIGH | New component. CapsuleShell's `CinematicCamera` uses GSAP keyframes -- this replaces it with scroll-bound spline interpolation. |
+| **Particle glow + bloom** | Particles must emit light and bleed into neighbors for the "luminous field" look | LOW-MEDIUM | Existing `CapsulePostProcessing` has bloom infrastructure (`@react-three/postprocessing`). Extend with UnrealBloomPass or SelectiveBloom. |
+| **Entry transition (dissolve into particles)** | Scene must not "pop in" -- reality dissolves into the particle field | MEDIUM-HIGH | Extends existing `PortalVFX` concept but replaces ring portal with particle scatter/coalesce. New VFX component. |
+| **Exit transition (particles reform or scatter)** | Clean exit back to origin (constellation/home) with particle animation | MEDIUM | Mirror of entry. Existing recession arc (ARC-03) pattern provides lifecycle model. |
+| **GPU tier gating** | Only desktop-class GPUs get the particle experience; others get existing parallax fallback | LOW | Existing `getGpuTier()` already returns 'full'/'simplified'/'parallax'. Add 'particle' sub-tier check for full-tier devices. |
+| **Scene registry extension** | Scenes need particle-specific config: density, connection rules, flight spline, soundscape layers | LOW | Extends existing `memoryScenes.js` schema with new fields alongside existing displaced-mesh config. |
 
-### Differentiators (Competitive Advantage)
-
-Features that set the product apart. Not required, but valuable.
+### Differentiators (What Separates This from Every Other Particle Demo)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Evidence-based connections | Every edge justified by real data signals | HIGH | Core to "truthfulness"; requires robust signal detection in pipeline |
-| Cinematic guided tour | 90-second narrative journey through life | MEDIUM-HIGH | Awwwards 2026 trend: scroll-driven narratives, parallax storytelling |
-| 5-tier narrator system | Context-aware narration (epoch/node/connection/discovery/idle) | HIGH | Differentiates from static portfolios; scripted first, LLM later |
-| Discovery gamification with XP | Exploration rewarded; hidden nodes unlockable | MEDIUM | You have XP system; integrate with constellation exploration |
-| Real-time data auto-ingest | Site updates nightly from social platforms | HIGH | "Living" site feel; nightly cron + on-demand refresh via admin |
-| Privacy-first with curation layer | Publish/hide/highlight controls, allowlists, minors protection | MEDIUM-HIGH | 2026 regulatory trend (Utah Digital Choice Act, GPC); competitive advantage |
-| Double-helix temporal layout | Life unfolds as explorable DNA-like structure | HIGH | Unique visual metaphor; epoch clustering with seeded stability |
-| Path memory trail | Faint glow showing visitor's journey | MEDIUM | Creates sense of personal exploration; GSAP timeline tracking |
-| Multi-mode constellation | "Life" / "Work" / "Ideas" filters with different edge weights and narration tones | MEDIUM | Allows audience segmentation without separate sites |
-| Ambient soundscape + audio-reactive | Music bed with optional visual pulsing to audio | MEDIUM | You have Howler.js; add Web Audio API analyzer for reactivity |
-| Draft inbox for auto-ingested content | Owner curates before publish | MEDIUM | Prevents embarrassing auto-posts; essential for trust |
-| "Because..." meaning lens | Detail panel shows WHY connection exists | LOW-MEDIUM | Transparency about algorithm; builds trust in data truthfulness |
-| 2D library accessibility fallback | Full searchable node index for screen readers | MEDIUM | WCAG 3.0 (2026): immersive tech must have text alternative |
+| **Selective wire connections** | Thin lines between nearby particles along edges/contours create the "holographic memory" look from the Lost video. Without these, it's just a point cloud. | MEDIUM-HIGH | GPU-side neighbor detection at sampling time. Store connections as line geometry. Pulse brightness over time for "synapse" feel. |
+| **Particle breathing** | Subtle per-particle oscillation in position (0.01-0.03 units), size (5-15% variance), and brightness (10-20% variance) makes the field feel alive. Without breathing, the field is a static scatter. | LOW | Sinusoidal offsets per particle keyed to `aRandom` attribute (existing pattern from `AtmosphericParticles`). |
+| **Progress-reactive audio** | Ambient soundscape layers evolve with scroll position: deeper = more layers/intensity. Creates emotional journey through sound as well as visuals. | MEDIUM-HIGH | New system. Must coordinate with existing Howler.js `AudioContext`. Multiple Howl instances with scroll-driven volume/filter envelopes. |
+| **Dreamstate portal transition** | Instead of a ring portal, reality DISSOLVES into particles (existing displaced mesh -> scatter), then a tunnel/drift/fall-through, then particles coalesce into the memory. Dream logic, not sci-fi logic. | HIGH | Most complex single feature. Requires coordinating displaced mesh disposal, particle system initialization, and camera path seamlessly. |
+| **Depth-aware particle density** | Foreground regions (closer in depth map) get higher particle density than background. This creates natural depth-of-field feeling where you can sense foreground/background separation without DOF blur. | MEDIUM | Importance sampling: use depth map gradient magnitude to allocate more samples at depth edges and foreground surfaces. |
+| **Narrative as particles** | Text cards materialize from particles rather than fading in as flat HTML overlays. Words form from the particle field, read, then dissolve back. | HIGH | SDF text rendering in particle system or hybrid approach (HTML overlay with particle scatter transition). Significantly increases complexity. |
+| **Scroll momentum and easing** | Scroll input has inertia: releasing the scroll wheel continues the camera drift for 0.5-1.5s before settling. Fast flicks = longer glide. Creates physical feel. | LOW-MEDIUM | Lerped scroll velocity tracking with exponential decay. Standard scroll-jacking pattern. |
+| **Connection-line color sampling** | Wire connections inherit color from their endpoint particles (average of the two). Creates colored web that maps to the original image's palette. | LOW | Simple: average the RGB of connected particle pair. |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (Commonly Attempted, Often Wrong)
 
-Features that seem good but create problems.
+| Feature | Why Attempted | Why Problematic | Better Alternative |
+|---------|---------------|-----------------|-------------------|
+| **Free-roam camera in particle field** | "Let users explore freely" | Particles are optimized for camera-facing; back-of-field looks empty. Free-roam reveals density gaps, LOD seams, and connection-line aliasing. Flight path is what creates the emotional arc. | Scroll-driven rail with subtle mouse/gyro parallax (same pattern as existing CinematicCamera). Visitor controls pacing, not direction. |
+| **GPU-compute particle physics** | "Particles should have real physics, collide, flow" | WebGPU compute is not yet stable in R3F. Physics adds complexity without emotional value. Particles that bounce look like a screensaver, not a memory. | Breath-like sinusoidal motion + dissolve/reform via shader uniforms. No physics engine needed. |
+| **Real-time photo sampling in browser** | "User uploads photo, instantly becomes particles" | Sampling 80K+ particles from a 4K image with importance weighting takes seconds. Depth estimation takes 30+ seconds. Loading ML models crashes mobile. | Pre-compute particle positions at build time or on first load with caching. Ship as compact binary buffer alongside the depth map. |
+| **Full-resolution pixel particles (1:1)** | "Every pixel becomes a particle for ultimate fidelity" | A 4K photo = 8.3M particles. Even WebGPU cannot render this at 60fps with bloom and connections. Returns diminish past 150K -- it just looks like the photo. | 80K-150K importance-sampled particles. Visually identical to the source at viewing distance, reveals structure up close. |
+| **Multiple simultaneous particle fields** | "Show all memories at once as a galaxy" | GPU budget for one field at 100K+ particles with connections and bloom is already substantial. Two fields at once halves the budget. | Sequential experience with dissolve transitions between fields. One memory at a time, full quality. |
+| **Particle audio reactivity to music beats** | "Particles pulse with the music like a visualizer" | Transforms the memory into a music visualizer. The particle field should feel like a memory, not a waveform display. Beat reactivity pulls attention from the emotional content. | Subtle atmospheric response: ambient layers swell with progress, particles breathe slightly with low-frequency audio. Response is felt, not seen as a beat-sync. |
+| **Scroll hijacking with no escape** | "Lock the page to the particle experience" | Users panic when scroll doesn't work normally. Accessibility failure. Mobile touch scroll conflicts. | Dedicated viewport section with clear boundaries. Normal scroll before and after. Progress indicator showing position in flight. Optional keyboard (arrow keys, space) for accessibility. |
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| Live AI narrator (LLM) | "Personalized" storytelling sounds cool | Unpredictable, expensive, slow, unreliable for first impressions | Scripted narrator with event-driven logic; LLM deferred to v2 after system proves itself |
-| Real-time multiplayer / visitor presence | "See who's exploring with you" | Complexity explosion; requires WebSocket infra, moderation, privacy issues | Single-player experience with optional "X people explored today" counter |
-| Full 3D everywhere (no 2D fallback) | Looks cutting-edge | Excludes screen readers, low-end devices, accessibility fail | Always provide 2D library fallback with full content parity |
-| Auto-post everything from social media | "Fully automated" | Privacy nightmare; no curation = leaked DMs, private moments, minors exposed | Draft inbox: auto-ingest to draft state, owner publishes |
-| Infinite scroll constellation | "Seamless" exploration | Performance degrades; users get lost; no sense of progress | Timeline scrubber with epoch markers; clear beginning/end |
-| Every node clickable/interactive | "Maximum interactivity" | Cognitive overload; slows exploration | Hover previews for all, click for key nodes only |
-| VR/AR mode | "Next-gen immersive" | Tiny audience (1-2% have headsets); huge dev cost; motion sickness | Focus on desktop/mobile 3D with mouse/touch controls |
-| Blockchain/NFT integration | "Web3 credibility" | Hype-driven; no actual value for personal portfolio; alienates audience | Traditional hosting with data ownership via exports |
-| Auto-playing video everywhere | "Engaging media" | Accessibility fail, bandwidth hog, annoying | Click-to-play with thumbnails; lazy loading |
-| Social login for visitors | "Lower friction" | Unnecessary: site is public view; adds privacy concerns | Auth only for owner admin dashboard |
+---
+
+## Feature Details by System
+
+### 1. ParticleMemoryRenderer
+
+**Purpose:** Transform photo + depth into a renderable particle field with wire connections.
+
+**Sampling strategy:**
+- Load photo texture and depth map texture into an offscreen canvas
+- Sample at grid intervals (e.g., every 2-4 pixels depending on target density)
+- For each sample point: extract RGB, compute XY position in scene space, read depth value for Z
+- Apply importance weighting: more samples at high-gradient depth regions (edges, silhouettes) and bright foreground areas
+- Store as Float32Arrays: positions (xyz), colors (rgb), sizes, connection indices
+
+**Connection generation:**
+- For each particle, find K nearest neighbors (K=3-6) within a distance threshold
+- Filter connections: keep only those where depth difference between endpoints is below a threshold (connects within same depth layer, not across chasms)
+- Emphasize edge connections: particles along depth discontinuities (high depth gradient) get more connections
+- Store as index pairs in a Uint32Array for LineSegments geometry
+- Total connections: roughly 2-4x particle count (each particle has 2-4 outgoing connections, deduplicated)
+
+**Rendering:**
+- Particles: `InstancedMesh` with small sphere geometry (4-6 segments) or `Points` with custom shader for billboarded quads
+- Each particle: position from buffer, color from buffer, size modulated by depth (closer = larger) and breathing uniform
+- Connections: `LineSegments` geometry with vertex colors from endpoints, subtle alpha (0.1-0.3)
+- Bloom: `SelectiveBloom` or `UnrealBloomPass` applied to particle layer only (not UI)
+- Additive blending on particles for glow bleeding
+
+**Performance budget:**
+- 100K particles at 60fps on desktop GPU with bloom: achievable with instanced rendering
+- Connection lines (200K-400K segments): achievable with `LineSegments` and vertex colors
+- Total draw calls: 1 (particles, instanced) + 1 (connections, single geometry) + postprocessing passes
+- Memory: ~100K * (12 bytes position + 12 bytes color + 4 bytes size) = ~2.8MB for particle data
+
+**Dependency on existing system:**
+- Reuses depth map assets from `memoryScenes.js` (`depthMapUrl`, `photoUrl`)
+- Reuses `resolveAsset()` from CapsuleShell for path resolution
+- Lives alongside DisplacedMeshRenderer as a new `renderMode: 'particle-memory'` in the scene registry
+- CapsuleShell dispatches to it via the existing renderMode switch
+
+**Complexity: MEDIUM-HIGH** (sampling + connection generation + instanced rendering + bloom integration)
+
+### 2. MemoryFlightController (Scroll-Driven Camera)
+
+**Purpose:** Map scroll/trackpad/touch input to camera position along an authored spline through the particle field.
+
+**Expected behavior:**
+
+| Input | Response | Feel |
+|-------|----------|------|
+| Scroll wheel down | Camera advances along spline | Smooth, momentum-preserved |
+| Scroll wheel up | Camera retreats along spline | Smooth reverse, same momentum |
+| Trackpad two-finger scroll | Same as wheel, finer granularity | Natural, 1:1 with gesture speed |
+| Touch drag (vertical) | Advances/retreats | Momentum on release |
+| Arrow keys (up/down) | Discrete advance/retreat steps | Accessibility fallback |
+| Space bar | Auto-advance at slow pace | "Lean back" mode |
+| No input (idle 5s) | Gentle auto-advance begins | Prevents stalling |
+
+**Scroll-to-progress mapping:**
+- Track cumulative scroll delta (normalized across wheel/trackpad/touch)
+- Apply momentum: on input stop, current velocity decays exponentially over 0.5-1.5s
+- Clamp progress to [0, 1] range (start of flight to end)
+- Ease the progress-to-position mapping with a slight smoothstep to prevent jarring starts/stops
+- Map progress to spline interpolation: `spline.getPointAt(progress)` for position, `spline.getTangentAt(progress)` for look direction
+
+**Spline authoring (per-scene config):**
+```
+flightPath: {
+  points: [
+    { x, y, z },  // Start: outside the field, looking at it
+    { x, y, z },  // Entry: passing through the outer particle shell
+    { x, y, z },  // Deep: inside the densest region
+    { x, y, z },  // Intimate: very close to a focal point (face, object)
+    { x, y, z },  // Pull-back: retreating to see the whole field
+    { x, y, z },  // Exit: moving away, field recedes
+  ],
+  tension: 0.5,     // CatmullRom tension
+  lookAhead: 0.05,  // How far ahead on spline the camera looks
+}
+```
+
+**What feels good vs. bad:**
+
+| Good | Bad |
+|------|-----|
+| Momentum on release -- camera glides to a stop | Instant stop on scroll end -- feels mechanical |
+| Slight parallax on mouse/gyro perpendicular to flight direction | No parallax -- feels like a video, not 3D |
+| Progress indicator (subtle bar or dots) so visitor knows position | No progress feedback -- visitor feels lost |
+| Auto-advance after idle prevents "stuck" feeling | No auto-advance -- visitor scrolls once, thinks it's broken |
+| Snap points at narrative beats (gentle magnetic pull toward key positions) | Hard snap -- progress lurches to fixed positions |
+| Slow-in, slow-out at start and end of spline | Constant speed -- no emotional pacing |
+
+**Dependency on existing system:**
+- Replaces `CinematicCamera` for particle-mode scenes (GSAP keyframe camera is for displaced-mesh)
+- Uses Three.js `CatmullRomCurve3` for spline (already available via three.js)
+- Mouse parallax reuses existing pattern from CinematicCamera's `mouseOffset` ref
+- Scene config spline points stored in `memoryScenes.js` alongside `cameraKeyframes`
+
+**Complexity: MEDIUM-HIGH** (scroll normalization across input types + momentum physics + spline + progress mapping + snap points)
+
+### 3. DreamPortalTransition
+
+**Purpose:** Replace the sci-fi ring portal with a dreamstate transition that dissolves reality into particles, drifts through a tunnel/void, and reforms particles into the memory.
+
+**Three phases:**
+
+**Phase 1: Dissolve (2-3 seconds)**
+- The existing displaced mesh (current memory or home page content) begins to break apart
+- Mesh vertices scatter outward from center, preserving color, with increasing velocity
+- Simultaneously, the particle field begins to appear at low opacity in the background
+- Sound: low rumble crescendo, existing audio fades out
+- Camera: very slow drift forward into the dissolving mesh
+- Visual reference: like a sandcastle in wind, but the grains become luminous particles
+
+**Phase 2: Tunnel/Drift (1-2 seconds)**
+- Screen is fully in particle space -- scattered particles from Phase 1 stream past the camera
+- Background glow shifts to scene mood color (warm amber, cool blue)
+- Optional: particle streams converge ahead, suggesting a destination
+- Sound: atmospheric wash, reverb-heavy, tonal shift toward the scene's soundtrack key
+- Camera: accelerating forward through streaming particles
+- Visual reference: hyperspace jump in Star Wars but with warm glowing particles instead of stars
+
+**Phase 3: Reform (2-3 seconds)**
+- Streaming particles decelerate and find their target positions in the new memory's particle field
+- Particles arrive in waves: background first (farther, lower detail), foreground last (closer, higher detail)
+- Wire connections fade in after particles settle (0.5s delay)
+- Sound: scene soundtrack begins, fade from atmospheric wash into scene's ambient bed
+- Camera: decelerating, settling onto the beginning of the flight spline
+- Visual reference: Linkin Park "Lost" formation sequences where pixel clouds coalesce into recognizable images
+
+**Coordination with existing systems:**
+- Phase 1 needs access to the current renderer's geometry (displaced mesh vertices for scatter animation)
+- If entering from the constellation or home page (no active displaced mesh), Phase 1 uses a generic particle scatter from screen edges
+- PortalVFX's existing `phase` state machine (seep/gathering/rupture/emerging/residual) can be extended or paralleled with dream phases (dissolve/tunnel/reform)
+- `sessionStorage.jarowe_portal_entry` flag currently tracks whether portal preceded the scene -- extend to track dream portal
+
+**Complexity: HIGH** (coordinates across renderer disposal, new particle system initialization, camera handoff, audio crossfade, and three-phase state machine)
+
+### 4. MemorySoundscape (Progress-Reactive Audio)
+
+**Purpose:** Layered ambient audio that evolves with scroll progress, creating an emotional journey through sound that matches the visual journey through particles.
+
+**Layer architecture:**
+
+| Layer | Content | Scroll Behavior | Volume Range |
+|-------|---------|-----------------|--------------|
+| **Base drone** | Low-frequency sustained tone, scene-specific key | Always present; volume constant | 0.15-0.25 |
+| **Ambient bed** | Environmental recording (wind, water, cave echo, city hum) | Fades in from progress 0.1, full at 0.3 | 0-0.35 |
+| **Melodic fragment** | Short looped musical phrase, scene-specific | Fades in from progress 0.3, peaks at 0.6, softens past 0.8 | 0-0.20 |
+| **Detail layer** | Subtle texture (chimes, crickets, distant voices, reverb hits) | Appears only in progress 0.4-0.7 (the "deep" part of the flight) | 0-0.15 |
+| **Resolution** | Final sustained chord or fading tone | Fades in from progress 0.8, peaks at 1.0 | 0-0.20 |
+
+**Audio design principles for progress-reactive soundscapes:**
+
+1. **Continuous, not triggered.** Layers cross-fade smoothly based on progress position. No "event" sounds on scroll -- the soundscape is a continuous field that you move through. Triggered sounds (stings, hits) break the dream state.
+
+2. **Hysteresis prevents flutter.** When scroll progress oscillates around a threshold (visitor scrolling back and forth), layers use wide crossfade zones (0.1 progress width) rather than hard on/off thresholds. Prevents audio "flickering."
+
+3. **Reverb increases with depth.** Early in the flight (progress 0-0.3), audio is relatively dry. Deep in the flight (0.5-0.8), reverb tail increases. This creates an acoustic sense of "going deeper" that reinforces the visual depth.
+
+4. **Low-pass filter tracks depth.** A subtle low-pass filter on the ambient bed opens as progress increases. At progress 0, the world sounds muffled/distant. At progress 0.7, it sounds clear and present. Reinforces "arriving" in the memory.
+
+5. **Existing GlobalPlayer ducks, does not stop.** The GlobalPlayer music reduces volume (existing `duckForCapsule` pattern) but continues playing at ~10% volume. When the capsule exits, the global music restores. The soundscape and the global music coexist at different layers.
+
+6. **Mute state is respected.** If the visitor has muted the site audio, no soundscape plays. The experience works without sound (particles + scroll are the primary channel), but sound elevates it significantly.
+
+**Implementation approach:**
+- Each layer is a separate Howl instance with `loop: true`
+- A `SoundscapeController` component receives scroll progress as a prop
+- On each progress change, it computes target volume for each layer based on the envelope curves
+- Volumes are smoothed (lerped) to prevent zipper noise
+- Low-pass filter applied via Web Audio API BiquadFilterNode (branch from Howl's internal nodes)
+- Reverb via ConvolverNode with a short IR (0.5-1.5s), wet/dry mix driven by progress
+
+**Scene config extension:**
+```
+soundscape: {
+  baseDrone: '/memory/syros-cave/drone.mp3',
+  ambientBed: '/memory/syros-cave/ambient.mp3',
+  melodicFragment: '/memory/syros-cave/melody.mp3',
+  detailLayer: '/memory/syros-cave/detail.mp3',
+  resolution: '/memory/syros-cave/resolution.mp3',
+  // Envelope curves (progress -> volume multiplier)
+  envelopes: { ... }
+}
+```
+
+**Dependency on existing system:**
+- Uses Howler.js (existing, proven)
+- Coordinates with `AudioContext.jsx` duck/restore system
+- Web Audio API BiquadFilter and ConvolverNode require connecting to Howler's audio graph (same pattern as `connectAnalyser()` in AudioContext.jsx)
+- Must respect global mute state from `AudioContext`
+
+**Complexity: MEDIUM-HIGH** (multi-layer audio management + scroll-driven envelopes + Web Audio filter nodes + Howler coordination)
+
+---
 
 ## Feature Dependencies
 
 ```
-[Evidence-based edge generation]
-    └──requires──> [Normalized data schema]
-                       └──requires──> [Platform parsers: Instagram, Carbonmade]
+[ParticleMemoryRenderer]
+    |--requires--> [Photo + Depth Map assets (existing from v2.1)]
+    |--requires--> [R3F Canvas + instanced rendering]
+    |--requires--> [Bloom postprocessing (existing infrastructure)]
+    |--extends---> [Scene Registry (new renderMode: 'particle-memory')]
+    |--replaces--> [DisplacedMeshRenderer for particle-capable scenes]
+    |--preserved-> [DisplacedMeshRenderer still available for non-particle scenes]
 
-[Guided tour with narration]
-    └──requires──> [Anchor node selection]
-    └──requires──> [Camera path system]
-    └──requires──> [Narrator engine (scripted)]
+[MemoryFlightController]
+    |--requires--> [ParticleMemoryRenderer (needs a particle field to fly through)]
+    |--requires--> [CatmullRomCurve3 spline (Three.js built-in)]
+    |--requires--> [Scroll input normalization (new)]
+    |--replaces--> [CinematicCamera for particle-mode scenes]
+    |--preserved-> [CinematicCamera still used for displaced-mesh scenes]
+    |--reuses----> [Mouse/gyro parallax pattern from CinematicCamera]
 
-[Discovery gamification]
-    └──requires──> [Node visibility states]
-    └──enhances──> [Existing XP system in GameOverlay.jsx]
+[DreamPortalTransition]
+    |--requires--> [ParticleMemoryRenderer (reform target)]
+    |--optional--> [DisplacedMeshRenderer (dissolve source, if transitioning from mesh)]
+    |--extends---> [PortalVFX concept (new phases: dissolve/tunnel/reform)]
+    |--replaces--> [PortalVFX ring portal for particle scenes]
+    |--reuses----> [Session storage portal tracking pattern]
+    |--coordinates-> [MemorySoundscape (audio crossfade during transition)]
 
-[Real-time auto-ingest]
-    └──requires──> [Platform API integrations OR export parsers]
-    └──requires──> [Vercel cron jobs]
-    └──requires──> [Draft inbox UI in admin]
+[MemorySoundscape]
+    |--requires--> [Audio assets (5 layers per scene)]
+    |--requires--> [Scroll progress value from MemoryFlightController]
+    |--reuses----> [Howler.js (existing)]
+    |--reuses----> [AudioContext duck/restore pattern (existing)]
+    |--reuses----> [Web Audio API graph pattern from connectAnalyser()]
+    |--coordinates-> [DreamPortalTransition (crossfade during phase changes)]
 
-[Privacy-first curation]
-    └──requires──> [Visibility tier schema]
-    └──requires──> [Build-time validation script]
-    └──requires──> [Admin allowlist management UI]
+[GPU Tier Gating]
+    |--reuses----> [getGpuTier() from gpuCapability.js (existing)]
+    |--gates-----> [ParticleMemoryRenderer (full tier only)]
+    |--fallback--> [DisplacedMeshRenderer (simplified tier)]
+    |--fallback--> [ParallaxFallback (parallax tier, existing)]
 
-[Multi-mode constellation]
-    └──requires──> [Edge type weighting]
-    └──requires──> [Node filtering]
-    └──enhances──> [Narrator tone variations]
-
-[2D library fallback]
-    └──requires──> [Same JSON data as 3D constellation]
-    └──provides──> [Accessibility compliance]
-    └──provides──> [Search/filter UI]
-
-[Admin dashboard]
-    └──requires──> [Authentication (owner-only)]
-    └──requires──> [Vercel serverless functions]
-    └──requires──> [Vercel KV or Blob storage]
-
-[Path memory trail]
-    └──requires──> [Camera position tracking]
-    └──requires──> [3D line rendering with opacity fade]
-    └──conflicts──> [Performance on mobile if too many trail points]
+[CapsuleShell Integration]
+    |--extends---> [CapsuleShell.jsx renderMode switch (add 'particle-memory' case)]
+    |--preserves-> [All existing renderModes (displaced-mesh, splat, parallax)]
+    |--preserves-> [Narrative overlay, mute controls, back button, exit flow]
+    |--extends---> [Scene registry with particle + flight + soundscape config]
 ```
 
-### Dependency Notes
+### Critical Ordering
 
-- **Evidence-based edges require normalized schema:** Can't generate connections without canonical node/edge types. Pipeline must parse, normalize, then connect.
-- **Guided tour is constellation-dependent:** Tour makes no sense until constellation renders. Phase after core constellation works.
-- **Discovery gamification enhances existing XP:** Reuse GameOverlay.jsx system. Just emit XP events on node discoveries.
-- **Real-time ingest requires cron + draft inbox:** Can't auto-publish without curation. Draft inbox is non-negotiable for privacy.
-- **Privacy curation requires build-time validation:** Can't rely on runtime checks. Build must fail if private data leaks to public JSON.
-- **2D library fallback is accessibility requirement:** WCAG 3.0 (developing 2026-2028) mandates text alternatives for immersive content. Non-negotiable.
-- **Admin dashboard requires Vercel full-stack:** GitHub Pages deployment loses admin features (no serverless functions, no auth). Acceptable trade-off.
-- **Path memory trail conflicts with mobile performance:** Limit trail points (last 20 nodes?) or disable on mobile.
+1. **ParticleMemoryRenderer must come first.** Everything else depends on having a renderable particle field.
+2. **MemoryFlightController second.** Without scroll-driven camera, the particles are just a static cloud.
+3. **MemorySoundscape third.** Audio is emotionally critical but the visual experience must work first.
+4. **DreamPortalTransition last.** Most complex, coordinates all other systems, can be simplified (fade-to-black) initially.
 
-## MVP Definition
+---
 
-### Launch With (v1)
+## Scroll Interaction Patterns: What Feels Good vs. Bad
 
-Minimum viable product — what's needed to validate the constellation concept.
+### Good Patterns (validated in production experiences)
 
-- [ ] **3D constellation rendering (150+ nodes, 60fps desktop)** — Core experience; users must see their life as explorable graph
-- [ ] **Instanced node rendering with hover states** — Performance requirement; thousands of draws = death
-- [ ] **Connection lines with edge types** — Visual representation of relationships
-- [ ] **Detail panel on node click** — Content access; media, text, entity chips
-- [ ] **Timeline scrubber with epoch markers** — Navigation; prevents "lost in space" feeling
-- [ ] **2D library fallback (searchable)** — Accessibility + search requirement; can't launch without
-- [ ] **Instagram + Carbonmade parsers** — Data source; proves pipeline end-to-end
-- [ ] **Build-time pipeline (parse → normalize → connect → layout → JSON)** — Core architecture
-- [ ] **Privacy tier enforcement (public only for v1)** — Safety; can expand tiers post-launch
-- [ ] **Mobile responsive with graceful degradation** — Half of traffic is mobile; simplified effects acceptable
-- [ ] **ESC key exit + back navigation** — User safety; must feel in control
-- [ ] **Integration with existing bento hub** — Constellation as new page, not replacement
+| Pattern | Why It Works | Example |
+|---------|-------------|---------|
+| **Momentum with exponential decay** | Feels physical, like pushing an object. Natural on trackpads where users expect inertia. Release finger = camera continues for 0.5-1.5s then settles. | Apple's scroll physics, GSAP ScrollTrigger momentum |
+| **Soft snap to narrative beats** | Gentle magnetic pull toward key positions (where narrative text appears). Not hard snapping -- more like a valley the progress settles into. Scroll past with enough velocity and you skip the snap. | Figma prototype scroll-snap with momentum override |
+| **Progress indicator (subtle)** | Thin vertical bar or dot sequence at screen edge showing position in flight. Reassures visitor they can go forward and backward. Disappears after 2s of no input. | Apple AirPods Pro spatial audio demo |
+| **Auto-advance after idle** | If no scroll input for 5s, camera begins slow auto-advance. Any input immediately resumes manual control. Prevents "I scrolled once and nothing happened" abandonment. | Many scroll-driven WebGL experiences |
+| **Speed-dependent detail** | Fast scroll = particles blur slightly (motion blur uniform), connections thin out. Slow scroll = full detail, connections pulse. Rewards slow exploration. | Awwwards-style portfolio sites |
+| **Escape hatch** | Click/tap "skip" or press Escape at any time to jump to end or exit. No locked scroll. The experience is compelling enough that forcing it should never be needed. | YouTube VR experiences |
 
-### Add After Validation (v1.x)
+### Bad Patterns (validated failure modes)
 
-Features to add once core constellation validates.
+| Pattern | Why It Fails | Alternative |
+|---------|-------------|-------------|
+| **Scroll hijacking without boundaries** | Visitor scrolls expecting the page to scroll; instead camera moves. Disorienting if unexpected. Panic when they can't scroll past the experience. | Dedicated viewport with clear visual boundaries. Normal scroll above and below. |
+| **1:1 linear scroll mapping** | Every pixel of scroll = same camera distance. No momentum, no easing. Feels robotic. Touchpad users overshoot constantly. | Smoothed mapping with momentum decay and soft snaps. |
+| **Scroll reversal** | Scroll down = camera retreats instead of advances. Violates spatial expectation. | Down = forward into the memory. Always. |
+| **No reverse allowed** | Scroll only goes forward. Visitor wants to re-read a narrative card or revisit a section -- can't. Frustrating. | Full bidirectional scroll with momentum. |
+| **Hard snap to discrete positions** | Progress jumps between fixed waypoints. Breaks the sense of continuous flight. Looks like a slideshow. | Continuous spline interpolation. Soft snaps (magnetic, not hard). |
+| **Scroll-speed-dependent narrative** | Text appears faster if you scroll faster. Words blur past unread. | Narrative triggers at progress thresholds, not speed. Text has minimum display time regardless of scroll speed. |
 
-- [ ] **Guided tour (90-second cinematic)** — Adds "wow" factor; requires stable constellation first
-- [ ] **Scripted narrator engine (5-tier)** — Storytelling layer; builds on working tour system
-- [ ] **Discovery gamification + XP integration** — Engagement layer; requires baseline exploration patterns
-- [ ] **Path memory trail** — Polish; adds sense of personal journey
-- [ ] **Multi-mode constellation (Life/Work/Ideas)** — Audience segmentation; requires user feedback on default mode
-- [ ] **Admin dashboard with draft inbox** — Owner tooling; manual curation viable for v1
-- [ ] **Real-time auto-ingest (nightly cron)** — "Living" site; requires stable manual pipeline first
-- [ ] **"Because..." meaning lens in detail panel** — Transparency; requires evidence signals to be clear
-- [ ] **Ambient soundscape** — Atmosphere; nice-to-have after core experience works
-- [ ] **Audio-reactive rendering (optional)** — Polish; requires ambient soundscape first
+---
 
-### Future Consideration (v2+)
+## Audio Design Principles for Progress-Reactive Soundscapes
 
-Features to defer until constellation is validated and adopted.
+### 1. Sound Is Architecture, Not Decoration
 
-- [ ] **Suno music parser + track nodes** — Additional data source; proves pipeline scales
-- [ ] **Facebook/X/LinkedIn/Google Photos parsers** — More data sources; after Instagram/Carbonmade prove value
-- [ ] **Live AI narrator (LLM-based)** — Dynamic storytelling; after scripted narrator proves interaction model
-- [ ] **Privacy tiers: friends, redacted, private** — Advanced privacy; after public tier proves curation workflow
-- [ ] **GPS redaction (city-level public, exact for friends)** — Location privacy; requires friends tier
-- [ ] **People allowlist UI with overrides** — Advanced curation; after basic hide/publish proves sufficient
-- [ ] **Web Speech API TTS narrator** — Voice narration; polish after text narration works
-- [ ] **Lyria RealTime music generation** — Experimental; not core value
+The soundscape defines the emotional space. Without it, the particle field is a silent screensaver. With it, the particle field is a place you inhabit. Sound should feel like it was always there -- you're entering a space that has its own acoustic identity, not triggering sounds by scrolling.
+
+### 2. Layers, Not Events
+
+Progress-reactive audio must be layered and continuous, not event-driven. There are no "scroll sound effects." Instead, layers fade in and out based on position. The visitor should never consciously think "scrolling triggered a sound." They should feel "it sounds different here."
+
+### 3. The Reverb Rule
+
+Reverb tail is the most powerful depth cue in audio. Early in the flight (outside the particle field): dry, distant, thin. Deep in the field: wet, present, enveloping. This maps directly to the visual journey from outside to inside.
+
+### 4. Frequency Follows Depth
+
+Low frequencies = deep, internal, emotional. High frequencies = surface, detail, awareness. As the camera moves deeper into the particle field, the bass increases subtly and high-frequency detail thins. Pulling back reverses this. This is barely conscious but profoundly effective.
+
+### 5. Silence Is a Layer
+
+The soundscape should have moments of near-silence (just the base drone) at the beginning and end. The "full" soundscape lives in the middle of the flight. This creates an arc: quiet entry, rich middle, quiet resolution. Matches the emotional arc of entering and leaving a memory.
+
+### 6. Never Fight the GlobalPlayer
+
+The existing GlobalPlayer may be playing the visitor's chosen track. The soundscape ducks the global player (existing pattern) but never stops it. If the visitor has chosen silence (muted), the soundscape respects that completely. Sound is additive, never hostile.
+
+### 7. Crossfade Zones, Not Switch Points
+
+Every layer transition uses a crossfade zone of at least 10% of the progress range. Layer A fades out over progress 0.4-0.5 while Layer B fades in over 0.45-0.55. This prevents audio "clicking" at boundaries and accommodates scroll oscillation.
+
+---
+
+## MVP Definition for v2.2
+
+### Launch With (Minimum Viable Particle Memory)
+
+The minimum that delivers the "flying through a living memory field" promise:
+
+- [ ] **ParticleMemoryRenderer** -- Photo + depth -> 80K-100K instanced particles with color and depth positioning. Soft glow via bloom. Billboarded quads or point sprites with custom shader.
+- [ ] **Selective wire connections** -- 200K-300K line segments connecting nearby same-depth particles. Vertex-colored from source particles. Subtle alpha (0.15-0.25).
+- [ ] **Particle breathing** -- Per-particle sinusoidal position/size/brightness oscillation. Keyed to random seed per particle.
+- [ ] **MemoryFlightController** -- Scroll-driven camera on CatmullRomCurve3 spline. Momentum on release. Soft snaps at narrative beats. Auto-advance after 5s idle.
+- [ ] **Basic soundscape** -- 2-3 audio layers (drone + ambient + resolution) with scroll-driven volume envelopes. Uses existing Howler.js.
+- [ ] **GlobalPlayer ducking** -- Reuse existing `duckForCapsule`/`restoreFromCapsule` pattern.
+- [ ] **Simple entry transition** -- Fade-to-black -> particles coalesce from scattered state. Not the full dreamstate (Phase 2 tunnel can be cut).
+- [ ] **Simple exit transition** -- Particles scatter outward -> fade-to-black -> navigate home.
+- [ ] **GPU tier gating** -- Full-tier devices get particles. Simplified-tier gets existing displaced mesh. Parallax-tier gets existing CSS fallback.
+- [ ] **1 flagship scene** -- syros-cave as particle memory with authored flight spline, connection rules, and 2-3 soundscape layers.
+- [ ] **Progress indicator** -- Subtle vertical dots or thin bar at screen edge.
+- [ ] **Escape hatch** -- Skip/exit button always visible. Escape key works.
+
+### Add After Validation
+
+- [ ] **Full dreamstate portal** -- Three-phase dissolve/tunnel/reform replacing fade-to-black transitions
+- [ ] **5-layer soundscape** -- Full drone + ambient + melodic + detail + resolution layer stack
+- [ ] **Web Audio filters** -- Low-pass + reverb driven by scroll progress
+- [ ] **Depth-aware density** -- Importance sampling for particle distribution
+- [ ] **Narrative as particles** -- Text materializing from the particle field
+- [ ] **Speed-dependent detail** -- Motion blur and connection density responding to scroll velocity
+- [ ] **Additional scenes** -- Second and third particle memory scenes with different moods
+
+### Defer (v2.3+)
+
+- [ ] **WebGPU compute particles** -- 300K+ particle fields with GPU physics
+- [ ] **Multi-scene sequencing** -- Flying between multiple particle memories in one session
+- [ ] **Audio-reactive particle breathing** -- Particle oscillation driven by Web Audio analyser rather than sinusoidal
+- [ ] **User-generated particle memories** -- Upload photo -> auto-generate particle field in browser
+
+---
 
 ## Feature Prioritization Matrix
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| 3D constellation rendering | HIGH | HIGH | P1 |
-| 2D library fallback | HIGH | MEDIUM | P1 |
-| Detail panel on click | HIGH | LOW-MEDIUM | P1 |
-| Timeline scrubber | HIGH | MEDIUM | P1 |
-| Instagram + Carbonmade parsers | HIGH | MEDIUM-HIGH | P1 |
-| Privacy tier enforcement | HIGH | MEDIUM | P1 |
-| Mobile responsive degradation | HIGH | MEDIUM | P1 |
-| Guided tour | MEDIUM-HIGH | MEDIUM-HIGH | P2 |
-| Scripted narrator | MEDIUM-HIGH | HIGH | P2 |
-| Discovery gamification | MEDIUM | MEDIUM | P2 |
-| Multi-mode constellation | MEDIUM | MEDIUM | P2 |
-| Admin dashboard | MEDIUM | MEDIUM-HIGH | P2 |
-| Real-time auto-ingest | MEDIUM | HIGH | P2 |
-| Path memory trail | LOW-MEDIUM | MEDIUM | P2 |
-| Ambient soundscape | LOW-MEDIUM | LOW-MEDIUM | P2 |
-| Audio-reactive rendering | LOW | MEDIUM | P3 |
-| Live AI narrator | LOW | HIGH | P3 |
-| Advanced privacy tiers | MEDIUM | HIGH | P3 |
-| Additional platform parsers | MEDIUM | MEDIUM-HIGH | P3 |
+| Feature | User Value | Implementation Cost | Priority | Depends On |
+|---------|-----------|-------------------|----------|-----------|
+| Photo-to-particle sampling | HIGH | MEDIUM | P1 | Depth map assets |
+| Instanced particle rendering | HIGH | MEDIUM | P1 | Sampling |
+| Selective wire connections | HIGH | MEDIUM-HIGH | P1 | Particle positions |
+| Particle glow + bloom | HIGH | LOW-MEDIUM | P1 | Particle rendering |
+| Particle breathing | MEDIUM-HIGH | LOW | P1 | Particle rendering |
+| Scroll-driven camera (spline) | HIGH | MEDIUM-HIGH | P1 | Particle field |
+| Scroll momentum + easing | MEDIUM-HIGH | LOW-MEDIUM | P1 | Scroll camera |
+| Basic soundscape (2-3 layers) | HIGH | MEDIUM | P1 | Howler.js |
+| GlobalPlayer ducking | HIGH | LOW (reuse) | P1 | AudioContext |
+| Simple entry/exit transitions | HIGH | MEDIUM | P1 | Particle renderer |
+| GPU tier gating | HIGH | LOW (reuse) | P1 | gpuCapability.js |
+| Scene registry extension | MEDIUM | LOW | P1 | memoryScenes.js |
+| Progress indicator | MEDIUM | LOW | P1 | Scroll controller |
+| 1 flagship scene | HIGH | MEDIUM | P1 | All P1 features |
+| Full dreamstate portal | MEDIUM-HIGH | HIGH | P2 | All P1 + mesh disposal |
+| 5-layer soundscape | MEDIUM | MEDIUM | P2 | Basic soundscape |
+| Web Audio filters (LP, reverb) | MEDIUM | MEDIUM | P2 | Soundscape |
+| Depth-aware density | MEDIUM | MEDIUM | P2 | Sampling |
+| Narrative as particles | LOW-MEDIUM | HIGH | P3 | SDF text or hybrid |
+| Speed-dependent detail | LOW-MEDIUM | MEDIUM | P2 | Scroll controller |
+| WebGPU compute particles | LOW | HIGH | P3 | WebGPU maturity |
 
 **Priority key:**
-- P1: Must have for launch (validate constellation concept)
-- P2: Should have, add when possible (enhance experience)
-- P3: Nice to have, future consideration (polish & scale)
-
-## Competitive Feature Analysis
-
-| Feature | Dear Data (analog data art) | Awwwards 3D portfolios 2026 | Personal knowledge graphs (IVGraph, Obsidian) | Our Approach |
-|---------|--------------|--------------|--------------|--------------|
-| Data source | Manual collection (1 week = 1 postcard) | Manual content curation | Manual note-taking | Automated ingest from social platforms + curation layer |
-| Visualization | Hand-drawn analog postcards | WebGL/Three.js cinematic experiences | 2D or 3D network graphs | 3D double-helix temporal layout with evidence-based edges |
-| Narrative | Implicit (visual metaphor) | Scroll-driven parallax storytelling | User-driven exploration | Guided tour + 5-tier narrator + free exploration modes |
-| Privacy | Public (analog art exhibition) | Curated professional work only | Private local graphs | Privacy tiers with build-time validation; public by default, friends/private later |
-| Accessibility | Physical exhibition only | Often WebGL-only, no fallbacks | Desktop software or web app | 2D library fallback mandatory; WCAG 3.0 immersive tech guidance |
-| Interaction model | View-only (postcards in book) | Mouse/scroll-driven cinematic | Click to explore, search, filter | Timeline scrubber + hover/click + discovery gamification + search in 2D fallback |
-| Performance | N/A (analog) | Often targets high-end devices | Varies; can be slow with 1000+ nodes | Instancing for 150+ nodes at 60fps; graceful mobile degradation |
-| Data ownership | Creators own postcards | Creators own portfolio content | Users own local files | User owns data; export available; no blockchain hype |
-
-## Domain-Specific Insights
-
-### Interactive Portfolio Best Practices (2026)
-
-Based on research from [Awwwards](https://www.awwwards.com/websites/portfolio/), [Colorlib](https://colorlib.com/wp/best-portfolio-websites/), and [Muzli Blog](https://muz.li/blog/top-100-most-creative-and-unique-portfolio-websites-of-2025/):
-
-- **WebGL effects with purpose:** OHZI Interactive won Site of the Day + Developer Award for "exceptional technical execution of WebGL effects" where mouse movements trigger real-time visual distortions. Key: effects serve storytelling, not just spectacle.
-- **Micro-interactions everywhere:** Jan Blunár's turntable interface displays focus areas on hover, keeping users engaged as they explore.
-- **Smooth animations:** Double Play studio couples sharp messaging with award-worthy animation. Industry expects 60fps minimum.
-- **CMS-driven project pages:** Portfolio builders support scalable content structures, not just static galleries.
-- **Performance optimization:** Users expect <3s initial load even with 3D content. Code-splitting and lazy loading non-negotiable.
-
-### 3D Data Visualization Best Practices (2026)
-
-Based on research from [Neo4j blog](https://neo4j.com/blog/developer/visualizing-graphs-in-3d-with-webgl/), [Utsubo 100 Three.js Tips](https://www.utsubo.com/blog/threejs-best-practices-100-tips), and [Codrops](https://tympanus.net/codrops/2025/02/11/building-efficient-three-js-scenes-optimize-performance-while-maintaining-quality/):
-
-- **Instancing reduces draw calls by 90%+:** Use InstancedMesh for hundreds/thousands of similar geometries. Critical for node rendering.
-- **Interactivity overcomes 3D limitations:** Users must rotate, zoom, explore to overcome occlusion and perspective distortion.
-- **Reference elements essential:** Grid lines, axis markers help users judge positions in 3D space.
-- **Tooltips with precise values:** Don't rely on visual perception alone for data accuracy.
-- **WebGPU adoption for 2026+:** Emerging standard for improved performance; Three.js supports it.
-- **Memory management critical:** Always dispose unused resources. Memory leaks kill 3D performance.
-- **3d-force-graph library:** Wrapper around Three.js for efficient graph visualization; uses d3-force-3d or ngraph for physics.
-
-### Personal Data Dashboard Trends (2026)
-
-Based on research from [Visme](https://visme.co/blog/best-data-visualizations/), [Medium guide](https://medium.com/@valentin.herinckx/a-step-by-step-guide-to-building-your-personal-life-dashboard-95a1f9e7945), and [Forsta 200 years of dataviz](https://www.forsta.com/blog/200-years-data-visualization-2026/):
-
-- **AI-driven visualization tools:** 2026 trend toward predictive dashboards, real-time storytelling, mobile-optimized visuals.
-- **Slicers for interaction:** Users toggle between daily/weekly/monthly/annual views with clicks, not separate dashboards.
-- **Pattern-of-life analysis:** Timeline visualization reveals typical behaviors; similar patterns emerge over regular time durations (hours/days/weeks).
-- **Mobile compatibility mandatory:** Users expect dashboard access from any device, anywhere.
-
-### Interactive Storytelling & Narrator (2026)
-
-Based on research from [Utsubo immersive storytelling](https://www.utsubo.com/blog/immersive-storytelling-websites-guide), [Tapestry](https://www.cyark.org/whatwedo/), and [Wix scrollytelling](https://www.wix.com/studio/blog/scrollytelling):
-
-- **Scroll-controlled animation:** Users control pace; scrolling = interaction. Slow or fast, forward or back.
-- **Choice points:** Let visitors choose path ("Explore design story" vs "See technology").
-- **Narrator + 3D model canvas:** Tapestry uses high-res 3D models as canvas for narrative elements: ambient audio, archival imagery, interviews. "Guided by narrator and people connected to site."
-- **Narrated virtual tours:** 360-degree digital experience with audio narrative supplying information, details, context.
-- **Subtle parallax best:** Best parallax is smooth but imperceptible. Users feel it but can't explain why.
-- **Performance first:** Optimize images, avoid excessive JavaScript, test mobile. Heavy effects may not translate.
-- **Accessibility critical:** Ensure animations don't interfere with content readability.
-
-### Privacy & Ethics (2026)
-
-Based on research from [Epic.org social media privacy](https://epic.org/issues/consumer-privacy/social-media-privacy/), [Secure Privacy trends 2026](https://secureprivacy.ai/blog/data-privacy-trends-2026/), and [EPJ Data Science privacy-preserving visualization](https://epjdatascience.springeropen.com/articles/10.1140/epjds/s13688-020-00257-4):
-
-- **Utah Digital Choice Act (July 1, 2026):** Users can move content + relationships to new apps via open-source protocols. Social graph data must be portable via API.
-- **Global Privacy Control (GPC):** Browser/device signal for opt-out of data sales/targeting. Effectively mandatory in CA, CO, CT, OR in 2026.
-- **Meta €1.2B fine, LinkedIn €310M:** Enforcement for consent mechanisms and data transfers. Privacy violations = existential risk.
-- **2026 regulatory changes:** Expanded definitions of sensitive and neural data, strengthened youth protections, restrictions on geolocation data.
-- **Privacy-enhancing technologies (PET) market:** $3.12-4.40B in 2024, projected $12.09-28.4B by 2030-2034. Competitive advantage.
-- **Anonymization techniques:** Hashing, tokenization, generalization replace specific data with non-identifying codes.
-- **Data visualizations can leak identity:** May be linked to other released info to identify participants. Creation often prohibited by data use terms.
-- **Ethical principles:** Visualizations must correctly represent data, not mislead; respect privacy via laws, regulations, ethical guidelines.
-
-### Accessibility (WCAG 3.0 Developing 2026-2028)
-
-Based on research from [AbilityNet WCAG 3.0](https://abilitynet.org.uk/resources/digital-accessibility/what-expect-wcag-30-web-content-accessibility-guidelines), [W3C WCAG 3 Intro](https://www.w3.org/WAI/standards-guidelines/wcag/wcag3-intro/), and [RubyRoid Labs WCAG 3.0 guide](https://rubyroidlabs.com/blog/2025/10/how-to-prepare-for-wcag-3-0/):
-
-- **WCAG 3.0 timeline:** Still in development; won't finalize before 2028. Current compliance = WCAG 2.1 Level AA.
-- **Coverage of immersive tech:** WCAG 3.0 designed for VR, AR, 360-degree digital environments. Example: captions remain in front of user in 360 environments.
-- **User outcomes over prescriptive requirements:** Focus on outcomes, not specific techniques. Gives developers flexibility.
-- **Text alternatives mandatory:** Immersive experiences must have equivalent text-based alternatives for screen readers.
-- **Keyboard navigation:** All interactive elements must be keyboard-accessible.
-- **Motion tolerance:** Animations must not interfere with readability; consider motion sensitivity.
-
-## Sources
-
-### Interactive Portfolio & 3D Web Design
-- [Awwwards Portfolio Inspiration](https://www.awwwards.com/websites/portfolio/)
-- [Colorlib Best Portfolio Websites 2026](https://colorlib.com/wp/best-portfolio-websites/)
-- [Muzli Top 100 Portfolio Websites 2025](https://muz.li/blog/top-100-most-creative-and-unique-portfolio-websites-of-2025/)
-- [Lovable Best Interactive Websites 2026](https://lovable.dev/guides/best-interactive-websites)
-- [Awwwards Best 3D Websites](https://www.awwwards.com/websites/3d/)
-- [Awwwards Best WebGL Websites](https://www.awwwards.com/websites/webgl/)
-
-### 3D Data Visualization & Performance
-- [Visme Best Data Visualizations 2026](https://visme.co/blog/best-data-visualizations/)
-- [Neo4j Visualizing Graphs in 3D with WebGL](https://neo4j.com/blog/developer/visualizing-graphs-in-3d-with-webgl/)
-- [Utsubo 100 Three.js Performance Tips 2026](https://www.utsubo.com/blog/threejs-best-practices-100-tips)
-- [Codrops Building Efficient Three.js Scenes](https://tympanus.net/codrops/2025/02/11/building-efficient-three-js-scenes-optimize-performance-while-maintaining-quality/)
-- [3d-force-graph GitHub](https://github.com/vasturiano/3d-force-graph)
-- [KnowledgeHut 3D Data Visualization](https://www.knowledgehut.com/blog/business-intelligence-and-visualization/3d-data-visualization)
-
-### Personal Data Dashboards & Timeline Visualization
-- [Medium Personal Life Dashboard Guide](https://medium.com/@valentin.herinckx/a-step-by-step-guide-to-building-your-personal-life-dashboard-95a1f9e7945)
-- [Forsta 200 Years Data Visualization 2026](https://www.forsta.com/blog/200-years-data-visualization-2026/)
-- [FanRuan Top Modern Dashboard Design Templates 2026](https://www.fanruan.com/en/blog/top-modern-dashboard-design-templates)
-- [DataVis Gallery Timelines](https://www.datavis.ca/gallery/timelines.php)
-
-### Interactive Storytelling & Narration
-- [Utsubo Immersive Storytelling Websites Guide 2026](https://www.utsubo.com/blog/immersive-storytelling-websites-guide)
-- [CyArk Interactive Storytelling & 3D Virtual Tours](https://www.cyark.org/whatwedo/)
-- [Mass Interact Narrated Virtual Tours](https://www.massinteract.com/narrated-virtual-tours/)
-- [Webflow Visual Storytelling Website Examples](https://webflow.com/blog/storytelling-websites)
-- [Wix Scrollytelling Best Examples](https://www.wix.com/studio/blog/scrollytelling)
-- [Builder.io Parallax Scrolling 2026](https://www.builder.io/blog/parallax-scrolling-effect)
-
-### Social Media Data Privacy & Export
-- [Epic.org Social Media Privacy](https://epic.org/issues/consumer-privacy/social-media-privacy/)
-- [Secure Privacy Data Privacy Trends 2026](https://secureprivacy.ai/blog/data-privacy-trends-2026)
-- [TIME Social Media Platforms Shouldn't Own Your Identity](https://time.com/7274854/social-media-platforms-own-your-identity/)
-- [Ketch Data Privacy Laws 2026](https://www.ketch.com/blog/posts/us-privacy-laws-2026)
-
-### CMS for Personal Sites
-- [Cloudways Best CMS Platforms 2026](https://www.cloudways.com/blog/best-cms-platforms/)
-- [BCMS for Portfolio Website](https://thebcms.com/cms-for-portfolio-website)
-- [Prismic 20 Best Website CMS Platforms 2026](https://prismic.io/blog/website-cms-platforms)
-- [Orbitype Best Headless CMS for Portfolio](https://www.orbitype.com/posts/Wrj930/best-headless-cms-solutions-for-portfolio-and-personal-websites)
-
-### Gamification & Discovery
-- [Wix Website Gamification Guide](https://www.wix.com/studio/blog/website-gamification)
-- [Webflow Gamification Blog](https://webflow.com/blog/gamification)
-- [TMDesign Effective Website Gamification Best Practices](https://medium.com/theymakedesign/effective-website-gamification-best-practices-examples-4183b9b239d2)
-- [Startup News Gamification User Retention 2026](https://startupnews.fyi/2026/02/03/gamification-user-retention-digital/)
-- [Ramotion Website Gamification](https://www.ramotion.com/blog/website-gamification/)
-
-### Knowledge Graphs & Constellation Visualization
-- [Constellation App Data Visualisation Software](https://www.constellation-app.com/)
-- [Fluree GraphRAG & Knowledge Graphs 2026](https://flur.ee/fluree-blog/graphrag-knowledge-graphs-making-your-data-ai-ready-for-2026/)
-- [IVGraph Notion Knowledge Graph Guide 2026](https://ivgraph.com/journal/ultimate-notion-knowledge-graph-guide-2026/)
-- [Atlas Blog Knowledge Graph Tools Compared 2026](https://www.atlasworkspace.ai/blog/knowledge-graph-tools)
-
-### Data Autobiography & Personal Data Art
-- [Dear Data Project](http://www.dear-data.com/theproject)
-- [Nordic APIs Data-Driven Art Examples](https://nordicapis.com/6-inspiring-examples-of-data-driven-art/)
-- [Nightingale Data Self-Portrait](https://nightingaledvs.com/data-art-self-portrait/)
-- [Towards Data Science Personal Data Art](https://towardsdatascience.com/create-beautiful-art-from-your-personal-data-9dc0abfeeaf/)
-- [Visual Cinnamon Portfolio](https://www.visualcinnamon.com/portfolio/)
-
-### Privacy-Preserving Visualization & Ethics
-- [EPJ Data Science Privacy Preserving Visualizations](https://epjdatascience.springeropen.com/articles/10.1140/epjds/s13688-020-00257-4)
-- [Viborc Ethics and Ethical Data Visualization](https://viborc.com/ethics-and-ethical-data-visualization-a-complete-guide/)
-- [Cookie-Script Data Privacy Trends 2026](https://cookie-script.com/news/data-privacy-trends-2026)
-
-### Accessibility (WCAG 3.0)
-- [AbilityNet WCAG 3.0 Overview 2026](https://abilitynet.org.uk/resources/digital-accessibility/what-expect-wcag-30-web-content-accessibility-guidelines)
-- [W3C WCAG 3 Introduction](https://www.w3.org/WAI/standards-guidelines/wcag/wcag3-intro/)
-- [RubyRoid Labs WCAG 3.0 Updates Explained 2026](https://rubyroidlabs.com/blog/2025/10/how-to-prepare-for-wcag-3-0/)
-- [BBK Law New Digital Accessibility Requirements 2026](https://bbklaw.com/resources/new-digital-accessibility-requirements-in-2026)
+- P1: Must have -- delivers the core "flying through memory" promise
+- P2: Should have -- deepens the emotional and technical quality
+- P3: Future -- significant effort, defer until P1 proves the concept
 
 ---
-*Feature research for: Data-driven interactive personal website with 3D constellation visualization*
-*Researched: 2026-02-27*
+
+## Competitor / Reference Analysis
+
+| Feature | Linkin Park "Lost" Video | Apple Memories | Three.js Particle Examples | Bruno Simon Portfolio | Our Approach |
+|---------|-------------------------|---------------|--------------------------|---------------------|-------------|
+| Particle source | Pre-rendered CG | N/A (Ken Burns) | Procedural geometry | Procedural | Photo + depth map sampling |
+| Particle count | ~500K (offline rendered) | N/A | 10K-50K (real-time) | 20K-100K | 80K-150K (instanced) |
+| Connections | Sparse wire mesh, edge-following | None | None | None | Depth-aware selective wires |
+| Camera | Pre-animated, flies through | Auto-choreographed | OrbitControls (free) | Scroll-driven | Scroll-driven spline rail |
+| Audio | Full produced track | Auto-selected music | None | Background music | Progress-reactive layered soundscape |
+| Transitions | Scatter/reform between scenes | Crossfade | None | Scroll sections | Dreamstate dissolve/tunnel/reform |
+| Interactivity | None (video) | None | Mouse orbit | Scroll position | Scroll flight + mouse parallax |
+| Platform | Video (any player) | iOS native | Web (any browser) | Web (any browser) | Web (GPU tier gated) |
+
+**Our unique position:** We are the only implementation combining photo-derived particle fields with scroll-driven flight AND progress-reactive audio AND wire connections. The Linkin Park "Lost" video is our aesthetic target but it's pre-rendered video with no interactivity. We're making it real-time and interactive.
+
+---
+
+## Existing Codebase Assets to Reuse
+
+| Asset | File | What It Provides for v2.2 |
+|-------|------|--------------------------|
+| Depth map assets | `public/memory/syros-cave/depth.png` | Z-position data for particle extrusion. Same asset, different consumer. |
+| Photo assets | `public/memory/syros-cave/photo.webp` | Color data for particle sampling. Same asset, different consumer. |
+| Scene registry | `src/data/memoryScenes.js` | Extend with particle/flight/soundscape config. Existing schema preserved. |
+| GPU tier detection | `src/utils/gpuCapability.js` | Gate particle renderer to full tier. Existing function, no changes needed. |
+| CapsuleShell | `src/pages/CapsuleShell.jsx` | Add `renderMode: 'particle-memory'` case to existing switch. Shell chrome (narrative, mute, back) reused as-is. |
+| CinematicCamera | `src/pages/CapsuleShell.jsx` (inner component) | Mouse/gyro parallax pattern. Replaced for particle scenes but pattern reused. |
+| AtmosphericParticles | `src/pages/CapsuleShell.jsx` (inner component) | Shader patterns for point rendering (PARTICLE_VERT, PARTICLE_FRAG). Reference for breathing/drift. |
+| Particle shaders | `src/constellation/scene/ParticleCloud.jsx` | Instanced point rendering with custom vertex/fragment shaders. Shape-based SDF patterns. |
+| PortalVFX | `src/components/PortalVFX.jsx` | State machine pattern (phase-based transitions). Extend or parallel for dream phases. |
+| ArcController | `src/pages/CapsuleShell.jsx` (inner component) | GSAP-driven lifecycle (awakening/recession). Pattern for entry/exit timing. |
+| AudioContext | `src/context/AudioContext.jsx` | `duckForCapsule()`/`restoreFromCapsule()` pattern. `connectAnalyser()` pattern for Web Audio graph branching. |
+| Bloom postprocessing | `@react-three/postprocessing` | Already installed and proven. EffectComposer + Bloom for particle glow. |
+| CatmullRomCurve3 | `three` (built-in) | Spline for flight path. No new dependency. |
+| Color grading | `CapsuleShell.jsx` COLOR_GRADING presets | Mood-based color transforms. Apply to particle field for consistent scene tone. |
+
+---
+
+*Feature research for: Particle Memory Flight (v2.2)*
+*Researched: 2026-03-23*
+*Reference: Linkin Park "Lost" music video — pixel formations, wire connections, glow*

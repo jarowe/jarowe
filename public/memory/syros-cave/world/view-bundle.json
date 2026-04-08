@@ -1,0 +1,17 @@
+{
+  "sceneId": "syros-cave",
+  "strategy": "learned-scene-expansion",
+  "createdAt": "2026-03-27",
+  "sourceViewCount": 1,
+  "generatedViewCount": 0,
+  "totalViewCount": 1,
+  "anchorSource": "photo.webp",
+  "views": [
+    {
+      "role": "primary",
+      "kind": "source",
+      "relativePath": "public/memory/syros-cave/photo.webp",
+      "stagedFilename": "000-primary.webp"
+    }
+  ]
+}

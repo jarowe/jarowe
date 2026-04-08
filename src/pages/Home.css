@@ -30,6 +30,7 @@
     cursor: default;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 4px var(--tod-shadow-softness, 24px) rgba(0,0,0,0.3);
 }
 
 .bento-cell:not(.tilt-enabled):hover {
@@ -325,6 +326,7 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    filter: drop-shadow(var(--tod-text-glow, 0 0 0 transparent));
 }
 
 .hero-titles h2 {
@@ -486,6 +488,49 @@
     color: #fff;
     box-shadow: 0 0 10px rgba(124, 58, 237, 0.35);
     transform: scale(1.12);
+}
+
+/* Memory Portal CTA — floating pill in globe cell */
+.memory-portal-cta {
+    position: absolute;
+    bottom: 72px;
+    left: 12px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(124, 58, 237, 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 24px;
+    padding: 0.45rem 1rem;
+    color: rgba(167, 139, 250, 0.85);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.memory-portal-cta:hover {
+    background: rgba(124, 58, 237, 0.25);
+    border-color: rgba(124, 58, 237, 0.5);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.3);
+    transform: scale(1.04);
+}
+.portal-glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.3), transparent 70%);
+    animation: portal-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes portal-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
 }
 
 /* Globe photo pin (Instagram markers) */
@@ -2878,5 +2923,147 @@
 
     .promo-pill__link:hover {
         transform: translateX(0) translateY(-2px);
+    }
+}
+
+/* ── View Transitions API ── */
+::view-transition-old(root) {
+  animation: vt-fade-out 200ms ease-out forwards;
+}
+
+::view-transition-new(root) {
+  animation: vt-fade-in 200ms ease-in forwards;
+}
+
+@keyframes vt-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Persistent elements get view-transition-name for morphing — must be unique per element */
+.nav-brand {
+  view-transition-name: nav-brand;
+}
+.starseed-nav-link {
+  view-transition-name: nav-starseed;
+}
+
+/* ── Easter Egg CSS Classes (additive on top of --tod-*) ── */
+
+/* Full Moon: silver glow boost */
+.easter-egg--full-moon {
+  --ee-glow-color: rgba(200, 220, 255, 0.08);
+}
+.easter-egg--full-moon .bento-cell {
+  box-shadow: 0 0 30px var(--ee-glow-color), inset 0 0 15px rgba(200, 220, 255, 0.03);
+}
+.easter-egg--full-moon .hero-name {
+  text-shadow: 0 0 40px rgba(200, 220, 255, 0.2), 0 0 80px rgba(200, 220, 255, 0.08);
+}
+
+/* Friday the 13th: spooky purple/dark shift */
+.easter-egg--friday13 {
+  --ee-spooky-tint: rgba(88, 28, 135, 0.04);
+}
+.easter-egg--friday13 .bento-cell {
+  border-color: rgba(88, 28, 135, 0.15);
+  box-shadow: 0 0 20px rgba(88, 28, 135, 0.08);
+}
+.easter-egg--friday13 .hero-name {
+  text-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+}
+.easter-egg--friday13 .bento-grid {
+  filter: saturate(0.85);
+}
+
+/* Pi Day: green/math accent */
+.easter-egg--pi-day {
+  --ee-math-color: rgba(34, 197, 94, 0.06);
+}
+.easter-egg--pi-day .bento-cell {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.06);
+}
+.easter-egg--pi-day .hero-name {
+  text-shadow: 0 0 30px rgba(34, 197, 94, 0.15);
+}
+
+/* Summer Solstice: golden warmth boost */
+.easter-egg--solstice-summer {
+  --ee-golden-warmth: rgba(251, 191, 36, 0.06);
+}
+.easter-egg--solstice-summer .bento-cell {
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.08);
+}
+.easter-egg--solstice-summer .hero-name {
+  text-shadow: 0 0 40px rgba(251, 191, 36, 0.2);
+}
+
+/* Winter Solstice: cool blue boost */
+.easter-egg--solstice-winter {
+  --ee-cool-blue: rgba(56, 189, 248, 0.06);
+}
+.easter-egg--solstice-winter .bento-cell {
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.08);
+}
+.easter-egg--solstice-winter .hero-name {
+  text-shadow: 0 0 40px rgba(56, 189, 248, 0.2);
+}
+
+/* Site Birthday: rainbow accent glow */
+.easter-egg--birthday {
+  --ee-rainbow-1: rgba(251, 191, 36, 0.06);
+  --ee-rainbow-2: rgba(244, 114, 182, 0.06);
+  --ee-rainbow-3: rgba(124, 58, 237, 0.06);
+}
+.easter-egg--birthday .bento-cell {
+  box-shadow:
+    0 0 15px var(--ee-rainbow-1),
+    0 0 30px var(--ee-rainbow-2),
+    0 0 45px var(--ee-rainbow-3);
+}
+.easter-egg--birthday .hero-name {
+  background: linear-gradient(90deg, #fbbf24, #f472b6, #7c3aed, #38bdf8, #22c55e);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-shift 4s linear infinite;
+}
+@keyframes rainbow-shift {
+  to { background-position: 200% center; }
+}
+
+/* ── Weather CSS ── */
+
+/* Weather fog overlay (pointer-events:none, fixed, uses --weather-fog-density) */
+.weather-fog-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    rgba(180, 190, 210, calc(var(--weather-fog-density, 0) * 0.25)),
+    rgba(140, 150, 170, calc(var(--weather-fog-density, 0) * 0.12)) 50%,
+    transparent 80%
+  );
+  opacity: var(--weather-fog-density, 0);
+  transition: opacity 2s ease;
+}
+
+/* ── Reduced Motion: disable tod atmospheric transitions ── */
+@media (prefers-reduced-motion: reduce) {
+    .bento-cell {
+        transition: none;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
     }
 }

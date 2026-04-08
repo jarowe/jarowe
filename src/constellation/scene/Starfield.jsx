@@ -52,7 +52,7 @@ const starFragmentShader = `
  * Some stars are warm (yellowish/orange), some cool (blue-white),
  * most are neutral white. Creates a more realistic, cinematic look.
  */
-export default function Starfield({ starCount }) {
+export default function Starfield({ starCount, reducedMotion = false }) {
   const pointsRef = useRef();
 
   const { geometry, material } = useMemo(() => {
@@ -119,7 +119,7 @@ export default function Starfield({ starCount }) {
       fragmentShader: starFragmentShader,
       uniforms: {
         uTime: { value: 0 },
-        uTwinkleSpeed: { value: getCfg('starTwinkleSpeed') },
+        uTwinkleSpeed: { value: reducedMotion ? 0 : getCfg('starTwinkleSpeed') },
       },
       vertexColors: true,
       transparent: true,
@@ -128,12 +128,12 @@ export default function Starfield({ starCount }) {
     });
 
     return { geometry: geo, material: mat };
-  }, [starCount]);
+  }, [reducedMotion, starCount]);
 
   useFrame(({ clock }) => {
     if (!material) return;
     material.uniforms.uTime.value = clock.getElapsedTime();
-    material.uniforms.uTwinkleSpeed.value = getCfg('starTwinkleSpeed');
+    material.uniforms.uTwinkleSpeed.value = reducedMotion ? 0 : getCfg('starTwinkleSpeed');
   });
 
   if (!starCount || starCount <= 0) return null;

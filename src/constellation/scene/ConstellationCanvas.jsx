@@ -1,9 +1,11 @@
 import { useRef, useEffect, useMemo, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { EffectComposer, DepthOfField, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration, DepthOfField, Noise, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { HalfFloatType, Color } from 'three';
+import { BlendFunction } from 'postprocessing';
+import gsap from 'gsap';
 import { useConstellationStore } from '../store';
 import { computeHelixLayout, getHelixCenter, getHelixBounds } from '../layout/helixLayout';
 import { getCfg } from '../constellationDefaults';
@@ -15,6 +17,7 @@ import CameraController from './CameraController';
 import Starfield from './Starfield';
 import HelixBackbone from './HelixBackbone';
 import NebulaFog from './NebulaFog';
+import AmbientShootingStars from './AmbientShootingStars';
 
 /**
  * Scene fog that fades distant objects into darkness for atmospheric depth.
@@ -56,6 +59,7 @@ function CinematicDOF() {
   const focusedNodeId = useConstellationStore((s) => s.focusedNodeId);
   const nodes = useConstellationStore((s) => s.nodes);
   const { camera } = useThree();
+  const chromaticOffset = useMemo(() => new THREE.Vector2(getCfg('chromaticOffset'), getCfg('chromaticOffset')), []);
 
   // Track current animated values for smooth lerping (world units)
   const current = useRef({ bokeh: 1, focusDist: 120, focusRange: 80 });
@@ -100,17 +104,38 @@ function CinematicDOF() {
       coc.focusDistance = current.current.focusDist;
       coc.focusRange = current.current.focusRange;
     }
+
+    const chromatic = getCfg('chromaticEnabled') ? getCfg('chromaticOffset') : 0;
+    chromaticOffset.set(chromatic, chromatic);
   });
 
   return (
     <EffectComposer frameBufferType={HalfFloatType} disableNormalPass>
+      {getCfg('bloomEnabled') && (
+        <Bloom
+          intensity={getCfg('bloomIntensity')}
+          luminanceThreshold={getCfg('bloomThreshold')}
+          luminanceSmoothing={getCfg('bloomSmoothing')}
+          radius={getCfg('bloomRadius')}
+          mipmapBlur
+        />
+      )}
       <DepthOfField
         ref={dofRef}
         focusDistance={120}
         focalLength={80}
         bokehScale={1}
       />
+      {getCfg('chromaticEnabled') && (
+        <ChromaticAberration offset={chromaticOffset} />
+      )}
       <Vignette eskil={false} offset={getCfg('vignetteOffset')} darkness={getCfg('vignetteDarkness')} />
+      {getCfg('grainEnabled') && (
+        <Noise
+          blendFunction={BlendFunction.OVERLAY}
+          opacity={getCfg('grainOpacity')}
+        />
+      )}
     </EffectComposer>
   );
 }
@@ -152,9 +177,16 @@ function detectGPUTier() {
 /**
  * Main R3F Canvas for the constellation scene.
  */
-export default function ConstellationCanvas() {
+export default function ConstellationCanvas({
+  introEnabled = false,
+  introExpected = false,
+  onIntroComplete = null,
+  reducedMotion = false,
+}) {
   const rendererRef = useRef();
   const controlsRef = useRef();
+  // Keep geometry hidden while we are still waiting for the intro to begin.
+  const introRef = useRef({ active: false, progress: introExpected ? 0 : 1 });
   const setGpuTier = useConstellationStore((s) => s.setGpuTier);
   const clearFocus = useConstellationStore((s) => s.clearFocus);
   const storeNodes = useConstellationStore((s) => s.nodes);
@@ -282,11 +314,39 @@ export default function ConstellationCanvas() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!introEnabled) {
+      introRef.current.active = false;
+      introRef.current.progress = introExpected ? 0 : 1;
+      return undefined;
+    }
+
+    const introProxy = { progress: 0 };
+    introRef.current.active = true;
+    introRef.current.progress = 0;
+
+    const tween = gsap.to(introProxy, {
+      progress: 1,
+      duration: 3.6,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        introRef.current.progress = introProxy.progress;
+      },
+      onComplete: () => {
+        introRef.current.active = false;
+        introRef.current.progress = 1;
+        onIntroComplete?.();
+      },
+    });
+
+    return () => tween.kill();
+  }, [introEnabled, introExpected, onIntroComplete]);
+
   return (
     <Canvas
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{
-        position: [0, center.y + 10, cameraFit.z],
+        position: [0, (helixBounds.minY + helixBounds.maxY) * 0.5, cameraFit.z],
         fov: 60,
       }}
       dpr={gpuConfig.dpr}
@@ -311,22 +371,24 @@ export default function ConstellationCanvas() {
         autoRotate
         autoRotateSpeed={0.35}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.04}
         enablePan={false}
         minPolarAngle={Math.PI * (15 / 180)}
         maxPolarAngle={Math.PI * (165 / 180)}
         minDistance={cameraFit.minDistance}
         maxDistance={cameraFit.maxDistance}
-        target={[center.x, center.y, center.z]}
+        target={[center.x, (helixBounds.minY + helixBounds.maxY) * 0.5, center.z]}
       />
 
       <CameraController
         controlsRef={controlsRef}
-        positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
+        positions={layoutNodes}
         helixBounds={helixBounds}
+        introEnabled={introEnabled}
+        introRef={introRef}
       />
 
-      <HoverLabel nodes={helixNodes.length > 0 ? helixNodes : layoutNodes} />
+      <HoverLabel nodes={layoutNodes} />
 
       {/* Scene fog for atmospheric depth falloff */}
       <SceneFog />
@@ -344,19 +406,26 @@ export default function ConstellationCanvas() {
       <HelixBackbone
         positions={helixNodes.length > 0 ? helixNodes : layoutNodes}
         disabled={gpuConfig.starParticles === 0}
+        introRef={introRef}
+        reducedMotion={reducedMotion}
       />
 
-      <ConnectionLines positions={layoutNodes} />
+      <ConnectionLines positions={layoutNodes} introRef={introRef} reducedMotion={reducedMotion} />
 
       {helixNodes.length > 0 && (
         <NodeCloud
           nodes={helixNodes}
           gpuConfig={gpuConfig}
+          introRef={introRef}
         />
       )}
 
       {particleNodes.length > 0 && (
-        <ParticleCloud nodes={particleNodes} tunnelMode={cameraMode === 'tunnel'} />
+        <ParticleCloud
+          nodes={particleNodes}
+          tunnelMode={cameraMode === 'tunnel'}
+          introRef={introRef}
+        />
       )}
 
       {/* Nebula fog near epoch cluster centers */}
@@ -365,7 +434,8 @@ export default function ConstellationCanvas() {
         enabled={getCfg('nebulaEnabled') && gpuConfig.bloom}
       />
 
-      <Starfield starCount={gpuConfig.starParticles} />
+      <Starfield starCount={gpuConfig.starParticles} reducedMotion={reducedMotion} />
+      <AmbientShootingStars introRef={introRef} reducedMotion={reducedMotion} />
 
       {gpuConfig.bloom && <CinematicDOF />}
     </Canvas>

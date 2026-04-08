@@ -1,149 +1,96 @@
-# Requirements: jarowe.com Living World
+# Requirements: jarowe.com
 
-**Defined:** 2026-03-20
+**Defined:** 2026-04-05 (v2.3)
 **Core Value:** jarowe.com is the most alive personal world on the internet -- a living place of wonder that turns curiosity into creation.
-**Canonical scope:** See `.planning/future/MASTER_PLAN.md` for strategic rationale and shipping order.
 
-## v2.0 Requirements
+## v2.3 Requirements — Best World Wins
 
-Requirements for the Living World milestone. 37 requirements across 6 categories. All ship in v2.0, sequenced into 5 waves.
+Choose the best world-generation family for each hero memory through controlled comparison, then evaluate subject reconstruction paths against the winning world.
 
-### Today Layer
+**Guardrail:** If tradeoffs appear, protect comparison fairness (GRADE-04) and provenance integrity (WORLD-03) before protecting coverage breadth. A fair comparison of two families beats an unfair comparison of three.
 
-- [ ] **TODAY-01**: Visitor sees date-specific content (holiday, featured constellation node, creative prompt) within 5 seconds of homepage load
-- [ ] **TODAY-02**: Homepage color temperature shifts based on time of day (dawn, golden hour, day, dusk, night) via CSS custom properties
-- [ ] **TODAY-03**: Moon phase drives subtle visual changes to constellation particle brightness and nebula glow
-- [ ] **TODAY-04**: Real weather data from visitor location drives atmospheric visuals (fog density, particle speed, precipitation overlay, color warmth)
-- [ ] **TODAY-05**: AI-generated Glint daily journal entry displayed as "Thought of the Day" card on homepage
-- [ ] **TODAY-06**: Daily progress signal card showing one curated positive/constructive news item with source link
-- [ ] **TODAY-07**: Daily creative prompt card with "Start in Starseed" CTA that opens scratchpad/canvas with prompt pre-loaded
+### World Comparison
 
-### Glint Operator
+- [ ] **WORLD-01**: Controlled comparison set generated for naxos-rock across Marble and WorldGen families with identical source photo
+- [ ] **WORLD-02**: Controlled comparison set generated for syros-cave across Marble and WorldGen families with identical source photo
+- [ ] **WORLD-02a**: Matrix-3D completes at least one benchmark scene successfully (cloud GPU allowed). If operationally viable, expand to second scene in-milestone.
+- [ ] **WORLD-02b**: If Matrix-3D proves non-viable for the comparison, document why it was excluded with specific failure evidence
+- [ ] **WORLD-03**: Every generation run saved with strict provenance -- family, prompt, seed, quality profile, runtime asset format, source/output files, machine score, human grade
 
-- [ ] **GLINT-01**: Glint can navigate visitor to any page on the site via natural conversation ("Take me to the constellation")
-- [ ] **GLINT-02**: Glint can launch any game from the registry via conversation ("Play a game")
-- [ ] **GLINT-03**: Glint can control music playback (play, pause, next) via conversation
-- [ ] **GLINT-04**: Glint's tool calls are narrated in character -- not robotic execution confirmations but tour-guide-style narration
-- [ ] **GLINT-05**: Command palette (Cmd+K) shares the same action dispatcher as Glint's tool system, searching pages, nodes, games, and actions
-- [ ] **GLINT-06**: Glint can save ideas to Starseed scratchpad via conversation ("Save this idea")
-- [ ] **GLINT-07**: Glint can show daily content and progress signal on request ("What's new today?")
+### Grading System
 
-### Starseed Hub
+- [ ] **GRADE-01**: Grading rubric implemented in lab with 5 dimensions (world coherence, exploration range, subject preservation potential, artifact severity, emotional read) scored 1-5 with anchored examples
+- [ ] **GRADE-02**: 7 standardized camera views evaluated per world (start, right-45, right-90, rear-180, overhead, approach, ground)
+- [ ] **GRADE-03**: Family-first lab review with filters, side-by-side candidate context, and winner marking per family and per scene
+- [ ] **GRADE-04**: All family comparisons use the same source image, same review camera set, and as-close-as-possible prompt intent so the comparison is fair
 
-- [ ] **STAR-01**: `/starseed` route replaces Workshop with branded Starseed showcase using campaign-shell pattern (own nav, palette, chrome rules)
-- [ ] **STAR-02**: Project cards display active Starseed projects (BEAMY, AMINA, DECKIT, Starseed Labs, and future projects) with icons, descriptions, and tags
-- [ ] **STAR-03**: Starseed brand (fonts, colors, logo from brand kit) applies when inside `/starseed/*` routes -- distinct from jarowe.com main site aesthetic
-- [ ] **STAR-04**: Seamless return navigation from Starseed pages to jarowe.com main site (escape hatch like music release nav)
-- [ ] **STAR-05**: Contact/client-facing section for Starseed business inquiries with form or mailto
-- [ ] **STAR-06**: Each project card links to its own detail page within the site or to an external project URL
-- [ ] **STAR-07**: starseed.llc DNS redirects to jarowe.com/starseed (or reverse proxy) -- unified URL strategy
+### Subject Path
 
-### Starseed Labs (Creation Surface)
+- [ ] **SUBJ-01**: Current billboard subject path evaluated against depth-warped billboard and SAM 3D Objects on the winning world family -- not against moving targets
+- [ ] **SUBJ-02**: Subject grading criteria defined and applied (depth coherence, parallax correctness, appearance preservation, artifact visibility)
 
-- [ ] **LABS-01**: `/starseed/labs/scratchpad` route with Milkdown markdown WYSIWYG editor and localStorage persistence with auto-save
-- [ ] **LABS-02**: `/starseed/labs/canvas` route with Excalidraw infinite canvas and localStorage persistence for scene data
-- [ ] **LABS-03**: Both Excalidraw (~400KB) and Milkdown (~40KB) are lazy-loaded and never load on non-Labs routes
-- [ ] **LABS-04**: Glint handoff -- "Save this idea" tool call from chat creates a note in the scratchpad with pre-populated content
-- [ ] **LABS-05**: Glint brainstorm mode -- structured AI ideation session that generates a project brief (title, idea, mood, next steps)
-- [ ] **LABS-06**: Labs hub page (`/starseed/labs`) with entry point cards to scratchpad, canvas, and brainstorm
+### Winner Selection
 
-### Daily Engine
+- [ ] **WIN-01**: One locked winning world family per scene with documented evidence (scores, screenshots, notes on why it won)
+- [ ] **WIN-02**: One locked winning subject path per scene with documented evidence
 
-- [ ] **DAILY-01**: `dailySeed.js` utility module providing deterministic daily content rotation -- same date always selects same content
-- [ ] **DAILY-02**: View Transitions API between React Router pages with smooth morphing for persistent elements (navbar, player) and graceful fallback
-- [ ] **DAILY-03**: Dynamic OG images via `@vercel/og` Edge Function -- route-specific social preview cards for homepage, constellation, games, Starseed
-- [ ] **DAILY-04**: Visitor streak system tracking consecutive visit days with Glint milestone reactions (3, 7, 14, 30 days) and one streak freeze
-- [ ] **DAILY-05**: 5+ date-locked easter eggs (full moon, Friday the 13th, Pi Day, solstices, site birthday) triggering visual effects and Glint dialogue
-- [ ] **DAILY-06**: Weather-responsive globe and constellation atmosphere via Open-Meteo API driving fog density, particle speed, and color warmth
+## Exploratory (Non-Blocking)
 
-### Immersive Portal
+These are tracked but not required for v2.3 completion. May prove useful for future milestones.
 
-- [ ] **PORTAL-01**: One gaussian splat scene captured from a meaningful location, optimized to SPZ format, and viewable in the site via Spark.js or drei Splat
-- [ ] **PORTAL-02**: Splat scene accessible from globe or constellation with a portal-style camera transition (flythrough, dissolve, or dimensional shader)
-- [ ] **PORTAL-03**: Soundtrack auto-plays and narrative text overlay tells the story of the place within the splat scene
-- [ ] **PORTAL-04**: Direct shareable URL (`/memory/[scene-name]`) with dynamic OG image showing splat scene preview
+- **EXPLORE-01**: sam3d-body evaluated as body prior / occluder / collider / depth scaffold (not as visible subject solution). Document utility findings regardless of outcome.
 
-## v2.1+ Requirements (Deferred)
+## Future Requirements
 
-Acknowledged, tracked, not in current roadmap.
+Deferred to v2.4+ milestones. Not in current roadmap.
 
-### Ecosystem Expansion
-- **ECO-01**: Starseed Labs as standalone product with own OAuth, own domain, agentic AI business factory
-- **ECO-02**: Community infrastructure -- Discord server(s) for jarowe.com/Starseed/Starseed Labs communities
-- **ECO-03**: Subscriber system -- mailing list, SMS, cross-ecosystem user management
-- **ECO-04**: Content pipeline automation -- hard drive creative assets to site publishing workflow
-- **ECO-05**: Video/livestreaming channel on jarowe.com
-- **ECO-06**: Full starseed.llc independent site (beyond redirect)
+### Visual Polish
+- **POLISH-01**: Dream particle effects tuned for winning world family
+- **POLISH-02**: Atmosphere/fog/god-rays layer on winning world
+- **POLISH-03**: Camera choreography and entry transitions refined
+- **POLISH-04**: Soundscape with real ambient audio (not synthesized placeholders)
 
-### Experience Expansion
-- **EXP-01**: Voice-enabled Glint (Web Speech API, ElevenLabs, OpenAI Realtime)
-- **EXP-02**: Multiplayer visitor presence via PartyKit
-- **EXP-03**: StarOS desktop mode at high engagement XP threshold
-- **EXP-04**: Additional gaussian splat memory portals
-- **EXP-05**: Hand-tracked Glint interaction via MediaPipe
-- **EXP-06**: WebGPU shader gallery and compute experiences
-- **EXP-07**: VR constellation mode via WebXR
-- **EXP-08**: Glint conversation memory persistence in Supabase
+### Loading & Performance
+- **PERF-01**: SPZ compression pipeline for all scenes (<3s load target)
+- **PERF-02**: Two-tier progressive loading (100K preview → full quality)
+- **PERF-03**: Preloading strategy (prefetch on hover, service worker caching)
 
-## Out of Scope
+### Scale
+- **SCALE-01**: Automated pipeline for new memory content (photo → world → deployed)
+- **SCALE-02**: Memory-to-memory transitions (particles dissolve between worlds)
+
+## Out of Scope (v2.3)
 
 | Feature | Reason |
 |---------|--------|
-| Full editorial news operation | Progress lens is curated cards, not a feed. Editorial overhead is incompatible with "works for Jared." |
-| Generic autonomous internet agent | Glint is bounded to this world. Constraints make him memorable. |
-| Mobile native app | Web-first. Responsive design covers mobile. |
-| Uncontrolled auto-publishing | Automation proposes and prefills. Jared decides what becomes public. |
-| Generalized social network features | Community forms around content, not around profiles. Discord first. |
+| Renderer cleanup / dead code removal | Done in v2.2 cleanup |
+| Dream effects / atmosphere polish | v2.4 — after world quality locked |
+| Loading optimization beyond fair comparison | v2.4 |
+| New narrative UX | v2.4 |
+| sam3d-body as visible subject solution | Research shows it outputs geometry-only mannequins with no appearance — downgrade from photo billboards for personal memories. Tracked as exploratory for other uses. |
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TODAY-01 | Phase 3 | Pending |
-| TODAY-02 | Phase 3 | Pending |
-| TODAY-03 | Phase 3 | Pending |
-| TODAY-04 | Phase 6 | Pending |
-| TODAY-05 | Phase 4 | Pending |
-| TODAY-06 | Phase 6 | Pending |
-| TODAY-07 | Phase 3 | Pending |
-| GLINT-01 | Phase 4 | Pending |
-| GLINT-02 | Phase 4 | Pending |
-| GLINT-03 | Phase 4 | Pending |
-| GLINT-04 | Phase 4 | Pending |
-| GLINT-05 | Phase 4 | Pending |
-| GLINT-06 | Phase 6 | Pending |
-| GLINT-07 | Phase 4 | Pending |
-| STAR-01 | Phase 3 | Pending |
-| STAR-02 | Phase 5 | Pending |
-| STAR-03 | Phase 3 | Pending |
-| STAR-04 | Phase 3 | Pending |
-| STAR-05 | Phase 5 | Pending |
-| STAR-06 | Phase 5 | Pending |
-| STAR-07 | Phase 5 | Pending |
-| LABS-01 | Phase 5 | Pending |
-| LABS-02 | Phase 5 | Pending |
-| LABS-03 | Phase 5 | Pending |
-| LABS-04 | Phase 6 | Pending |
-| LABS-05 | Phase 6 | Pending |
-| LABS-06 | Phase 5 | Pending |
-| DAILY-01 | Phase 3 | Pending |
-| DAILY-02 | Phase 3 | Pending |
-| DAILY-03 | Phase 6 | Pending |
-| DAILY-04 | Phase 6 | Pending |
-| DAILY-05 | Phase 6 | Pending |
-| DAILY-06 | Phase 6 | Pending |
-| PORTAL-01 | Phase 7 | Pending |
-| PORTAL-02 | Phase 7 | Pending |
-| PORTAL-03 | Phase 7 | Pending |
-| PORTAL-04 | Phase 7 | Pending |
+| WORLD-01 | 19 (Generation Batches) | Not started |
+| WORLD-02 | 19 (Generation Batches) | Not started |
+| WORLD-02a | 20 (Matrix-3D Viability Test) | Not started |
+| WORLD-02b | 20 (Matrix-3D Viability Test) | Not started |
+| WORLD-03 | 19 (Generation Batches) | Not started |
+| GRADE-01 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| GRADE-02 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| GRADE-03 | 21 (Lab Upgrade for Family Review) | Not started |
+| GRADE-04 | 18 (Grading Rubric & Comparison Protocol) | Not started |
+| SUBJ-01 | 22 (Subject Path Evaluation) | Not started |
+| SUBJ-02 | 22 (Subject Path Evaluation) | Not started |
+| WIN-01 | 23 (Winner Selection & Lock) | Not started |
+| WIN-02 | 23 (Winner Selection & Lock) | Not started |
 
 **Coverage:**
-- v2.0 requirements: 37 total
-- Mapped to phases: 37
-- Unmapped: 0
+- v2.3 requirements: 13 total
+- Exploratory: 1 (non-blocking)
+- Mapped to phases: 13/13 (100%)
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after v2.0 roadmap creation (all 37 requirements mapped to Phases 3-7)*
+*Requirements defined: 2026-04-05 (v2.3)*
