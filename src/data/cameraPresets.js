@@ -115,18 +115,34 @@ export const CAMERA_PRESETS = [
     id: 'V4',
     name: 'Overhead',
     shortcut: '4',
-    description: 'Move camera to 2x height, pitch down 45 degrees',
+    description: 'Birds-eye review angle using scene distance as the height baseline',
     evaluate: 'Ground plane continuity. Floating splat visibility. World coherence from above.',
     computeCamera(cam) {
-      const height = Math.abs(cam.startPosition[1] - cam.startTarget[1]) || 1;
-      const overheadPos = [
-        cam.startTarget[0],
-        cam.startTarget[1] + height * 3,
-        cam.startTarget[2] + height * 2,
+      const dx = cam.startTarget[0] - cam.startPosition[0];
+      const dz = cam.startTarget[2] - cam.startPosition[2];
+      const horizontalDistance = Math.hypot(dx, dz) || 1;
+      const distance = Math.hypot(
+        cam.startPosition[0] - cam.startTarget[0],
+        cam.startPosition[1] - cam.startTarget[1],
+        cam.startPosition[2] - cam.startTarget[2],
+      ) || 4;
+      const forwardX = dx / horizontalDistance;
+      const forwardZ = dz / horizontalDistance;
+      const height = Math.max(distance * 0.65, 1.8);
+      const lookAhead = distance * 0.45;
+      const position = [
+        cam.startTarget[0] - forwardX * distance * 0.1,
+        cam.startTarget[1] + height,
+        cam.startTarget[2] - forwardZ * distance * 0.1,
+      ];
+      const target = [
+        cam.startTarget[0] + forwardX * lookAhead,
+        cam.startTarget[1],
+        cam.startTarget[2] + forwardZ * lookAhead,
       ];
       return {
-        position: overheadPos,
-        target: [...cam.startTarget],
+        position,
+        target,
         fov: cam.fov ?? 48,
       };
     },
